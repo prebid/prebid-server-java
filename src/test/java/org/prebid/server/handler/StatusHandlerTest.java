@@ -10,8 +10,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.health.HealthChecker;
-import org.prebid.server.health.model.Status;
-import org.prebid.server.health.model.StatusResponse;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
@@ -21,8 +19,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -42,44 +40,43 @@ public class StatusHandlerTest extends VertxTest {
     private StatusHandler statusHandler;
 
     @Test
+    public void creationShouldFailOnNullHealthCheckers() {
+        assertThatNullPointerException().isThrownBy(() -> new StatusHandler(null));
+    }
+
+    @Test
     public void shouldRespondHttp200OkWithExpectedBody() throws JsonProcessingException {
         // given
         final ZonedDateTime testTime = ZonedDateTime.now(Clock.systemUTC());
-        statusHandler = new StatusHandler("ready", Arrays.asList(healthCheck, healthCheck));
+        statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck));
+
+        final Map<String, Object> dbStatusMap = new HashMap<>();
+        dbStatusMap.put("status", "UP");
+        dbStatusMap.put("last_updated", testTime);
+
+        final Map<String, Object> otherStatusMap = new HashMap<>();
+        otherStatusMap.put("status", "DOWN");
+        otherStatusMap.put("last_updated", testTime);
 
         given(routingContext.response()).willReturn(httpResponse);
-        given(healthCheck.getCheckName()).willReturn("db", "other");
-        given(healthCheck.getLastStatus())
-                .willReturn(StatusResponse.of(Status.UP, testTime), StatusResponse.of(Status.DOWN, testTime));
+        given(healthCheck.name()).willReturn("application", "db", "other");
+        given(healthCheck.status()).willReturn(singletonMap("status", "ready"), dbStatusMap, otherStatusMap);
 
         // when
         statusHandler.handle(routingContext);
 
         // then
         final Map<String, Object> expectedMap = new TreeMap<>();
-        expectedMap.put("application", "ready");
-        expectedMap.put("db", StatusResponse.of(Status.UP, testTime));
-        expectedMap.put("other", StatusResponse.of(Status.DOWN, testTime));
+        expectedMap.put("application", singletonMap("status", "ready"));
+        expectedMap.put("db", dbStatusMap);
+        expectedMap.put("other", otherStatusMap);
 
         verify(httpResponse).end(eq(mapper.writeValueAsString(expectedMap)));
     }
 
     @Test
-    public void shouldRespondOnlyWithApplicationReadyIfNoHealthCheckersProvided() throws JsonProcessingException {
-        // given
-        statusHandler = new StatusHandler("ready", emptyList());
-        given(routingContext.response()).willReturn(httpResponse);
-
-        // when
-        statusHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).end(eq(mapper.writeValueAsString(singletonMap("application", "ready"))));
-    }
-
-    @Test
     public void shouldRespondWithNoContentWhenMessageWasNotDefined() {
-        statusHandler = new StatusHandler(null, singletonList(healthCheck));
+        statusHandler = new StatusHandler(emptyList());
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(eq(204))).willReturn(httpResponse);
 

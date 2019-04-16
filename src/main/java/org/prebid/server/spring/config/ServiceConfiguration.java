@@ -31,6 +31,7 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
+import org.prebid.server.health.ApplicationChecker;
 import org.prebid.server.health.DatabaseChecker;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
@@ -44,6 +45,7 @@ import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -387,6 +389,7 @@ public class ServiceConfiguration {
     }
 
     @Configuration
+    @ConditionalOnExpression("'${status-response}' != ''")
     static class HealthCheckerService {
 
         @Autowired
@@ -399,6 +402,11 @@ public class ServiceConfiguration {
                 JDBCClient jdbcClient) {
 
             return new DatabaseChecker(vertx, jdbcClient, refreshPeriod);
+        }
+
+        @Bean
+        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
+            return new ApplicationChecker(statusResponse);
         }
     }
 }

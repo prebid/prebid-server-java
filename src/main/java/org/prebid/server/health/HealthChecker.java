@@ -1,12 +1,12 @@
 package org.prebid.server.health;
 
-import org.prebid.server.health.model.StatusResponse;
+import java.util.Map;
 
 public interface HealthChecker {
 
-    StatusResponse getLastStatus();
+    Map<String, Object> status();
 
-    String getCheckName();
+    String name();
 
     void initialize();
 }

@@ -253,9 +253,9 @@ public class WebConfiguration {
     }
 
     @Bean
-    StatusHandler statusHandler(@Value("${status-response:#{null}}") String statusResponse,
-                                List<HealthChecker> healthCheckers) {
-        return new StatusHandler(statusResponse, healthCheckers);
+    StatusHandler statusHandler(List<HealthChecker> healthCheckers) {
+        healthCheckers.forEach(HealthChecker::initialize);
+        return new StatusHandler(healthCheckers);
     }
 
     @Bean

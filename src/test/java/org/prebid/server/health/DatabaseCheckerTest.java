@@ -12,11 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
-import org.prebid.server.health.model.Status;
-import org.prebid.server.health.model.StatusResponse;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -66,12 +65,12 @@ public class DatabaseCheckerTest {
 
     @Test
     public void getCheckNameShouldReturnExpectedResult() {
-        assertThat(databaseHealthCheck.getCheckName()).isEqualTo(DATABASE_CHECK_NAME);
+        assertThat(databaseHealthCheck.name()).isEqualTo(DATABASE_CHECK_NAME);
     }
 
     @Test
     public void getLastStatusShouldReturnNullStatusIfCheckWasNotInitialized() {
-        assertThat(databaseHealthCheck.getLastStatus()).isNull();
+        assertThat(databaseHealthCheck.status()).isNull();
     }
 
     @Test
@@ -84,9 +83,11 @@ public class DatabaseCheckerTest {
         databaseHealthCheck.checkStatus();
 
         // then
-        final StatusResponse lastStatus = databaseHealthCheck.getLastStatus();
-        assertThat(lastStatus.getStatus()).isEqualTo(Status.UP);
-        assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
+        final Map<String, Object> lastStatus = databaseHealthCheck.status();
+        assertThat(lastStatus.get("status")).isEqualTo(Status.UP);
+        assertThat((ZonedDateTime) lastStatus.get("last_updated"))
+                .isNotNull()
+                .isAfter(TEST_TIME_STRING);
     }
 
     @Test
@@ -99,9 +100,11 @@ public class DatabaseCheckerTest {
         databaseHealthCheck.checkStatus();
 
         // then
-        final StatusResponse lastStatus = databaseHealthCheck.getLastStatus();
-        assertThat(lastStatus.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
+        final Map<String, Object> lastStatus = databaseHealthCheck.status();
+        assertThat(lastStatus.get("status")).isEqualTo(Status.DOWN);
+        assertThat((ZonedDateTime) lastStatus.get("last_updated"))
+                .isNotNull()
+                .isAfter(TEST_TIME_STRING);
     }
 
     @Test

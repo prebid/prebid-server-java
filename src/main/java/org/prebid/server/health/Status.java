@@ -1,4 +1,4 @@
-package org.prebid.server.health.model;
+package org.prebid.server.health;
 
 public enum Status {
     UP,
