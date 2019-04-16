@@ -86,7 +86,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());

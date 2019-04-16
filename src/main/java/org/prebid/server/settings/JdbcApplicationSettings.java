@@ -2,8 +2,6 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,8 +30,6 @@ import java.util.stream.IntStream;
  * can be decorated by {@link CachingApplicationSettings}.
  */
 public class JdbcApplicationSettings implements ApplicationSettings {
-
-    private static final Logger logger = LoggerFactory.getLogger(JdbcApplicationSettings.class);
 
     private static final String REQUEST_ID_PLACEHOLDER = "%REQUEST_ID_LIST%";
     private static final String IMP_ID_PLACEHOLDER = "%IMP_ID_LIST%";
