@@ -91,8 +91,8 @@ public class HttpAdapterConnector {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private <T, R> Future<ExchangeCall> doRequest(AdapterHttpRequest<T> httpRequest, Timeout timeout,
-                                                  TypeReference<R> typeReference) {
+    private <T, R> Future<ExchangeCall<T, R>> doRequest(AdapterHttpRequest<T> httpRequest, Timeout timeout,
+                                                        TypeReference<R> typeReference) {
         final String uri = httpRequest.getUri();
         final T requestBody = httpRequest.getPayload();
         final String body = requestBody != null ? Json.encode(requestBody) : null;
@@ -126,8 +126,8 @@ public class HttpAdapterConnector {
      * Handles request (e.g. read timeout) and response (e.g. connection reset) errors producing
      * {@link ExchangeCall} containing {@link BidderDebug} and error description.
      */
-    private static Future<ExchangeCall> failResponse(Throwable exception,
-                                                     BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+    private static <T, R> Future<ExchangeCall<T, R>> failResponse(Throwable exception,
+                                                                  BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         logger.warn("Error occurred while sending bid request to an exchange", exception);
         final BidderDebug bidderDebug = bidderDebugBuilder.build();
 
@@ -142,9 +142,10 @@ public class HttpAdapterConnector {
      * Handles {@link HttpClientResponse}, analyzes response status
      * and creates {@link Future} with {@link ExchangeCall} from body content.
      */
-    private static <T, R> Future<ExchangeCall> processResponse(HttpClientResponse response,
-                                                               TypeReference<R> responseTypeReference, T request,
-                                                               BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+    private static <T, R> Future<ExchangeCall<T, R>> processResponse(
+            HttpClientResponse response, TypeReference<R> responseTypeReference, T request,
+            BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+
         return Future.succeededFuture(
                 toExchangeCall(request, response.getStatusCode(), response.getBody(), responseTypeReference,
                         bidderDebugBuilder));
@@ -154,9 +155,9 @@ public class HttpAdapterConnector {
      * Transforms HTTP call results into {@link ExchangeCall} filled with debug information,
      * {@link BidResponse} and errors happened along the way.
      */
-    private static <T, R> ExchangeCall toExchangeCall(T request, int statusCode, String body,
-                                                      TypeReference<R> responseTypeReference,
-                                                      BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+    private static <T, R> ExchangeCall<T, R> toExchangeCall(T request, int statusCode, String body,
+                                                            TypeReference<R> responseTypeReference,
+                                                            BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {

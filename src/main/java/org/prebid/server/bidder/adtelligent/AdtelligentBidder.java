@@ -68,7 +68,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
      * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
      */
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
