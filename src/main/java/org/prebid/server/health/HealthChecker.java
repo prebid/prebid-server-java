@@ -4,9 +4,9 @@ import java.util.Map;
 
 public interface HealthChecker {
 
-    Map<String, Object> status();
-
     String name();
 
     void initialize();
+
+    Map<String, Object> status();
 }

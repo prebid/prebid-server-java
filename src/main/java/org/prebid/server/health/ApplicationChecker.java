@@ -6,6 +6,7 @@ import java.util.Map;
 public class ApplicationChecker implements HealthChecker {
 
     private static final String NAME = "application";
+    private static final String STATUS_KEY = "status";
 
     private final String status;
 
@@ -15,7 +16,7 @@ public class ApplicationChecker implements HealthChecker {
 
     @Override
     public Map<String, Object> status() {
-        return Collections.singletonMap("status", status);
+        return Collections.singletonMap(STATUS_KEY, status);
     }
 
     @Override

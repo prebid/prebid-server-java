@@ -25,11 +25,11 @@ public class StatusHandler implements Handler<RoutingContext> {
         if (CollectionUtils.isEmpty(healthCheckers)) {
             context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code()).end();
         } else {
-            context.response().end(resolveResponseString());
+            context.response().end(statusByHealthChecker());
         }
     }
 
-    private String resolveResponseString() {
+    private String statusByHealthChecker() {
         final Map<String, Object> response = new TreeMap<>();
 
         healthCheckers.forEach(

@@ -14,10 +14,12 @@ import java.util.Objects;
 public class DatabaseChecker extends AbstractHealthCheck {
 
     private static final String NAME = "database";
+    private static final String STATUS_KEY = "status";
+    private static final String LAST_UPDATED_KEY = "last_updated";
 
     private final JDBCClient jdbcClient;
 
-    private Map<String, Object> lastStatusResponse;
+    private Map<String, Object> status;
 
     public DatabaseChecker(Vertx vertx, JDBCClient jdbcClient, long refreshPeriod) {
         super(vertx, refreshPeriod);
@@ -26,7 +28,7 @@ public class DatabaseChecker extends AbstractHealthCheck {
 
     @Override
     public Map<String, Object> status() {
-        return lastStatusResponse;
+        return status;
     }
 
     @Override
@@ -39,11 +41,10 @@ public class DatabaseChecker extends AbstractHealthCheck {
         final Future<SQLConnection> connectionFuture = Future.future();
         jdbcClient.getConnection(connectionFuture.completer());
         connectionFuture.setHandler(result -> {
-            final Status status = result.succeeded() ? Status.UP : Status.DOWN;
             final Map<String, Object> lastStatus = new HashMap<>();
-            lastStatus.put("status", status);
-            lastStatus.put("last_updated", ZonedDateTime.now(Clock.systemUTC()));
-            lastStatusResponse = lastStatus;
+            lastStatus.put(STATUS_KEY, result.succeeded() ? Status.UP : Status.DOWN);
+            lastStatus.put(LAST_UPDATED_KEY, ZonedDateTime.now(Clock.systemUTC()));
+            status = lastStatus;
         });
     }
 }
