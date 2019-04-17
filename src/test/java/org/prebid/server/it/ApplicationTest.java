@@ -569,7 +569,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredBidderNames() throws JSONException {
+    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException {
         // given
         final List<String> bidderNames = getBidderNamesFromParamFiles();
 
