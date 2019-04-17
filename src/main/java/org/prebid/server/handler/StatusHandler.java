@@ -6,6 +6,7 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.health.HealthChecker;
+import org.prebid.server.health.model.StatusResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -30,12 +31,10 @@ public class StatusHandler implements Handler<RoutingContext> {
     }
 
     private String statusByHealthChecker() {
-        final Map<String, Object> response = new TreeMap<>();
+        final Map<String, StatusResponse> response = new TreeMap<>();
 
         healthCheckers.forEach(
-                healthChecker -> response.put(
-                        healthChecker.name(),
-                        healthChecker.status()));
+                healthChecker -> response.put(healthChecker.name(), healthChecker.status()));
 
         return Json.encode(response);
     }

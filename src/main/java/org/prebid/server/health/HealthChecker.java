@@ -1,6 +1,6 @@
 package org.prebid.server.health;
 
-import java.util.Map;
+import org.prebid.server.health.model.StatusResponse;
 
 public interface HealthChecker {
 
@@ -8,5 +8,5 @@ public interface HealthChecker {
 
     void initialize();
 
-    Map<String, Object> status();
+    StatusResponse status();
 }

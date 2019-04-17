@@ -1,12 +1,10 @@
 package org.prebid.server.health;
 
-import java.util.Collections;
-import java.util.Map;
+import org.prebid.server.health.model.StatusResponse;
 
 public class ApplicationChecker implements HealthChecker {
 
     private static final String NAME = "application";
-    private static final String STATUS_KEY = "status";
 
     private final String status;
 
@@ -15,8 +13,8 @@ public class ApplicationChecker implements HealthChecker {
     }
 
     @Override
-    public Map<String, Object> status() {
-        return Collections.singletonMap(STATUS_KEY, status);
+    public StatusResponse status() {
+        return StatusResponse.of(status, null);
     }
 
     @Override
@@ -26,6 +24,6 @@ public class ApplicationChecker implements HealthChecker {
 
     @Override
     public void initialize() {
-        // do nothing as the value is being read from config file and status gets set in a constructor
+        // do nothing as the status value is being read from config file and gets set in the constructor
     }
 }

@@ -10,16 +10,15 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.health.HealthChecker;
+import org.prebid.server.health.model.StatusResponse;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -50,26 +49,19 @@ public class StatusHandlerTest extends VertxTest {
         final ZonedDateTime testTime = ZonedDateTime.now(Clock.systemUTC());
         statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck));
 
-        final Map<String, Object> dbStatusMap = new HashMap<>();
-        dbStatusMap.put("status", "UP");
-        dbStatusMap.put("last_updated", testTime);
-
-        final Map<String, Object> otherStatusMap = new HashMap<>();
-        otherStatusMap.put("status", "DOWN");
-        otherStatusMap.put("last_updated", testTime);
-
         given(routingContext.response()).willReturn(httpResponse);
         given(healthCheck.name()).willReturn("application", "db", "other");
-        given(healthCheck.status()).willReturn(singletonMap("status", "ready"), dbStatusMap, otherStatusMap);
+        given(healthCheck.status()).willReturn(StatusResponse.of("ready", null),
+                StatusResponse.of("UP", testTime), StatusResponse.of("DOWN", testTime));
 
         // when
         statusHandler.handle(routingContext);
 
         // then
-        final Map<String, Object> expectedMap = new TreeMap<>();
-        expectedMap.put("application", singletonMap("status", "ready"));
-        expectedMap.put("db", dbStatusMap);
-        expectedMap.put("other", otherStatusMap);
+        final Map<String, StatusResponse> expectedMap = new TreeMap<>();
+        expectedMap.put("application", StatusResponse.of("ready", null));
+        expectedMap.put("db", StatusResponse.of("UP", testTime));
+        expectedMap.put("other", StatusResponse.of("DOWN", testTime));
 
         verify(httpResponse).end(eq(mapper.writeValueAsString(expectedMap)));
     }

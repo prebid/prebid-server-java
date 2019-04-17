@@ -12,10 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.health.model.StatusResponse;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -83,11 +83,9 @@ public class DatabaseCheckerTest {
         databaseHealthCheck.checkStatus();
 
         // then
-        final Map<String, Object> lastStatus = databaseHealthCheck.status();
-        assertThat(lastStatus.get("status")).isEqualTo(Status.UP);
-        assertThat((ZonedDateTime) lastStatus.get("last_updated"))
-                .isNotNull()
-                .isAfter(TEST_TIME_STRING);
+        final StatusResponse lastStatus = databaseHealthCheck.status();
+        assertThat(lastStatus.getStatus()).isEqualTo("UP");
+        assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
     }
 
     @Test
@@ -100,11 +98,9 @@ public class DatabaseCheckerTest {
         databaseHealthCheck.checkStatus();
 
         // then
-        final Map<String, Object> lastStatus = databaseHealthCheck.status();
-        assertThat(lastStatus.get("status")).isEqualTo(Status.DOWN);
-        assertThat((ZonedDateTime) lastStatus.get("last_updated"))
-                .isNotNull()
-                .isAfter(TEST_TIME_STRING);
+        final StatusResponse lastStatus = databaseHealthCheck.status();
+        assertThat(lastStatus.getStatus()).isEqualTo("DOWN");
+        assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
     }
 
     @Test
