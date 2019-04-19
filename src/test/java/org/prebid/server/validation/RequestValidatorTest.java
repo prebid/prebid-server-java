@@ -1,6 +1,7 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -42,6 +43,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -1276,7 +1278,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null,
-                        ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null, null), null, null))))
+                        ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null,
+                                null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1292,7 +1295,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())),
-                                null, null, null), null, null))))
+                                null, null, null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1309,7 +1312,7 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity
                                 .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0))))), null, null, null), null, null))))
+                                        BigDecimal.valueOf(0))))), null, null, null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1326,7 +1329,7 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))),
-                                null, null, null),
+                                null, null, null, null),
                         null, null))))
                 .build();
         // when
@@ -1345,7 +1348,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
                                 singletonList(
                                         ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, null, null),
+                                null, null, null, null),
                         null, null))))
                 .build();
         // when
@@ -1357,6 +1360,91 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenMediaTypePriceGranularityTypesAreAllNull() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                ExtMediaTypePriceGranularity.of(null, null, null),
+                                null, null, null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Media type price granularity error: must have at least one media type present");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMediaTypePriceGranularityTypeNodesAreNull() {
+        // given
+        final NullNode nullNode = NullNode.getInstance();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                ExtMediaTypePriceGranularity.of(nullNode, nullNode, nullNode),
+                                null, null, null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Media type price granularity error: must have at least one media type present");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAnyPresentMediaTypePriceGranularityIsInvalid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                BigDecimal.valueOf(1))))), null, new TextNode("pricegranularity")),
+                                null, null, null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Error while parsing request.ext.prebid.targeting.mediatypepricegranularity.native");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWithCorrectMediaType() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                BigDecimal.valueOf(1))))), null, null),
+                                null, null, null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Banner price granularity error: precision must be non-negative");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageForInvalidTargeting() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1364,7 +1452,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
                                 singletonList(
                                         ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, false, false),
+                                null, null, false, false),
                         null, null))))
                 .build();
         // when
@@ -1383,7 +1471,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))))),
-                                null, null, null), null, null))))
+                                null, null, null, null), null, null))))
                 .build();
 
         // when
@@ -1403,7 +1491,7 @@ public class RequestValidatorTest extends VertxTest {
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))))),
-                                null, null, null), null, null))))
+                                null, null, null, null), null, null))))
                 .build();
 
         // when
@@ -1422,7 +1510,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))))),
-                                null, null, null), null, null))))
+                                null, null, null, null), null, null))))
                 .build();
 
         // when
