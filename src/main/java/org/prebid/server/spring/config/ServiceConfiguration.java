@@ -32,7 +32,7 @@ import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
-import org.prebid.server.health.DatabaseChecker;
+import org.prebid.server.health.DatabaseHealthChecker;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -401,7 +401,7 @@ public class ServiceConfiguration {
                 @Value("${health-check.database.refresh-period-ms}") long refreshPeriod,
                 JDBCClient jdbcClient) {
 
-            return new DatabaseChecker(vertx, jdbcClient, refreshPeriod);
+            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
         }
 
         @Bean

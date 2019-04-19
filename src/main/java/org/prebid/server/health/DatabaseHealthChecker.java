@@ -11,7 +11,7 @@ import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
-public class DatabaseChecker extends AbstractHealthCheck {
+public class DatabaseHealthChecker extends PeriodicHealthChecker {
 
     private static final String NAME = "database";
 
@@ -19,7 +19,7 @@ public class DatabaseChecker extends AbstractHealthCheck {
 
     private StatusResponse status;
 
-    public DatabaseChecker(Vertx vertx, JDBCClient jdbcClient, long refreshPeriod) {
+    public DatabaseHealthChecker(Vertx vertx, JDBCClient jdbcClient, long refreshPeriod) {
         super(vertx, refreshPeriod);
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
     }
@@ -35,7 +35,7 @@ public class DatabaseChecker extends AbstractHealthCheck {
     }
 
     @Override
-    void checkStatus() {
+    void updateStatus() {
         final Future<SQLConnection> connectionFuture = Future.future();
         jdbcClient.getConnection(connectionFuture.completer());
         connectionFuture.setHandler(result ->

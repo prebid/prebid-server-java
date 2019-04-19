@@ -4,23 +4,23 @@ import io.vertx.core.Vertx;
 
 import java.util.Objects;
 
-public abstract class AbstractHealthCheck implements HealthChecker {
+public abstract class PeriodicHealthChecker implements HealthChecker {
 
     private final Vertx vertx;
     private final long refreshPeriod;
 
-    AbstractHealthCheck(Vertx vertx, long refreshPeriod) {
+    PeriodicHealthChecker(Vertx vertx, long refreshPeriod) {
         this.vertx = Objects.requireNonNull(vertx);
         this.refreshPeriod = verifyRefreshPeriod(refreshPeriod);
     }
 
     @Override
     public void initialize() {
-        checkStatus();
-        vertx.setPeriodic(refreshPeriod, aLong -> checkStatus());
+        updateStatus();
+        vertx.setPeriodic(refreshPeriod, aLong -> updateStatus());
     }
 
-    abstract void checkStatus();
+    abstract void updateStatus();
 
     private static long verifyRefreshPeriod(long refreshPeriod) {
         if (refreshPeriod < 1) {

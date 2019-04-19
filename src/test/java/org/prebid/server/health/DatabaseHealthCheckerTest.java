@@ -26,7 +26,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class DatabaseCheckerTest {
+public class DatabaseHealthCheckerTest {
 
     private static final String DATABASE_CHECK_NAME = "database";
     private static final long TEST_REFRESH_PERIOD = 1000;
@@ -44,23 +44,23 @@ public class DatabaseCheckerTest {
     @Mock
     private SQLClient sqlClient;
 
-    private DatabaseChecker databaseHealthCheck;
+    private DatabaseHealthChecker databaseHealthCheck;
 
     @Before
     public void setUp() {
-        databaseHealthCheck = new DatabaseChecker(vertx, jdbcClient, TEST_REFRESH_PERIOD);
+        databaseHealthCheck = new DatabaseHealthChecker(vertx, jdbcClient, TEST_REFRESH_PERIOD);
     }
 
     @Test
     public void creationShouldFailWithNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new DatabaseChecker(null, jdbcClient, 0));
-        assertThatNullPointerException().isThrownBy(() -> new DatabaseChecker(vertx, null, TEST_REFRESH_PERIOD));
+        assertThatNullPointerException().isThrownBy(() -> new DatabaseHealthChecker(null, jdbcClient, 0));
+        assertThatNullPointerException().isThrownBy(() -> new DatabaseHealthChecker(vertx, null, TEST_REFRESH_PERIOD));
     }
 
     @Test
     public void creationShouldFailWhenRefreshPeriodIsZeroOrNegative() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseChecker(vertx, jdbcClient, 0));
-        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseChecker(vertx, jdbcClient, -1));
+        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseHealthChecker(vertx, jdbcClient, 0));
+        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseHealthChecker(vertx, jdbcClient, -1));
     }
 
     @Test
@@ -80,7 +80,7 @@ public class DatabaseCheckerTest {
                 .willAnswer(withSelfAndPassObjectToHandler(0, sqlClient, Future.succeededFuture()));
 
         // when
-        databaseHealthCheck.checkStatus();
+        databaseHealthCheck.updateStatus();
 
         // then
         final StatusResponse lastStatus = databaseHealthCheck.status();
@@ -95,7 +95,7 @@ public class DatabaseCheckerTest {
                 .willAnswer(withSelfAndPassObjectToHandler(0, sqlClient, Future.failedFuture("fail")));
 
         // when
-        databaseHealthCheck.checkStatus();
+        databaseHealthCheck.updateStatus();
 
         // then
         final StatusResponse lastStatus = databaseHealthCheck.status();
