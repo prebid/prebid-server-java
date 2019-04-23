@@ -4,11 +4,13 @@ import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -60,6 +62,14 @@ public class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return getFromCacheOrDelegate(cache, requestIds, impIds, timeout, delegate::getStoredData);
+    }
+
+    /**
+     *
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+        return delegate.getStoredResponse(responseIds, timeout);
     }
 
     /**

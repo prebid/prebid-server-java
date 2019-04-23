@@ -4,7 +4,10 @@ import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -33,6 +36,11 @@ public interface ApplicationSettings {
      * Fetches stored requests and imps
      */
     Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
+
+    /**
+     *
+     */
+    Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout);
 
     /**
      * Fetches AMP stored requests and imps

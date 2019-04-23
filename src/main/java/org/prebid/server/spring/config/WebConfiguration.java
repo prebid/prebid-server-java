@@ -20,6 +20,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
@@ -222,6 +223,7 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
+            StoredResponseProcessor storedResponseProcessor,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
@@ -229,7 +231,8 @@ public class WebConfiguration {
             TimeoutResolver auctionTimeoutResolver) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(exchangeService, auctionRequestFactory,
-                uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory, auctionTimeoutResolver);
+                uidsCookieService, storedResponseProcessor, analyticsReporter, metrics, clock, timeoutFactory,
+                auctionTimeoutResolver);
     }
 
     @Bean
@@ -237,6 +240,7 @@ public class WebConfiguration {
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
             UidsCookieService uidsCookieService,
+            StoredResponseProcessor storedResponseProcessor,
             AmpProperties ampProperties,
             BidderCatalog bidderCatalog,
             CompositeAnalyticsReporter analyticsReporter,
@@ -246,7 +250,7 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             TimeoutResolver ampTimeoutResolver) {
 
-        return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService,
+        return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService, storedResponseProcessor,
                 ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
                 metrics, clock, timeoutFactory, ampTimeoutResolver);
     }

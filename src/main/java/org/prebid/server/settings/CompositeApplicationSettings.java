@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
@@ -69,6 +70,14 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     }
 
     /**
+     *
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+        return proxy.getStoredResponse(responseIds, timeout);
+    }
+
+    /**
      * Runs a process to get stored requests by a collection of amp ids from a chain of retrievers
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
@@ -115,6 +124,11 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
             return getStoredRequests(requestIds, impIds, timeout, applicationSettings::getStoredData,
                     next != null ? next::getStoredData : null);
+        }
+
+        @Override
+        public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+            return getStoredResponse(responseIds, timeout);
         }
 
         @Override

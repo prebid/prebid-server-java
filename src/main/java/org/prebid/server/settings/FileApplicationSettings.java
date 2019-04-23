@@ -14,6 +14,7 @@ import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,9 +44,10 @@ public class FileApplicationSettings implements ApplicationSettings {
     private final Map<String, String> configs;
     private final Map<String, String> storedIdToRequest;
     private final Map<String, String> storedIdToImp;
+    private final Map<String, String> storedIdToSeatBid;
 
     private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedIdToRequest,
-                                    Map<String, String> storedIdToImp) {
+                                    Map<String, String> storedIdToImp, Map<String, String> storedIdToSeatBid) {
         accounts = toMap(settingsFile.getAccounts(),
                 Account::getId,
                 account -> Account.of(account.getId(), null, account.getBannerCacheTtl(), account.getVideoCacheTtl(),
@@ -55,6 +57,7 @@ public class FileApplicationSettings implements ApplicationSettings {
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
         this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
         this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
+        this.storedIdToSeatBid = storedIdToSeatBid;
     }
 
     /**
@@ -62,16 +65,19 @@ public class FileApplicationSettings implements ApplicationSettings {
      * extension and creates {@link Map} file names without .json extension to file content.
      */
     public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
-                                                 String storedRequestsDir, String storedImpsDir) {
+                                                 String storedRequestsDir, String storedImpsDir,
+                                                 String storedSeatBidDir) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(settingsFileName);
         Objects.requireNonNull(storedRequestsDir);
         Objects.requireNonNull(storedImpsDir);
+        Objects.requireNonNull(storedSeatBidDir);
 
         return new FileApplicationSettings(
                 readSettingsFile(fileSystem, settingsFileName),
                 readStoredData(fileSystem, storedRequestsDir),
-                readStoredData(fileSystem, storedImpsDir));
+                readStoredData(fileSystem, storedImpsDir),
+                readStoredData(fileSystem, storedSeatBidDir));
     }
 
     @Override
@@ -107,6 +113,21 @@ public class FileApplicationSettings implements ApplicationSettings {
             future = Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, errors));
         }
 
+        return future;
+    }
+
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+        final Future<StoredResponseDataResult> future;
+
+        if (CollectionUtils.isEmpty(responseIds)) {
+            future = Future.succeededFuture(
+                    StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList()));
+        } else {
+            final List<String> errors = errorsForMissedIds(responseIds, storedIdToSeatBid,
+                    StoredDataType.seatbid);
+            future = Future.succeededFuture(StoredResponseDataResult.of(storedIdToSeatBid, errors));
+        }
         return future;
     }
 

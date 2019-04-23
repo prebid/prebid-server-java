@@ -8,13 +8,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
+import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -99,6 +102,13 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(selectQuery, requestIds, impIds, timeout);
+    }
+
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+        return jdbcClient.executeQuery("SELECT id, config FROM stored_responses WHERE id IN (?)",
+                Collections.singletonList(responseIds.stream().collect(Collectors.joining(","))),
+                result -> JdbcStoredResponseResultMapper.map(result, responseIds), timeout);
     }
 
     /**
