@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.conversant;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -78,19 +79,19 @@ public class ConversantAdapter extends OpenrtbAdapter {
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
-        final Site site = makeSite(preBidRequestContext, adUnitBidsWithParams);
-        if (site == null) {
-            throw new PreBidException("Conversant doesn't support App requests");
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final App app = preBidRequest.getApp();
+        if (app != null && StringUtils.isBlank(app.getId())) {
+            throw new PreBidException("Missing app id");
         }
 
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
                 .id(preBidRequest.getTid())
                 .at(1)
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .app(preBidRequest.getApp())
-                .site(site)
+                .app(app)
+                .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))

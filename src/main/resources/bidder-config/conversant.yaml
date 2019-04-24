@@ -8,6 +8,8 @@ adapters:
     meta-info:
       maintainer-email: mediapsr@conversantmedia.com
       app-media-types:
+        - banner
+        - video
       site-media-types:
         - banner
         - video
