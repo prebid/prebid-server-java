@@ -104,70 +104,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.marfeel</groupId>
-            <artifactId>MarfeelBidderHub</artifactId>
-            <version>${mbid.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelAdNetworkGoogleSheets</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelInsightReportingQueries</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelInsightReportingCollector</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelCalculator</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelQueue</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelCommonsTesting</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelDocumentGenerator</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelJira</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelAmpExtractor</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelPublisherDomain</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelInsightPushNotifications</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelAdsTxt</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelActon</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.marfeel</groupId>
-                    <artifactId>MarfeelAdnetwork</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-properties-migrator</artifactId>
             <scope>runtime</scope>
@@ -580,6 +516,71 @@
 
         <profile>
             <id>springboot</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelBidderHub</artifactId>
+                    <version>${mbid.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelAdNetworkGoogleSheets</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelInsightReportingQueries</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelInsightReportingCollector</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelCalculator</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelQueue</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelCommonsTesting</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelDocumentGenerator</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelJira</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelAmpExtractor</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelPublisherDomain</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelInsightPushNotifications</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelAdsTxt</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelActon</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>com.marfeel</groupId>
+                            <artifactId>MarfeelAdnetwork</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
