@@ -578,6 +578,15 @@
                             <groupId>com.marfeel</groupId>
                             <artifactId>MarfeelAdnetwork</artifactId>
                         </exclusion>
+
+                        <exclusion>
+                            <groupId>com.github.jknack</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.hibernate</groupId>
+                            <artifactId>*</artifactId>
+                        </exclusion>
                     </exclusions>
                 </dependency>
             </dependencies>
