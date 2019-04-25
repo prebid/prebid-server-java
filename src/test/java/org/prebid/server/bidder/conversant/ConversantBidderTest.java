@@ -122,9 +122,12 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteIdFromImpExt() {
+    public void makeHttpRequestsShouldSetSiteIdFromImpExtForSiteRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder().build()),
+                identity(),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
@@ -161,7 +164,9 @@ public class ConversantBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetSiteMobileFromImpExtIfPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), identity(),
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder().build()),
+                identity(),
                 extBuilder -> extBuilder.mobile(1));
 
         // when

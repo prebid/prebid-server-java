@@ -69,11 +69,6 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        if (app != null && StringUtils.isBlank(app.getId())) {
-            return Result.emptyWithError(BidderError.badInput("Missing app id"));
-        }
-
         final List<BidderError> errors = new ArrayList<>();
         final BidRequest outgoingRequest;
         try {
@@ -97,10 +92,16 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+        final App app = bidRequest.getApp();
+        if (app != null && StringUtils.isBlank(app.getId())) {
+            throw new PreBidException("Missing app id");
+        }
+
         final List<Imp> modifiedImps = new ArrayList<>();
         Integer extMobile = null;
         String extSiteId = null;
-        final boolean hasSite = bidRequest.getSite() != null;
+        final Site site = bidRequest.getSite();
+        final boolean hasSite = site != null;
         for (Imp imp : bidRequest.getImp()) {
             try {
                 validateImp(imp);
@@ -118,10 +119,14 @@ public class ConversantBidder implements Bidder<BidRequest> {
             throw new PreBidException("No valid impressions");
         }
 
-        return bidRequest.toBuilder()
-                .imp(modifiedImps)
-                .site(modifySite(bidRequest.getSite(), extSiteId, extMobile))
-                .build();
+        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder()
+                .imp(modifiedImps);
+
+        if (site != null) {
+            requestBuilder.site(site.toBuilder().id(extSiteId).mobile(extMobile).build());
+        }
+
+        return requestBuilder.build();
     }
 
     private static void validateImp(Imp imp) {
@@ -205,16 +210,6 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final List<Integer> protocols = CollectionUtils.isNotEmpty(extProtocols) ? extProtocols : videoProtocols;
         return CollectionUtils.isNotEmpty(protocols)
                 ? protocols.stream().filter(PROTOCOLS::contains).collect(Collectors.toList()) : videoProtocols;
-    }
-
-    private static Site modifySite(Site site, String extSiteId, Integer extMobile) {
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-        if (extMobile != null) {
-            siteBuilder.mobile(extMobile);
-        }
-        return siteBuilder
-                .id(extSiteId)
-                .build();
     }
 
     @Override
