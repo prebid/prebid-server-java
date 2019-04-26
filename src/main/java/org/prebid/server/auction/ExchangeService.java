@@ -580,7 +580,7 @@ public class ExchangeService {
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
             final boolean isApp = bidderRequest.getBidRequest().getApp() != null;
-            final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
+            final boolean noBuyerId = !bidderCatalog.isActive(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName()));
 
             metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestType, !isApp && noBuyerId);
