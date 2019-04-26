@@ -256,8 +256,8 @@ public class WebConfiguration {
     @Bean
     StatusHandler statusHandler(List<HealthChecker> healthCheckers) {
         healthCheckers.stream()
-                .filter(healthChecker -> healthChecker instanceof PeriodicHealthChecker)
-                .map(healthChecker -> (PeriodicHealthChecker) healthChecker)
+                .filter(PeriodicHealthChecker.class::isInstance)
+                .map(PeriodicHealthChecker.class::cast)
                 .forEach(PeriodicHealthChecker::initialize);
         return new StatusHandler(healthCheckers);
     }
