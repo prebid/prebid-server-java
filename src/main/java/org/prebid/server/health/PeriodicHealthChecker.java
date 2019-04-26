@@ -14,7 +14,6 @@ public abstract class PeriodicHealthChecker implements HealthChecker {
         this.refreshPeriod = verifyRefreshPeriod(refreshPeriod);
     }
 
-    @Override
     public void initialize() {
         updateStatus();
         vertx.setPeriodic(refreshPeriod, aLong -> updateStatus());

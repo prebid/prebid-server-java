@@ -6,7 +6,5 @@ public interface HealthChecker {
 
     String name();
 
-    void initialize();
-
     StatusResponse status();
 }

@@ -21,9 +21,4 @@ public class ApplicationChecker implements HealthChecker {
     public String name() {
         return NAME;
     }
-
-    @Override
-    public void initialize() {
-        // do nothing as the status value is being read from config file and gets set in the constructor
-    }
 }
