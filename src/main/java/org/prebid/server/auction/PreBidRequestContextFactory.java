@@ -157,10 +157,7 @@ public class PreBidRequestContextFactory {
         if (StringUtils.isNotBlank(configId)) {
             result = applicationSettings.getAdUnitConfigById(configId, timeout)
                     .map(config -> toBids(config, configId))
-                    .otherwise(exception -> {
-                        logger.warn("Failed to load config ''{0}'' from cache", exception, configId);
-                        return Collections.emptyList();
-                    });
+                    .otherwise(exception -> fallbackResult(exception, configId));
         } else {
             result = Future.succeededFuture(unit.getBids());
         }
@@ -168,17 +165,21 @@ public class PreBidRequestContextFactory {
         return result;
     }
 
-    private List<Bid> toBids(String config, String configId) {
-        final List<Bid> result;
-
-        if (config != null) {
-            result = Json.decodeValue(config, LIST_OF_BIDS_TYPE_REFERENCE);
-        } else {
+    private List<Bid> fallbackResult(Throwable exception, String configId) {
+        if (exception instanceof PreBidException) {
             logger.warn("AdUnit config not found by id ''{0}'' from cache", configId);
-            result = Collections.emptyList();
+        } else {
+            logger.warn("Failed to load config ''{0}'' from cache", exception, configId);
         }
+        return Collections.emptyList();
+    }
 
-        return result;
+    private List<Bid> toBids(String config, String configId) {
+        try {
+            return Json.decodeValue(config, LIST_OF_BIDS_TYPE_REFERENCE);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Cannot parse AdUnit config for id: %s", configId), e);
+        }
     }
 
     private AdUnitBid toAdUnitBid(AdUnit unit, Bid bid) {
