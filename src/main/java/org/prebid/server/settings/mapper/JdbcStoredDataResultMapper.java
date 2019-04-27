@@ -33,6 +33,9 @@ public class JdbcStoredDataResultMapper {
      * @param requestIds - a specified set of stored requests' ids. Adds error for each ID missing in result set
      * @param impIds     - a specified set of stored imps' ids. Adds error for each ID missing in result set
      * @return - a {@link StoredDataResult} object
+     * <p>
+     * Note: mapper should never throws exception in case of using
+     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
      */
     public static StoredDataResult map(ResultSet resultSet, Set<String> requestIds, Set<String> impIds) {
         final Map<String, String> storedIdToRequest = new HashMap<>(requestIds.size());
@@ -48,7 +51,7 @@ public class JdbcStoredDataResultMapper {
                 final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
                 final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
 
-                errors.add(String.format("No %s%s%s was found", errorRequests, separator, errorImps));
+                errors.add(String.format("No %s%s%s were found", errorRequests, separator, errorImps));
             }
         } else {
             try {

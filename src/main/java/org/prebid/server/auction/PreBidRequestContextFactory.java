@@ -43,6 +43,9 @@ public class PreBidRequestContextFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
 
+    private static final TypeReference<List<Bid>> LIST_OF_BIDS_TYPE_REFERENCE = new TypeReference<List<Bid>>() {
+    };
+
     private final TimeoutResolver timeoutResolver;
     private final ImplicitParametersExtractor paramsExtractor;
     private final ApplicationSettings applicationSettings;
@@ -153,14 +156,26 @@ public class PreBidRequestContextFactory {
         final String configId = unit.getConfigId();
         if (StringUtils.isNotBlank(configId)) {
             result = applicationSettings.getAdUnitConfigById(configId, timeout)
-                    .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
-                    }))
+                    .map(config -> toBids(config, configId))
                     .otherwise(exception -> {
                         logger.warn("Failed to load config ''{0}'' from cache", exception, configId);
                         return Collections.emptyList();
                     });
         } else {
             result = Future.succeededFuture(unit.getBids());
+        }
+
+        return result;
+    }
+
+    private List<Bid> toBids(String config, String configId) {
+        final List<Bid> result;
+
+        if (config != null) {
+            result = Json.decodeValue(config, LIST_OF_BIDS_TYPE_REFERENCE);
+        } else {
+            logger.warn("AdUnit config not found by id ''{0}'' from cache", configId);
+            result = Collections.emptyList();
         }
 
         return result;
@@ -181,23 +196,25 @@ public class PreBidRequestContextFactory {
     }
 
     private Set<MediaType> makeBidMediaTypes(List<String> mediaTypes) {
-        final Set<MediaType> bidMediaTypes;
+        final Set<MediaType> result;
+
         if (mediaTypes != null && !mediaTypes.isEmpty()) {
-            bidMediaTypes = new HashSet<>();
+            result = new HashSet<>();
             for (String mediaType : mediaTypes) {
                 try {
-                    bidMediaTypes.add(MediaType.valueOf(mediaType.toLowerCase()));
+                    result.add(MediaType.valueOf(mediaType.toLowerCase()));
                 } catch (IllegalArgumentException e) {
                     logger.warn("Invalid mediaType: {0}", mediaType);
                 }
             }
-            if (bidMediaTypes.isEmpty()) {
-                bidMediaTypes.add(MediaType.banner);
+            if (result.isEmpty()) {
+                result.add(MediaType.banner);
             }
         } else {
-            bidMediaTypes = Collections.singleton(MediaType.banner);
+            result = Collections.singleton(MediaType.banner);
         }
-        return bidMediaTypes;
+
+        return result;
     }
 
     private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
