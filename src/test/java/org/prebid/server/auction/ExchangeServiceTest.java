@@ -53,6 +53,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -61,7 +62,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -1467,6 +1470,131 @@ public class ExchangeServiceTest extends VertxTest {
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder().buyeruid("uidval")
                 .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null))).build());
+    }
+
+    @Test
+    public void shouldAlwaysRemoveRequestExtPrebidDataBidders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(singletonList("should_be_removed")))
+                        .aliases(singletonMap("someBidder", "alias_should_stay"))
+                        .build()))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ObjectNode capturedBidRequestExt = captureBidRequest().getExt();
+        assertThat(capturedBidRequestExt).isEqualTo(mapper.valueToTree(
+                ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("someBidder", "alias_should_stay"))
+                        .build())));
+    }
+
+    @Test
+    public void shouldPassUserExtDataOnlyForAllowedBidder() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        givenBidder("missingBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("data", "value");
+
+        final Map<String, Integer> bidderToGdpr = new HashMap<>();
+        bidderToGdpr.put("someBidder", 1);
+        bidderToGdpr.put("missingBidder", 0);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder"))).build())))
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, null, null, null, dataNode))).build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getUser)
+                .containsOnly(
+                        User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(null, null, null, null, dataNode))).build(),
+                        User.builder().ext(mapper.createObjectNode()).build());
+    }
+
+    @Test
+    public void shouldPassSiteExtDataOnlyForAllowedBidder() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        givenBidder("missingBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("data", "value");
+
+        final Map<String, Integer> bidderToGdpr = new HashMap<>();
+        bidderToGdpr.put("someBidder", 1);
+        bidderToGdpr.put("missingBidder", 0);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(singletonList("someBidder"))).build())))
+                        .site(Site.builder().ext(mapper.valueToTree(ExtSite.of(0, dataNode))).build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getSite)
+                .containsOnly(
+                        Site.builder().ext(mapper.valueToTree(ExtSite.of(0, dataNode))).build(),
+                        Site.builder().ext(mapper.valueToTree(ExtSite.of(0, null))).build());
+    }
+
+    @Test
+    public void shouldPassAppExtDataOnlyForAllowedBidder() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        givenBidder("missingBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("data", "value");
+
+        final Map<String, Integer> bidderToGdpr = new HashMap<>();
+        bidderToGdpr.put("someBidder", 1);
+        bidderToGdpr.put("missingBidder", 0);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(singletonList("someBidder"))).build())))
+                        .app(App.builder().ext(mapper.valueToTree(ExtApp.of(null, dataNode))).build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getApp)
+                .containsOnly(
+                        App.builder().ext(mapper.valueToTree(ExtApp.of(null, dataNode))).build(),
+                        App.builder().ext(mapper.createObjectNode()).build());
     }
 
     @Test

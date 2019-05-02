@@ -371,8 +371,8 @@ public class ExchangeService {
                         .device(prepareDevice(device, bidderToMaskingRequired.get(bidder)))
                         .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
-                        .app(prepareApp(bidRequest.getApp(), bidderToIsAllowed.get(bidder)))
-                        .site(prepareSite(bidRequest.getSite(), bidderToIsAllowed.get(bidder)))
+                        .app(prepareApp(bidRequest.getApp(), bidderToIsAllowed.containsKey(bidder)))
+                        .site(prepareSite(bidRequest.getSite(), bidderToIsAllowed.containsKey(bidder)))
                         .ext(removeExtPrebidDataBidders(requestExt))
                         .build()))
                 .collect(Collectors.toList());
@@ -397,7 +397,7 @@ public class ExchangeService {
      * Checks whether to pass the site.ext.data depending on request having a first party data
      * allowed for given bidder or not.
      */
-    private static Site prepareSite(Site site, Boolean isBidderAllowed) {
+    private static Site prepareSite(Site site, boolean isBidderAllowed) {
         final ExtSite extSite = extSite(site);
         final ObjectNode data = extSite == null ? null : extSite.getData();
 

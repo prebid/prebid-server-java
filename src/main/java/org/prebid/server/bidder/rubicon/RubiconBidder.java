@@ -336,7 +336,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final boolean hasAnyNotNull = gender != null || yob != null || geo != null || !visitor.isNull();
 
         final RubiconUserExtRp userExtRp = hasAnyNotNull
-                ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null;
+                ? RubiconUserExtRp.of(!visitor.isNull() ? visitor : null, gender, yob, geo) : null;
 
         final ExtUser extUser = hasUser ? getExtUser(user.getExt()) : null;
         final ExtUserDigiTrust userExtDt = extUser != null ? extUser.getDigitrust() : null;
