@@ -59,7 +59,8 @@ public class AdtelligentBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(Json.mapper.valueToTree(
                                 ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3))))).build()))
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
+                        null, "consent", null, null, null))).build())
                 .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                 .build();
 
@@ -81,7 +82,8 @@ public class AdtelligentBidderTest extends VertxTest {
                                 .ext(Json.mapper.valueToTree(
                                         AdtelligentImpExt.of(ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
-                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                         .build()
         ));

@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
@@ -59,6 +60,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconImpExtContext;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -167,12 +169,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private BidRequest createSingleRequest(Imp imp, BidRequest bidRequest) {
         final ExtImpRubicon rubiconImpExt = parseRubiconExt(imp);
 
+        final Site site = bidRequest.getSite();
+        final App app = bidRequest.getApp();
+
         return bidRequest.toBuilder()
                 .user(makeUser(bidRequest.getUser(), rubiconImpExt))
                 .device(makeDevice(bidRequest.getDevice()))
-                .site(makeSite(bidRequest.getSite(), rubiconImpExt))
-                .app(makeApp(bidRequest.getApp(), rubiconImpExt))
-                .imp(Collections.singletonList(makeImp(imp, rubiconImpExt)))
+                .site(makeSite(site, rubiconImpExt))
+                .app(makeApp(app, rubiconImpExt))
+                .imp(Collections.singletonList(makeImp(imp, rubiconImpExt, site, app)))
                 .cur(null) // suppress currencies
                 .build();
     }
@@ -186,10 +191,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp makeImp(Imp imp, ExtImpRubicon rubiconImpExt) {
+    private Imp makeImp(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(Json.mapper.valueToTree(makeImpExt(rubiconImpExt, imp)));
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconImpExt, imp, site, app)));
 
         final Video video = imp.getVideo();
         if (video != null) {
@@ -235,14 +240,41 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
-    private RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt, Imp imp) {
-        return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(), makeInventory(rubiconImpExt),
+    private RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt, Imp imp, Site site, App app) {
+        return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(), makeTarget(rubiconImpExt, site, app),
                 RubiconImpExtRpTrack.of("", "")), mapVendorsNamesToUrls(imp.getMetric()));
     }
 
-    private static JsonNode makeInventory(ExtImpRubicon rubiconImpExt) {
+    private static JsonNode makeTarget(ExtImpRubicon rubiconImpExt, Site site, App app) {
         final JsonNode inventory = rubiconImpExt.getInventory();
-        return inventory.isNull() ? null : inventory;
+        if (inventory == null || inventory.isNull()) {
+            return null;
+        }
+
+        final RubiconImpExtContext context = rubiconImpExt.getContext();
+        final ObjectNode data = context != null ? context.getData() : null;
+
+        final ObjectNode inventoryObject = (ObjectNode) inventory;
+        if (data != null && !data.isNull()) {
+            inventoryObject.setAll(data);
+        }
+
+        if (site != null) {
+            final String search = site.getSearch();
+            if (search != null) {
+                inventoryObject.put("search", search);
+            }
+            return resolveJsonNode(inventoryObject, site.getExt().get("data"));
+        }
+
+        if (app != null) {
+            return resolveJsonNode(inventoryObject, app.getExt().get("data"));
+        }
+        return inventory;
+    }
+
+    private static JsonNode resolveJsonNode(ObjectNode baseNode, JsonNode data) {
+        return data != null && !data.isNull() ? baseNode.setAll((ObjectNode) data) : baseNode;
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -296,24 +328,37 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static User makeUser(User user, ExtImpRubicon rubiconImpExt) {
-        User result = user;
-
+        final boolean hasUser = user != null;
+        final String gender = hasUser ? user.getGender() : null;
+        final Integer yob = hasUser ? user.getYob() : null;
+        final Geo geo = hasUser ? user.getGeo() : null;
         final JsonNode visitor = rubiconImpExt.getVisitor();
-        final RubiconUserExtRp userExtRp = !visitor.isNull() ? RubiconUserExtRp.of(visitor) : null;
+        final boolean hasAnyNotNull = gender != null || yob != null || geo != null || !visitor.isNull();
 
-        final ExtUser extUser = user != null ? getExtUser(user.getExt()) : null;
+        final RubiconUserExtRp userExtRp = hasAnyNotNull
+                ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null;
+
+        final ExtUser extUser = hasUser ? getExtUser(user.getExt()) : null;
         final ExtUserDigiTrust userExtDt = extUser != null ? extUser.getDigitrust() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         final List<ExtUserTpId> tpid = extUser != null ? extUser.getTpid() : null;
 
-        if (userExtRp != null || userExtDt != null || consent != null || tpid != null) {
-            final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
-            result = userBuilder
-                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt, tpid)))
-                    .build();
+        final ObjectNode data = extUser != null ? extUser.getData() : null;
+
+        final ObjectNode userExt = Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt, tpid));
+
+        if (userExtRp != null) {
+            final JsonNode userExtRpNode = resolveJsonNode(Json.mapper.valueToTree(userExtRp), data);
+            userExt.set("rp", userExtRpNode);
         }
 
-        return result;
+        if (userExtRp != null || userExtDt != null || consent != null || tpid != null) {
+            final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
+            return userBuilder
+                    .ext(userExt)
+                    .build();
+        }
+        return user;
     }
 
     private static ExtUser getExtUser(ObjectNode extNode) {

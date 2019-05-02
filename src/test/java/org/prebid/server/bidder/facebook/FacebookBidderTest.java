@@ -286,7 +286,8 @@ public class FacebookBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                        null, "consent", null, null, null))).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .site(Site.builder()
                         .publisher(Publisher.builder().build())
@@ -310,7 +311,8 @@ public class FacebookBidderTest extends VertxTest {
                                         .build())
                                 .tagid("pub1_placement1")
                                 .build()))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .site(Site.builder()
                                 .publisher(Publisher.builder()
@@ -332,7 +334,8 @@ public class FacebookBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                        null, "consent", null, null, null))).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .app(App.builder()
                         .publisher(Publisher.builder().build())
@@ -356,7 +359,8 @@ public class FacebookBidderTest extends VertxTest {
                                         .build())
                                 .tagid("pub1_placement1")
                                 .build()))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .app(App.builder()
                                 .publisher(Publisher.builder()

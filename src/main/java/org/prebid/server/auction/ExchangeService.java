@@ -387,7 +387,10 @@ public class ExchangeService {
      * Removes bidrequest.ext.prebid.data to hide list of allowed bidders from initial request.
      */
     private static ObjectNode removeExtPrebidDataBidders(ExtBidRequest requestExt) {
-        return Json.mapper.valueToTree(ExtBidRequest.of(requestExt.getPrebid().toBuilder().data(null).build()));
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        return requestExt == null ? null
+                : Json.mapper.valueToTree(ExtBidRequest.of(
+                prebid == null ? null : prebid.toBuilder().data(null).build()));
     }
 
     /**

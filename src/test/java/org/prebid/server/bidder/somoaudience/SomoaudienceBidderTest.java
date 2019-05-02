@@ -63,7 +63,8 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                        null, "consent", null, null, null))).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .build();
@@ -91,7 +92,8 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build())
                                 .bidfloor(BigDecimal.valueOf(1.39))
                                 .build()))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                         .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())

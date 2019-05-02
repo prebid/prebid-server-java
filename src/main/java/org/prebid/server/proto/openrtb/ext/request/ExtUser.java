@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import jdk.nashorn.internal.ir.ObjectNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
