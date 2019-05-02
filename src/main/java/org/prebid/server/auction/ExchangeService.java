@@ -157,7 +157,8 @@ public class ExchangeService {
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean isApp = bidRequest.getApp() != null;
         final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp);
-        final Map<BidType, TargetingKeywordsCreator> keywordsCreatorsByBidType = mediaTypeMap(targeting, isApp);
+        final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
+                keywordsCreatorByBidType(targeting, isApp);
         final String publisherId = publisherId(bidRequest);
 
         final long startTime = clock.millis();
@@ -177,7 +178,7 @@ public class ExchangeService {
                 .compose(result -> eventsService.isEventsEnabled(publisherId, timeout)
                         .map(eventsEnabled -> Tuple2.of(result, eventsEnabled)))
                 .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
-                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorsByBidType,
+                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorByBidType,
                                 cacheInfo, publisherId, result.getRight(), timeout))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(context, uidsCookie, bidRequest, bidResponse));
@@ -651,7 +652,8 @@ public class ExchangeService {
                 : null;
     }
 
-    private static Map<BidType, TargetingKeywordsCreator> mediaTypeMap(ExtRequestTargeting targeting, boolean isApp) {
+    private static Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
+                                                                                   boolean isApp) {
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting != null
                 ? targeting.getMediatypepricegranularity() : null;

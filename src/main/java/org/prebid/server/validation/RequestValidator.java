@@ -53,6 +53,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
@@ -221,7 +222,7 @@ public class RequestValidator {
     /**
      * Validates {@link ExtPriceGranularity}.
      */
-    private static void validateExtPriceGranularity(JsonNode priceGranularity, String type)
+    private static void validateExtPriceGranularity(JsonNode priceGranularity, BidType type)
             throws ValidationException {
         final ExtPriceGranularity extPriceGranularity;
         try {
@@ -234,7 +235,7 @@ public class RequestValidator {
         final Integer precision = extPriceGranularity.getPrecision();
         if (precision != null && precision < 0) {
             throw new ValidationException(String.format("%srice granularity error: precision must be non-negative",
-                    type == null ? "P" : StringUtils.capitalize(type) + " p"));
+                    type == null ? "P" : StringUtils.capitalize(type.name()) + " p"));
         }
         validateGranularityRanges(extPriceGranularity.getRanges());
     }
@@ -256,13 +257,13 @@ public class RequestValidator {
                         "Media type price granularity error: must have at least one media type present");
             }
             if (!isBannerNull) {
-                validateExtPriceGranularity(banner, "banner");
+                validateExtPriceGranularity(banner, BidType.banner);
             }
             if (!isVideoNull) {
-                validateExtPriceGranularity(video, "video");
+                validateExtPriceGranularity(video, BidType.video);
             }
             if (!isNativeNull) {
-                validateExtPriceGranularity(xNative, "native");
+                validateExtPriceGranularity(xNative, BidType.xNative);
             }
         }
     }

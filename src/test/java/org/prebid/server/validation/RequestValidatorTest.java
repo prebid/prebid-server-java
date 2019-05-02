@@ -1419,7 +1419,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(
-                "Error while parsing request.ext.prebid.targeting.mediatypepricegranularity.native");
+                "Error while parsing request.ext.prebid.targeting.mediatypepricegranularity.xNative");
     }
 
     @Test
