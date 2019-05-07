@@ -41,7 +41,7 @@ public class UsersyncInfo {
         static UsersyncInfoAssembler assembler(Usersyncer usersyncer) {
             final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
             usersyncInfoAssembler.usersyncUrl = usersyncer.getUsersyncUrl();
-            usersyncInfoAssembler.redirectUrl = ObjectUtils.firstNonNull(usersyncer.getRedirectUrl(), "");
+            usersyncInfoAssembler.redirectUrl = ObjectUtils.defaultIfNull(usersyncer.getRedirectUrl(), "");
             usersyncInfoAssembler.type = usersyncer.getType();
             usersyncInfoAssembler.supportCORS = usersyncer.isSupportCORS();
             return usersyncInfoAssembler;
@@ -72,8 +72,8 @@ public class UsersyncInfo {
          * if the "gdpr" arg was empty, and the consent arg was "BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw"
          */
         public UsersyncInfoAssembler withGdpr(String gdpr, String gdprConsent) {
-            final String nonNullGdpr = ObjectUtils.firstNonNull(gdpr, "");
-            final String nonNullGdprConsent = ObjectUtils.firstNonNull(gdprConsent, "");
+            final String nonNullGdpr = ObjectUtils.defaultIfNull(gdpr, "");
+            final String nonNullGdprConsent = ObjectUtils.defaultIfNull(gdprConsent, "");
 
             usersyncUrl = updateUrlWithGdpr(usersyncUrl, HttpUtil.encodeUrl(nonNullGdpr),
                     HttpUtil.encodeUrl(nonNullGdprConsent));

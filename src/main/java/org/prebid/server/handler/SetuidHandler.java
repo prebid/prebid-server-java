@@ -32,6 +32,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
 
+    private static final String BIDDER_PARAM = "bidder";
+    private static final String GDPR_PARAM = "gdpr";
+    private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
+    private static final String UID_PARAM = "uid";
+
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final GdprService gdprService;
@@ -65,7 +70,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final String bidder = context.request().getParam("bidder");
+        final String bidder = context.request().getParam(BIDDER_PARAM);
         if (StringUtils.isBlank(bidder)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             context.response().setStatusCode(status).end("\"bidder\" query param is required");
@@ -74,8 +79,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final String gdpr = context.request().getParam("gdpr");
-        final String gdprConsent = context.request().getParam("gdpr_consent");
+        final String gdpr = context.request().getParam(GDPR_PARAM);
+        final String gdprConsent = context.request().getParam(GDPR_CONSENT_PARAM);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip,
                 timeoutFactory.create(defaultTimeout))
@@ -123,7 +128,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie) {
-        final String uid = context.request().getParam("uid");
+        final String uid = context.request().getParam(UID_PARAM);
         final UidsCookie updatedUidsCookie;
         boolean successfullyUpdated = false;
 
