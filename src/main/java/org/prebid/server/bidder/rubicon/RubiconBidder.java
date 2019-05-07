@@ -252,23 +252,26 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         final RubiconImpExtContext context = rubiconImpExt.getContext();
-        final ObjectNode data = context != null ? context.getData() : null;
+        final ObjectNode contextDataNode = context != null ? context.getData() : null;
 
-        final ObjectNode inventoryObject = (ObjectNode) inventory;
-        if (data != null && !data.isNull()) {
-            inventoryObject.setAll(data);
+        final ObjectNode inventoryNode = (ObjectNode) inventory;
+        if (contextDataNode != null && !contextDataNode.isNull()) {
+            inventoryNode.setAll(contextDataNode);
         }
 
         if (site != null) {
             final String search = site.getSearch();
             if (search != null) {
-                inventoryObject.put("search", search);
+                inventoryNode.put("search", search);
             }
-            return resolveJsonNode(inventoryObject, site.getExt().get("data"));
+            final ObjectNode siteExt = site.getExt();
+            if (siteExt != null && !siteExt.isNull()) {
+                return resolveJsonNode(inventoryNode, siteExt.get("data"));
+            }
         }
 
-        if (app != null) {
-            return resolveJsonNode(inventoryObject, app.getExt().get("data"));
+        if (app != null && app.getExt() != null && !app.getExt().isNull()) {
+            return resolveJsonNode(inventoryNode, app.getExt().get("data"));
         }
         return inventory;
     }

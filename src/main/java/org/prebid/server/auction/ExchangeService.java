@@ -183,15 +183,6 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts a list of bidders for which first party data is allowed from {@link ExtRequestPrebidData} model.
-     */
-    private static List<String> dataBidders(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
-        final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
-        return data == null ? null : data.getBidders();
-    }
-
-    /**
      * Extracts {@link ExtBidRequest} from bid request.
      */
     private static ExtBidRequest requestExt(BidRequest bidRequest) {
@@ -354,11 +345,11 @@ public class ExchangeService {
                 .collect(Collectors.toMap(Function.identity(),
                         bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases, deviceLmt)));
 
-        final List<String> allowedBidders = dataBidders(requestExt);
-        final Map<String, Boolean> bidderToIsAllowed = CollectionUtils.isEmpty(allowedBidders)
-                ? Collections.emptyMap()
-                : allowedBidders.stream()
-                .collect(Collectors.toMap(Function.identity(), bidders::contains));
+        final List<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
+        final Site site = bidRequest.getSite();
+        final ExtSite extSite = extSite(site);
+        final App app = bidRequest.getApp();
+        final ExtApp extApp = extApp(app);
 
         final List<BidderRequest> bidderRequests = bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
@@ -366,13 +357,13 @@ public class ExchangeService {
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
                         .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, aliases,
-                                resolveUserExtPrebid(extUser, bidderToIsAllowed.containsKey(bidder)),
+                                resolveUserExtPrebid(extUser, firstPartyDataBidders.contains(bidder)),
                                 bidderToMaskingRequired.get(bidder)))
                         .device(prepareDevice(device, bidderToMaskingRequired.get(bidder)))
                         .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
-                        .app(prepareApp(bidRequest.getApp(), bidderToIsAllowed.containsKey(bidder)))
-                        .site(prepareSite(bidRequest.getSite(), bidderToIsAllowed.containsKey(bidder)))
+                        .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
+                        .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
                         .ext(removeExtPrebidDataBidders(requestExt))
                         .build()))
                 .collect(Collectors.toList());
@@ -381,6 +372,15 @@ public class ExchangeService {
         Collections.shuffle(bidderRequests);
 
         return bidderRequests;
+    }
+
+    /**
+     * Extracts a list of bidders for which first party data is allowed from {@link ExtRequestPrebidData} model.
+     */
+    private static List<String> firstPartyDataBidders(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
+        return data == null ? Collections.emptyList() : data.getBidders();
     }
 
     /**
@@ -397,13 +397,12 @@ public class ExchangeService {
      * Checks whether to pass the site.ext.data depending on request having a first party data
      * allowed for given bidder or not.
      */
-    private static Site prepareSite(Site site, boolean isBidderAllowed) {
-        final ExtSite extSite = extSite(site);
+    private static Site prepareSite(Site site, ExtSite extSite, boolean useFirstPartyData) {
         final ObjectNode data = extSite == null ? null : extSite.getData();
 
-        return data == null ? site
-                : isBidderAllowed ? site
-                : site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(extSite.getAmp(), null))).build();
+        return data != null && useFirstPartyData
+                ? site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(extSite.getAmp(), null))).build()
+                : site;
     }
 
     /**
@@ -425,13 +424,12 @@ public class ExchangeService {
      * Checks whether to pass the app.ext.data depending on request having a first party data
      * allowed for given bidder or not.
      */
-    private static App prepareApp(App app, Boolean isBidderAllowed) {
-        final ExtApp extApp = extApp(app);
+    private static App prepareApp(App app, ExtApp extApp, Boolean useFirstPartyData) {
         final ObjectNode data = extApp == null ? null : extApp.getData();
 
-        return data == null ? app
-                : isBidderAllowed ? app
-                : app.toBuilder().ext(Json.mapper.valueToTree(ExtApp.of(extApp.getPrebid(), null))).build();
+        return data != null && useFirstPartyData
+                ? app.toBuilder().ext(Json.mapper.valueToTree(ExtApp.of(extApp.getPrebid(), null))).build()
+                : app;
     }
 
     /**
@@ -536,11 +534,11 @@ public class ExchangeService {
      * <p>
      * Also, checks if bidder allows first party data: if it doesn't - don't pass it.
      */
-    private static ObjectNode resolveUserExtPrebid(ExtUser extUser, boolean isBidderAllowed) {
+    private static ObjectNode resolveUserExtPrebid(ExtUser extUser, boolean useFirstPartyData) {
         return extUser != null
                 ? Json.mapper.valueToTree(ExtUser.of(
                 null, extUser.getConsent(), extUser.getDigitrust(), extUser.getTpid(),
-                isBidderAllowed ? extUser.getData() : null))
+                useFirstPartyData ? extUser.getData() : null))
                 : null;
     }
 
