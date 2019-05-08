@@ -55,6 +55,5 @@
     }
   },
   "required": [
-    "site_id"
   ]
 }

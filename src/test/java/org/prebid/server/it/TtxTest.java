@@ -39,8 +39,8 @@ public class TtxTest extends IntegrationTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"ttx":"TTX-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InR0eCI6IlRUWC1VSUQifX0=")
+                // this uids cookie value stands for {"uids":{"33across":"TTX-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7IjMzYWNyb3NzIjoiVFRYLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/ttx/test-auction-ttx-request.json"))
                 .post("/openrtb2/auction");
 

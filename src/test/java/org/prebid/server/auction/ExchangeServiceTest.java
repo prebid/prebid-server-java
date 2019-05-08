@@ -1991,8 +1991,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementCommonMetrics() {
         // given
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
-
         given(httpBidderRequester.requestBids(any(), any(), any()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
@@ -2010,6 +2008,22 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics).updateAdapterResponseTime(eq("somebidder"), eq("accountId"), anyInt());
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("somebidder"), eq("accountId"));
         verify(metrics).updateAdapterBidMetrics(eq("somebidder"), eq("accountId"), eq(10000L), eq(false), eq("banner"));
+    }
+
+    @Test
+    public void shouldCallUpdateCookieMetricsWithExpectedValue() {
+        // given
+        given(bidderCatalog.isActive(any())).willReturn(false);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
+                builder -> builder.app(App.builder().build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        verify(metrics).updateAdapterRequestTypeAndNoCookieMetrics(
+                eq("somebidder"), eq(MetricName.openrtb2web), eq(false));
     }
 
     @Test

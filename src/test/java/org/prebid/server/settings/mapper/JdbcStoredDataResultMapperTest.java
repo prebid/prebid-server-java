@@ -55,7 +55,7 @@ public class JdbcStoredDataResultMapperTest {
         assertThat(result.getStoredIdToRequest()).isEmpty();
         assertThat(result.getStoredIdToImp()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("No stored requests for ids [reqId] and stored imps for ids [impId] was found");
+                .containsOnly("No stored requests for ids [reqId] and stored imps for ids [impId] were found");
     }
 
     @Test

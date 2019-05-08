@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -31,6 +32,9 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
+import org.prebid.server.health.ApplicationChecker;
+import org.prebid.server.health.DatabaseHealthChecker;
+import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -42,6 +46,7 @@ import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -315,9 +320,10 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             ApplicationSettings applicationSettings,
+            Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new StoredRequestProcessor(applicationSettings, timeoutFactory, defaultTimeoutMs);
+        return new StoredRequestProcessor(applicationSettings, metrics, timeoutFactory, defaultTimeoutMs);
     }
 
     @Bean
@@ -392,5 +398,27 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, refreshPeriod, vertx, httpClient);
+    }
+
+    @Configuration
+    @ConditionalOnExpression("'${status-response}' != ''")
+    static class HealthCheckerService {
+
+        @Autowired
+        Vertx vertx;
+
+        @Bean
+        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
+        HealthChecker databaseChecker(
+                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod,
+                JDBCClient jdbcClient) {
+
+            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
+        }
+
+        @Bean
+        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
+            return new ApplicationChecker(statusResponse);
+        }
     }
 }

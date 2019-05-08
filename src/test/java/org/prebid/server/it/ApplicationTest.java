@@ -392,7 +392,7 @@ public class ApplicationTest extends IntegrationTest {
     public void statusShouldReturnReadyWithinResponseBodyAndHttp200Ok() {
         assertThat(given(spec).when().get("/status"))
                 .extracting(Response::getStatusCode, response -> response.getBody().asString())
-                .containsOnly(200, "ok");
+                .containsOnly(200, "{\"application\":{\"status\":\"ok\"}}");
     }
 
     @Test
@@ -569,7 +569,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredBidderNames() throws JSONException {
+    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException {
         // given
         final List<String> bidderNames = getBidderNamesFromParamFiles();
 

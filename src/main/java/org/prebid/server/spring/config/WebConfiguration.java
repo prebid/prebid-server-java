@@ -45,6 +45,8 @@ import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
+import org.prebid.server.health.HealthChecker;
+import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -253,8 +255,12 @@ public class WebConfiguration {
     }
 
     @Bean
-    StatusHandler statusHandler(@Value("${status-response:#{null}}") String statusResponse) {
-        return new StatusHandler(statusResponse);
+    StatusHandler statusHandler(List<HealthChecker> healthCheckers) {
+        healthCheckers.stream()
+                .filter(PeriodicHealthChecker.class::isInstance)
+                .map(PeriodicHealthChecker.class::cast)
+                .forEach(PeriodicHealthChecker::initialize);
+        return new StatusHandler(healthCheckers);
     }
 
     @Bean

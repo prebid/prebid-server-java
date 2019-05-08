@@ -389,7 +389,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateCookieSyncSetAndRejectByGdprMetricForEachRejectedAndSyncedBidder() throws IOException {
+    public void shouldUpdateCookieSyncSetAndRejectByGdprMetricForEachRejectedAndSyncedBidder() {
         // given
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null)));
@@ -415,7 +415,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateCookieSyncMatchesMetricForEachAlreadySyncedBidder() throws IOException {
+    public void shouldUpdateCookieSyncMatchesMetricForEachAlreadySyncedBidder() {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
@@ -544,7 +544,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
-        given(uidsCookieService.parseHostCookie(any())).willReturn("host-cookie-value");
+        given(uidsCookieService.parseHostCookie(any())).willReturn("host/cookie/value");
         given(uidsCookieService.parseUids(any()))
                 .willReturn(Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("uid-cookie-value"))).build());
 
@@ -556,8 +556,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         assertThat(cookieSyncResponse.getBidderStatus())
                 .extracting(BidderUsersyncStatus::getUsersync)
                 .containsOnly(
-                        UsersyncInfo.of("http://external-url/setuid?bidder=rubicon&gdpr=null&gdpr_consent=null"
-                                + "&uid=host-cookie-value", "redirect", false));
+                        UsersyncInfo.of("http://external-url/setuid?bidder=rubicon&gdpr=&gdpr_consent="
+                                + "&uid=host%2Fcookie%2Fvalue", "redirect", false));
     }
 
     @Test
@@ -908,7 +908,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         return cookieSyncEventCaptor.getValue();
     }
 
-    @SuppressWarnings("all")
+    @SuppressWarnings("SameParameterValue")
     private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {
         final Map<K, V> map = new HashMap<>();
         map.put(key1, value1);

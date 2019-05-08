@@ -45,7 +45,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Client stores values in Prebid Cache. For more info, see https://github.com/prebid/prebid-cache
+ * Client stores values in Prebid Cache.
+ * <p>
+ * For more info, see https://github.com/prebid/prebid-cache project.
  */
 public class CacheService {
 
@@ -67,14 +69,9 @@ public class CacheService {
     }
 
     public String getEndpointHost() {
-        String host = endpointUrl.getHost();
-        int port = endpointUrl.getPort();
-
-        if (port == -1) {
-            return host;
-        } else {
-            return String.format("%s:%d", host, port);
-        }
+        final String host = endpointUrl.getHost();
+        final int port = endpointUrl.getPort();
+        return port != -1 ? String.format("%s:%d", host, port) : host;
     }
 
     public String getEndpointPath() {
@@ -185,21 +182,31 @@ public class CacheService {
     }
 
     /**
-     * Makes {@link CacheTtl} from application settings or yaml configs.
+     * Makes {@link CacheTtl} from {@link Account} fetched by {@link ApplicationSettings}.
      */
     private Future<CacheTtl> makeCacheTtl(String publisherId, Timeout timeout) {
         return applicationSettings.getAccountById(publisherId, timeout)
-                .map(account -> isCacheTtlFoundInAccount(account)
-                        ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
-                        : CacheTtl.empty())
-                .recover(ex -> Future.succeededFuture(CacheTtl.empty()));
+                .map(CacheService::cacheTtlFrom)
+                .otherwise(CacheService::fallbackResult);
     }
 
     /**
      * Verifies if configs for {@link CacheTtl} are present in {@link Account}.
      */
-    private boolean isCacheTtlFoundInAccount(Account account) {
-        return account != null && (account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null);
+    private static CacheTtl cacheTtlFrom(Account account) {
+        return account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null
+                ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
+                : CacheTtl.empty();
+    }
+
+    /**
+     * Returns empty {@link CacheTtl} result.
+     */
+    private static CacheTtl fallbackResult(Throwable exception) {
+        if (!(exception instanceof PreBidException)) {
+            logger.warn("Error occurred while fetching account", exception);
+        }
+        return CacheTtl.empty();
     }
 
     /**

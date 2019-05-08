@@ -71,7 +71,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get account by id from database
-     * and returns {@link Future&lt;{@link Account}&gt;}
+     * and returns {@link Future&lt;{@link Account}&gt;}.
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
@@ -80,24 +80,48 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.of(row.getString(0), row.getString(1),
                         row.getInteger(2), row.getInteger(3), row.getBoolean(4))),
-                timeout);
+                timeout)
+                .compose(JdbcApplicationSettings::failedIfNull);
     }
 
     /**
      * Runs a process to get AdUnit config by id from database
-     * and returns {@link Future&lt;{@link String}&gt;}
+     * and returns {@link Future&lt;{@link String}&gt;}.
      */
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
                 Collections.singletonList(adUnitConfigId),
                 result -> mapToModelOrError(result, row -> row.getString(0)),
-                timeout);
+                timeout)
+                .compose(JdbcApplicationSettings::failedIfNull);
+    }
+
+    /**
+     * Transforms the first row of {@link ResultSet} to required object or returns null.
+     * <p>
+     * Note: mapper should never throws exception in case of using
+     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
+     */
+    private <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {
+        return result != null && CollectionUtils.isNotEmpty(result.getResults())
+                ? mapper.apply(result.getResults().get(0))
+                : null;
+    }
+
+    /**
+     * Returns succeeded {@link Future} if given value is not equal to NULL,
+     * otherwise failed {@link Future} with {@link PreBidException}.
+     */
+    private static <T> Future<T> failedIfNull(T value) {
+        return value != null
+                ? Future.succeededFuture(value)
+                : Future.failedFuture(new PreBidException("Not found"));
     }
 
     /**
      * Runs a process to get stored requests by a collection of ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
      */
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
@@ -113,21 +137,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of amp ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
      */
     @Override
     public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(selectAmpQuery, requestIds, Collections.emptySet(), timeout);
-    }
-
-    /**
-     * Transforms the first row of {@link ResultSet} to required object.
-     */
-    private <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {
-        if (result == null || result.getResults() == null || result.getResults().isEmpty()) {
-            throw new PreBidException("Not found");
-        }
-        return mapper.apply(result.getResults().get(0));
     }
 
     /**
@@ -167,7 +181,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Returns string for parametrized placeholder
+     * Returns string for parametrized placeholder.
      */
     private static String parameterHolders(int paramsSize) {
         return paramsSize == 0
