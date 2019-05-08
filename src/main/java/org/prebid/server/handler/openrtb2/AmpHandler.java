@@ -25,7 +25,6 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
@@ -73,7 +72,6 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
     private final UidsCookieService uidsCookieService;
-    private final StoredResponseProcessor storedResponseProcessor;
     private final Set<String> biddersSupportingCustomTargeting;
     private final BidderCatalog bidderCatalog;
     private final AnalyticsReporter analyticsReporter;
@@ -84,15 +82,13 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final TimeoutResolver timeoutResolver;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
-                      UidsCookieService uidsCookieService, StoredResponseProcessor storedResponseProcessor,
-                      Set<String> biddersSupportingCustomTargeting,
+                      UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
                       BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter,
                       AmpResponsePostProcessor ampResponsePostProcessor, Metrics metrics, Clock clock,
                       TimeoutFactory timeoutFactory, TimeoutResolver timeoutResolver) {
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
@@ -123,9 +119,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))
                 .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .compose(bidRequest ->
-                        storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), bidRequest.getTmax())
-                                .compose(storedResponseResult -> exchangeService.holdAuction(bidRequest, uidsCookie,
-                                        storedResponseResult, timeout(bidRequest, startTime), METRICS_CONTEXT, context))
+                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
+                                METRICS_CONTEXT, context)
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))

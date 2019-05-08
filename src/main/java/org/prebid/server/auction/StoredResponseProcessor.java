@@ -1,23 +1,30 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredSeatBid;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -26,42 +33,81 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
- *
+ * Resolves stored response data retrieving and BidderResponse merging processes.
  */
 public class StoredResponseProcessor {
 
+    private static final String PREBID_EXT = "prebid";
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPEREFERENCE = new TypeReference<List<SeatBid>>() {
+    };
+
     private final ApplicationSettings applicationSettings;
+    private final BidderCatalog bidderCatalog;
     private final TimeoutFactory timeoutFactory;
     private final long defaultTimeout;
 
-    public StoredResponseProcessor(ApplicationSettings applicationSettings, TimeoutFactory timeoutFactory,
-                                   long defaultTimeout) {
+    public StoredResponseProcessor(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
+                                   TimeoutFactory timeoutFactory, long defaultTimeout) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.defaultTimeout = defaultTimeout;
     }
 
-    public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Long tmax) {
-        final List<Imp> realRequestImps = new ArrayList<>();
+    public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Long tmax,
+                                                                Map<String, String> aliases) {
+        final List<Imp> requiredRequestImps = new ArrayList<>();
         final Set<String> storedResponseIds = new HashSet<>();
-        getStoredResponseIdsAndRequestingImps(imps, realRequestImps, storedResponseIds);
+
+        try {
+            fillStoredResponseIdsAndRequestingImps(imps, requiredRequestImps, storedResponseIds, aliases);
+        } catch (InvalidRequestException ex) {
+            return Future.failedFuture(ex);
+        }
+
+        if (storedResponseIds.isEmpty()) {
+            return Future.succeededFuture(StoredResponseResult.of(imps, Collections.emptyList()));
+        }
 
         return applicationSettings.getStoredResponse(storedResponseIds, timeout(tmax))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored response fetching failed: %s", exception.getMessage()))))
+                        String.format("Stored response fetching failed with reason: %s", exception.getMessage()))))
                 .map(this::convertToSeatBid)
-                .map(storedResponse -> StoredResponseResult.of(realRequestImps, storedResponse));
+                .map(storedResponse -> StoredResponseResult.of(requiredRequestImps, storedResponse));
     }
 
-    private void getStoredResponseIdsAndRequestingImps(List<Imp> imps, List<Imp> realRequestImps,
-                                                       Set<String> storedResponseIds) {
+    public List<BidderResponse> mergeWithBidderResponses(List<BidderResponse> bidderResponses,
+                                                         List<SeatBid> storedResponses) {
+        if (CollectionUtils.isEmpty(storedResponses)) {
+            return bidderResponses;
+        }
+
+        final Map<String, BidderResponse> bidderToResponse = bidderResponses.stream()
+                .collect(Collectors.toMap(BidderResponse::getBidder, Function.identity()));
+        final Map<String, SeatBid> bidderToSeatBid = storedResponses.stream()
+                .collect(Collectors.toMap(SeatBid::getSeat, Function.identity()));
+        final Set<String> responseBidders = new HashSet<>(bidderToResponse.keySet());
+        responseBidders.addAll(bidderToSeatBid.keySet());
+
+        return responseBidders.stream()
+                .map(bidder -> makeBidderResponse(bidderToResponse.get(bidder), bidderToSeatBid.get(bidder)))
+                .collect(Collectors.toList());
+    }
+
+    private void fillStoredResponseIdsAndRequestingImps(List<Imp> imps, List<Imp> requiredRequestImps,
+                                                        Set<String> storedResponseIds, Map<String, String> aliases) {
         for (final Imp imp : imps) {
             final String impId = imp.getId();
             final ObjectNode extImpNode = imp.getExt();
@@ -72,13 +118,13 @@ public class StoredResponseProcessor {
             final ExtImp extImp = getExtImp(extImpNode, impId);
             final ExtImpPrebid extImpPrebid = extImp != null ? extImp.getPrebid() : null;
             if (extImpPrebid == null) {
-                realRequestImps.add(imp);
+                requiredRequestImps.add(imp);
                 continue;
             }
 
             final ExtStoredAuctionResponse storedAuctionResponse = extImpPrebid.getStoredAuctionResponse();
             final String storedAuctionResponseId = storedAuctionResponse != null ? storedAuctionResponse.getId() : null;
-            if (!StringUtils.isNotEmpty(storedAuctionResponseId)) {
+            if (StringUtils.isNotEmpty(storedAuctionResponseId)) {
                 storedResponseIds.add(storedAuctionResponseId);
                 continue;
             }
@@ -88,7 +134,10 @@ public class StoredResponseProcessor {
                     ? getBidderToStoredResponseId(storedBidResponse, impId)
                     : null;
             if (bidderToStoredId != null && !bidderToStoredId.isEmpty()) {
-                realRequestImps.add(removeStoredResponseBidders(imp, extImpNode, bidderToStoredId.keySet()));
+                final Imp resolvedBiddersImp = removeStoredResponseBidders(imp, extImpNode, bidderToStoredId.keySet());
+                if (hasValidBidder(aliases, resolvedBiddersImp)) {
+                    requiredRequestImps.add(resolvedBiddersImp);
+                }
                 storedResponseIds.addAll(bidderToStoredId.values());
             }
         }
@@ -134,50 +183,108 @@ public class StoredResponseProcessor {
         return isUpdated ? imp.toBuilder().ext(extImp).build() : imp;
     }
 
+    private boolean hasValidBidder(Map<String, String> aliases, Imp resolvedBiddersImp) {
+        return asStream(resolvedBiddersImp.getExt().fieldNames())
+                .anyMatch(bidder -> !Objects.equals(bidder, PREBID_EXT) && isValidBidder(bidder, aliases));
+    }
+
+    private <T> Stream<T> asStream(Iterator<T> iterator) {
+        final Iterable<T> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+    }
+
     private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult) {
         final List<SeatBid> seatBids = new ArrayList<>();
         for (final Map.Entry<String, String> idToRowSeatBid : storedResponseDataResult.getStoredSeatBid().entrySet()) {
             final String id = idToRowSeatBid.getKey();
             final String rowSeatBid = idToRowSeatBid.getValue();
             try {
-                seatBids.add(Json.mapper.readValue(rowSeatBid, SeatBid.class));
+                seatBids.addAll(Json.mapper.readValue(rowSeatBid, SEATBID_LIST_TYPEREFERENCE));
             } catch (IOException e) {
                 throw new InvalidRequestException(String.format("Can't parse Json for stored response with id %s", id));
             }
         }
-        return seatBids;
+        validateStoredSeatBid(seatBids);
+        return mergeSameBidderSeatBid(seatBids);
     }
 
-    /**
-     * If the request defines tmax explicitly, then it is returned as is. Otherwise default timeout is returned.
-     */
-    private Timeout timeout(Long tmax) {
-        return timeoutFactory.create(tmax != null && tmax > 0 ? tmax : defaultTimeout);
+    private void validateStoredSeatBid(List<SeatBid> seatBids) {
+        for (final SeatBid seatBid : seatBids) {
+            if (StringUtils.isEmpty(seatBid.getSeat())) {
+                throw new InvalidRequestException("Seat can't be empty in stored response seatBid");
+            }
+        }
     }
 
-    public BidResponse makeBidResponse(BidRequest bidRequest, List<SeatBid> seatBids) {
-        return BidResponse.builder()
-                .id(bidRequest.getId())
-                .cur(bidRequest.getCur().get(0))
-                .seatbid(mergeSeatBids(seatBids, Collections.emptyList()))
-                .ext(Json.mapper.valueToTree(ExtBidResponse.of(null, null, null, bidRequest.getTmax(), null)))
-                .build();
-    }
-
-    public List<SeatBid> mergeSeatBids(List<SeatBid> storedSeatBid, List<SeatBid> responseSeatBid) {
-        responseSeatBid.addAll(storedSeatBid);
-        return responseSeatBid.stream().collect(Collectors.groupingBy(SeatBid::getSeat, Collectors.toList()))
+    private List<SeatBid> mergeSameBidderSeatBid(List<SeatBid> seatBids) {
+        return seatBids.stream().collect(Collectors.groupingBy(SeatBid::getSeat, Collectors.toList()))
                 .entrySet().stream()
-                .map(bidderToSeatBid -> mergeSameBidderSeatBids(bidderToSeatBid.getKey(), bidderToSeatBid.getValue()))
+                .map(bidderToSeatBid -> makeMergedSeatBid(bidderToSeatBid.getKey(), bidderToSeatBid.getValue()))
                 .collect(Collectors.toList());
     }
 
-    // TODO resolve aliases?
-    private SeatBid mergeSameBidderSeatBids(String seat, List<SeatBid> storedSeatBids) {
+    private SeatBid makeMergedSeatBid(String seat, List<SeatBid> storedSeatBids) {
         return SeatBid.builder()
                 .bid(storedSeatBids.stream().map(SeatBid::getBid).flatMap(List::stream).collect(Collectors.toList()))
                 .seat(seat)
                 .ext(storedSeatBids.stream().map(SeatBid::getExt).filter(Objects::nonNull).findFirst().orElse(null))
                 .build();
+    }
+
+    private BidderResponse makeBidderResponse(BidderResponse bidderResponse, SeatBid seatBid) {
+        if (bidderResponse != null) {
+            final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
+            return BidderResponse.of(bidderResponse.getBidder(),
+                    seatBid == null ? bidderSeatBid : makeBidderSeatBid(bidderSeatBid, seatBid),
+                    bidderResponse.getResponseTime());
+        } else {
+            return BidderResponse.of(seatBid.getSeat(), makeBidderSeatBid(null, seatBid), 0);
+        }
+    }
+
+    private BidderSeatBid makeBidderSeatBid(BidderSeatBid bidderSeatBid, SeatBid seatBid) {
+        final boolean nonNullBidderSeatBid = bidderSeatBid != null;
+        final String bidCurrency = nonNullBidderSeatBid ?
+                bidderSeatBid.getBids().stream()
+                        .map(BidderBid::getBidCurrency).filter(Objects::nonNull)
+                        .findAny().orElse(DEFAULT_BID_CURRENCY)
+                : DEFAULT_BID_CURRENCY;
+        final List<BidderBid> bidderBids = seatBid != null ?
+                seatBid.getBid().stream()
+                        .map(bid -> makeBidderBid(bid, bidCurrency))
+                        .collect(Collectors.toList())
+                : Collections.emptyList();
+        if (nonNullBidderSeatBid) {
+            bidderBids.addAll(bidderSeatBid.getBids());
+        }
+        return BidderSeatBid.of(bidderBids,
+                nonNullBidderSeatBid ? bidderSeatBid.getHttpCalls() : Collections.emptyList(),
+                nonNullBidderSeatBid ? bidderSeatBid.getErrors() : Collections.emptyList());
+    }
+
+    private BidderBid makeBidderBid(Bid bid, String bidCurrency) {
+        return BidderBid.of(bid, getBidType(bid.getExt()), bidCurrency);
+    }
+
+    private BidType getBidType(ObjectNode bidExt) {
+        final ObjectNode bidExtPrebid = bidExt != null ? (ObjectNode) bidExt.get(PREBID_EXT) : null;
+        final ExtBidPrebid extBidPrebid = bidExtPrebid != null ? parseExtBidPrebid(bidExtPrebid) : null;
+        return extBidPrebid != null ? extBidPrebid.getType() : BidType.banner;
+    }
+
+    private ExtBidPrebid parseExtBidPrebid(ObjectNode bidExtPrebid) {
+        try {
+            return Json.mapper.treeToValue(bidExtPrebid, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding stored response bid.ext.prebid");
+        }
+    }
+
+    private Timeout timeout(Long tmax) {
+        return timeoutFactory.create(tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 }

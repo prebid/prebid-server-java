@@ -10,7 +10,7 @@ import java.util.List;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class StoredResponseResult {
-    List<Imp> realRequestImps;
+    List<Imp> requiredRequestImps;
 
     List<SeatBid> storedResponse;
 }

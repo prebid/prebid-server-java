@@ -2,11 +2,9 @@ package org.prebid.server.handler.openrtb2;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -17,11 +15,8 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
-import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -46,7 +41,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final ExchangeService exchangeService;
     private final AuctionRequestFactory auctionRequestFactory;
     private final UidsCookieService uidsCookieService;
-    private final StoredResponseProcessor storedResponseProcessor;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
@@ -54,13 +48,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final TimeoutResolver timeoutResolver;
 
     public AuctionHandler(ExchangeService exchangeService, AuctionRequestFactory auctionRequestFactory,
-                          UidsCookieService uidsCookieService, StoredResponseProcessor storedResponseProcessor,
-                          AnalyticsReporter analyticsReporter, Metrics metrics,
+                          UidsCookieService uidsCookieService, AnalyticsReporter analyticsReporter, Metrics metrics,
                           Clock clock, TimeoutFactory timeoutFactory, TimeoutResolver timeoutResolver) {
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.storedResponseProcessor = storedResponseProcessor;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -88,8 +80,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))
                 .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .map(bidRequest -> Tuple2.of(bidRequest, toMetricsContext(bidRequest)))
-                .compose((Tuple2<BidRequest, MetricsContext> result) -> auction(result.getLeft(), result.getRight(),
-                        uidsCookie, context, startTime))
+                .compose((Tuple2<BidRequest, MetricsContext> result) ->
+                        exchangeService.holdAuction(result.getLeft(), uidsCookie, timeout(result.getLeft(), startTime),
+                                result.getRight(), context)
+                                .map(bidResponse -> Tuple2.of(bidResponse, result.getRight())))
                 .map((Tuple2<BidResponse, MetricsContext> result) ->
                         addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
                 .setHandler(responseResult -> handleResult(responseResult, auctionEventBuilder, context, startTime));
@@ -105,15 +99,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
                 isSafari, bidRequest.getImp().size());
         return bidRequest;
-    }
-
-    private Future<Tuple2<BidResponse, MetricsContext>> auction(BidRequest bidRequest, MetricsContext metricsContext,
-                                                                UidsCookie uidsCookie, RoutingContext context,
-                                                                long startTime) {
-        return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), bidRequest.getTmax())
-                .compose(storedResponseResult -> exchangeService.holdAuction(bidRequest, uidsCookie,
-                        storedResponseResult, timeout(bidRequest, startTime), metricsContext, context))
-                .map(bidResponse -> Tuple2.of(bidResponse, metricsContext));
     }
 
     private static MetricsContext toMetricsContext(BidRequest bidRequest) {

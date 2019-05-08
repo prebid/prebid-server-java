@@ -223,7 +223,6 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
-            StoredResponseProcessor storedResponseProcessor,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
@@ -231,8 +230,7 @@ public class WebConfiguration {
             TimeoutResolver auctionTimeoutResolver) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(exchangeService, auctionRequestFactory,
-                uidsCookieService, storedResponseProcessor, analyticsReporter, metrics, clock, timeoutFactory,
-                auctionTimeoutResolver);
+                uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory, auctionTimeoutResolver);
     }
 
     @Bean
@@ -240,7 +238,6 @@ public class WebConfiguration {
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
             UidsCookieService uidsCookieService,
-            StoredResponseProcessor storedResponseProcessor,
             AmpProperties ampProperties,
             BidderCatalog bidderCatalog,
             CompositeAnalyticsReporter analyticsReporter,
@@ -250,7 +247,7 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             TimeoutResolver ampTimeoutResolver) {
 
-        return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService, storedResponseProcessor,
+        return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService,
                 ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
                 metrics, clock, timeoutFactory, ampTimeoutResolver);
     }
