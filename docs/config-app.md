@@ -189,8 +189,12 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `recaptcha-secret` - Google Recaptcha secret string given to certain domain account.
 
 ## Server status
-- `status-response` - message returned by /status endpoint when server is ready to serve requests.
-If not defined in config, endpoint will respond with 'No Content' (204) status with empty body.
+- `status-response` - message returned by ApplicationChecker in /status endpoint when server is ready to serve requests.
+If not defined in config all other Health Checkers would be disabled and endpoint will respond with 'No Content' (204) status with empty body.
+
+## Health Check
+- `health-check.database.enabled` - if equals to `true` the database health check will be enabled to periodically check database status.
+- `health-check.database.refresh-period-ms` - the refresh period for database status updates.
 
 ## GDPR
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).
