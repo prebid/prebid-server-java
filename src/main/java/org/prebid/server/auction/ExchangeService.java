@@ -380,7 +380,8 @@ public class ExchangeService {
     private static List<String> firstPartyDataBidders(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
-        return data == null ? Collections.emptyList() : data.getBidders();
+        final List<String> bidders = data == null ? null : data.getBidders();
+        return ObjectUtils.defaultIfNull(bidders, Collections.emptyList());
     }
 
     /**
@@ -400,7 +401,7 @@ public class ExchangeService {
     private static Site prepareSite(Site site, ExtSite extSite, boolean useFirstPartyData) {
         final ObjectNode data = extSite == null ? null : extSite.getData();
 
-        return data != null && useFirstPartyData
+        return data != null && !useFirstPartyData
                 ? site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(extSite.getAmp(), null))).build()
                 : site;
     }
@@ -424,10 +425,10 @@ public class ExchangeService {
      * Checks whether to pass the app.ext.data depending on request having a first party data
      * allowed for given bidder or not.
      */
-    private static App prepareApp(App app, ExtApp extApp, Boolean useFirstPartyData) {
+    private static App prepareApp(App app, ExtApp extApp, boolean useFirstPartyData) {
         final ObjectNode data = extApp == null ? null : extApp.getData();
 
-        return data != null && useFirstPartyData
+        return data != null && !useFirstPartyData
                 ? app.toBuilder().ext(Json.mapper.valueToTree(ExtApp.of(extApp.getPrebid(), null))).build()
                 : app;
     }

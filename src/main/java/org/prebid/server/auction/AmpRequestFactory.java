@@ -167,7 +167,6 @@ public class AmpRequestFactory {
         final String canonicalUrl = canonicalUrl(request);
 
         final ObjectNode siteExt = site != null ? site.getExt() : null;
-        final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
 
         if (StringUtils.isNotBlank(canonicalUrl) || shouldSetExtAmp) {
@@ -176,6 +175,7 @@ public class AmpRequestFactory {
                 siteBuilder.page(canonicalUrl);
             }
             if (shouldSetExtAmp) {
+                final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
                 siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1, data)));
             }
             return siteBuilder.build();

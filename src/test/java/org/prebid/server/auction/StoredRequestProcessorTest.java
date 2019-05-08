@@ -518,8 +518,8 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void processStoredRequestsShouldUpdateRequestAndImpMetricsAsExpected() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder
-                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, null, ExtStoredRequest.of("123"), null))))
+                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123")).build())))
                 .imp(asList(givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
                         ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("321")))))),
                         givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
@@ -542,8 +542,8 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void processStoredRequestsShouldUpdateRequestMissingMetrics() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder
-                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, null, ExtStoredRequest.of("123"), null)))));
+                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123")).build()))));
 
         given(applicationSettings.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));

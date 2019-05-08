@@ -334,12 +334,15 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final String gender = user != null ? user.getGender() : null;
         final Integer yob = user != null ? user.getYob() : null;
         final Geo geo = user != null ? user.getGeo() : null;
-
         final JsonNode visitor = rubiconParams.getVisitor();
         final boolean visitorIsNotNull = !visitor.isNull();
-        return visitorIsNotNull || consent != null
-                ? RubiconUserExt.of(RubiconUserExtRp.of(visitorIsNotNull ? visitor : null, gender, yob, geo),
-                consent, null, null)
+        final boolean hasAnyNotNull = gender != null || yob != null || geo != null || visitorIsNotNull;
+
+        final RubiconUserExtRp userExtRp = hasAnyNotNull
+                ? RubiconUserExtRp.of(visitorIsNotNull ? visitor : null, gender, yob, geo) : null;
+
+        return userExtRp != null || consent != null
+                ? RubiconUserExt.of(userExtRp, consent, null, null)
                 : null;
     }
 

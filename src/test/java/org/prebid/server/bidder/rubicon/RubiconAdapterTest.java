@@ -2,7 +2,6 @@ package org.prebid.server.bidder.rubicon;
 
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -51,7 +50,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
-import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -557,7 +555,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnBidRequestWithNullUserExtRpTargetWhenVisitorIsNull() {
+    public void makeHttpRequestShouldReturnBidRequestWithNullUserExtRpWhenVisitorIsNull() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder
@@ -575,8 +573,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .extracting(User::getExt).isNotNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
                 .extracting(RubiconUserExt::getRp)
-                .extracting(RubiconUserExtRp::getTarget)
-                .containsOnly(NullNode.getInstance());
+                .containsNull();
     }
 
     @Test

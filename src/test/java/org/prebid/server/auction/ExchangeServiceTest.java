@@ -1499,12 +1499,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
-        final ObjectNode dataNode = mapper.createObjectNode();
-        dataNode.put("data", "value");
-
-        final Map<String, Integer> bidderToGdpr = new HashMap<>();
-        bidderToGdpr.put("someBidder", 1);
-        bidderToGdpr.put("missingBidder", 0);
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -1536,12 +1532,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
-        final ObjectNode dataNode = mapper.createObjectNode();
-        dataNode.put("data", "value");
-
-        final Map<String, Integer> bidderToGdpr = new HashMap<>();
-        bidderToGdpr.put("someBidder", 1);
-        bidderToGdpr.put("missingBidder", 0);
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
@@ -1570,12 +1562,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
         givenBidder("missingBidder", bidder, givenEmptySeatBid());
 
-        final ObjectNode dataNode = mapper.createObjectNode();
-        dataNode.put("data", "value");
-
-        final Map<String, Integer> bidderToGdpr = new HashMap<>();
-        bidderToGdpr.put("someBidder", 1);
-        bidderToGdpr.put("missingBidder", 0);
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
