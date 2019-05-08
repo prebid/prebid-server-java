@@ -69,7 +69,6 @@ public class InitializationConfiguration {
             if (currencyConversionService != null) {
                 currencyConversionService.initialize();
             }
-
             if (httpPeriodicRefreshService != null) {
                 httpPeriodicRefreshService.initialize();
             }

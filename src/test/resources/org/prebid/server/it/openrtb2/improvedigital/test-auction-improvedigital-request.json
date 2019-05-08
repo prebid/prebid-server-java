@@ -12,41 +12,25 @@
         ]
       },
       "ext": {
-        "ttx": {
-          "prod": "inview",
-          "zoneid": "zone-id"
+        "improvedigital": {
+          "placementId": 13245,
+          "size": {
+            "w": 300,
+            "h": 250
+          }
         }
       }
     }
   ],
-  "site": {
-    "id": "site-id",
-    "domain": "example.com",
-    "page": "http://www.example.com",
-    "publisher": {
-      "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
-    }
-  },
   "device": {
-    "ua": "userAgent",
-    "dnt": 2,
-    "ip": "192.168.244.1",
     "pxratio": 4.2,
+    "dnt": 2,
     "language": "en",
     "ifa": "ifaId"
   },
-  "user": {
-    "buyeruid": "TTX-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+  "site": {
+    "publisher": {
+      "id": "publisherId"
     }
   },
   "test": 1,
@@ -58,11 +42,6 @@
   "source": {
     "fd": 1,
     "tid": "tid"
-  },
-  "regs": {
-    "ext": {
-      "gdpr": 0
-    }
   },
   "ext": {
     "prebid": {
@@ -86,12 +65,10 @@
               "USD": 1.2406
             },
             "USD": {
-              "EUR": 0.811
+              "EUR": 0.8110
             }
           }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
+        }
       },
       "cache": {
         "bids": {},
@@ -99,6 +76,21 @@
           "ttlseconds": 120
         }
       }
+    }
+  },
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
     }
   }
 }

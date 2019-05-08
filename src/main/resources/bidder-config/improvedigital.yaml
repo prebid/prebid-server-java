@@ -1,0 +1,20 @@
+adapters:
+  improvedigital:
+    enabled: false
+    endpoint: http://ad.360yield.com/pbs
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: j.bartek@improvedigital.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 253
+    usersync:
+      url: https://ad.360yield.com/server_match?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+      redirect-url: /setuid?bidder=improvedigital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={PUB_USER_ID}
+      cookie-family-name: improvedigital
+      type: redirect
+      support-cors: false

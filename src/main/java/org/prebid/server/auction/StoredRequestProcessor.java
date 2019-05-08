@@ -13,6 +13,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -39,12 +40,14 @@ public class StoredRequestProcessor {
 
     private final ApplicationSettings applicationSettings;
     private final TimeoutFactory timeoutFactory;
+    private final Metrics metrics;
     private final long defaultTimeout;
 
-    public StoredRequestProcessor(ApplicationSettings applicationSettings, TimeoutFactory timeoutFactory,
-                                  long defaultTimeout) {
+    public StoredRequestProcessor(ApplicationSettings applicationSettings, Metrics metrics,
+                                  TimeoutFactory timeoutFactory, long defaultTimeout) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.metrics = Objects.requireNonNull(metrics);
         this.defaultTimeout = defaultTimeout;
     }
 
@@ -73,8 +76,21 @@ public class StoredRequestProcessor {
             return Future.succeededFuture(bidRequest);
         }
 
-        return storedRequestsToBidRequest(applicationSettings.getStoredData(requestIds, impIds, timeout(bidRequest)),
-                bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId);
+        final Future<StoredDataResult> storedDataFuture =
+                applicationSettings.getStoredData(requestIds, impIds, timeout(bidRequest))
+                        .compose(storedDataResult -> updateMetrics(storedDataResult, requestIds, impIds));
+
+        return storedRequestsToBidRequest(storedDataFuture, bidRequest,
+                bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId);
+    }
+
+    private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult, Set<String> requestIds,
+                                                   Set<String> impIds) {
+        requestIds.forEach(
+                id -> metrics.updateStoredRequestMetric(storedDataResult.getStoredIdToRequest().containsKey(id)));
+        impIds.forEach(id -> metrics.updateStoredImpsMetric(storedDataResult.getStoredIdToImp().containsKey(id)));
+
+        return Future.succeededFuture(storedDataResult);
     }
 
     /**
@@ -82,11 +98,13 @@ public class StoredRequestProcessor {
      */
     Future<BidRequest> processAmpRequest(String ampRequestId) {
         final BidRequest bidRequest = BidRequest.builder().build();
+        final Future<StoredDataResult> ampStoredDataFuture =
+                applicationSettings.getAmpStoredData(
+                        Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                        .compose(storedDataResult -> updateMetrics(
+                                storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
-        return storedRequestsToBidRequest(
-                applicationSettings.getAmpStoredData(Collections.singleton(ampRequestId), Collections.emptySet(),
-                        timeout(bidRequest)),
-                bidRequest, ampRequestId, Collections.emptyMap());
+        return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,

@@ -20,6 +20,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -43,6 +44,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -57,12 +59,16 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
 
+    @Mock
+    private Metrics metrics;
+
     private StoredRequestProcessor storedRequestProcessor;
 
     @Before
     public void setUp() {
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
-        storedRequestProcessor = new StoredRequestProcessor(applicationSettings, timeoutFactory, DEFAULT_TIMEOUT);
+        storedRequestProcessor =
+                new StoredRequestProcessor(applicationSettings, metrics, timeoutFactory, DEFAULT_TIMEOUT);
     }
 
     @Test
@@ -480,6 +486,101 @@ public class StoredRequestProcessorTest extends VertxTest {
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(applicationSettings).getStoredData(anySet(), anySet(), timeoutCaptor.capture());
         assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(DEFAULT_TIMEOUT);
+    }
+
+    @Test
+    public void processStoredRequestsShouldNotUpdateMetrics() {
+        // given
+        given(applicationSettings.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.failedFuture("failed"));
+
+        // when
+        storedRequestProcessor.processStoredRequests(givenBidRequest(Function.identity()));
+
+        // then
+        verifyZeroInteractions(metrics);
+    }
+
+    @Test
+    public void processAmpRequestShouldNotUpdateMetrics() {
+        // given
+        given(applicationSettings.getAmpStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.failedFuture("failed"));
+
+        // when
+        storedRequestProcessor.processAmpRequest("123");
+
+        // then
+        verifyZeroInteractions(metrics);
+    }
+
+    @Test
+    public void processStoredRequestsShouldUpdateRequestAndImpMetricsAsExpected() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, null, ExtStoredRequest.of("123"), null))))
+                .imp(asList(givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("321")))))),
+                        givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("not_found")))))))));
+
+        given(applicationSettings.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", "stored_request"), singletonMap("321", "stored_imp"), emptyList())));
+
+        // when
+        storedRequestProcessor.processStoredRequests(bidRequest);
+
+        // then
+        verify(metrics).updateStoredRequestMetric(eq(true));
+        verify(metrics).updateStoredImpsMetric(eq(true));
+        verify(metrics).updateStoredImpsMetric(eq(false));
+    }
+
+    @Test
+    public void processStoredRequestsShouldUpdateRequestMissingMetrics() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, null, ExtStoredRequest.of("123"), null)))));
+
+        given(applicationSettings.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
+
+        // when
+        storedRequestProcessor.processStoredRequests(bidRequest);
+
+        // then
+        verify(metrics).updateStoredRequestMetric(eq(false));
+    }
+
+    @Test
+    public void processAmpRequestShouldUpdateRequestFoundMetric() {
+        // given
+        given(applicationSettings.getAmpStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("123", "amp"), emptyMap(), emptyList())));
+
+        // when
+        storedRequestProcessor.processAmpRequest("123");
+
+        // then
+        verify(metrics).updateStoredRequestMetric(true);
+    }
+
+    @Test
+    public void processAmpRequestShouldUpdateRequestMissingMetrics() {
+        // given
+        given(applicationSettings.getAmpStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
+
+        // when
+        storedRequestProcessor.processAmpRequest("123");
+
+        // then
+        verify(metrics).updateStoredRequestMetric(false);
     }
 
     private static BidRequest givenBidRequest(

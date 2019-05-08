@@ -12,15 +12,17 @@
         ]
       },
       "ext": {
-        "ttx": {
-          "prod": "inview",
-          "zoneid": "zone-id"
+        "bidder": {
+          "placementId": 13245,
+          "size": {
+            "w": 300,
+            "h": 250
+          }
         }
       }
     }
   ],
   "site": {
-    "id": "site-id",
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
@@ -39,7 +41,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "TTX-UID",
+    "buyeruid": "ID-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {
