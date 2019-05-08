@@ -370,7 +370,7 @@ public class ConversantAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldThrowPrebidExceptionIfAppIsPresentOnRequest() {
+    public void makeHttpRequestsShouldThrowPrebidExceptionIfAppHasBlankOrMissingId() {
         // given
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
                 .app(App.builder().build()));
@@ -378,7 +378,7 @@ public class ConversantAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Conversant doesn't support App requests");
+                .hasMessage("Missing app id");
     }
 
     @Test

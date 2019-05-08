@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.conversant;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -74,23 +75,20 @@ public class ConversantAdapter extends OpenrtbAdapter {
 
         validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
-        final List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids);
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final App app = preBidRequest.getApp();
+        final List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids,
+                app);
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
-        final Site site = makeSite(preBidRequestContext, adUnitBidsWithParams);
-        if (site == null) {
-            throw new PreBidException("Conversant doesn't support App requests");
-        }
-
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
                 .id(preBidRequest.getTid())
                 .at(1)
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .app(preBidRequest.getApp())
-                .site(site)
+                .app(app)
+                .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
@@ -98,13 +96,19 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams<ConversantParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<ConversantParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids,
+                                                                                          App app) {
         return adUnitBids.stream()
-                .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
+                .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid, app)))
                 .collect(Collectors.toList());
     }
 
-    private static ConversantParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private static ConversantParams parseAndValidateParams(AdUnitBid adUnitBid, App app) {
+        final boolean isAppRequest = app != null;
+        if (isAppRequest && StringUtils.isBlank(app.getId())) {
+            throw new PreBidException("Missing app id");
+        }
+
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Conversant params section is missing");
@@ -118,7 +122,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (StringUtils.isEmpty(params.getSiteId())) {
+        if (!isAppRequest && StringUtils.isEmpty(params.getSiteId())) {
             throw new PreBidException("Missing site id");
         }
 
