@@ -318,9 +318,10 @@ public class ServiceConfiguration {
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             ApplicationSettings applicationSettings,
+            Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new StoredRequestProcessor(applicationSettings, timeoutFactory, defaultTimeoutMs);
+        return new StoredRequestProcessor(applicationSettings, metrics, timeoutFactory, defaultTimeoutMs);
     }
 
     @Bean
