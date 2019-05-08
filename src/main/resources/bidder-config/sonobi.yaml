@@ -17,7 +17,7 @@ adapters:
       vendor-id: 104
     usersync:
       url: https://sync.go.sonobi.com/us.gif?loc=
-      redirect-url: /setuid?bidder=sonobi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      redirect-url: /setuid?bidder=sonobi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[UID]
       cookie-family-name: sonobi
       type: redirect
       support-cors: false
