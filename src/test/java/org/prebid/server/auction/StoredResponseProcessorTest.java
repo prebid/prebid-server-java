@@ -76,7 +76,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null))))
                 .build());
 
-        given(applicationSettings.getStoredResponse(any(), any()))
+        given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(Collections.singletonMap("responseId",
                         Json.mapper.writeValueAsString(singletonList(SeatBid.builder().seat("rubicon")
                                 .bid(singletonList(Bid.builder().id("id").build())).build()))),
@@ -117,7 +117,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null))))
                 .build());
 
-        given(applicationSettings.getStoredResponse(any(), any()))
+        given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Failed.")));
 
         // when
@@ -148,7 +148,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                         .build())));
 
 
-        given(applicationSettings.getStoredResponse(any(), any())).willReturn(
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, Collections.emptyList())));
 
         // when
@@ -184,7 +184,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build()))
                         .build())));
 
-        given(applicationSettings.getStoredResponse(any(), any())).willReturn(
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, Collections.emptyList())));
 
         // when
@@ -216,7 +216,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").build()))
                         .build())));
 
-        given(applicationSettings.getStoredResponse(any(), any())).willReturn(
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, Collections.emptyList())));
 
         // when
@@ -254,7 +254,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id2").build()))
                         .build())));
 
-        given(applicationSettings.getStoredResponse(any(), any())).willReturn(
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, Collections.emptyList())));
 
         // when
@@ -287,7 +287,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 SeatBid.builder().seat("rubicon").bid(singletonList(Bid.builder().id("id1").build()))
                         .build())));
 
-        given(applicationSettings.getStoredResponse(any(), any())).willReturn(
+        given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, Collections.emptyList())));
 
         // when
@@ -364,7 +364,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null))))
                 .build());
 
-        given(applicationSettings.getStoredResponse(any(), any()))
+        given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(Collections.singletonMap("responseId",
                         Json.mapper.writeValueAsString(singletonList(SeatBid.builder().bid(singletonList(
                                 Bid.builder().id("id").build())).build()))),

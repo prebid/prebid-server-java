@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Defines the contract for bidrequest.imp[i].ext.prebid

@@ -46,6 +46,7 @@ import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -1183,16 +1184,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureWhenStoredResponseProcessorGetStoredResultReturnsFailedFuture() {
-
-    }
-
-    @Test
-    public void shouldReturnFailedFutureWhenStoredResponseProcessorMergeBidderResponseReturnsFailedFuture() {
-
-    }
-
-    @Test
     public void shouldProcessBidderResponseReturnedFromStoredResponseProcessor() {
         // given
         givenBidder(givenEmptySeatBid());
@@ -1218,6 +1209,55 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getId)
                 .containsOnly("bidId1");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenStoredResponseProcessorGetStoredResultReturnsFailedFuture() {
+        // given
+        given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Error")));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))),
+                builder -> builder.id("requestId").tmax(500L));
+
+
+        // when
+        final Future<BidResponse> result =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(InvalidRequestException.class).hasMessage("Error");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenStoredResponseProcessorMergeBidderResponseReturnsFailedFuture() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any()))
+                .willThrow(new PreBidException("Error"));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))),
+                builder -> builder.id("requestId").tmax(500L));
+
+        // when
+        final Future<BidResponse> result =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class).hasMessage("Error");
     }
 
     @Test

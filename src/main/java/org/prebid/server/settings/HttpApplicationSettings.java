@@ -96,8 +96,11 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
+    /**
+     * Not supported and returns failed result.
+     */
     @Override
-    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
     }
 

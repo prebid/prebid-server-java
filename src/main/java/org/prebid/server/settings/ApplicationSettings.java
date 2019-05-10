@@ -6,8 +6,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,9 +36,9 @@ public interface ApplicationSettings {
     Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
 
     /**
-     *
+     * Fetches stored response
      */
-    Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout);
+    Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout);
 
     /**
      * Fetches AMP stored requests and imps

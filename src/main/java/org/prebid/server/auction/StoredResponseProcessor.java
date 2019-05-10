@@ -81,7 +81,7 @@ public class StoredResponseProcessor {
             return Future.succeededFuture(StoredResponseResult.of(imps, Collections.emptyList()));
         }
 
-        return applicationSettings.getStoredResponse(storedResponseIds, timeout(tmax))
+        return applicationSettings.getStoredResponses(storedResponseIds, timeout(tmax))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored response fetching failed with reason: %s", exception.getMessage()))))
                 .map(this::convertToSeatBid)
@@ -248,13 +248,13 @@ public class StoredResponseProcessor {
 
     private BidderSeatBid makeBidderSeatBid(BidderSeatBid bidderSeatBid, SeatBid seatBid) {
         final boolean nonNullBidderSeatBid = bidderSeatBid != null;
-        final String bidCurrency = nonNullBidderSeatBid ?
-                bidderSeatBid.getBids().stream()
+        final String bidCurrency = nonNullBidderSeatBid
+                ? bidderSeatBid.getBids().stream()
                         .map(BidderBid::getBidCurrency).filter(Objects::nonNull)
                         .findAny().orElse(DEFAULT_BID_CURRENCY)
                 : DEFAULT_BID_CURRENCY;
-        final List<BidderBid> bidderBids = seatBid != null ?
-                seatBid.getBid().stream()
+        final List<BidderBid> bidderBids = seatBid != null
+                ? seatBid.getBid().stream()
                         .map(bid -> makeBidderBid(bid, bidCurrency))
                         .collect(Collectors.toList())
                 : Collections.emptyList();

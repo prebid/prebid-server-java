@@ -14,6 +14,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -93,6 +94,16 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getAdUnitConfigByIdShouldReturnEmptyResult() {
         // when
         final Future<String> future = httpApplicationSettings.getAdUnitConfigById(null, null);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause().getMessage()).isEqualTo("Not supported");
+    }
+
+    @Test
+    public void getStoredResponsesShouldReturnFailedFutureWithNotSupportedReason() {
+        // when
+        final Future<StoredResponseDataResult> future = httpApplicationSettings.getStoredResponses(null, null);
 
         // then
         assertThat(future.failed()).isTrue();

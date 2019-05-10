@@ -10,7 +10,6 @@ import org.prebid.server.settings.model.TriFunction;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -65,11 +64,11 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     *
+     * Delegates stored response retrieve to original fetcher, as caching is not supported fot stored response.
      */
     @Override
-    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
-        return delegate.getStoredResponse(responseIds, timeout);
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return delegate.getStoredResponses(responseIds, timeout);
     }
 
     /**

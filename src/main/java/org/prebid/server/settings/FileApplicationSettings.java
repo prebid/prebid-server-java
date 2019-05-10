@@ -116,16 +116,20 @@ public class FileApplicationSettings implements ApplicationSettings {
         return future;
     }
 
+    /**
+     * Creates {@link StoredResponseDataResult} by checking if any ids are missed in storedResponse map
+     * and adding an error to list for each missed Id
+     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;} with all loaded files and errors list.
+     */
     @Override
-    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         final Future<StoredResponseDataResult> future;
 
         if (CollectionUtils.isEmpty(responseIds)) {
             future = Future.succeededFuture(
                     StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList()));
         } else {
-            final List<String> errors = errorsForMissedIds(responseIds, storedIdToSeatBid,
-                    StoredDataType.seatbid);
+            final List<String> errors = errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid);
             future = Future.succeededFuture(StoredResponseDataResult.of(storedIdToSeatBid, errors));
         }
         return future;

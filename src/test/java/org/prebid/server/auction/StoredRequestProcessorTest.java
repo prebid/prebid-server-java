@@ -517,9 +517,9 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, null, ExtStoredRequest.of("123"), null))))
                 .imp(asList(givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("321")))))),
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("321"), null, null))))),
                         givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
-                                ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("not_found")))))))));
+                                ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("not_found"), null, null))))))));
 
         given(applicationSettings.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(

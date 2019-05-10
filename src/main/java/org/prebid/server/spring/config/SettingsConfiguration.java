@@ -72,9 +72,10 @@ public class SettingsConfiguration {
         JdbcApplicationSettings jdbcApplicationSettings(
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
+                @Value("${settings.database.stored-response-query}") String storedResponseQuery,
                 JdbcClient jdbcClient) {
-
-            return new JdbcApplicationSettings(jdbcClient, storedRequestsQuery, ampStoredRequestsQuery);
+            return new JdbcApplicationSettings(jdbcClient, storedRequestsQuery, ampStoredRequestsQuery,
+                    storedResponseQuery);
         }
 
         @Bean

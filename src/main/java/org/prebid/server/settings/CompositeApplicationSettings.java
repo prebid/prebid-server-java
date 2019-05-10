@@ -70,20 +70,21 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     *
-     */
-    @Override
-    public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
-        return proxy.getStoredResponse(responseIds, timeout);
-    }
-
-    /**
      * Runs a process to get stored requests by a collection of amp ids from a chain of retrievers
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
     public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return proxy.getAmpStoredData(requestIds, Collections.emptySet(), timeout);
+    }
+
+    /**
+     * Runs a process to get stored responses by a collection of ids from a chain of retrievers
+     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;}
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return proxy.getStoredResponses(responseIds, timeout);
     }
 
     /**
@@ -127,15 +128,28 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<StoredResponseDataResult> getStoredResponse(Set<String> responseIds, Timeout timeout) {
-            return getStoredResponse(responseIds, timeout);
-        }
-
-        @Override
         public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds,
                                                          Timeout timeout) {
             return getStoredRequests(requestIds, Collections.emptySet(), timeout, applicationSettings::getAmpStoredData,
                     next != null ? next::getAmpStoredData : null);
+        }
+
+        @Override
+        public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+            return getStoredResponses(responseIds, timeout, applicationSettings::getStoredResponses,
+                    next != null ? next::getStoredResponses : null);
+        }
+
+        private static Future<StoredResponseDataResult> getStoredResponses(
+                Set<String> responseIds, Timeout timeout,
+                BiFunction<Set<String>, Timeout, Future<StoredResponseDataResult>> retriever,
+                BiFunction<Set<String>, Timeout, Future<StoredResponseDataResult>> nextRetriever) {
+            return retriever.apply(responseIds, timeout)
+                    .compose(retrieverResult ->
+                            nextRetriever == null || retrieverResult.getErrors().isEmpty()
+                                    ? Future.succeededFuture(retrieverResult)
+                                    : getRemainingStoredResponses(responseIds, timeout,
+                                    retrieverResult.getStoredSeatBid(), nextRetriever));
         }
 
         private static Future<StoredDataResult> getStoredRequests(
@@ -164,6 +178,15 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                     .compose(result -> Future.succeededFuture(StoredDataResult.of(
                             combineMaps(storedIdToRequest, result.getStoredIdToRequest()),
                             combineMaps(storedIdToImp, result.getStoredIdToImp()),
+                            result.getErrors())));
+        }
+
+        private static Future<StoredResponseDataResult> getRemainingStoredResponses(
+                Set<String> responseIds, Timeout timeout, Map<String, String> storedSeatBids,
+                BiFunction<Set<String>, Timeout, Future<StoredResponseDataResult>> retriever) {
+            return retriever.apply(subtractSets(responseIds, storedSeatBids.keySet()), timeout)
+                    .compose(result -> Future.succeededFuture(StoredResponseDataResult.of(
+                            combineMaps(storedSeatBids, result.getStoredSeatBid()),
                             result.getErrors())));
         }
 
