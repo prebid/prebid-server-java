@@ -392,16 +392,14 @@ public class ServiceConfiguration {
     @Configuration
     @ConditionalOnProperty("status-response")
     @ConditionalOnExpression("'${status-response}' != ''")
-    static class HealthCheckerService {
-
-        @Autowired
-        Vertx vertx;
+    static class HealthCheckerConfiguration {
 
         @Bean
         @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
         HealthChecker databaseChecker(
-                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod,
-                JDBCClient jdbcClient) {
+                Vertx vertx,
+                JDBCClient jdbcClient,
+                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
 
             return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
         }
