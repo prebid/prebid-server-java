@@ -390,6 +390,7 @@ public class ServiceConfiguration {
     }
 
     @Configuration
+    @ConditionalOnProperty("status-response")
     @ConditionalOnExpression("'${status-response}' != ''")
     static class HealthCheckerService {
 

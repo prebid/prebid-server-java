@@ -78,26 +78,25 @@ public final class HttpUtil {
      * <p>
      * The result can be safety used as the query string.
      */
-    public static String encodeUrl(String format, Object... args) {
-        final String uri = String.format(format, args);
+    public static String encodeUrl(String value) {
         try {
-            return URLEncoder.encode(uri, "UTF-8");
+            return URLEncoder.encode(value, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot encode uri: %s", uri));
+            throw new IllegalArgumentException(String.format("Cannot encode url: %s", value));
         }
     }
 
     /**
-     * Returns decoded input value if supplied input not null, otherwise returns null.
+     * Returns decoded value if supplied is not null, otherwise returns null.
      */
-    public static String decodeUrl(String input) {
-        if (StringUtils.isBlank(input)) {
+    public static String decodeUrl(String value) {
+        if (StringUtils.isBlank(value)) {
             return null;
         }
         try {
-            return URLDecoder.decode(input, "UTF-8");
+            return URLDecoder.decode(value, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot decode input: %s", input));
+            throw new IllegalArgumentException(String.format("Cannot decode url: %s", value));
         }
     }
 
