@@ -399,9 +399,9 @@ public class ExchangeService {
      * allowed for given bidder or not.
      */
     private static Site prepareSite(Site site, ExtSite extSite, boolean useFirstPartyData) {
-        final ObjectNode data = extSite == null ? null : extSite.getData();
+        final ObjectNode extSiteDataNode = extSite == null ? null : extSite.getData();
 
-        return data != null && !useFirstPartyData
+        return site != null && extSiteDataNode != null && !useFirstPartyData
                 ? site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(extSite.getAmp(), null))).build()
                 : site;
     }
@@ -426,9 +426,9 @@ public class ExchangeService {
      * allowed for given bidder or not.
      */
     private static App prepareApp(App app, ExtApp extApp, boolean useFirstPartyData) {
-        final ObjectNode data = extApp == null ? null : extApp.getData();
+        final ObjectNode extSiteDataNode = extApp == null ? null : extApp.getData();
 
-        return data != null && !useFirstPartyData
+        return app != null && extSiteDataNode != null && !useFirstPartyData
                 ? app.toBuilder().ext(Json.mapper.valueToTree(ExtApp.of(extApp.getPrebid(), null))).build()
                 : app;
     }
