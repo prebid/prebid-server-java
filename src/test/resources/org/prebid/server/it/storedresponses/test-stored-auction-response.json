@@ -1,0 +1,24 @@
+[
+  {
+    "bid": [
+      {
+        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
+        "impid": "impStoredAuctionResponse",
+        "price": 0.8
+      }
+    ],
+    "seat": "rubicon",
+    "group": 0
+  },
+  {
+    "bid": [
+      {
+        "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
+        "impid": "impStoredAuctionResponse",
+        "price": 0.8
+      }
+    ],
+    "seat": "appnexus",
+    "group": 0
+  }
+]

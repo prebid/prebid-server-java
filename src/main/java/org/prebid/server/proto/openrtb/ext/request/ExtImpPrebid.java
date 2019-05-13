@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -20,10 +21,12 @@ public class ExtImpPrebid {
     /**
      * Defines the contract for bidrequest.imp[i].ext.prebid.storedAuctionResponse
      */
+    @JsonProperty("storedauctionresponse")
     ExtStoredAuctionResponse storedAuctionResponse;
 
     /**
      * Defines the contract for bidrequest.imp[i].ext.prebid.storedBidResponse
      */
-    List<ExtStoredSeatBid> storedBidResponse;
+    @JsonProperty("storedbidresponse")
+    List<ExtStoredBidResponse> storedBidResponse;
 }

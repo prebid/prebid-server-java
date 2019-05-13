@@ -56,11 +56,11 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.settings-filename}") String settingsFileName,
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
-                @Value("${settings.filesystem.stored-seatbid-dir}") String storedSeatBidDir,
+                @Value("${settings.filesystem.stored-response-dir}") String storedResponseBidDir,
                 FileSystem fileSystem) {
 
             return FileApplicationSettings.create(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
-                    storedSeatBidDir);
+                    storedResponseBidDir);
         }
     }
 

@@ -14,7 +14,7 @@ import java.util.List;
  * impressions that it can win (default) or if it is only interested in winning
  * any if it can win them all as a group.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class SeatBid {
 

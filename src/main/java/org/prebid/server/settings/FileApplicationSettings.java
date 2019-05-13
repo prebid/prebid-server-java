@@ -66,18 +66,18 @@ public class FileApplicationSettings implements ApplicationSettings {
      */
     public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
                                                  String storedRequestsDir, String storedImpsDir,
-                                                 String storedSeatBidDir) {
+                                                 String storedResponseDir) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(settingsFileName);
         Objects.requireNonNull(storedRequestsDir);
         Objects.requireNonNull(storedImpsDir);
-        Objects.requireNonNull(storedSeatBidDir);
+        Objects.requireNonNull(storedResponseDir);
 
         return new FileApplicationSettings(
                 readSettingsFile(fileSystem, settingsFileName),
                 readStoredData(fileSystem, storedRequestsDir),
                 readStoredData(fileSystem, storedImpsDir),
-                readStoredData(fileSystem, storedSeatBidDir));
+                readStoredData(fileSystem, storedResponseDir));
     }
 
     @Override
