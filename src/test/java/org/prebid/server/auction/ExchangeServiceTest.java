@@ -337,7 +337,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).build())
                                 .build())
                         .device(Device.builder()
-                                .ip("192.168.0.1")
+                                .ip("192.168.0.10")
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                                 .ifa("ifa")
@@ -361,7 +361,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
                 .build());
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
-                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0000")
+                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
                 .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
         assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
     }

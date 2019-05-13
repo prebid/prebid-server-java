@@ -495,39 +495,39 @@ public class ExchangeService {
      * Prepared device for each bidder depends on gdpr enabling.
      */
     private static Device prepareDevice(Device device, boolean maskingRequired) {
+        // suppress device information affected by gdpr
         return device != null && maskingRequired
-                ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
+                ? device.toBuilder()
+                .ip(maskIpv4(device.getIp()))
+                .ipv6(maskIpv6(device.getIpv6()))
                 .geo(maskGeo(device.getGeo()))
-                // suppress device information affected by gdpr
-                .ifa(null).macsha1(null).macmd5(null).dpidsha1(null).dpidmd5(null).didsha1(null).didmd5(null)
+                .ifa(null)
+                .macsha1(null).macmd5(null)
+                .dpidsha1(null).dpidmd5(null)
+                .didsha1(null).didmd5(null)
                 .build()
                 : device;
     }
 
     /**
-     * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined.
+     * Masks ip v4 address by replacing last group with zero.
      */
-    private static Regs prepareRegs(Regs regs, ExtRegs extRegs, boolean maskingRequired) {
-        if (maskingRequired) {
-            if (extRegs == null) {
-                return Regs.of(regs != null ? regs.getCoppa() : null, Json.mapper.valueToTree(ExtRegs.of(1)));
-            } else {
-                return Regs.of(regs.getCoppa(), Json.mapper.valueToTree(ExtRegs.of(1)));
-            }
-        }
-        return regs;
+    private static String maskIpv4(String ip) {
+        return maskIp(ip, '.');
     }
 
     /**
-     * Masks ip address by replacing bits after last separator with zeros.
+     * Masks ip v6 address by replacing last group with zero.
      */
-    private static String maskIp(String value, char delimiter) {
-        if (StringUtils.isNotEmpty(value)) {
-            final int lastIndexOfDelimiter = value.lastIndexOf(delimiter);
-            return value.substring(0, lastIndexOfDelimiter + 1)
-                    + StringUtils.repeat('0', value.length() - lastIndexOfDelimiter - 1);
-        }
-        return value;
+    private static String maskIpv6(String ip) {
+        return maskIp(ip, ':');
+    }
+
+    /**
+     * Masks ip address by replacing bits after last separator with zero.
+     */
+    private static String maskIp(String ip, char delimiter) {
+        return StringUtils.isNotEmpty(ip) ? ip.substring(0, ip.lastIndexOf(delimiter) + 1) + "0" : ip;
     }
 
     /**
@@ -543,6 +543,20 @@ public class ExchangeService {
                 .lat(lat != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(lat)) : null)
                 .build()
                 : null;
+    }
+
+    /**
+     * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined.
+     */
+    private static Regs prepareRegs(Regs regs, ExtRegs extRegs, boolean maskingRequired) {
+        if (maskingRequired) {
+            if (extRegs == null) {
+                return Regs.of(regs != null ? regs.getCoppa() : null, Json.mapper.valueToTree(ExtRegs.of(1)));
+            } else {
+                return Regs.of(regs.getCoppa(), Json.mapper.valueToTree(ExtRegs.of(1)));
+            }
+        }
+        return regs;
     }
 
     private List<Imp> prepareImps(String bidder, List<Imp> imps) {
