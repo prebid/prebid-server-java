@@ -286,16 +286,18 @@ public class AuctionRequestFactory {
         final ExtRequestPrebid prebid = extBidRequest.getPrebid();
 
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
-        final boolean isPriceGranularityNull = targeting != null && targeting.getPricegranularity().isNull();
-        final boolean isPriceGranularityTextual = targeting != null && targeting.getPricegranularity().isTextual();
-        final boolean isIncludeWinnersNull = targeting != null && targeting.getIncludewinners() == null;
-        final boolean isIncludeBidderKeysNull = targeting != null && targeting.getIncludebidderkeys() == null;
+        final boolean isTargetingNotNull = targeting != null;
+        final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity().isNull();
+        final boolean isPriceGranularityTextual = isTargetingNotNull && targeting.getPricegranularity().isTextual();
+        final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
+        final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 
         final ExtRequestTargeting extRequestTargeting;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             extRequestTargeting = ExtRequestTargeting.of(
                     populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                             isPriceGranularityTextual),
+                    targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
                     isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
