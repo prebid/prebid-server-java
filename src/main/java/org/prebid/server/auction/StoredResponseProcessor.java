@@ -69,22 +69,22 @@ public class StoredResponseProcessor {
     public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Long tmax,
                                                                 Map<String, String> aliases) {
         final List<Imp> requiredRequestImps = new ArrayList<>();
-        final Set<String> storedResponseIds = new HashSet<>();
+        final Map<String, String> storedResponseIdToImpId = new HashMap<>();
 
         try {
-            fillStoredResponseIdsAndRequestingImps(imps, requiredRequestImps, storedResponseIds, aliases);
+            fillStoredResponseIdsAndRequestingImps(imps, requiredRequestImps, storedResponseIdToImpId, aliases);
         } catch (InvalidRequestException ex) {
             return Future.failedFuture(ex);
         }
 
-        if (storedResponseIds.isEmpty()) {
+        if (storedResponseIdToImpId.isEmpty()) {
             return Future.succeededFuture(StoredResponseResult.of(imps, Collections.emptyList()));
         }
 
-        return applicationSettings.getStoredResponses(storedResponseIds, timeout(tmax))
+        return applicationSettings.getStoredResponses(storedResponseIdToImpId.keySet(), timeout(tmax))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored response fetching failed with reason: %s", exception.getMessage()))))
-                .map(this::convertToSeatBid)
+                .map(storedResponseDataResult -> convertToSeatBid(storedResponseDataResult, storedResponseIdToImpId))
                 .map(storedResponse -> StoredResponseResult.of(requiredRequestImps, storedResponse));
     }
 
@@ -110,7 +110,8 @@ public class StoredResponseProcessor {
     }
 
     private void fillStoredResponseIdsAndRequestingImps(List<Imp> imps, List<Imp> requiredRequestImps,
-                                                        Set<String> storedResponseIds, Map<String, String> aliases) {
+                                                        Map<String, String> storedResponseIdToImpId,
+                                                        Map<String, String> aliases) {
         for (final Imp imp : imps) {
             final String impId = imp.getId();
             final ObjectNode extImpNode = imp.getExt();
@@ -128,16 +129,16 @@ public class StoredResponseProcessor {
             final ExtStoredAuctionResponse storedAuctionResponse = extImpPrebid.getStoredAuctionResponse();
             final String storedAuctionResponseId = storedAuctionResponse != null ? storedAuctionResponse.getId() : null;
             if (StringUtils.isNotEmpty(storedAuctionResponseId)) {
-                storedResponseIds.add(storedAuctionResponseId);
+                storedResponseIdToImpId.put(storedAuctionResponseId, impId);
                 continue;
             }
 
-            resolveStoredBidResponse(requiredRequestImps, storedResponseIds, aliases, imp, impId, extImpNode,
+            resolveStoredBidResponse(requiredRequestImps, storedResponseIdToImpId, aliases, imp, impId, extImpNode,
                     extImpPrebid);
         }
     }
 
-    private void resolveStoredBidResponse(List<Imp> requiredRequestImps, Set<String> storedResponseIds,
+    private void resolveStoredBidResponse(List<Imp> requiredRequestImps, Map<String, String> storedResponseIdToImpId,
                                           Map<String, String> aliases, Imp imp, String impId, ObjectNode extImpNode,
                                           ExtImpPrebid extImpPrebid) {
         final List<ExtStoredBidResponse> storedBidResponse = extImpPrebid.getStoredBidResponse();
@@ -149,7 +150,8 @@ public class StoredResponseProcessor {
             if (hasValidBidder(aliases, resolvedBiddersImp)) {
                 requiredRequestImps.add(resolvedBiddersImp);
             }
-            storedResponseIds.addAll(bidderToStoredId.values());
+            storedResponseIdToImpId.putAll(bidderToStoredId.values().stream()
+                    .collect(Collectors.toMap(Function.identity(), id -> impId)));
         } else {
             requiredRequestImps.add(imp);
         }
@@ -210,19 +212,36 @@ public class StoredResponseProcessor {
         return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
     }
 
-    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult) {
-        final List<SeatBid> seatBids = new ArrayList<>();
+    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult,
+                                           Map<String, String> storedResponseIdToImpId) {
+        final List<SeatBid> resolvedSeatBids = new ArrayList<>();
         for (final Map.Entry<String, String> idToRowSeatBid : storedResponseDataResult.getStoredSeatBid().entrySet()) {
             final String id = idToRowSeatBid.getKey();
+            final String impId = storedResponseIdToImpId.get(id);
             final String rowSeatBid = idToRowSeatBid.getValue();
             try {
-                seatBids.addAll(Json.mapper.readValue(rowSeatBid, SEATBID_LIST_TYPEREFERENCE));
+                final List<SeatBid> seatBids = Json.mapper.readValue(rowSeatBid, SEATBID_LIST_TYPEREFERENCE);
+                resolvedSeatBids.addAll(seatBids.stream()
+                        .map(seatBid -> updateSeatBidBids(seatBid, impId))
+                        .collect(Collectors.toList()));
             } catch (IOException e) {
                 throw new InvalidRequestException(String.format("Can't parse Json for stored response with id %s", id));
             }
         }
-        validateStoredSeatBid(seatBids);
-        return mergeSameBidderSeatBid(seatBids);
+        validateStoredSeatBid(resolvedSeatBids);
+        return mergeSameBidderSeatBid(resolvedSeatBids);
+    }
+
+    private SeatBid updateSeatBidBids(SeatBid seatBid, String impId) {
+        return seatBid.toBuilder().bid(updateBidsWithImpId(seatBid.getBid(), impId)).build();
+    }
+
+    private List<Bid> updateBidsWithImpId(List<Bid> bids, String impId) {
+        return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).collect(Collectors.toList());
+    }
+
+    private Bid updateBidWithImpId(Bid bid, String impId) {
+        return bid.toBuilder().impid(impId).build();
     }
 
     private void validateStoredSeatBid(List<SeatBid> seatBids) {
