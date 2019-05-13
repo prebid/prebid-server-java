@@ -61,7 +61,7 @@ public class HttpUtilTest {
     @Test
     public void encodeUrlShouldReturnExpectedValue() {
         // when
-        final String url = HttpUtil.encodeUrl("//domain.org/%s", "query-string?a=1");
+        final String url = HttpUtil.encodeUrl("//domain.org/query-string?a=1");
 
         // then
         assertThat(url).isNotNull();
