@@ -174,7 +174,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(eventsService.isEventsEnabled(any(), any())).willReturn(Future.succeededFuture(false));
         given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList())));
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any())).willAnswer(inv -> inv.getArgument(0));
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any())).willAnswer(inv -> inv.getArgument(0));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
@@ -1196,7 +1196,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willReturn(singletonList(BidderResponse.of("someBidder",
                         BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bidId1").build(),
                                 BidType.banner, "USD")), null, emptyList()), 100)));
@@ -1240,7 +1240,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willThrow(new PreBidException("Error"));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(

@@ -179,7 +179,7 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
-                        storedResponseResultFuture.result().getStoredResponse()))
+                        storedResponseResultFuture.result().getStoredResponse(), bidRequest.getImp()))
                 .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
                         .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
                 .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
