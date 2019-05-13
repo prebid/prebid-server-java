@@ -41,7 +41,7 @@
   "device": {
     "ua": "userAgent",
     "dnt": 2,
-    "ip": "80.215.195.000",
+    "ip": "80.215.195.0",
     "pxratio": 4.2,
     "language": "en",
     "ext": {
