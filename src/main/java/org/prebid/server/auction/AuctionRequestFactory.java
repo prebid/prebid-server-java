@@ -209,8 +209,10 @@ public class AuctionRequestFactory {
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
         final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(ExtSite.of(0)) : null;
+        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(
+                ExtSite.of(0, data)) : null;
 
         String referer = null;
         String parsedDomain = null;
@@ -308,13 +310,15 @@ public class AuctionRequestFactory {
         final Map<String, String> aliases = aliases(prebid, imps);
 
         if (extRequestTargeting != null || aliases != null) {
-            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                    ObjectUtils.defaultIfNull(aliases, getIfNotNull(prebid, ExtRequestPrebid::getAliases)),
-                    getIfNotNull(prebid, ExtRequestPrebid::getBidadjustmentfactors),
-                    ObjectUtils.defaultIfNull(extRequestTargeting,
-                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)),
-                    getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest),
-                    getIfNotNull(prebid, ExtRequestPrebid::getCache))));
+            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                    .aliases(ObjectUtils.defaultIfNull(aliases, getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .bidadjustmentfactors(getIfNotNull(prebid, ExtRequestPrebid::getBidadjustmentfactors))
+                    .targeting(ObjectUtils.defaultIfNull(extRequestTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .storedrequest(getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest))
+                    .cache(getIfNotNull(prebid, ExtRequestPrebid::getCache))
+                    .data(getIfNotNull(prebid, ExtRequestPrebid::getData))
+                    .build()));
         }
         return null;
     }

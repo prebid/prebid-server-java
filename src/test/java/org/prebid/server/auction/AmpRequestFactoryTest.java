@@ -201,12 +201,15 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
-                .containsExactly(ExtRequestPrebid.of(emptyMap(),
-                        emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                .containsExactly(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .bidadjustmentfactors(emptyMap())
+                        .targeting(ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                                        BigDecimal.valueOf(0.1))))), null, null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                                ExtRequestPrebidCacheVastxml.of(null, null))));
+                                        BigDecimal.valueOf(0.1))))), null, null, true, true))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                                ExtRequestPrebidCacheVastxml.of(null, null)))
+                        .build());
     }
 
     @Test
@@ -476,7 +479,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getExt)
-                .containsOnly(mapper.valueToTree(ExtSite.of(1)));
+                .containsOnly(mapper.valueToTree(ExtSite.of(1, null)));
     }
 
     @Test
@@ -502,7 +505,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1))));
+                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
     }
 
     @Test
@@ -528,7 +531,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1))));
+                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
     }
 
     @Test
@@ -1059,7 +1062,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         return BidRequest.builder()
                 .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, null, extRequestTargeting, null, extRequestPrebidCache))))
+                        ExtRequestPrebid.builder()
+                                .targeting(extRequestTargeting)
+                                .cache(extRequestPrebidCache)
+                                .build())))
                 .build();
     }
 }

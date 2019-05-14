@@ -49,13 +49,16 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
@@ -163,7 +166,7 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
+        return extractBidderRequests(bidRequest, requestExt, uidsCookie, aliases, timeout)
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, metricsContext))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
@@ -265,8 +268,8 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from {@link BidRequest}.ext.prebid.aliases.
      */
-    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, UidsCookie uidsCookie,
-                                                              Map<String, String> aliases,
+    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, ExtBidRequest requestExt,
+                                                              UidsCookie uidsCookie, Map<String, String> aliases,
                                                               Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
@@ -285,12 +288,11 @@ public class ExchangeService {
         final ExtUser extUser = extUser(user);
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
-        final ObjectNode userExtNode = removeBuyeruidsFromUserExtPrebid(extUser);
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
 
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
-                .map(vendorsToGdpr -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
-                        userExtNode, extRegs, aliases, imps, vendorsToGdpr));
+                .map(vendorsToGdpr -> makeBidderRequests(bidders, requestExt, bidRequest, uidsBody, uidsCookie,
+                        extUser, extRegs, aliases, imps, vendorsToGdpr));
     }
 
     /**
@@ -330,11 +332,17 @@ public class ExchangeService {
      * the intended Bidder.
      * <p>
      * - bidrequest.user.buyeruid will be set to that Bidder's ID.
+     * <p>
+     * - bidrequest.ext.prebid.data.bidders will be removed
+     * <p>
+     * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
+     * that don't have first party data allowed
      */
-    private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
-                                                   Map<String, String> uidsBody, UidsCookie uidsCookie,
-                                                   ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
-                                                   List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
+    private List<BidderRequest> makeBidderRequests(List<String> bidders, ExtBidRequest requestExt,
+                                                   BidRequest bidRequest, Map<String, String> uidsBody,
+                                                   UidsCookie uidsCookie, ExtUser extUser, ExtRegs extRegs,
+                                                   Map<String, String> aliases, List<Imp> imps,
+                                                   Map<Integer, Boolean> vendorsToGdpr) {
 
         final Device device = bidRequest.getDevice();
         final Integer deviceLmt = device != null ? device.getLmt() : null;
@@ -342,15 +350,26 @@ public class ExchangeService {
                 .collect(Collectors.toMap(Function.identity(),
                         bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases, deviceLmt)));
 
+        final List<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
+        final Site site = bidRequest.getSite();
+        final ExtSite extSite = extSite(site);
+        final App app = bidRequest.getApp();
+        final ExtApp extApp = extApp(app);
+
         final List<BidderRequest> bidderRequests = bidders.stream()
-                // for each bidder create a new request that is a copy of original request except buyerid and imp
-                // extensions
+                // for each bidder create a new request that is a copy of original request except buyerid, imp
+                // extensions and ext.prebid.data.bidders.
+                // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
-                        .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases,
+                        .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, aliases,
+                                resolveUserExtPrebid(extUser, firstPartyDataBidders.contains(bidder)),
                                 bidderToMaskingRequired.get(bidder)))
                         .device(prepareDevice(device, bidderToMaskingRequired.get(bidder)))
                         .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
+                        .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
+                        .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
+                        .ext(removeExtPrebidDataBidders(requestExt))
                         .build()))
                 .collect(Collectors.toList());
 
@@ -358,6 +377,80 @@ public class ExchangeService {
         Collections.shuffle(bidderRequests);
 
         return bidderRequests;
+    }
+
+    /**
+     * Extracts a list of bidders for which first party data is allowed from {@link ExtRequestPrebidData} model.
+     */
+    private static List<String> firstPartyDataBidders(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
+        final List<String> bidders = data == null ? null : data.getBidders();
+        return ObjectUtils.defaultIfNull(bidders, Collections.emptyList());
+    }
+
+    /**
+     * Removes bidrequest.ext.prebid.data to hide list of allowed bidders from initial request.
+     */
+    private static ObjectNode removeExtPrebidDataBidders(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        return requestExt == null ? null
+                : Json.mapper.valueToTree(ExtBidRequest.of(
+                prebid == null ? null : prebid.toBuilder().data(null).build()));
+    }
+
+    /**
+     * Checks whether to pass the site.ext.data depending on request having a first party data
+     * allowed for given bidder or not.
+     */
+    private static Site prepareSite(Site site, ExtSite extSite, boolean useFirstPartyData) {
+        final ObjectNode extSiteDataNode = extSite == null ? null : extSite.getData();
+
+        return site != null && extSiteDataNode != null && !useFirstPartyData
+                ? site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(extSite.getAmp(), null))).build()
+                : site;
+    }
+
+    /**
+     * Extracts {@link ExtSite} from {@link Site}.
+     */
+    private static ExtSite extSite(Site site) {
+        final ObjectNode siteExt = site == null ? null : site.getExt();
+        if (siteExt != null) {
+            try {
+                return Json.mapper.treeToValue(siteExt, ExtSite.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.site.ext: %s", e.getMessage()), e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks whether to pass the app.ext.data depending on request having a first party data
+     * allowed for given bidder or not.
+     */
+    private static App prepareApp(App app, ExtApp extApp, boolean useFirstPartyData) {
+        final ObjectNode extSiteDataNode = extApp == null ? null : extApp.getData();
+
+        return app != null && extSiteDataNode != null && !useFirstPartyData
+                ? app.toBuilder().ext(Json.mapper.valueToTree(ExtApp.of(extApp.getPrebid(), null))).build()
+                : app;
+    }
+
+    /**
+     * Extracts {@link ExtApp} from {@link App}.
+     */
+    private static ExtApp extApp(App app) {
+        final ObjectNode appExt = app == null ? null : app.getExt();
+        if (appExt != null) {
+            try {
+                return Json.mapper.treeToValue(appExt, ExtApp.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.app.ext: %s", e.getMessage()), e);
+            }
+        }
+        return null;
     }
 
     /**
@@ -392,7 +485,7 @@ public class ExchangeService {
         final ObjectNode regsExt = regs != null ? regs.getExt() : null;
         if (regsExt != null) {
             try {
-                return Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
+                return Json.mapper.treeToValue(regsExt, ExtRegs.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
             }
@@ -444,11 +537,14 @@ public class ExchangeService {
     /**
      * Returns json encoded {@link ExtUser} without 'request.user.ext.prebid.buyeruids'
      * to avoid leaking of buyeruids across bidders.
+     * <p>
+     * Also, checks if bidder allows first party data: if it doesn't - don't pass it.
      */
-    private static ObjectNode removeBuyeruidsFromUserExtPrebid(ExtUser extUser) {
+    private static ObjectNode resolveUserExtPrebid(ExtUser extUser, boolean useFirstPartyData) {
         return extUser != null
                 ? Json.mapper.valueToTree(ExtUser.of(
-                null, extUser.getConsent(), extUser.getDigitrust(), extUser.getTpid()))
+                null, extUser.getConsent(), extUser.getDigitrust(), extUser.getTpid(),
+                useFirstPartyData ? extUser.getData() : null))
                 : null;
     }
 
@@ -466,7 +562,7 @@ public class ExchangeService {
      * (which means request contains 'explicit' buyeruid in 'request.user.ext.buyerids' or uidsCookie).
      */
     private User prepareUser(String bidder, BidRequest bidRequest, Map<String, String> uidsBody, UidsCookie uidsCookie,
-                             ObjectNode updatedUserExt, Map<String, String> aliases, boolean maskingRequired) {
+                             Map<String, String> aliases, ObjectNode updatedUserExt, boolean maskingRequired) {
 
         final User user = bidRequest.getUser();
         final User.UserBuilder builder = user != null ? user.toBuilder() : User.builder();

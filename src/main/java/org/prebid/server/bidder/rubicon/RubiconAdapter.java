@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -314,7 +315,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         }
         final ObjectNode ext = user == null ? null : user.getExt();
         final String consent = ext == null ? null : getExtUserConsentFromUserExt(ext);
-        final RubiconUserExt userExt = makeUserExt(rubiconParams, consent);
+        final RubiconUserExt userExt = makeUserExt(rubiconParams, user, consent);
         return userExt != null
                 ? userBuilder.ext(Json.mapper.valueToTree(userExt)).build()
                 : userBuilder.build();
@@ -329,11 +330,19 @@ public class RubiconAdapter extends OpenrtbAdapter {
         }
     }
 
-    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, String consent) {
+    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, User user, String consent) {
+        final String gender = user != null ? user.getGender() : null;
+        final Integer yob = user != null ? user.getYob() : null;
+        final Geo geo = user != null ? user.getGeo() : null;
         final JsonNode visitor = rubiconParams.getVisitor();
         final boolean visitorIsNotNull = !visitor.isNull();
-        return visitorIsNotNull || consent != null
-                ? RubiconUserExt.of(visitorIsNotNull ? RubiconUserExtRp.of(visitor) : null, consent, null, null)
+        final boolean hasAnyNotNull = gender != null || yob != null || geo != null || visitorIsNotNull;
+
+        final RubiconUserExtRp userExtRp = hasAnyNotNull
+                ? RubiconUserExtRp.of(visitorIsNotNull ? visitor : null, gender, yob, geo) : null;
+
+        return userExtRp != null || consent != null
+                ? RubiconUserExt.of(userExtRp, consent, null, null)
                 : null;
     }
 

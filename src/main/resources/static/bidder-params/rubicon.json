@@ -62,6 +62,17 @@
           "description": "number of seconds until the ad can be skipped"
         }
       }
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array"
+          }
+        }
+      }
     }
   },
   "required": [

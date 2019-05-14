@@ -537,7 +537,8 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null)))
                                 .build()));
 
         // when
@@ -551,6 +552,28 @@ public class RubiconAdapterTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
                 .extracting(RubiconUserExt::getConsent)
                 .containsOnly("consent");
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnBidRequestWithNullUserExtRpWhenVisitorIsNull() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
+                builder -> builder
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null)))
+                                .build()));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests)
+                .extracting(r -> r.getPayload().getUser()).isNotNull()
+                .extracting(User::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
+                .extracting(RubiconUserExt::getRp)
+                .containsNull();
     }
 
     @Test

@@ -62,7 +62,8 @@ public class BrightrollBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
+                        null, "consent", null, null, null))).build())
                 .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                 .build();
 
@@ -90,7 +91,8 @@ public class BrightrollBidderTest extends VertxTest {
                                 .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                         .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
-                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                         .at(1)
                         .build()
