@@ -391,7 +391,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(new TextNode("low"), null, null, null))
+                        .targeting(ExtRequestTargeting.of(new TextNode("low"), null, null, null, null))
                         .build())))
                 .build());
 
@@ -417,7 +417,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(new TextNode("invalid"), null, null, null))
+                        .targeting(ExtRequestTargeting.of(new TextNode("invalid"),
+                                null, null, null, null))
                         .build())))
                 .build());
 
@@ -437,7 +438,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null, null, null))
+                        .targeting(ExtRequestTargeting.of(null, null,
+                                null, null, null))
                         .build())))
                 .build());
 
@@ -464,7 +466,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null, null, null))
+                        .targeting(ExtRequestTargeting.of(null, null,
+                                null, null, null))
                         .build())))
                 .build());
 
@@ -490,7 +493,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null, null, null))
+                        .targeting(ExtRequestTargeting.of(null, null,
+                                null, null, null))
                         .build())))
                 .build());
 
@@ -526,7 +530,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .imp(asList(imp1, imp2))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("requestScopedBidderAlias", "bidder1"))
-                        .targeting(ExtRequestTargeting.of(null, null, null, null))
+                        .targeting(ExtRequestTargeting.of(null, null, null,
+                                null, null))
                         .build())))
                 .build());
 

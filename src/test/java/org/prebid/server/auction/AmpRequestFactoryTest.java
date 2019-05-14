@@ -206,7 +206,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .bidadjustmentfactors(emptyMap())
                         .targeting(ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                                        BigDecimal.valueOf(0.1))))), null, true, true))
+                                        BigDecimal.valueOf(0.1))))), null, null, true, true))
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null)))
                         .build());
@@ -245,7 +245,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultIncludeWinnersIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, null, null), null);
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
+                        null, null, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -273,7 +274,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithIncludeWinnersFromStoredBidRequest() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, false, null), null);
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
+                        null, false, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -296,7 +298,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultIncludeBidderKeysIfStoredBidRequestExtTargetingHasNoIncludeBidderKeys() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(null, null, false, null), null);
+                ExtRequestTargeting.of(null, null, null, false, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -320,7 +322,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithIncludeBidderKeysFromStoredBidRequest() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, null, false), null);
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
+                        null, null, false), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -344,7 +347,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(null, null, false, null), null);
+                ExtRequestTargeting.of(null, null, null, false, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -416,7 +419,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("debug")).willReturn("1");
 
-        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null, null),
+        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null,
+                null, null, null),
                 ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                         ExtRequestPrebidCacheVastxml.of(null, null)));
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
