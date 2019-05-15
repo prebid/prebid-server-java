@@ -232,6 +232,58 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateBannerRequestIfImpHasBannerAndVideoButNoRequiredVideoFieldsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
+                        .video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner, Imp::getVideo)
+                .containsOnly(tuple(
+                        Banner.builder()
+                                .format(singletonList(Format.builder().w(300).h(250).build()))
+                                .ext(mapper.valueToTree(
+                                        RubiconBannerExt.of(RubiconBannerExtRp.of(15, null, "text/html"))))
+                                .build(),
+                        null)); // video is removed
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateVideoRequestIfImpHasBannerAndVideoButAllRequiredVideoFieldsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
+                        .video(Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
+                                .maxduration(60).linearity(2).api(singletonList(3)).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner, Imp::getVideo)
+                .containsOnly(tuple(
+                        null, // banner is removed
+                        Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
+                                .maxduration(60).linearity(2).api(singletonList(3)).build()));
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillVideoExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -250,35 +302,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
                 .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14)));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldFillVideoExtOnlyIfBothVideoAndBannerPresentInImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder
-                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
-                        .video(Video.builder().build()),
-                builder -> builder
-                        .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).doesNotContainNull()
-                .containsOnly(Imp.builder()
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(250).build())).build())
-                        .video(Video.builder()
-                                .ext(mapper.valueToTree(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14))))
-                                .build())
-                        .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
-                        .build());
     }
 
     @Test
@@ -886,6 +909,45 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfRequestImpHasBannerAndVideoButNoRequiredVideoFieldsPresent()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())),
+                givenBidResponse(ONE));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfRequestImpHasBannerAndVideoButAllRequiredVideoFieldsPresent()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
+                                .maxduration(60).linearity(2).api(singletonList(3)).build())),
+                givenBidResponse(ONE));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
     }
 
     @Test

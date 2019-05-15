@@ -763,7 +763,6 @@ public class RequestValidator {
                 }
             }
         }
-
     }
 
     private static String toEncodedRequest(Request nativeRequest, List<Asset> updatedAssets) {
