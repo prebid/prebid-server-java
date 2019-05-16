@@ -98,7 +98,7 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("invalid ad slot"));
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("invalid ad slot@"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);

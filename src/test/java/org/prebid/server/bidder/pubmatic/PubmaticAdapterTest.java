@@ -151,12 +151,12 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp()).hasSize(6);
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getTagid)
-                .containsOnly("slot1", null, null, null, null, null);
+                .containsOnly("slot1", null, null, "slot42", null, null);
 
         final List formats = singletonList(Format.builder().w(480).h(320).build());
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getFormat)
-                .containsOnly(null, formats, formats, formats, formats, formats);
+                .containsOnly(formats, formats, formats, formats, formats, formats);
 
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getW)
@@ -267,6 +267,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .banner(Banner.builder()
                                         .w(200)
                                         .h(150)
+                                        .format(singletonList(Format.builder().w(300).h(250).build()))
                                         .topframe(1)
                                         .build())
                                 .ext(mapper.readValue("{\"key1\":\"value1\"}", ObjectNode.class))
@@ -406,7 +407,7 @@ public class PubmaticAdapterTest extends VertxTest {
                 .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
-                                .banner(Banner.builder().w(300).h(250).build())
+                                .banner(Banner.builder().w(300).h(250).format(singletonList(Format.builder().w(480).h(320).build())).build())
                                 .tagid("slot1")
                                 .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
                                         .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
