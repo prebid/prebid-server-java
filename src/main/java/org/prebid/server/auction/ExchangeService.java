@@ -147,7 +147,6 @@ public class ExchangeService {
      */
     public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
                                            MetricsContext metricsContext, RoutingContext context) {
-        // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
             requestExt = requestExt(bidRequest);
@@ -163,6 +162,7 @@ public class ExchangeService {
         final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
                 keywordsCreatorByBidType(targeting, isApp);
         final String publisherId = publisherId(bidRequest);
+        final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
 
         final long startTime = clock.millis();
 
@@ -171,8 +171,8 @@ public class ExchangeService {
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, metricsContext))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                                auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
-                                currencyRates(targeting)))
+                                auctionTimeout(timeout, cacheInfo.doCaching), debugEnabled, aliases,
+                                bidAdjustments(requestExt), currencyRates(targeting)))
                         .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
@@ -182,13 +182,13 @@ public class ExchangeService {
                         .map(eventsEnabled -> Tuple2.of(result, eventsEnabled)))
                 .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
                         toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorByBidType,
-                                cacheInfo, publisherId, result.getRight(), timeout))
+                                cacheInfo, publisherId, timeout, result.getRight(), debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(context, uidsCookie, bidRequest, bidResponse));
     }
 
     /**
-     * Extracts {@link ExtBidRequest} from bid request.
+     * Extracts {@link ExtBidRequest} from {@link BidRequest}.
      */
     private static ExtBidRequest requestExt(BidRequest bidRequest) {
         try {
@@ -222,6 +222,17 @@ public class ExchangeService {
 
         final String publisherId = publisher != null ? publisher.getId() : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+    }
+
+    /**
+     * Determines debug flag from {@link BidRequest} or {@link ExtBidRequest}.
+     */
+    private static boolean isDebugEnabled(BidRequest bidRequest, ExtBidRequest extBidRequest) {
+        if (Objects.equals(bidRequest.getTest(), 1)) {
+            return true;
+        }
+        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), true);
     }
 
     /**
@@ -827,13 +838,14 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
-                                               Map<String, String> aliases, Map<String, BigDecimal> bidAdjustments,
+                                               boolean debugEnabled, Map<String, String> aliases,
+                                               Map<String, BigDecimal> bidAdjustments,
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
         final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolveBidder(bidderName, aliases));
-        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout)
+        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
                 .map(bidderSeatBid -> validateAndUpdateResponse(bidderSeatBid, bidderRequest.getBidRequest().getCur()))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor))
@@ -910,7 +922,7 @@ public class ExchangeService {
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
      * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
-     * to make sure {@link Bid#price} is not empty.
+     * to make sure {@link Bid#getPrice()} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
                                                Map<String, Map<String, BigDecimal>> requestCurrencyRates,
@@ -971,7 +983,7 @@ public class ExchangeService {
      * 'prices' metrics for each {@link BidderResponse}.
      * <p>
      * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
-     * to make sure {@link Bid#price} is not empty.
+     * to make sure {@link Bid#getPrice()} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
         for (final BidderResponse bidderResponse : bidderResponses) {
@@ -1036,8 +1048,8 @@ public class ExchangeService {
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator,
                                               Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType,
-                                              BidRequestCacheInfo cacheInfo, String publisherId, boolean eventsEnabled,
-                                              Timeout timeout) {
+                                              BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout,
+                                              boolean eventsEnabled, boolean debugEnabled) {
         final Set<Bid> bids = newOrEmptyOrderedSet(keywordsCreator);
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
@@ -1046,16 +1058,19 @@ public class ExchangeService {
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                         keywordsCreatorByBidType, cacheResult, winningBids, winningBidsByBidder, cacheInfo,
-                        eventsEnabled));
+                        eventsEnabled, debugEnabled));
     }
 
     /**
-     * Returns new {@link HashSet} in case of existing keywordsCreator or {@link Collections.EmptySet} if null.
+     * Returns new {@link HashSet} in case of existing keywordsCreator or empty collection if null.
      */
     private static Set<Bid> newOrEmptySet(TargetingKeywordsCreator keywordsCreator) {
         return keywordsCreator != null ? new HashSet<>() : Collections.emptySet();
     }
 
+    /**
+     * Returns new {@link LinkedHashSet} in case of existing keywordsCreator or empty collection if null.
+     */
     private static Set<Bid> newOrEmptyOrderedSet(TargetingKeywordsCreator keywordsCreator) {
         return keywordsCreator != null ? new LinkedHashSet<>() : Collections.emptySet();
     }
@@ -1201,7 +1216,7 @@ public class ExchangeService {
                                                    Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType,
                                                    CacheResult cacheResult, Set<Bid> winningBids,
                                                    Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                                                   boolean eventsEnabled) {
+                                                   boolean eventsEnabled, boolean debugEnabled) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
@@ -1210,7 +1225,7 @@ public class ExchangeService {
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
-                cacheResult.getExecutionTime());
+                cacheResult.getExecutionTime(), debugEnabled);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -1302,8 +1317,10 @@ public class ExchangeService {
      * bidders.
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
-                                            List<String> cacheErrors, Integer cacheExecutionTime) {
-        final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
+                                            List<String> cacheErrors, Integer cacheExecutionTime,
+                                            boolean debugEnabled) {
+
+        final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
                 : null;

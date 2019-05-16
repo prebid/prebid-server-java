@@ -40,6 +40,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
@@ -267,7 +269,7 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithDebugInfoIncluded() {
+    public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("reqId1").test(1));
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
@@ -283,6 +285,28 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(
                 eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,\"tmax\":1000}}}"));
+    }
+
+    @Test
+    public void shouldRespondWithDebugInfoIncludedIfExtPrebidDebugIsTrue() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .id("reqId1")
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(true).build()))));
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
+
+        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+                .willReturn(givenBidResponseWithExt(mapper.valueToTree(
+                        ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest),
+                                null, null, null, null))));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(
+                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":1000,"
+                        + "\"ext\":{\"prebid\":{\"debug\":true}}}}}"));
     }
 
     @Test

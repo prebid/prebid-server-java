@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -433,6 +434,28 @@ public class AmpRequestFactoryTest extends VertxTest {
         verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
 
         assertThat(captor.getValue().getTest()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldRespondWithBidRequestWithDebugFlagOn() throws JsonProcessingException {
+        // given
+        given(httpRequest.getParam("debug")).willReturn("1");
+
+        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null,
+                null, null, null),
+                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                        ExtRequestPrebidCacheVastxml.of(null, null)));
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+
+        // when
+        factory.fromRequest(routingContext);
+
+        // then
+        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
+
+        final ExtBidRequest extBidRequest = Json.mapper.treeToValue(captor.getValue().getExt(), ExtBidRequest.class);
+        assertThat(extBidRequest.getPrebid().getDebug()).isTrue();
     }
 
     @Test

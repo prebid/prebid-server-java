@@ -142,13 +142,16 @@ public class AmpRequestFactory {
 
         final String debugQueryParam = context.request().getParam(DEBUG_REQUEST_PARAM);
         final Integer test = bidRequest.getTest();
-        final boolean setTestParam = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
+        final boolean setTest = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
 
-        return setDefaultTargeting || setDefaultCache || setSecure || setTestParam
+        final Boolean debug = prebid != null ? prebid.getDebug() : null;
+        final boolean setDebug = !Objects.equals(debug, true) && Objects.equals(debugQueryParam, "1");
+
+        return setDefaultTargeting || setDefaultCache || setSecure || setTest || setDebug
                 ? bidRequest.toBuilder()
-                .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
+                .ext(extBidRequest(bidRequest, prebid, setDefaultTargeting, setDefaultCache, setDebug))
                 .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
-                .test(setTestParam ? Integer.valueOf(1) : test)
+                .test(setTest ? Integer.valueOf(1) : test)
                 .build()
                 : bidRequest;
     }
@@ -341,13 +344,13 @@ public class AmpRequestFactory {
     }
 
     /**
-     * Creates updated with default values bidrequest.ext {@link ObjectNode}
+     * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private static ObjectNode createExtWithDefaults(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                                    boolean setDefaultTargeting, boolean setDefaultCache) {
+    private static ObjectNode extBidRequest(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                            boolean setDefaultTargeting, boolean setDefaultCache, boolean setDebug) {
         final boolean isPrebidNull = prebid == null;
 
-        return setDefaultTargeting || setDefaultCache
+        return setDefaultTargeting || setDefaultCache || setDebug
                 ? Json.mapper.valueToTree(ExtBidRequest.of(
                 ExtRequestPrebid.builder()
                         .aliases(isPrebidNull ? Collections.emptyMap() : prebid.getAliases())
@@ -360,6 +363,7 @@ public class AmpRequestFactory {
                                 ExtRequestPrebidCacheVastxml.of(null, null))
                                 : isPrebidNull ? null : prebid.getCache())
                         .data(isPrebidNull ? null : prebid.getData())
+                        .debug(setDebug ? Boolean.TRUE : isPrebidNull ? null : prebid.getDebug())
                         .build()))
                 : bidRequest.getExt();
     }
