@@ -14,6 +14,11 @@ import java.util.Map;
 public class ExtRequestPrebid {
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.debug
+     */
+    Boolean debug;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.aliases
      */
     Map<String, String> aliases;
