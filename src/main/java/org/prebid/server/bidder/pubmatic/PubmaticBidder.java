@@ -91,7 +91,7 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
                         width = Integer.valueOf(adSize[0].trim());
                         height = Integer.valueOf(heightStr[0].trim());
                     } catch (NumberFormatException e) {
-                        throw new PreBidException("Invalid width or height provided in adSlot");
+                        throw new PreBidException("Invalid size provided in adSlot");
                     }
 
                 }
