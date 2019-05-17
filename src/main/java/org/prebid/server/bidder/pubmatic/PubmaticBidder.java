@@ -74,14 +74,11 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
                     modifiedImp.tagid(adSlotString);
                 } else {
                     final String[] adSlot = adSlotString.split("@");
-                    if (adSlot.length != 2) {
+                    if (adSlot.length != 2 || StringUtils.isEmpty(adSlot[0].trim())
+                            || StringUtils.isEmpty(adSlot[1].trim())) {
                         throw new PreBidException("Invalid adSlot provided");
                     }
                     modifiedImp.tagid(adSlot[0].trim());
-
-                    if (StringUtils.isEmpty(adSlot[0]) || StringUtils.isEmpty(adSlot[1])) {
-                        throw new PreBidException("Invalid adSlot provided");
-                    }
                     final String[] adSize = adSlot[1].toLowerCase().split("x");
                     if (adSize.length != 2) {
                         throw new PreBidException("Invalid size provided in adSlot");
@@ -93,7 +90,6 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
                     } catch (NumberFormatException e) {
                         throw new PreBidException("Invalid size provided in adSlot");
                     }
-
                 }
             }
             if (width == null && height == null) {

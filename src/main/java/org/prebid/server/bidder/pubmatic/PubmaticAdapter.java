@@ -185,18 +185,13 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 tagId = adSlot;
             } else {
                 final String[] adSlots = adSlot.split("@");
-                if (adSlots.length != 2) {
+                if (adSlots.length != 2 || StringUtils.isEmpty(adSlots[0].trim())
+                        || StringUtils.isEmpty(adSlots[1].trim())) {
                     errors.add(paramError(bidId, "Invalid AdSlot", params));
                     logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot [%s]", adSlot);
                     return null;
                 }
-                tagId = adSlots[0];
-
-                if (StringUtils.isEmpty(adSlots[0]) || StringUtils.isEmpty(adSlots[1])) {
-                    errors.add(paramError(bidId, "Invalid AdSlot", params));
-                    logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot [%s]", adSlot);
-                    return null;
-                }
+                tagId = adSlots[0].trim();
                 final String[] adSizes = adSlots[1].toLowerCase().split("x");
                 if (adSizes.length != 2) {
                     errors.add(paramError(bidId, "Invalid AdSize", params));
@@ -224,31 +219,16 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                     return null;
                 }
                 slotWithoutSize = false;
-
             }
         }
         if (slotWithoutSize) {
             if (sizes == null || sizes.size() == 0) {
                 errors.add(paramError(bidId, "Invalid AdSize", params));
-                logWrongParams(requestId, publisherId, adUnitBid, "Missing Size");
+                logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: Size missing");
                 return null;
             }
-            try {
-                height = sizes.get(0).getH();
-            } catch (NumberFormatException e) {
-                errors.add(paramError(bidId, "Invalid Height", params));
-                logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot height [%s]",
-                        ((Format) sizes.get(0)).getH());
-                return null;
-            }
-            try {
-                width = sizes.get(0).getW();
-            } catch (NumberFormatException e) {
-                errors.add(paramError(bidId, "Invalid Width", params));
-                logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot width [%s]",
-                        ((Format) sizes.get(0)).getW());
-                return null;
-            }
+            height = sizes.get(0).getH();
+            width = sizes.get(0).getW();
         }
 
         final ObjectNode wrapExt;
