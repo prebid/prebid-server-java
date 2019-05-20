@@ -64,7 +64,7 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
         if (imp.getAudio() != null) {
             modifiedImp.audio(null);
         }
-        Banner banner = imp.getBanner();
+        final Banner banner = imp.getBanner();
         if (banner != null) {
             final String adSlotString = StringUtils.trimToNull(extImpPubmatic.getAdSlot());
             Integer width = null;
@@ -100,7 +100,7 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
                 height = isFormatsPresent && banner.getH() == null && banner.getW() == null
                          ? banner.getFormat().get(0).getH() : banner.getH();
             }
-            final Banner updatedBanner = imp.getBanner().toBuilder().w(width).h(height).build();
+            final Banner updatedBanner = banner.toBuilder().w(width).h(height).build();
             modifiedImp.banner(updatedBanner);
         }
 
