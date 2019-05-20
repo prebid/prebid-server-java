@@ -33,8 +33,8 @@ public class CurrencyConversionService {
     //this number is chosen because of PriceGranularities default precision value of 2 + 1 for better accuracy
     private static final int DEFAULT_PRICE_PRECISION = 3;
 
-    private final long defaultTimeout;
     private final String currencyServerUrl;
+    private final long defaultTimeout;
     private final long refreshPeriod;
     private final Vertx vertx;
     private final HttpClient httpClient;
@@ -44,8 +44,8 @@ public class CurrencyConversionService {
 
     public CurrencyConversionService(String currencyServerUrl, long defaultTimeout, long refreshPeriod, Vertx vertx,
                                      HttpClient httpClient) {
-        this.defaultTimeout = defaultTimeout;
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
+        this.defaultTimeout = defaultTimeout;
         this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
         this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
