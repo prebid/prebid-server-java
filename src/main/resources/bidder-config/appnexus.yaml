@@ -2,7 +2,6 @@ adapters:
   appnexus:
     enabled: false
     endpoint: http://ib.adnxs.com/openrtb2
-    usersync-url: //ib.adnxs.com/getuid?
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases: districtm
@@ -16,3 +15,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 32
+    usersync:
+      url: //ib.adnxs.com/getuid?
+      redirect-url: /setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      cookie-family-name: adnxs
+      type: redirect
+      support-cors: false

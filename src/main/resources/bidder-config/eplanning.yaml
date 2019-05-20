@@ -1,16 +1,21 @@
 adapters:
   eplanning:
     enabled: false
-    endpoint: http://ads.us.e-planning.net/dsp/obr/1
-    usersync-url: http://sync.e-planning.net/um?uid
+    endpoint: http://ads.us.e-planning.net/hb/1
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: mmartinho@e-planning.net
+      maintainer-email: producto@e-planning.net
       app-media-types:
         - banner
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 90
+    usersync:
+      url: https://ads.us.e-planning.net/uspd/1/?du=https%3A%2F%2Fads.us.e-planning.net%2Fgetuid%2F1%2F5a1ad71d2d53a0f5%3F
+      redirect-url: /setuid?bidder=eplanning&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      cookie-family-name: eplanning
+      type: iframe
+      support-cors: false

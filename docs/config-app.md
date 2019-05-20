@@ -28,6 +28,8 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
+- `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
+- `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
 ## Auction (OpenRTB)
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
@@ -36,8 +38,6 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
-- `auction.currency-rates-refresh-period-ms` - default refresh period for currency rates updates.
-- `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 
 ## Amp (OpenRTB)
@@ -58,12 +58,21 @@ This parameter affects how many CPU cores will be utilized by the application. R
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
 - `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
+- `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
+- `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
+- `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
+- `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe)
+- `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
 But feel free to add additional bidder's specific options.
+
+## Currency Converter
+- `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
+- `currency-converter.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
@@ -177,8 +186,12 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `recaptcha-secret` - Google Recaptcha secret string given to certain domain account.
 
 ## Server status
-- `status-response` - message returned by /status endpoint when server is ready to serve requests.
-If not defined in config, endpoint will respond with 'No Content' (204) status with empty body.
+- `status-response` - message returned by ApplicationChecker in /status endpoint when server is ready to serve requests.
+If not defined in config all other Health Checkers would be disabled and endpoint will respond with 'No Content' (204) status with empty body.
+
+## Health Check
+- `health-check.database.enabled` - if equals to `true` the database health check will be enabled to periodically check database status.
+- `health-check.database.refresh-period-ms` - the refresh period for database status updates.
 
 ## GDPR
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).

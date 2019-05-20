@@ -70,9 +70,9 @@ import static org.mockito.BDDMockito.given;
 public class FacebookAdapterTest extends VertxTest {
 
     private static final String BIDDER = "audienceNetwork";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String NONSECURE_ENDPOINT_URL = ENDPOINT_URL;
-    private static final String USERSYNC_URL = "//usersync.org/";
     private static final String PLATFORM_ID = "100";
 
     @Rule
@@ -85,14 +85,12 @@ public class FacebookAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private FacebookAdapter adapter;
-    private FacebookUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new FacebookUsersyncer(USERSYNC_URL);
-        adapter = new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
+        adapter = new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
     }
 
     @Test
@@ -100,26 +98,28 @@ public class FacebookAdapterTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new FacebookAdapter(null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(usersyncer, ENDPOINT_URL, null, null));
+                () -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, null));
+                () -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(usersyncer, "invalid_url", NONSECURE_ENDPOINT_URL, PLATFORM_ID))
+                .isThrownBy(
+                        () -> new FacebookAdapter(COOKIE_FAMILY, "invalid_url", NONSECURE_ENDPOINT_URL, PLATFORM_ID))
                 .withMessage("URL supplied is not valid: invalid_url");
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(usersyncer, ENDPOINT_URL, "invalid_url", PLATFORM_ID))
+                .isThrownBy(() -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, "invalid_url", PLATFORM_ID))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailOnInvalidPlatformId() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, "non-number"))
+                .isThrownBy(
+                        () -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, "non-number"))
                 .withMessage("Platform ID is not valid number: 'non-number'");
     }
 
@@ -246,7 +246,8 @@ public class FacebookAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
         );
 
@@ -288,7 +289,7 @@ public class FacebookAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
@@ -302,7 +303,7 @@ public class FacebookAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestWithRandomEndpoint() {
         // given
-        adapter = new FacebookAdapter(usersyncer, "https://secure-endpoint.org", "http://non-secure-endpoint.org",
+        adapter = new FacebookAdapter(COOKIE_FAMILY, "https://secure-endpoint.org", "http://non-secure-endpoint.org",
                 PLATFORM_ID);
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 

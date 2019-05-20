@@ -12,8 +12,10 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -43,10 +45,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
+    private final TimeoutResolver timeoutResolver;
 
     public AuctionHandler(ExchangeService exchangeService, AuctionRequestFactory auctionRequestFactory,
                           UidsCookieService uidsCookieService, AnalyticsReporter analyticsReporter, Metrics metrics,
-                          Clock clock, TimeoutFactory timeoutFactory) {
+                          Clock clock, TimeoutFactory timeoutFactory, TimeoutResolver timeoutResolver) {
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -54,6 +57,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
     }
 
     @Override
@@ -70,8 +74,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
-                .context(context)
-                .uidsCookie(uidsCookie);
+                .httpContext(HttpContext.from(context));
 
         auctionRequestFactory.fromRequest(context)
                 .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))
@@ -103,7 +106,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
-        return timeoutFactory.create(startTime, bidRequest.getTmax());
+        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
+        return timeoutFactory.create(startTime, timeout);
     }
 
     private void handleResult(AsyncResult<Tuple2<BidResponse, MetricsContext>> responseResult,

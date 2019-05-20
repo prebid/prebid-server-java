@@ -18,7 +18,6 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.model.NormalizedFacebookParams;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookParams;
@@ -61,8 +60,9 @@ public class FacebookAdapter extends OpenrtbAdapter {
     private final String nonSecureEndpointUrl;
     private final ObjectNode platformJson;
 
-    public FacebookAdapter(Usersyncer usersyncer, String endpointUrl, String nonSecureEndpointUrl, String platformId) {
-        super(usersyncer);
+    public FacebookAdapter(String cookieFamilyName, String endpointUrl, String nonSecureEndpointUrl,
+                           String platformId) {
+        super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.nonSecureEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(nonSecureEndpointUrl));
         platformJson = createPlatformJson(Objects.requireNonNull(platformId));

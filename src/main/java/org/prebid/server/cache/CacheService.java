@@ -11,7 +11,6 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.cache.account.AccountCacheService;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
@@ -26,6 +25,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -44,21 +45,23 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Client stores values in Prebid Cache. For more info, see https://github.com/prebid/prebid-cache
+ * Client stores values in Prebid Cache.
+ * <p>
+ * For more info, see https://github.com/prebid/prebid-cache project.
  */
 public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private final AccountCacheService accountCacheService;
+    private final ApplicationSettings applicationSettings;
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
 
-    public CacheService(AccountCacheService accountCacheService, CacheTtl mediaTypeCacheTtl,
-                        HttpClient httpClient, URL endpointUrl, String cachedAssetUrlTemplate) {
-        this.accountCacheService = Objects.requireNonNull(accountCacheService);
+    public CacheService(ApplicationSettings applicationSettings, CacheTtl mediaTypeCacheTtl, HttpClient httpClient,
+                        URL endpointUrl, String cachedAssetUrlTemplate) {
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
@@ -66,14 +69,9 @@ public class CacheService {
     }
 
     public String getEndpointHost() {
-        String host = endpointUrl.getHost();
-        int port = endpointUrl.getPort();
-
-        if (port == -1) {
-            return host;
-        } else {
-            return String.format("%s:%d", host, port);
-        }
+        final String host = endpointUrl.getHost();
+        final int port = endpointUrl.getPort();
+        return port != -1 ? String.format("%s:%d", host, port) : host;
     }
 
     public String getEndpointPath() {
@@ -179,8 +177,36 @@ public class CacheService {
      */
     private Future<CacheTtl> accountCacheTtlFrom(boolean impWithNoExpExists, String publisherId, Timeout timeout) {
         return impWithNoExpExists && StringUtils.isNotEmpty(publisherId)
-                ? accountCacheService.getCacheTtlByAccountId(publisherId, timeout)
+                ? makeCacheTtl(publisherId, timeout)
                 : Future.succeededFuture(CacheTtl.empty());
+    }
+
+    /**
+     * Makes {@link CacheTtl} from {@link Account} fetched by {@link ApplicationSettings}.
+     */
+    private Future<CacheTtl> makeCacheTtl(String publisherId, Timeout timeout) {
+        return applicationSettings.getAccountById(publisherId, timeout)
+                .map(CacheService::cacheTtlFrom)
+                .otherwise(CacheService::fallbackResult);
+    }
+
+    /**
+     * Verifies if configs for {@link CacheTtl} are present in {@link Account}.
+     */
+    private static CacheTtl cacheTtlFrom(Account account) {
+        return account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null
+                ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
+                : CacheTtl.empty();
+    }
+
+    /**
+     * Returns empty {@link CacheTtl} result.
+     */
+    private static CacheTtl fallbackResult(Throwable exception) {
+        if (!(exception instanceof PreBidException)) {
+            logger.warn("Error occurred while fetching account", exception);
+        }
+        return CacheTtl.empty();
     }
 
     /**

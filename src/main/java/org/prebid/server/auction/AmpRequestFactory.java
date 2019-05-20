@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -50,12 +51,10 @@ public class AmpRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
-    public AmpRequestFactory(long defaultTimeout, long maxTimeout, long timeoutAdjustment,
-                             StoredRequestProcessor storedRequestProcessor,
+    public AmpRequestFactory(TimeoutResolver timeoutResolver, StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
@@ -143,13 +142,16 @@ public class AmpRequestFactory {
 
         final String debugQueryParam = context.request().getParam(DEBUG_REQUEST_PARAM);
         final Integer test = bidRequest.getTest();
-        final boolean setTestParam = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
+        final boolean setTest = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
 
-        return setDefaultTargeting || setDefaultCache || setSecure || setTestParam
+        final Boolean debug = prebid != null ? prebid.getDebug() : null;
+        final boolean setDebug = !Objects.equals(debug, true) && Objects.equals(debugQueryParam, "1");
+
+        return setDefaultTargeting || setDefaultCache || setSecure || setTest || setDebug
                 ? bidRequest.toBuilder()
-                .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
+                .ext(extBidRequest(bidRequest, prebid, setDefaultTargeting, setDefaultCache, setDebug))
                 .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
-                .test(setTestParam ? Integer.valueOf(1) : test)
+                .test(setTest ? Integer.valueOf(1) : test)
                 .build()
                 : bidRequest;
     }
@@ -177,7 +179,8 @@ public class AmpRequestFactory {
                 siteBuilder.page(canonicalUrl);
             }
             if (shouldSetExtAmp) {
-                siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1)));
+                final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
+                siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1, data)));
             }
             return siteBuilder.build();
         }
@@ -203,7 +206,6 @@ public class AmpRequestFactory {
      * Creates formats from request parameters to override origin amp banner formats.
      */
     private static List<Format> createOverrideBannerFormats(HttpServerRequest request, List<Format> formats) {
-        final List<Format> overrideFormats;
         final int overrideWidth = parseIntParamOrZero(request, OW_REQUEST_PARAM);
         final int width = parseIntParamOrZero(request, W_REQUEST_PARAM);
         final int overrideHeight = parseIntParamOrZero(request, OH_REQUEST_PARAM);
@@ -213,13 +215,9 @@ public class AmpRequestFactory {
         final List<Format> paramsFormats = createFormatsFromParams(overrideWidth, width, overrideHeight, height,
                 multiSizeParam);
 
-        if (paramsFormats != null) {
-            overrideFormats = paramsFormats;
-        } else {
-            overrideFormats = updateFormatsFromParams(formats, width, height);
-        }
-
-        return overrideFormats;
+        return CollectionUtils.isNotEmpty(paramsFormats)
+                ? paramsFormats
+                : updateFormatsFromParams(formats, width, height);
     }
 
     /**
@@ -227,31 +225,34 @@ public class AmpRequestFactory {
      */
     private static List<Format> createFormatsFromParams(Integer overrideWidth, Integer width, Integer overrideHeight,
                                                         Integer height, String multiSizeParam) {
-        List<Format> overrideFormats = null;
+        final List<Format> formats = new ArrayList<>();
+
         if (overrideWidth != 0 && overrideHeight != 0) {
-            overrideFormats = Collections.singletonList(Format.builder().w(overrideWidth).h(overrideHeight).build());
+            formats.add(Format.builder().w(overrideWidth).h(overrideHeight).build());
         } else if (overrideWidth != 0 && height != 0) {
-            overrideFormats = Collections.singletonList(Format.builder().w(overrideWidth).h(height).build());
+            formats.add(Format.builder().w(overrideWidth).h(height).build());
         } else if (width != 0 && overrideHeight != 0) {
-            overrideFormats = Collections.singletonList(Format.builder().w(width).h(overrideHeight).build());
-        } else {
-            final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
-                    ? parseMultiSizeParam(multiSizeParam)
-                    : Collections.emptyList();
-            if (!multiSizeFormats.isEmpty()) {
-                overrideFormats = multiSizeFormats;
-            } else if (width != 0 && height != 0) {
-                overrideFormats = Collections.singletonList(Format.builder().w(width).h(height).build());
-            }
+            formats.add(Format.builder().w(width).h(overrideHeight).build());
+        } else if (width != 0 && height != 0) {
+            formats.add(Format.builder().w(width).h(height).build());
         }
-        return overrideFormats;
+
+        // Append formats from multi-size param if exist
+        final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
+                ? parseMultiSizeParam(multiSizeParam)
+                : Collections.emptyList();
+        if (!multiSizeFormats.isEmpty()) {
+            formats.addAll(multiSizeFormats);
+        }
+
+        return formats;
     }
 
     /**
      * Updates origin amp banner formats from parameters.
      */
     private static List<Format> updateFormatsFromParams(List<Format> formats, Integer width, Integer height) {
-        List<Format> updatedFormats = null;
+        final List<Format> updatedFormats;
         if (width != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(width).h(format.getH()).build())
@@ -260,6 +261,8 @@ public class AmpRequestFactory {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(format.getW()).h(height).build())
                     .collect(Collectors.toList());
+        } else {
+            updatedFormats = Collections.emptyList();
         }
         return updatedFormats;
     }
@@ -341,24 +344,27 @@ public class AmpRequestFactory {
     }
 
     /**
-     * Creates updated with default values bidrequest.ext {@link ObjectNode}
+     * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private static ObjectNode createExtWithDefaults(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                                    boolean setDefaultTargeting, boolean setDefaultCache) {
+    private static ObjectNode extBidRequest(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                            boolean setDefaultTargeting, boolean setDefaultCache, boolean setDebug) {
         final boolean isPrebidNull = prebid == null;
 
-        return setDefaultTargeting || setDefaultCache
+        return setDefaultTargeting || setDefaultCache || setDebug
                 ? Json.mapper.valueToTree(ExtBidRequest.of(
-                ExtRequestPrebid.of(
-                        isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
-                        isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
-                        setDefaultTargeting || isPrebidNull
-                                ? createTargetingWithDefaults(prebid) : prebid.getTargeting(),
-                        isPrebidNull ? null : prebid.getStoredrequest(),
-                        setDefaultCache
+                ExtRequestPrebid.builder()
+                        .aliases(isPrebidNull ? Collections.emptyMap() : prebid.getAliases())
+                        .bidadjustmentfactors(isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors())
+                        .targeting(setDefaultTargeting || isPrebidNull
+                                ? createTargetingWithDefaults(prebid) : prebid.getTargeting())
+                        .storedrequest(isPrebidNull ? null : prebid.getStoredrequest())
+                        .cache(setDefaultCache
                                 ? ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null))
-                                : isPrebidNull ? null : prebid.getCache())))
+                                : isPrebidNull ? null : prebid.getCache())
+                        .data(isPrebidNull ? null : prebid.getData())
+                        .debug(setDebug ? Boolean.TRUE : isPrebidNull ? null : prebid.getDebug())
+                        .build()))
                 : bidRequest.getExt();
     }
 
@@ -376,6 +382,9 @@ public class AmpRequestFactory {
                 ? Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
                 : priceGranularity;
 
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
+                ? null : targeting.getMediatypepricegranularity();
+
         final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
 
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
@@ -384,6 +393,7 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 ? true : targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners, includeBidderKeys);
+        return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
+                includeWinners, includeBidderKeys);
     }
 }

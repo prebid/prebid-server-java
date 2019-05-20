@@ -1,0 +1,23 @@
+adapters:
+  rubicon:
+    enabled: true
+    XAPI.Username: user1
+    XAPI.Password: password1
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=%PBS_CACHE_UUID%
+settings:
+  filesystem:
+    settings-filename: sample/sample-app-settings.yaml
+    stored-requests-dir: /tmp
+    stored-imps-dir: /tmp
+gdpr:
+  vendorlist:
+    filesystem-cache-dir: /tmp
+  geolocation:
+    enabled: false
+status-response: "ok"

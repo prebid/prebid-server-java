@@ -1,0 +1,166 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "impId12",
+          "impid": "impId12",
+          "price": 10.5,
+          "adm": "banner",
+          "crid": "crid12",
+          "w": 400,
+          "h": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "10.50",
+                "hb_size_adform": "400x300",
+                "hb_size": "400x300",
+                "hb_bidder": "adform",
+                "hb_cache_id_adform": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                "hb_bidder_adform": "adform",
+                "hb_pb_adform": "10.50",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_adform": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_adform": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                  "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "adform",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "adform": [
+          {
+            "uri": "{{ adform.exchange_uri }}?CC=1&adid=ifaId&fd=1&gdpr=0&gdpr_consent=consentValue&ip=192.168.244.1&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE",
+            "responsebody": "{\"response\":\"banner\",\"banner\":\"banner\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\",\"win_crid\":\"crid12\"}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId12",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "adform": {
+                "mid": 15,
+                "priceType": "gross"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "adform": "{{ adform.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}

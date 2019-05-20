@@ -2,8 +2,6 @@ adapters:
   ttx:
     enabled: false
     endpoint: http://ssc.33across.com/api/v1/hb
-    usersync-url: https://ssc-cms.33across.com/ps
-    partner-id:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -15,3 +13,9 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 58
+    usersync:
+      url: https://ic.tynt.com/r/d?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&id=zzz000000000002zzz&ru=
+      redirect-url: /setuid?bidder=33across&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=33XUSERID33X
+      cookie-family-name: 33across
+      type: iframe
+      support-cors: false

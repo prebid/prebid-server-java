@@ -22,6 +22,10 @@ public class UidsCookie {
         Objects.requireNonNull(uids.getUids()); // without uids doesn't make sense
     }
 
+    public Uids getCookieUids() {
+        return this.uids;
+    }
+
     /**
      * Returns false if 'audienceNetwork' UID has a "0" value which is illegitimate in prebid server
      * otherwise true

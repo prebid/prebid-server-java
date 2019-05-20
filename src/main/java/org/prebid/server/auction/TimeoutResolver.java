@@ -3,13 +3,13 @@ package org.prebid.server.auction;
 /**
  * Component for processing timeout related functionality.
  */
-class TimeoutResolver {
+public class TimeoutResolver {
 
     private final long defaultTimeout;
     private final long maxTimeout;
     private final long timeoutAdjustment;
 
-    TimeoutResolver(long defaultTimeout, long maxTimeout, long timeoutAdjustment) {
+    public TimeoutResolver(long defaultTimeout, long maxTimeout, long timeoutAdjustment) {
         if (maxTimeout < defaultTimeout) {
             throw new IllegalArgumentException(
                     String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
@@ -22,7 +22,7 @@ class TimeoutResolver {
     }
 
     /**
-     * Resolves timeout according to given in request and pre-configured values (default, max, adjustment).
+     * Resolves timeout according to given in request and pre-configured default and max values.
      */
     long resolve(Long requestTimeout) {
         final long result;
@@ -31,10 +31,23 @@ class TimeoutResolver {
             result = defaultTimeout;
         } else if (requestTimeout > maxTimeout) {
             result = maxTimeout;
-        } else if (timeoutAdjustment > 0) {
-            result = requestTimeout - timeoutAdjustment; // negative value should be checked by caller
         } else {
             result = requestTimeout;
+        }
+
+        return result;
+    }
+
+    /**
+     * Determines timeout according to given in request and pre-configured adjustment value.
+     */
+    public long adjustTimeout(long requestTimeout) {
+        final long result;
+
+        if (requestTimeout == defaultTimeout || requestTimeout == maxTimeout) {
+            result = requestTimeout;
+        } else {
+            result = requestTimeout > timeoutAdjustment ? requestTimeout - timeoutAdjustment : requestTimeout;
         }
 
         return result;

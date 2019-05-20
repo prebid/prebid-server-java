@@ -16,7 +16,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.adform.model.AdformParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -45,8 +44,9 @@ import static org.mockito.BDDMockito.given;
 
 public class AdformAdapterTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://adform.com/openrtb2d";
     private static final String BIDDER = "adform";
+    private static final String COOKIE_FAMILY = BIDDER;
+    private static final String ENDPOINT_URL = "http://adform.com/openrtb2d";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -54,15 +54,11 @@ public class AdformAdapterTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    @Mock
-    private Usersyncer usersyncer;
-
     private AdformAdapter adformAdapter;
 
     @Before
     public void setUp() {
-        adformAdapter = new AdformAdapter(usersyncer, ENDPOINT_URL);
-        given(usersyncer.cookieFamilyName()).willReturn(BIDDER);
+        adformAdapter = new AdformAdapter(COOKIE_FAMILY, ENDPOINT_URL);
         given(uidsCookie.uidFrom(BIDDER)).willReturn("buyeruid");
     }
 
@@ -76,7 +72,7 @@ public class AdformAdapterTest extends VertxTest {
                 PreBidRequest.builder().tid("tid").device(Device.builder().ifa("ifaId").build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
                         .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", ExtUserDigiTrust.of("id", 123, 1), null))).build()).build())
+                                null, "consent", ExtUserDigiTrust.of("id", 123, 1), null, null))).build()).build())
                 .secure(0).ua("userAgent").ip("192.168.0.1").referer("www.example.com").uidsCookie(uidsCookie).build();
 
         // when
@@ -90,7 +86,7 @@ public class AdformAdapterTest extends VertxTest {
                 .extracting(AdapterHttpRequest::getUri)
                 .containsExactly(
                         "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=192.168.0.1"
-                                + "&pt=gross&rp=4&stid=tid&bWlkPTE1");
+                                + "&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
 
         assertThat(adapterHttpRequests)
                 .extracting(AdapterHttpRequest::getMethod)
@@ -106,7 +102,7 @@ public class AdformAdapterTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "userAgent"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "192.168.0.1"),
-                        tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.2"),
+                        tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.3"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
                         // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
                         tuple(HttpUtil.COOKIE_HEADER.toString(),
@@ -176,7 +172,8 @@ public class AdformAdapterTest extends VertxTest {
         // bWlkPTE1 is Base64 encoded "mid=15" value
         assertThat(adapterHttpRequests).hasSize(1)
                 .extracting(AdapterHttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&stid=&bWlkPTE1");
+                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&"
+                        + "stid=&bWlkPTE1JnJjdXI9VVNE");
     }
 
     @Test

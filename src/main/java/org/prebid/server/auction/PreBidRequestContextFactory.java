@@ -36,12 +36,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Used in legacy request processing.
+ */
 public class PreBidRequestContextFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
 
+    private static final TypeReference<List<Bid>> LIST_OF_BIDS_TYPE_REFERENCE = new TypeReference<List<Bid>>() {
+    };
+
     private final TimeoutResolver timeoutResolver;
-    private final long defaultTimeout;
     private final ImplicitParametersExtractor paramsExtractor;
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
@@ -49,14 +54,11 @@ public class PreBidRequestContextFactory {
 
     private final Random rand = new Random();
 
-    public PreBidRequestContextFactory(long defaultTimeout, long maxTimeout,
-                                       long timeoutAdjustment, ImplicitParametersExtractor paramsExtractor,
+    public PreBidRequestContextFactory(TimeoutResolver timeoutResolver, ImplicitParametersExtractor paramsExtractor,
                                        ApplicationSettings applicationSettings, UidsCookieService uidsCookieService,
                                        TimeoutFactory timeoutFactory) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
-        this.defaultTimeout = defaultTimeout;
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -154,17 +156,30 @@ public class PreBidRequestContextFactory {
         final String configId = unit.getConfigId();
         if (StringUtils.isNotBlank(configId)) {
             result = applicationSettings.getAdUnitConfigById(configId, timeout)
-                    .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
-                    }))
-                    .otherwise(exception -> {
-                        logger.warn("Failed to load config ''{0}'' from cache", exception, configId);
-                        return Collections.emptyList();
-                    });
+                    .map(config -> toBids(config, configId))
+                    .otherwise(exception -> fallbackResult(exception, configId));
         } else {
             result = Future.succeededFuture(unit.getBids());
         }
 
         return result;
+    }
+
+    private List<Bid> fallbackResult(Throwable exception, String configId) {
+        if (exception instanceof PreBidException) {
+            logger.warn("AdUnit config not found by id ''{0}'' from cache", configId);
+        } else {
+            logger.warn("Failed to load config ''{0}'' from cache", exception, configId);
+        }
+        return Collections.emptyList();
+    }
+
+    private List<Bid> toBids(String config, String configId) {
+        try {
+            return Json.decodeValue(config, LIST_OF_BIDS_TYPE_REFERENCE);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Cannot parse AdUnit config for id: %s", configId), e);
+        }
     }
 
     private AdUnitBid toAdUnitBid(AdUnit unit, Bid bid) {
@@ -182,29 +197,31 @@ public class PreBidRequestContextFactory {
     }
 
     private Set<MediaType> makeBidMediaTypes(List<String> mediaTypes) {
-        final Set<MediaType> bidMediaTypes;
+        final Set<MediaType> result;
+
         if (mediaTypes != null && !mediaTypes.isEmpty()) {
-            bidMediaTypes = new HashSet<>();
+            result = new HashSet<>();
             for (String mediaType : mediaTypes) {
                 try {
-                    bidMediaTypes.add(MediaType.valueOf(mediaType.toLowerCase()));
+                    result.add(MediaType.valueOf(mediaType.toLowerCase()));
                 } catch (IllegalArgumentException e) {
                     logger.warn("Invalid mediaType: {0}", mediaType);
                 }
             }
-            if (bidMediaTypes.isEmpty()) {
-                bidMediaTypes.add(MediaType.banner);
+            if (result.isEmpty()) {
+                result.add(MediaType.banner);
             }
         } else {
-            bidMediaTypes = Collections.singleton(MediaType.banner);
+            result = Collections.singleton(MediaType.banner);
         }
-        return bidMediaTypes;
+
+        return result;
     }
 
     private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
         final Long requestTimeout = preBidRequest.getTimeoutMillis();
         final long resolvedTimeout = timeoutResolver.resolve(requestTimeout);
-        final long timeout = resolvedTimeout > 0 ? resolvedTimeout : defaultTimeout; // check negative value
+        final long timeout = timeoutResolver.adjustTimeout(resolvedTimeout);
 
         // check, do we really need to update request?
         return !Objects.equals(requestTimeout, timeout)

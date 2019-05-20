@@ -1,0 +1,167 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "123456789abcdef",
+          "impid": "impId15",
+          "price": 0.5,
+          "adm": "<div>test</div>",
+          "adid": "adid12345",
+          "crid": "abcdef123456789",
+          "w": 600,
+          "h": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_pb_eplanning": "0.50",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "600x300",
+                "hb_cache_id_eplanning": "6fb008f6-9e09-43ad-830b-ffed21345119",
+                "hb_bidder_eplanning": "eplanning",
+                "hb_cache_host_eplanning": "{{ cache.host }}",
+                "hb_bidder": "eplanning",
+                "hb_cache_id": "6fb008f6-9e09-43ad-830b-ffed21345119",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_size_eplanning": "600x300",
+                "hb_cache_path_eplanning": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}6fb008f6-9e09-43ad-830b-ffed21345119",
+                  "cacheId": "6fb008f6-9e09-43ad-830b-ffed21345119"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "eplanning",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "eplanning": [
+          {
+            "uri": "{{ eplanning.exchange_uri }}/12345/1/example.com/ROS?ct=1&r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com&e=testadunitcode:600x300&uid=EP-UID&ip=192.168.244.1",
+            "responsebody": "{\"sp\":[{\"k\":\"testadunitcode\",\"a\":[{\"i\":\"123456789abcdef\",\"pr\":\"0.5\",\"adm\":\"<div>test</div>\",\"crid\":\"abcdef123456789\",\"id\":\"adid12345\",\"w\":600,\"h\":300}]}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId15",
+            "banner": {
+              "format": [
+                {
+                  "w": 600,
+                  "h": 300
+                }
+              ]
+            },
+            "ext": {
+              "eplanning": {
+                "ci": "12345",
+                "adunit_code": "test_adunitcode"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "eplanning": "{{ eplanning.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}

@@ -1,0 +1,26 @@
+---
+accounts:
+  - id: 14062
+    bannerCacheTtl: 100
+    videoCacheTtl: 100
+    eventsEnabled: true
+  - id: 1001
+  - id: 2763
+  - id: 5001
+    eventsEnabled: true
+configs:
+  - id: 14062
+    config: >
+              [{"bid_id": "bidId2",
+               "bidder": "rubicon",
+                "params": {
+                  "accountId": 5001,
+                  "siteId": 6001,
+                  "zoneId": 7001
+                }
+              }]
+  - id: 1001
+  - id: 2763
+domains:
+  - rubiconproject.com
+  - www.rubiconproject.com

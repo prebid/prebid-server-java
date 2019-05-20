@@ -20,6 +20,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
@@ -31,7 +32,10 @@ import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
+import org.prebid.server.handler.ExceptionHandler;
+import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
+import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.SetuidHandler;
@@ -40,6 +44,8 @@ import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
+import org.prebid.server.health.HealthChecker;
+import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -81,6 +87,9 @@ public class WebConfiguration {
     private HttpServerOptions httpServerOptions;
 
     @Autowired
+    private ExceptionHandler exceptionHandler;
+
+    @Autowired
     private Router router;
 
     @Value("${http.port}")
@@ -93,6 +102,7 @@ public class WebConfiguration {
 
         contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
                 vertx.createHttpServer(httpServerOptions)
+                        .exceptionHandler(exceptionHandler)
                         .requestHandler(router)
                         .listen(httpPort, future));
 
@@ -122,6 +132,11 @@ public class WebConfiguration {
     }
 
     @Bean
+    ExceptionHandler exceptionHandler(Metrics metrics) {
+        return ExceptionHandler.create(metrics);
+    }
+
+    @Bean
     Router router(CookieHandler cookieHandler,
                   BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
@@ -132,10 +147,12 @@ public class WebConfiguration {
                   StatusHandler statusHandler,
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
+                  GetuidsHandler getuidsHandler,
                   OptoutHandler optoutHandler,
                   BidderParamHandler bidderParamHandler,
                   BiddersHandler biddersHandler,
                   BidderDetailsHandler bidderDetailsHandler,
+                  NotificationEventHandler notificationEventHandler,
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
@@ -149,11 +166,13 @@ public class WebConfiguration {
         router.get("/status").handler(statusHandler);
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
+        router.get("/getuids").handler(getuidsHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
+        router.get("/event").handler(notificationEventHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default
 
@@ -208,10 +227,11 @@ public class WebConfiguration {
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
-            TimeoutFactory timeoutFactory) {
+            TimeoutFactory timeoutFactory,
+            TimeoutResolver auctionTimeoutResolver) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(exchangeService, auctionRequestFactory,
-                uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory);
+                uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory, auctionTimeoutResolver);
     }
 
     @Bean
@@ -225,16 +245,21 @@ public class WebConfiguration {
             AmpResponsePostProcessor ampResponsePostProcessor,
             Metrics metrics,
             Clock clock,
-            TimeoutFactory timeoutFactory) {
+            TimeoutFactory timeoutFactory,
+            TimeoutResolver ampTimeoutResolver) {
 
         return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService,
                 ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
-                metrics, clock, timeoutFactory);
+                metrics, clock, timeoutFactory, ampTimeoutResolver);
     }
 
     @Bean
-    StatusHandler statusHandler(@Value("${status-response:#{null}}") String statusResponse) {
-        return new StatusHandler(statusResponse);
+    StatusHandler statusHandler(List<HealthChecker> healthCheckers) {
+        healthCheckers.stream()
+                .filter(PeriodicHealthChecker.class::isInstance)
+                .map(PeriodicHealthChecker.class::cast)
+                .forEach(PeriodicHealthChecker::initialize);
+        return new StatusHandler(healthCheckers);
     }
 
     @Bean
@@ -270,6 +295,11 @@ public class WebConfiguration {
     }
 
     @Bean
+    GetuidsHandler getuidsHandler(UidsCookieService uidsCookieService) {
+        return new GetuidsHandler(uidsCookieService);
+    }
+
+    @Bean
     OptoutHandler optoutHandler(
             @Value("${external-url}") String externalUrl,
             @Value("${host-cookie.opt-out-url}") String optoutUrl,
@@ -295,6 +325,11 @@ public class WebConfiguration {
     @Bean
     BidderDetailsHandler bidderDetailsHandler(BidderCatalog bidderCatalog) {
         return new BidderDetailsHandler(bidderCatalog);
+    }
+
+    @Bean
+    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter) {
+        return NotificationEventHandler.create(compositeAnalyticsReporter);
     }
 
     @Bean
@@ -365,6 +400,7 @@ public class WebConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
             return new CurrencyRatesHandler(currencyConversionRates);
         }
@@ -376,7 +412,9 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
-            router.route("/currency-rates").handler(currencyRatesHandler);
+            if (currencyRatesHandler != null) {
+                router.route("/currency-rates").handler(currencyRatesHandler);
+            }
             if (cacheNotificationHandler != null) {
                 router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
             }

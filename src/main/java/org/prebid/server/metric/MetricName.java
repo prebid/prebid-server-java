@@ -1,6 +1,9 @@
 package org.prebid.server.metric;
 
 public enum MetricName {
+    // connection
+    connection_accept_errors,
+
     // database
     db_circuitbreaker_opened,
     db_circuitbreaker_closed,
@@ -50,8 +53,16 @@ public enum MetricName {
     opt_outs,
     bad_requests,
     sets,
+    gen,
+    matches,
     gdpr_prevent,
-    gdpr_masked;
+    gdpr_masked,
+
+    // stored data
+    stored_requests_found,
+    stored_requests_missing,
+    stored_imps_found,
+    stored_imps_missing;
 
     private final String name;
 

@@ -1,13 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.sovrn.SovrnAdapter;
 import org.prebid.server.bidder.sovrn.SovrnBidder;
-import org.prebid.server.bidder.sovrn.SovrnUsersyncer;
-import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
+import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
+import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,18 +17,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
+import javax.validation.constraints.NotBlank;
+
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/sovrn.yaml", factory = YamlPropertySourceFactory.class)
 public class SovrnConfiguration {
 
     private static final String BIDDER_NAME = "sovrn";
 
+    @Value("${external-url}")
+    @NotBlank
+    private String externalUrl;
+
     @Autowired
     @Qualifier("sovrnConfigurationProperties")
     private BidderConfigurationProperties configProperties;
-
-    @Value("${external-url}")
-    private String externalUrl;
 
     @Bean("sovrnConfigurationProperties")
     @ConfigurationProperties("adapters.sovrn")
@@ -38,16 +41,14 @@ public class SovrnConfiguration {
 
     @Bean
     BidderDeps sovrnBidderDeps() {
-        final Usersyncer usersyncer = new SovrnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
-        final MetaInfo metaInfo = configProperties.getMetaInfo();
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
-                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
-                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
-                .usersyncer(usersyncer)
+                .bidderInfo(BidderInfoCreator.create(configProperties))
+                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
                 .bidderCreator(() -> new SovrnBidder(configProperties.getEndpoint()))
-                .adapterCreator(() -> new SovrnAdapter(usersyncer, configProperties.getEndpoint()))
+                .adapterCreator(() -> new SovrnAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint()))
                 .assemble();
     }
 }

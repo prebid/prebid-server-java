@@ -32,7 +32,7 @@ nano run.sh
 
 With the next content:
 ```
-exec java -Dlogging.config=$LOGGING_FILE -jar prebid-server.jar --spring.config.location=$CONFIG_FILE
+exec java -Dlogging.config=$LOGGING_FILE -jar prebid-server.jar --spring.config.additional-location=$CONFIG_FILE
 ```
 where
 - $LOGGING_FILE - file with configuration for logger (```prebid-logging.xml``` from example above)
@@ -40,7 +40,7 @@ where
 
 If you follow same naming convention, your run.sh script should be similar to:
 ```
-exec java -Dlogging.config=prebid-logging.xml -jar prebid-server.jar --spring.config.location=prebid-config.yaml
+exec java -Dlogging.config=prebid-logging.xml -jar prebid-server.jar --spring.config.additional-location=prebid-config.yaml
 ```
 
 Make run.sh executable using the next command:

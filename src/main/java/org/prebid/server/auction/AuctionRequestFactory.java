@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
@@ -27,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -42,6 +44,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Used in OpenRTB request processing.
+ */
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
@@ -54,14 +59,15 @@ public class AuctionRequestFactory {
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
+    private final InterstitialProcessor interstitialProcessor;
 
     public AuctionRequestFactory(
-            long defaultTimeout, long maxTimeout, long timeoutAdjustment, long maxRequestSize, String adServerCurrency,
+            TimeoutResolver timeoutResolver, long maxRequestSize, String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator) {
+            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
+            InterstitialProcessor interstitialProcessor) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -69,6 +75,7 @@ public class AuctionRequestFactory {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.requestValidator = Objects.requireNonNull(requestValidator);
+        this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
     }
 
     /**
@@ -101,8 +108,10 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processStoredRequests(bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
-                .map(this::validateRequest);
+                .map(this::validateRequest)
+                .map(interstitialProcessor::process);
     }
+
 
     /**
      * Parses request body to bid request. Throws {@link InvalidRequestException} if body is empty, exceeds max
@@ -144,7 +153,7 @@ public class AuctionRequestFactory {
         final ObjectNode populatedExt = ext != null
                 ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
                 : null;
-        final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
+        final boolean updateCurrency = CollectionUtils.isEmpty(bidRequest.getCur()) && adServerCurrency != null;
         final Long resolvedTmax = resolveTmax(bidRequest.getTmax(), timeoutResolver);
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
@@ -200,8 +209,10 @@ public class AuctionRequestFactory {
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
         final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(ExtSite.of(0)) : null;
+        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(
+                ExtSite.of(0, data)) : null;
 
         String referer = null;
         String parsedDomain = null;
@@ -240,7 +251,7 @@ public class AuctionRequestFactory {
 
         final String id = user != null ? user.getId() : null;
         if (StringUtils.isBlank(id)) {
-            final String parsedId = uidsCookieService.parseHostCookie(context);
+            final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
             if (StringUtils.isNotBlank(parsedId)) {
                 final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
                 builder.id(parsedId);
@@ -277,16 +288,18 @@ public class AuctionRequestFactory {
         final ExtRequestPrebid prebid = extBidRequest.getPrebid();
 
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
-        final boolean isPriceGranularityNull = targeting != null && targeting.getPricegranularity().isNull();
-        final boolean isPriceGranularityTextual = targeting != null && targeting.getPricegranularity().isTextual();
-        final boolean isIncludeWinnersNull = targeting != null && targeting.getIncludewinners() == null;
-        final boolean isIncludeBidderKeysNull = targeting != null && targeting.getIncludebidderkeys() == null;
+        final boolean isTargetingNotNull = targeting != null;
+        final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity().isNull();
+        final boolean isPriceGranularityTextual = isTargetingNotNull && targeting.getPricegranularity().isTextual();
+        final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
+        final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 
         final ExtRequestTargeting extRequestTargeting;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             extRequestTargeting = ExtRequestTargeting.of(
                     populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                             isPriceGranularityTextual),
+                    targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
                     isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
@@ -297,13 +310,15 @@ public class AuctionRequestFactory {
         final Map<String, String> aliases = aliases(prebid, imps);
 
         if (extRequestTargeting != null || aliases != null) {
-            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                    ObjectUtils.defaultIfNull(aliases, getIfNotNull(prebid, ExtRequestPrebid::getAliases)),
-                    getIfNotNull(prebid, ExtRequestPrebid::getBidadjustmentfactors),
-                    ObjectUtils.defaultIfNull(extRequestTargeting,
-                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)),
-                    getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest),
-                    getIfNotNull(prebid, ExtRequestPrebid::getCache))));
+            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                    .aliases(ObjectUtils.defaultIfNull(aliases, getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .bidadjustmentfactors(getIfNotNull(prebid, ExtRequestPrebid::getBidadjustmentfactors))
+                    .targeting(ObjectUtils.defaultIfNull(extRequestTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .storedrequest(getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest))
+                    .cache(getIfNotNull(prebid, ExtRequestPrebid::getCache))
+                    .data(getIfNotNull(prebid, ExtRequestPrebid::getData))
+                    .build()));
         }
         return null;
     }

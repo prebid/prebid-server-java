@@ -59,10 +59,8 @@ import static org.mockito.BDDMockito.given;
 public class SovrnAdapterTest extends VertxTest {
 
     private static final String BIDDER = "sovrn";
-    private static final String BIDDER_COOKIE = "sovrn";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -74,33 +72,31 @@ public class SovrnAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private SovrnAdapter adapter;
-    private SovrnUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new SovrnUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new SovrnAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new SovrnAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new SovrnAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new SovrnAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedHeaders() {
         // given
-        given(uidsCookie.uidFrom(BIDDER_COOKIE)).willReturn("990011");
+        given(uidsCookie.uidFrom(COOKIE_FAMILY)).willReturn("990011");
         preBidRequestContext = givenPreBidRequestContext(
                 preBidRequestContextBuilder -> preBidRequestContextBuilder.ua("userAgent").ip("192.168.244.1"),
                 preBidRequestBuilder -> preBidRequestBuilder
@@ -241,14 +237,15 @@ public class SovrnAdapterTest extends VertxTest {
                 builder -> builder
                         .tid("tid1")
                         .timeoutMillis(1500L)
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
                                 .build())
         );
 
-        given(uidsCookie.uidFrom(eq(BIDDER_COOKIE))).willReturn("110099");
+        given(uidsCookie.uidFrom(eq(COOKIE_FAMILY))).willReturn("110099");
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -286,7 +283,8 @@ public class SovrnAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("110099")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.of(
+                                        null, "consent", null, null, null)))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

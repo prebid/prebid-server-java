@@ -64,9 +64,8 @@ import static org.mockito.BDDMockito.given;
 public class PubmaticAdapterTest extends VertxTest {
 
     private static final String BIDDER = "pubmatic";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -78,26 +77,24 @@ public class PubmaticAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private PubmaticAdapter adapter;
-    private PubmaticUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new PubmaticAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new PubmaticAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PubmaticAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -175,7 +172,8 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         adapterRequest = givenBidderCustomizable(
                 builder -> builder
-                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz", null, null))));
+                        .params(mapper.valueToTree(
+                                PubmaticParams.of("publisherID", "slot42@200x150:zzz", null, null))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -245,7 +243,8 @@ public class PubmaticAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
         );
 
@@ -284,7 +283,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

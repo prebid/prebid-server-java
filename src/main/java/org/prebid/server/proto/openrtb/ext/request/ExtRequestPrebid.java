@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
@@ -9,9 +9,14 @@ import java.util.Map;
 /**
  * Defines the contract for bidrequest.ext.prebid
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class ExtRequestPrebid {
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.debug
+     */
+    Boolean debug;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.aliases
@@ -37,4 +42,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.cache
      */
     ExtRequestPrebidCache cache;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.data
+     */
+    ExtRequestPrebidData data;
 }

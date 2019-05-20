@@ -1,0 +1,166 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "tid",
+          "impid": "impId001",
+          "price": 0.5,
+          "adm": "<blink>Remember this: https://www.google.com/search?q=blink+tag ?</blink>",
+          "crid": "1234567890",
+          "w": 300,
+          "h": 250,
+          "exp": 30,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_cache_path_consumable": "{{ cache.path }}",
+                "hb_size_consumable": "300x250",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "300x250",
+                "hb_bidder_consumable": "consumable",
+                "hb_cache_id_consumable": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_bidder": "consumable",
+                "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_cache_host_consumable": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_consumable": "0.50"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                  "cacheId": "a5d3a873-d06e-4f2f-8556-120e05d62b28"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "consumable",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "consumable": [
+          {
+            "uri": "{{ consumable.exchange_uri }}",
+            "requestbody": "{\"placements\":[{\"divName\":\"impId001\",\"networkId\":123,\"siteId\":345,\"unitId\":4123,\"unitName\":\"unit_name\",\"adTypes\":[5]}],\"time\":{{time}},\"networkId\":123,\"siteId\":345,\"unitId\":4123,\"unitName\":\"unit_name\",\"includePricingData\":true,\"url\":\"http://www.example.com\",\"enableBotFiltering\":true,\"parallel\":true}",
+            "responsebody": "{\"decisions\":{\"impId001\":{\"adId\":1234567890,\"pricing\":{\"clearPrice\":0.5},\"width\":300,\"height\":250,\"impressionUrl\":\"http://localhost:8080/shown\",\"contents\":[{\"body\":\"<blink>Remember this: https://www.google.com/search?q=blink+tag ?</blink>\"}]}}}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId001",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "consumable": {
+                "networkId": 123,
+                "siteId": 345,
+                "unitId": 4123,
+                "unitName": "unit_name"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "cache": "{{ cache.response_time_ms }}",
+      "consumable": "{{ consumable.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}

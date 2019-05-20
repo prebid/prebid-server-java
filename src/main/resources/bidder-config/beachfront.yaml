@@ -1,10 +1,8 @@
 adapters:
   beachfront:
     enabled: false
-    banner-endpoint: http://display.bfmio.com/prebid_display
+    endpoint: https://display.bfmio.com/prebid_display
     video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
-    usersync-url: https://sync.bfmio.com/syncb?pid=
-    platform-id: 155
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -18,3 +16,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 335
+    usersync:
+      url: https://sync.bfmio.com/sync_s2s?gdpr={{gdpr}}&url=
+      redirect-url: /setuid?bidder=beachfront&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[io_cid]
+      cookie-family-name: beachfront
+      type: iframe
+      support-cors: false

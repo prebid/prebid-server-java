@@ -68,10 +68,8 @@ import static org.mockito.BDDMockito.given;
 public class AppnexusAdapterTest extends VertxTest {
 
     private static final String BIDDER = "appnexus";
-    private static final String BIDDER_COOKIE = "adnxs";
+    private static final String COOKIE_FAMILY = "adnxs";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
     private static final Integer BANNER_TYPE = 0;
     private static final Integer VIDEO_TYPE = 1;
 
@@ -85,26 +83,24 @@ public class AppnexusAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private AppnexusAdapter adapter;
-    private AppnexusUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new AppnexusUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new AppnexusAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new AppnexusAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new AppnexusAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -231,7 +227,8 @@ public class AppnexusAdapterTest extends VertxTest {
                         .ua("userAgent"),
                 builder -> builder
                         .tid("tid1")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .timeoutMillis(1500L)
                         .device(Device.builder()
@@ -239,7 +236,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .build())
         );
 
-        given(uidsCookie.uidFrom(eq(BIDDER_COOKIE))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(COOKIE_FAMILY))).willReturn("buyerUid");
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -280,7 +277,7 @@ public class AppnexusAdapterTest extends VertxTest {
                         .user(User.builder()
                                 .buyeruid("buyerUid")
                                 .id("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

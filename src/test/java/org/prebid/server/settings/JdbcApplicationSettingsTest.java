@@ -86,7 +86,8 @@ public class JdbcApplicationSettingsTest {
     public static void beforeClass() throws SQLException {
         connection = DriverManager.getConnection(JDBC_URL);
         connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, uuid varchar(40) " +
-                "NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3));");
+                "NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), banner_cache_ttl INT, " +
+                "video_cache_ttl INT, events_enabled BIT);");
         connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) " +
                 "NOT NULL, config varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
@@ -99,8 +100,9 @@ public class JdbcApplicationSettingsTest {
                 + "NOT NULL, impData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
-        connection.createStatement().execute("insert into accounts_account (uuid, price_granularity)" +
-                " values ('accountId','med');");
+        connection.createStatement().execute("insert into accounts_account " +
+                "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled)" +
+                " values ('accountId','med', 100, 100, TRUE);");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)" +
                 " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
@@ -132,14 +134,14 @@ public class JdbcApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnAccount(TestContext context) {
+    public void getAccountByIdShouldReturnAccountWithIdAndPriceGranularity(TestContext context) {
         // when
         final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout);
 
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertSuccess(account -> {
-            assertThat(account).isEqualTo(Account.of("accountId", "med"));
+            assertThat(account).isEqualTo(Account.of("accountId", "med", 100, 100, true));
             async.complete();
         }));
     }
@@ -366,7 +368,7 @@ public class JdbcApplicationSettingsTest {
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("No stored requests for ids [3, 4] and stored imps for ids [6, 7] was found")));
+                    singletonList("No stored requests for ids [3, 4] and stored imps for ids [6, 7] were found")));
             async.complete();
         }));
     }
@@ -381,7 +383,7 @@ public class JdbcApplicationSettingsTest {
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("No stored requests for ids [3, 4] was found")));
+                    singletonList("No stored requests for ids [3, 4] were found")));
             async.complete();
         }));
     }

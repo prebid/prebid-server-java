@@ -20,14 +20,17 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class UidsCookieServiceTest extends VertxTest {
@@ -49,11 +52,27 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnNonEmptyUidsCookieFromCookiesMap() {
+        // given
+        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+        final Map<String, String> cookies = singletonMap("uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==");
+
+        // when
+        final UidsCookie uidsCookie = uidsCookieService.parseFromCookies(cookies);
+
+        // then
+        assertThat(uidsCookie).isNotNull();
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
+        assertThat(uidsCookie.uidFrom(ADNXS)).isEqualTo("12345");
+    }
+
+    @Test
     public void shouldReturnNonEmptyUidsCookie() {
         // given
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -112,7 +131,7 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutTrueIfUidsCookieIsMissingAndOptoutCookieHasExpectedValue() {
         // given
-        given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "true"));
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -125,10 +144,9 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutTrueIfUidsCookieIsPresentAndOptoutCookieHasExpectedValue() {
         // given
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
-
-        given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "true"));
+        given(routingContext.cookies()).willReturn(new HashSet<>(asList(
+                Cookie.cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="),
+                Cookie.cookie("trp_optout", "true"))));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -143,10 +161,9 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieHasNotExpectedValue() {
         // given
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
-
-        given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "dummy"));
+        given(routingContext.cookies()).willReturn(new HashSet<>(asList(
+                Cookie.cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="),
+                Cookie.cookie("trp_optout", "dummy"))));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -161,45 +178,38 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieNameNotSpecified() {
         // given
         uidsCookieService = new UidsCookieService(null, "true", null, null, "cookie-domain", 90);
-        given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "true"));
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
 
         // then
         assertThat(uidsCookie.allowsSync()).isTrue();
-        verify(routingContext).getCookie(eq("uids"));
-        verifyNoMoreInteractions(routingContext);
     }
 
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieValueNotSpecified() {
         // given
         uidsCookieService = new UidsCookieService("trp_optout", null, null, null, "cookie-domain", 90);
-        given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "true"));
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
 
         // then
         assertThat(uidsCookie.allowsSync()).isTrue();
-        verify(routingContext).getCookie(eq("uids"));
-        verifyNoMoreInteractions(routingContext);
     }
 
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
         // given
         uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
-        given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
-                "abc123"));
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("khaos", "abc123")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
 
         // then
-        verify(routingContext).getCookie(eq("uids"));
-        verify(routingContext).getCookie(eq("khaos"));
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("abc123");
     }
 
@@ -208,18 +218,15 @@ public class UidsCookieServiceTest extends VertxTest {
         // given
         uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
 
-        given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
-                "abc123"));
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+        given(routingContext.cookies()).willReturn(new HashSet<>(asList(
+                Cookie.cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="),
+                Cookie.cookie("khaos", "abc123"))));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
 
         // then
-        verify(routingContext).getCookie(eq("uids"));
-        verify(routingContext).getCookie(eq("khaos"));
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("abc123");
     }
 
@@ -232,7 +239,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final Uids uids = Uids.builder().uids(uidsWithExpiry).build();
         final String encodedUids = encodeUids(uids);
 
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", encodedUids));
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("uids", encodedUids)));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -291,9 +298,9 @@ public class UidsCookieServiceTest extends VertxTest {
         // given
         // this uids cookie value stands for
         // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"},"tempUIDs":{}},"bday":"2017-08-15T19:47:59.523908376Z"}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("uids",
                 "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA" +
-                        "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ=="));
+                        "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ==")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -308,10 +315,8 @@ public class UidsCookieServiceTest extends VertxTest {
         // given
         uidsCookieService = new UidsCookieService("trp_optout", "true", null, "khaos", "cookie-domain", 90);
 
-        given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos", "userId"));
-
         // when
-        final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
+        final String hostCookie = uidsCookieService.parseHostCookie(singletonMap("khaos", "userId"));
 
         // then
         assertThat(hostCookie).isEqualTo("userId");
@@ -320,7 +325,7 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldNotReadHostCookieIfNameNotSpecified() {
         // when
-        final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
+        final String hostCookie = uidsCookieService.parseHostCookie(emptyMap());
 
         // then
         verifyZeroInteractions(routingContext);
@@ -329,11 +334,8 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Test
     public void shouldReturnNullIfHostCookieIsNotPresent() {
-        // this is not necessary but explicitly stated for clarity
-        given(routingContext.getCookie(eq("khaos"))).willReturn(null);
-
         // when
-        final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
+        final String hostCookie = uidsCookieService.parseHostCookie(singletonMap("khaos", null));
 
         // then
         assertThat(hostCookie).isNull();

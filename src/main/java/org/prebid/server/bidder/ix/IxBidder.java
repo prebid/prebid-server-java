@@ -141,11 +141,6 @@ public class IxBidder implements Bidder<BidRequest> {
         if (StringUtils.isBlank(extImpIx.getSiteId())) {
             throw new PreBidException("Missing siteId param");
         }
-
-        final List<Integer> size = extImpIx.getSize();
-        if (size != null && size.size() < 2) {
-            throw new PreBidException("Incorrect Size, expected at least 2 values");
-        }
         return extImpIx;
     }
 
@@ -154,16 +149,12 @@ public class IxBidder implements Bidder<BidRequest> {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner.BannerBuilder bannerBuilder = imp.getBanner().toBuilder();
-        if (formats.size() > REQUEST_LIMIT) {
-            formats = formats.subList(0, REQUEST_LIMIT);
-        }
+        final List<Format> limitedFormats = formats.size() > REQUEST_LIMIT
+                ? formats.subList(0, REQUEST_LIMIT)
+                : formats;
 
-        final List<Integer> sizes = extImpIx.getSize();
         final List<BidRequest> requests = new ArrayList<>();
-        for (Format format : formats) {
-            if (CollectionUtils.isNotEmpty(sizes) && !isValidIxSize(format, sizes)) {
-                continue;
-            }
+        for (Format format : limitedFormats) {
             bannerBuilder.format(Collections.singletonList(format))
                     .w(format.getW())
                     .h(format.getH());

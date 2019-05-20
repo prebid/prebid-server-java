@@ -4,6 +4,8 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.Cookie;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -12,6 +14,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * This class consists of {@code static} utility methods for operating HTTP requests.
@@ -74,26 +78,25 @@ public final class HttpUtil {
      * <p>
      * The result can be safety used as the query string.
      */
-    public static String encodeUrl(String format, Object... args) {
-        final String uri = String.format(format, args);
+    public static String encodeUrl(String value) {
         try {
-            return URLEncoder.encode(uri, "UTF-8");
+            return URLEncoder.encode(value, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot encode uri: %s", uri));
+            throw new IllegalArgumentException(String.format("Cannot encode url: %s", value));
         }
     }
 
     /**
-     * Returns decoded input value if supplied input not null, otherwise returns null.
+     * Returns decoded value if supplied is not null, otherwise returns null.
      */
-    public static String decodeUrl(String input) {
-        if (StringUtils.isBlank(input)) {
+    public static String decodeUrl(String value) {
+        if (StringUtils.isBlank(value)) {
             return null;
         }
         try {
-            return URLDecoder.decode(input, "UTF-8");
+            return URLDecoder.decode(value, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot decode input: %s", input));
+            throw new IllegalArgumentException(String.format("Cannot decode url: %s", value));
         }
     }
 
@@ -141,5 +144,10 @@ public final class HttpUtil {
         } catch (MalformedURLException e) {
             return null;
         }
+    }
+
+    public static Map<String, String> cookiesAsMap(RoutingContext context) {
+        return context.cookies().stream()
+                .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
     }
 }

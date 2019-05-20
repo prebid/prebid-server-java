@@ -32,6 +32,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
 
+    private static final String BIDDER_PARAM = "bidder";
+    private static final String GDPR_PARAM = "gdpr";
+    private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
+    private static final String UID_PARAM = "uid";
+
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final GdprService gdprService;
@@ -60,22 +65,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             context.response().setStatusCode(status).end();
-            metrics.updateCookieSyncOptoutMetric();
+            metrics.updateUserSyncOptoutMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
 
-        final String bidder = context.request().getParam("bidder");
+        final String bidder = context.request().getParam(BIDDER_PARAM);
         if (StringUtils.isBlank(bidder)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             context.response().setStatusCode(status).end("\"bidder\" query param is required");
-            metrics.updateCookieSyncBadRequestMetric();
+            metrics.updateUserSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
 
-        final String gdpr = context.request().getParam("gdpr");
-        final String gdprConsent = context.request().getParam("gdpr_consent");
+        final String gdpr = context.request().getParam(GDPR_PARAM);
+        final String gdprConsent = context.request().getParam(GDPR_CONSENT_PARAM);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip,
                 timeoutFactory.create(defaultTimeout))
@@ -123,7 +128,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie) {
-        final String uid = context.request().getParam("uid");
+        final String uid = context.request().getParam(UID_PARAM);
         final UidsCookie updatedUidsCookie;
         boolean successfullyUpdated = false;
 
@@ -136,7 +141,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         } else {
             updatedUidsCookie = uidsCookie.updateUid(bidder, uid);
             successfullyUpdated = true;
-            metrics.updateCookieSyncSetsMetric(bidder);
+            metrics.updateUserSyncSetsMetric(bidder);
         }
 
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
@@ -152,7 +157,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
         context.response().setStatusCode(status).end(body);
-        metrics.updateCookieSyncGdprPreventMetric(bidder);
+        metrics.updateUserSyncGdprPreventMetric(bidder);
         analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 }

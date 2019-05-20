@@ -194,6 +194,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private void respondWith(RoutingContext context, UidsCookie uidsCookie, String gdpr, String gdprConsent,
                              Collection<String> bidders, Collection<String> biddersRejectedByGdpr, Integer limit) {
+        updateCookieSyncGdprMetrics(bidders, biddersRejectedByGdpr);
+
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -204,9 +206,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .map(bidder -> bidderStatusFor(bidder, context, uidsCookie, biddersRejectedByGdpr, gdpr, gdprConsent))
                 .filter(Objects::nonNull) // skip bidder with live UID
                 .collect(Collectors.toList());
+        updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
         final List<BidderUsersyncStatus> updatedBidderStatuses;
-        if (limit != null && limit > 0 && limit < bidders.size()) {
+        if (limit != null && limit > 0 && limit < bidderStatuses.size()) {
             Collections.shuffle(bidderStatuses);
             updatedBidderStatuses = bidderStatuses.subList(0, limit);
         } else {
@@ -224,6 +227,23 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .status(HttpResponseStatus.OK.code())
                 .bidderStatus(updatedBidderStatuses)
                 .build());
+    }
+
+    private void updateCookieSyncGdprMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
+        for (String bidder : syncBidders) {
+            if (rejectedBidders.contains(bidder)) {
+                metrics.updateCookieSyncGdprPreventMetric(bidder);
+            } else {
+                metrics.updateCookieSyncGenMetric(bidder);
+            }
+        }
+    }
+
+    private void updateCookieSyncMatchMetrics(Collection<String> syncBidders,
+                                              Collection<BidderUsersyncStatus> requiredUsersyncs) {
+        syncBidders.stream()
+                .filter(bidder -> requiredUsersyncs.stream().noneMatch(usersync -> bidder.equals(usersync.getBidder())))
+                .forEach(metrics::updateCookieSyncMatchesMetric);
     }
 
     /**
@@ -251,13 +271,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         } else {
             final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
-            final UsersyncInfo updatedUsersyncInfo = updatedUsersyncInfo(context, gdpr, gdprConsent, usersyncer);
+            final UsersyncInfo hostBidderUsersyncInfo = hostBidderUsersyncInfo(context, gdpr, gdprConsent, usersyncer);
 
-            if (updatedUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.cookieFamilyName())) {
+            if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
                 result = bidderStatusBuilder(bidder)
                         .noCookie(true)
-                        .usersync(ObjectUtils.defaultIfNull(updatedUsersyncInfo,
-                                usersyncer.usersyncInfo().withGdpr(gdpr, gdprConsent)))
+                        .usersync(ObjectUtils.defaultIfNull(hostBidderUsersyncInfo,
+                                UsersyncInfo.from(usersyncer).withGdpr(gdpr, gdprConsent).assemble()))
                         .build();
             } else {
                 result = null;
@@ -283,26 +303,26 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * 3. Host-bidder uid value in uids cookie should not exist or be different from host-cookie uid value.
      */
-    private UsersyncInfo updatedUsersyncInfo(RoutingContext context, String gdpr, String gdprConsent,
-                                             Usersyncer usersyncer) {
-        final String cookieFamilyName = usersyncer.cookieFamilyName();
+    private UsersyncInfo hostBidderUsersyncInfo(RoutingContext context, String gdpr, String gdprConsent,
+                                                Usersyncer usersyncer) {
+        final String cookieFamilyName = usersyncer.getCookieFamilyName();
         if (Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
 
-            final String hostCookieUid = uidsCookieService.parseHostCookie(context);
-            if (hostCookieUid != null) {
+            final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
+            final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
 
-                final Uids parsedUids = uidsCookieService.parseUids(context);
+            if (hostCookieUid != null) {
+                final Uids parsedUids = uidsCookieService.parseUids(cookies);
                 final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
                 final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
                 final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;
 
                 if (!Objects.equals(hostCookieUid, uid)) {
-                    final String url = String.format("%s/setuid?bidder=%s&gdpr=%s&gdpr_consent=%s&uid=%s",
-                            externalUrl, cookieFamilyName, gdpr, gdprConsent, hostCookieUid);
-                    final UsersyncInfo usersyncInfo = usersyncer.usersyncInfo();
-
-                    return UsersyncInfo.of(url, usersyncInfo.getType(),
-                            usersyncInfo.getSupportCORS());
+                    final String url = String.format("%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
+                            + "&uid=%s", externalUrl, cookieFamilyName, HttpUtil.encodeUrl(hostCookieUid));
+                    return UsersyncInfo.from(usersyncer).withUrl(url)
+                            .withGdpr(gdpr, gdprConsent)
+                            .assemble();
                 }
             }
         }

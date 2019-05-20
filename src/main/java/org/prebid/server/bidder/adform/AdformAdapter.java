@@ -13,7 +13,6 @@ import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformParams;
@@ -33,17 +32,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Adform {@link Adapter} implementation
+ * Adform {@link Adapter} implementation.
  */
 public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
 
-    private static final String VERSION = "0.1.2";
+    private static final String VERSION = "0.1.3";
+    private static final String DEFAULT_CURRENCY = "USD";
 
-    private final Usersyncer usersyncer;
+    private final String cookieFamilyName;
     private final String endpointUrl;
 
-    public AdformAdapter(Usersyncer usersyncer, String endpointUrl) {
-        this.usersyncer = Objects.requireNonNull(usersyncer);
+    public AdformAdapter(String cookieFamilyName, String endpointUrl) {
+        this.cookieFamilyName = Objects.requireNonNull(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
@@ -124,6 +124,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .gdprApplies(AdformRequestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest()
                                 .getRegs()))
                         .consent(AdformRequestUtil.getConsent(extUser))
+                        .currency(DEFAULT_CURRENCY)
                         .build());
     }
 
@@ -150,7 +151,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 ObjectUtils.firstNonNull(preBidRequestContext.getUa(), ""),
                 ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
-                preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()),
+                preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName),
                 adformDigitrust);
     }
 

@@ -35,10 +35,10 @@ import java.util.stream.Stream;
  */
 public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse> {
 
-    protected final Usersyncer usersyncer;
+    protected final String cookieFamilyName;
 
-    protected OpenrtbAdapter(Usersyncer usersyncer) {
-        this.usersyncer = Objects.requireNonNull(usersyncer);
+    protected OpenrtbAdapter(String cookieFamilyName) {
+        this.cookieFamilyName = Objects.requireNonNull(cookieFamilyName);
     }
 
     @Override
@@ -105,7 +105,7 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
         final User user = preBidRequestContext.getPreBidRequest().getUser();
         final ObjectNode userExt = user != null ? user.getExt() : null;
         return preBidRequestContext.getPreBidRequest().getApp() != null ? null : User.builder()
-                .buyeruid(uidsCookie.uidFrom(usersyncer.cookieFamilyName()))
+                .buyeruid(uidsCookie.uidFrom(cookieFamilyName))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
                 .id(uidsCookie.uidFrom("adnxs"))
                 .ext(userExt);

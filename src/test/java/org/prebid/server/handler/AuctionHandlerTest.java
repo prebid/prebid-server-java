@@ -126,7 +126,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Before
     public void setUp() {
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.of(null, null)));
+                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, null)));
 
         given(bidderCatalog.isValidAdapterName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);

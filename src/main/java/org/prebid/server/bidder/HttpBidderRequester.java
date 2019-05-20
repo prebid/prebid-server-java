@@ -51,7 +51,8 @@ public class HttpBidderRequester {
     /**
      * Executes given request to a given bidder.
      */
-    public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder, BidRequest bidRequest, Timeout timeout) {
+    public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder, BidRequest bidRequest, Timeout timeout,
+                                                 boolean debugEnabled) {
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
 
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
@@ -63,7 +64,7 @@ public class HttpBidderRequester {
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
                 .map(httpRequestsResult ->
-                        toBidderSeatBid(bidder, bidRequest, bidderErrors, httpRequestsResult.list()));
+                        toBidderSeatBid(bidder, bidRequest, httpRequestsResult.list(), debugEnabled, bidderErrors));
     }
 
     /**
@@ -98,7 +99,7 @@ public class HttpBidderRequester {
      * Produces {@link Future} with {@link HttpCall} containing request and error description.
      */
     private static <T> Future<HttpCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
-        logger.warn("Error occurred while sending HTTP request to a bidder", exception);
+        logger.warn("Error occurred while sending HTTP request to a bidder url: {0}", exception, httpRequest.getUri());
         final BidderError.Type errorType =
                 exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
                         ? BidderError.Type.timeout
@@ -118,6 +119,9 @@ public class HttpBidderRequester {
                 HttpResponse.of(statusCode, response.getHeaders(), response.getBody()), errorOrNull(statusCode)));
     }
 
+    /**
+     * Returns {@link BidderError} if HTTP status code is not successful, or null otherwise.
+     */
     private static BidderError errorOrNull(int statusCode) {
         if (statusCode != HttpResponseStatus.OK.code() && statusCode != HttpResponseStatus.NO_CONTENT.code()) {
             return BidderError.create(String.format(
@@ -133,10 +137,10 @@ public class HttpBidderRequester {
      * Transforms HTTP call results into single {@link BidderSeatBid} filled with debug information, bids and errors
      * happened along the way.
      */
-    private <T> BidderSeatBid toBidderSeatBid(Bidder<T> bidder, BidRequest bidRequest, List<BidderError> previousErrors,
-                                              List<HttpCall<T>> calls) {
-        // If this is a test bid, capture debugging info from the requests
-        final List<ExtHttpCall> httpCalls = Objects.equals(bidRequest.getTest(), 1)
+    private <T> BidderSeatBid toBidderSeatBid(Bidder<T> bidder, BidRequest bidRequest, List<HttpCall<T>> calls,
+                                              boolean debugEnabled, List<BidderError> previousErrors) {
+        // Capture debugging info from the requests
+        final List<ExtHttpCall> httpCalls = debugEnabled
                 ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())
                 : Collections.emptyList();
 

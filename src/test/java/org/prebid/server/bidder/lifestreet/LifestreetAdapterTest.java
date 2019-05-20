@@ -66,9 +66,8 @@ import static org.mockito.BDDMockito.given;
 public class LifestreetAdapterTest extends VertxTest {
 
     private static final String BIDDER = "lifestreet";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -80,26 +79,24 @@ public class LifestreetAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private LifestreetAdapter adapter;
-    private LifestreetUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new LifestreetAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new LifestreetAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new LifestreetAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new LifestreetAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -209,7 +206,8 @@ public class LifestreetAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                                null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
         );
 
@@ -246,7 +244,7 @@ public class LifestreetAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

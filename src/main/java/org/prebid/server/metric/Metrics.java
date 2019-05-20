@@ -25,6 +25,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterMetrics> adapterMetrics;
+    private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
@@ -39,6 +40,7 @@ public class Metrics extends UpdatableMetrics {
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
     }
 
@@ -52,6 +54,10 @@ public class Metrics extends UpdatableMetrics {
 
     AdapterMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+    }
+
+    UserSyncMetrics userSync() {
+        return userSyncMetrics;
     }
 
     CookieSyncMetrics cookieSync() {
@@ -149,20 +155,32 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).request().incCounter(errorMetric);
     }
 
+    public void updateUserSyncOptoutMetric() {
+        userSync().incCounter(MetricName.opt_outs);
+    }
+
+    public void updateUserSyncBadRequestMetric() {
+        userSync().incCounter(MetricName.bad_requests);
+    }
+
+    public void updateUserSyncSetsMetric(String bidder) {
+        userSync().forBidder(bidder).incCounter(MetricName.sets);
+    }
+
+    public void updateUserSyncGdprPreventMetric(String bidder) {
+        userSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+    }
+
     public void updateCookieSyncRequestMetric() {
         incCounter(MetricName.cookie_sync_requests);
     }
 
-    public void updateCookieSyncOptoutMetric() {
-        cookieSync().incCounter(MetricName.opt_outs);
+    public void updateCookieSyncGenMetric(String bidder) {
+        cookieSync().forBidder(bidder).incCounter(MetricName.gen);
     }
 
-    public void updateCookieSyncBadRequestMetric() {
-        cookieSync().incCounter(MetricName.bad_requests);
-    }
-
-    public void updateCookieSyncSetsMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.sets);
+    public void updateCookieSyncMatchesMetric(String bidder) {
+        cookieSync().forBidder(bidder).incCounter(MetricName.matches);
     }
 
     public void updateCookieSyncGdprPreventMetric(String bidder) {
@@ -171,6 +189,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateGdprMaskedMetric(String bidder) {
         forAdapter(bidder).incCounter(MetricName.gdpr_masked);
+    }
+
+    public void updateConnectionAcceptErrors() {
+        incCounter(MetricName.connection_accept_errors);
     }
 
     public void updateDatabaseQueryTimeMetric(long millis) {
@@ -198,6 +220,22 @@ public class Metrics extends UpdatableMetrics {
             incCounter(MetricName.geolocation_circuitbreaker_opened);
         } else {
             incCounter(MetricName.geolocation_circuitbreaker_closed);
+        }
+    }
+
+    public void updateStoredRequestMetric(boolean found) {
+        if (found) {
+            incCounter(MetricName.stored_requests_found);
+        } else {
+            incCounter(MetricName.stored_requests_missing);
+        }
+    }
+
+    public void updateStoredImpsMetric(boolean found) {
+        if (found) {
+            incCounter(MetricName.stored_imps_found);
+        } else {
+            incCounter(MetricName.stored_imps_missing);
         }
     }
 }

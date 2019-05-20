@@ -61,7 +61,7 @@ public class AdformBidderTest extends VertxTest {
                 .site(Site.builder().page("www.example.com").build())
                 .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
                 .user(User.builder().buyeruid("buyeruid").ext(mapper.valueToTree(ExtUser.of(
-                        null, "consent", ExtUserDigiTrust.of("id", 123, 1), null))).build())
+                        null, "consent", ExtUserDigiTrust.of("id", 123, 1), null, null))).build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
                 .source(Source.builder().tid("tid").build())
                 .build();
@@ -76,7 +76,7 @@ public class AdformBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
                         "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross"
-                                + "&rp=4&stid=tid&bWlkPTE1");
+                                + "&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
         assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.GET);
 
         assertThat(result.getValue()).
@@ -86,7 +86,7 @@ public class AdformBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
-                        tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.2"),
+                        tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.3"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
                         // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
                         tuple(HttpUtil.COOKIE_HEADER.toString(),
@@ -170,8 +170,8 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly(
-                        "https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&stid=tid&bWlkPTE1");
+                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&"
+                        + "stid=tid&bWlkPTE1JnJjdXI9VVNE");
     }
 
     @Test
@@ -236,7 +236,7 @@ public class AdformBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).containsOnly(BidderBid.of(
                 Bid.builder().id("id").impid("id").price(BigDecimal.ONE).adm("admBanner").w(400).h(300).dealid("dealId")
-                        .crid("gross").build(), BidType.banner, null));
+                        .crid("gross").build(), BidType.banner, "currency"));
     }
 
     @Test

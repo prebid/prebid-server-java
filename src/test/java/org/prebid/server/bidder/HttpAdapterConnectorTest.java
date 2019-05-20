@@ -94,8 +94,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     @Mock
     private Adapter<?, ?> adapter;
-    @Mock
+
     private Usersyncer usersyncer;
+
     @Mock
     private UidsCookie uidsCookie;
 
@@ -114,7 +115,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         httpAdapterConnector = new HttpAdapterConnector(httpClient, clock);
 
-        given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("", null, null));
+        usersyncer = new Usersyncer(null, "", "", null, null, false);
     }
 
     @Test
@@ -567,8 +568,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
-
-        given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
+        usersyncer = new Usersyncer(null, "url1", null, null, null, false);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -587,16 +587,15 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         final Regs regs = Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1)));
         final User user = User.builder()
-                .ext(Json.mapper.valueToTree(ExtUser.of(null, "consent$1", null, null)))
+                .ext(Json.mapper.valueToTree(ExtUser.of(null, "consent$1", null, null, null)))
                 .build();
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.regs(regs).user(user));
 
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        given(usersyncer.usersyncInfo()).willReturn(
-                UsersyncInfo.of("http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
-                        null, false));
+        usersyncer = new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
+                null, null, null, false);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
