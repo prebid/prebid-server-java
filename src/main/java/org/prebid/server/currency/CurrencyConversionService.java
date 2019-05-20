@@ -33,6 +33,7 @@ public class CurrencyConversionService {
     //this number is chosen because of PriceGranularities default precision value of 2 + 1 for better accuracy
     private static final int DEFAULT_PRICE_PRECISION = 3;
 
+    private final long defaultTimeout;
     private final String currencyServerUrl;
     private final long refreshPeriod;
     private final Vertx vertx;
@@ -41,7 +42,9 @@ public class CurrencyConversionService {
     private Map<String, Map<String, BigDecimal>> latestCurrencyRates = null;
     private ZonedDateTime lastUpdated;
 
-    public CurrencyConversionService(String currencyServerUrl, long refreshPeriod, Vertx vertx, HttpClient httpClient) {
+    public CurrencyConversionService(String currencyServerUrl, long defaultTimeout, long refreshPeriod, Vertx vertx,
+                                     HttpClient httpClient) {
+        this.defaultTimeout = defaultTimeout;
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
         this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
         this.vertx = Objects.requireNonNull(vertx);
@@ -76,7 +79,7 @@ public class CurrencyConversionService {
      * Updates latest currency rates by making a call to currency server.
      */
     private void populatesLatestCurrencyRates() {
-        httpClient.get(currencyServerUrl, 2000L)
+        httpClient.get(currencyServerUrl, defaultTimeout)
                 .compose(CurrencyConversionService::processResponse)
                 .compose(this::updateCurrencyRates)
                 .recover(CurrencyConversionService::failResponse);
