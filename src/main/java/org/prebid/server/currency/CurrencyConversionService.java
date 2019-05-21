@@ -30,19 +30,22 @@ public class CurrencyConversionService {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    //this number is chosen because of PriceGranularities default precision value of 2 + 1 for better accuracy
+    // This number is chosen because of PriceGranularities default precision value of 2 + 1 for better accuracy
     private static final int DEFAULT_PRICE_PRECISION = 3;
 
     private final String currencyServerUrl;
+    private final long defaultTimeout;
     private final long refreshPeriod;
     private final Vertx vertx;
     private final HttpClient httpClient;
 
-    private Map<String, Map<String, BigDecimal>> latestCurrencyRates = null;
+    private Map<String, Map<String, BigDecimal>> latestCurrencyRates;
     private ZonedDateTime lastUpdated;
 
-    public CurrencyConversionService(String currencyServerUrl, long refreshPeriod, Vertx vertx, HttpClient httpClient) {
+    public CurrencyConversionService(String currencyServerUrl, long defaultTimeout, long refreshPeriod, Vertx vertx,
+                                     HttpClient httpClient) {
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
+        this.defaultTimeout = defaultTimeout;
         this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
         this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -58,7 +61,7 @@ public class CurrencyConversionService {
      * Must be called on Vertx event loop thread.
      */
     public void initialize() {
-        vertx.setPeriodic(refreshPeriod, aLong -> populatesLatestCurrencyRates());
+        vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates());
         populatesLatestCurrencyRates();
     }
 
@@ -76,7 +79,7 @@ public class CurrencyConversionService {
      * Updates latest currency rates by making a call to currency server.
      */
     private void populatesLatestCurrencyRates() {
-        httpClient.get(currencyServerUrl, 2000L)
+        httpClient.get(currencyServerUrl, defaultTimeout)
                 .compose(CurrencyConversionService::processResponse)
                 .compose(this::updateCurrencyRates)
                 .recover(CurrencyConversionService::failResponse);
@@ -125,10 +128,8 @@ public class CurrencyConversionService {
      * Converts price from bidCurrency to adServerCurrency using rates defined in request or if absent, from
      * latest currency rates. Throws {@link PreBidException} in case conversion is not possible.
      */
-    public BigDecimal convertCurrency(BigDecimal price,
-                                      Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                      String adServerCurrency,
-                                      String bidCurrency) {
+    public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                      String adServerCurrency, String bidCurrency) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
         final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
