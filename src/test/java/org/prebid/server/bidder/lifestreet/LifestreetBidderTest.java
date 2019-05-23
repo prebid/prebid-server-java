@@ -62,7 +62,8 @@ public class LifestreetBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid MediaType. Lifestreet supports only Banner and Video. Ignoring ImpID=123"));
+                .containsOnly(BidderError.badInput(
+                        "Invalid MediaType. Lifestreet supports only Banner and Video. Ignoring ImpID=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -304,8 +305,9 @@ public class LifestreetBidderTest extends VertxTest {
         assertThat(lifestreetBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();

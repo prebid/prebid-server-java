@@ -37,7 +37,8 @@ import static org.mockito.Mockito.verify;
 
 public class JdbcPeriodicRefreshServiceTest {
 
-    private static TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+    private static TimeoutFactory timeoutFactory = new TimeoutFactory(
+            Clock.fixed(Instant.now(), ZoneId.systemDefault()));
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();

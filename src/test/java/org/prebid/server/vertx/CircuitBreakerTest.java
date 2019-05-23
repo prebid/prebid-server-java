@@ -156,11 +156,11 @@ public class CircuitBreakerTest {
     }
 
     private void waitForOpeningInterval(TestContext context) {
-        waitForInterval(context, 101L);
+        waitForInterval(context, 150L);
     }
 
     private void waitForClosingInterval(TestContext context) {
-        waitForInterval(context, 201L);
+        waitForInterval(context, 250L);
     }
 
     private void waitForInterval(TestContext context, long timeout) {
