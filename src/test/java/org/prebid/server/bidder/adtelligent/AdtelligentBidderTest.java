@@ -78,10 +78,13 @@ public class AdtelligentBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).bidfloor(BigDecimal.valueOf(3))
-                                .ext(Json.mapper.valueToTree(
-                                        AdtelligentImpExt.of(ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
-                                .build()))
+                        .imp(singletonList(
+                                Imp.builder()
+                                        .banner(Banner.builder().build())
+                                        .bidfloor(BigDecimal.valueOf(3))
+                                        .ext(Json.mapper.valueToTree(AdtelligentImpExt.of(
+                                                ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        .build()))
                         .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
                                 null, "consent", null, null, null))).build())
                         .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))

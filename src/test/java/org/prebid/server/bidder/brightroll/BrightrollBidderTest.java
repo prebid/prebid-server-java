@@ -298,7 +298,8 @@ public class BrightrollBidderTest extends VertxTest {
                 .imp(asList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build(),
+                                .ext(Json.mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build(),
                         Imp.builder().id("impId2").build()))
                 .build();
 
@@ -318,7 +319,8 @@ public class BrightrollBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
+                                .ext(Json.mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ip("192.168.0.1").language("en").dnt(1).build())
                 .build();
 
@@ -338,7 +340,8 @@ public class BrightrollBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
+                                .ext(Json.mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ua("ua").language("en").dnt(1).build())
                 .build();
 
@@ -358,7 +361,8 @@ public class BrightrollBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
+                                .ext(Json.mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").dnt(1).build())
                 .build();
 
@@ -378,7 +382,8 @@ public class BrightrollBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
+                                .ext(Json.mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").build())
                 .build();
 

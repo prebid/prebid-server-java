@@ -77,7 +77,8 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnEmptyForUnknownAccount() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");

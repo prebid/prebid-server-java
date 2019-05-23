@@ -138,11 +138,13 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
         final String expectedVideoSting = mapper.writeValueAsString(BidRequest.builder()
-                .imp(singletonList(Imp.builder().video(Video.builder().build()).bidfloor(BigDecimal.valueOf(1.97)).build()))
+                .imp(singletonList(
+                        Imp.builder().video(Video.builder().build()).bidfloor(BigDecimal.valueOf(1.97)).build()))
                 .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
         final String expectedNativeString = mapper.writeValueAsString(BidRequest.builder()
-                .imp(singletonList(Imp.builder().xNative(Native.builder().build()).bidfloor(BigDecimal.valueOf(2.52)).build()))
+                .imp(singletonList(
+                        Imp.builder().xNative(Native.builder().build()).bidfloor(BigDecimal.valueOf(2.52)).build()))
                 .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
 

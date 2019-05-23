@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -81,7 +80,8 @@ public class IxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(2)
-                .containsOnly(BidderError.badInput("Invalid MediaType. Ix supports only Banner type. Ignoring ImpID=123"),
+                .containsOnly(
+                        BidderError.badInput("Invalid MediaType. Ix supports only Banner type. Ignoring ImpID=123"),
                         BidderError.badInput("No valid impressions in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -420,8 +420,9 @@ public class IxBidderTest extends VertxTest {
         assertThat(ixBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();

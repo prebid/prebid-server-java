@@ -408,7 +408,8 @@ public class PubmaticAdapterTest extends VertxTest {
                 .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
-                                .banner(Banner.builder().w(300).h(250).format(singletonList(Format.builder().w(480).h(320).build())).build())
+                                .banner(Banner.builder().w(300).h(250)
+                                        .format(singletonList(Format.builder().w(480).h(320).build())).build())
                                 .tagid("slot1")
                                 .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
                                         .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())

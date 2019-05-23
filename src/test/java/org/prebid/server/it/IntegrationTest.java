@@ -121,30 +121,24 @@ public abstract class IntegrationTest extends VertxTest {
         return expectedResponseJson;
     }
 
-    private static String cacheResponseFromRequestJson(String requestAsString, String requestCacheIdMapFile) throws
-            IOException {
-        List<CacheObject> responseCacheObjects = new ArrayList<>();
-
+    private static String cacheResponseFromRequestJson(String requestAsString,
+                                                       String requestCacheIdMapFile) throws IOException {
         try {
             final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
             final JsonNode jsonNodeMatcher =
                     mapper.readTree(ApplicationTest.class.getResourceAsStream(requestCacheIdMapFile));
             final List<PutObject> puts = cacheRequest.getPuts();
 
+            final List<CacheObject> responseCacheObjects = new ArrayList<>();
             for (PutObject putItem : puts) {
-                if (putItem.getType().equals("json")) {
-                    String id = putItem.getValue().get("id").textValue() + "@" + putItem.getValue().get("price");
-                    String uuid = jsonNodeMatcher.get(id).textValue();
-                    responseCacheObjects.add(CacheObject.of(uuid));
-                } else {
-                    String id = putItem.getValue().textValue();
-                    String uuid = jsonNodeMatcher.get(id).textValue();
-                    responseCacheObjects.add(CacheObject.of(uuid));
-                }
-            }
+                final String id = putItem.getType().equals("json")
+                        ? putItem.getValue().get("id").textValue() + "@" + putItem.getValue().get("price")
+                        : putItem.getValue().textValue();
 
-            final BidCacheResponse bidCacheResponse = BidCacheResponse.of(responseCacheObjects);
-            return Json.encode(bidCacheResponse);
+                final String uuid = jsonNodeMatcher.get(id).textValue();
+                responseCacheObjects.add(CacheObject.of(uuid));
+            }
+            return Json.encode(BidCacheResponse.of(responseCacheObjects));
         } catch (IOException e) {
             throw new IOException("Error while matching cache ids");
         }

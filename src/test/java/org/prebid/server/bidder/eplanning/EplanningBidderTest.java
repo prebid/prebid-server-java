@@ -185,7 +185,8 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
+                .containsOnly(
+                        "http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
     }
 
     @Test
@@ -203,8 +204,9 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
-                        + "&e=testadun_itco_de:1x1");
+                .containsOnly(
+                        "http://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
+                                + "&e=testadun_itco_de:1x1");
     }
 
     @Test
@@ -336,7 +338,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .build()))))));
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                    ExtImpEplanning.of("clientId", null)))));
+                ExtImpEplanning.of("clientId", null)))));
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
