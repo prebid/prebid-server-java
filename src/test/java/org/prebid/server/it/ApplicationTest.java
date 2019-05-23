@@ -548,17 +548,17 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
         // given
-        final Instant testTime = Instant.now();
+        final Instant currentTime = Instant.now();
 
         // ask endpoint after some time to ensure currency rates have already been fetched
-        Vertx.vertx().setTimer(1000L, id -> {
+        Vertx.vertx().setTimer(1000L, ignored -> {
             // when
             final Response response = given(adminSpec).get("/currency-rates");
 
             // then
             final String lastUpdateValue = response.jsonPath().getString("last_update");
             final Instant lastUpdateTime = Instant.parse(lastUpdateValue);
-            assertThat(testTime).isAfter(lastUpdateTime);
+            assertThat(currentTime).isAfter(lastUpdateTime);
         });
     }
 
