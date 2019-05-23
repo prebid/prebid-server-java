@@ -47,7 +47,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 0, 100L, 200L);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L);
     }
 
     @After
@@ -245,11 +245,11 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     private void doWaitForOpeningInterval(TestContext context) {
-        doWait(context, 101L);
+        doWait(context, 150L);
     }
 
     private void doWaitForClosingInterval(TestContext context) {
-        doWait(context, 201L);
+        doWait(context, 250L);
     }
 
     private void doWait(TestContext context, long timeout) {
