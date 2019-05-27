@@ -59,7 +59,7 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnAccountFromFirstDelegateIfPresent() {
         // given
-        final Account account = Account.of("accountId1", "low", null, null, null);
+        final Account account = Account.builder().id("accountId").priceGranularity("low").build();
         given(delegate1.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(account));
 
         // when
@@ -77,7 +77,7 @@ public class CompositeApplicationSettingsTest {
         given(delegate1.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error1")));
 
-        final Account account = Account.of("accountId1", "low", null, null, null);
+        final Account account = Account.builder().id("accountId").priceGranularity("low").build();
         given(delegate2.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(account));
 

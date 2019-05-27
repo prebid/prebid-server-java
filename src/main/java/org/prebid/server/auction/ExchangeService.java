@@ -155,18 +155,17 @@ public class ExchangeService {
         }
 
         final Map<String, String> aliases = aliases(requestExt);
+        final String publisherId = publisherId(bidRequest);
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean isApp = bidRequest.getApp() != null;
         final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp);
         final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
                 keywordsCreatorByBidType(targeting, isApp);
-        final String publisherId = publisherId(bidRequest);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
-
         final long startTime = clock.millis();
 
-        return extractBidderRequests(bidRequest, requestExt, uidsCookie, aliases, timeout)
+        return extractBidderRequests(bidRequest, requestExt, uidsCookie, aliases, publisherId, timeout)
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, metricsContext))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
@@ -281,7 +280,7 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, ExtBidRequest requestExt,
                                                               UidsCookie uidsCookie, Map<String, String> aliases,
-                                                              Timeout timeout) {
+                                                              String publisherId, Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
@@ -295,13 +294,11 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        final User user = bidRequest.getUser();
-        final ExtUser extUser = extUser(user);
+        final ExtUser extUser = extUser(bidRequest.getUser());
+        final ExtRegs extRegs = extRegs(bidRequest.getRegs());
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
-        final ExtRegs extRegs = extRegs(bidRequest.getRegs());
-
-        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
+        return getVendorsToGdprPermission(bidRequest, bidders, aliases, publisherId, extUser, extRegs, timeout)
                 .map(vendorsToGdpr -> makeBidderRequests(bidders, requestExt, bidRequest, uidsBody, uidsCookie,
                         extUser, extRegs, aliases, imps, vendorsToGdpr));
     }
@@ -319,21 +316,21 @@ public class ExchangeService {
      * pbs not enforced particular bidder to follow pbs gdpr procedure.
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
-                                                                     ExtUser extUser, Map<String, String> aliases,
+                                                                     Map<String, String> aliases,
+                                                                     String publisherId, ExtUser extUser,
                                                                      ExtRegs extRegs, Timeout timeout) {
-        final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
-        if (gdprEnforcedVendorIds.isEmpty()) {
-            return Future.succeededFuture(Collections.emptyMap());
-        }
-
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final Device device = bidRequest.getDevice();
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
+        final Set<Integer> vendorIds = extractGdprEnforcedVendors(bidders, aliases);
 
-        return gdprService.resultByVendor(gdprEnforcedVendorIds, gdprAsString, gdprConsent, ipAddress, timeout)
-                .map(GdprResponse::getVendorsToGdpr);
+        return gdprService.isGdprEnforced(gdprAsString, publisherId, vendorIds, timeout)
+                .compose(gdprEnforced -> !gdprEnforced
+                        ? Future.succeededFuture(Collections.emptyMap())
+                        : gdprService.resultByVendor(vendorIds, gdprAsString, gdprConsent, ipAddress, timeout)
+                        .map(GdprResponse::getVendorsToGdpr));
     }
 
     /**

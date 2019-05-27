@@ -73,10 +73,16 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
-                        + " events_enabled FROM accounts_account where uuid = ? LIMIT 1",
+                        + " events_enabled, enforce_gdpr FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.of(row.getString(0), row.getString(1),
-                        row.getInteger(2), row.getInteger(3), row.getBoolean(4))),
+                result -> mapToModelOrError(result, row -> Account.builder()
+                        .id(row.getString(0))
+                        .priceGranularity(row.getString(1))
+                        .bannerCacheTtl(row.getInteger(2))
+                        .videoCacheTtl(row.getInteger(3))
+                        .eventsEnabled(row.getBoolean(4))
+                        .enforceGdpr(row.getBoolean(5))
+                        .build()),
                 timeout)
                 .compose(JdbcApplicationSettings::failedIfNull);
     }

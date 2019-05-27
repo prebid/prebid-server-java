@@ -31,15 +31,13 @@ public class EventsServiceTest {
     @Mock
     private ApplicationSettings applicationSettings;
 
-    private Clock clock;
-
     private Timeout timeout;
 
     private EventsService eventsService;
 
     @Before
     public void setUp() {
-        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
         eventsService = new EventsService(applicationSettings, "http://external.org");
     }
@@ -48,7 +46,7 @@ public class EventsServiceTest {
     public void isEventEnabledShouldReturnFalseWhenAccountsEventEnabledIsFalse() {
         // given
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, false)));
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(false).build()));
 
         // when
         final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
@@ -62,7 +60,7 @@ public class EventsServiceTest {
     public void isEventEnabledShouldReturnFalseWhenAccountsEventEnabledIsTrue() {
         // given
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, true)));
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
 
         // when
         final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);

@@ -8,14 +8,18 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,17 +39,47 @@ public class GdprService {
 
     public static final Logger logger = LoggerFactory.getLogger(GdprService.class);
 
+    private final ApplicationSettings applicationSettings;
     private final GeoLocationService geoLocationService;
     private final List<String> eeaCountries;
     private final VendorListService vendorListService;
     private final String gdprDefaultValue;
 
-    public GdprService(GeoLocationService geoLocationService, VendorListService vendorListService,
-                       List<String> eeaCountries, String gdprDefaultValue) {
+    public GdprService(ApplicationSettings applicationSettings, GeoLocationService geoLocationService,
+                       VendorListService vendorListService, List<String> eeaCountries, String gdprDefaultValue) {
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.geoLocationService = geoLocationService;
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.vendorListService = Objects.requireNonNull(vendorListService);
         this.gdprDefaultValue = Objects.requireNonNull(gdprDefaultValue);
+    }
+
+    /**
+     * Returns the verdict about enforcing of GDPR processing:
+     * <p>
+     * - If GDPR from request is valid - returns TRUE if it equals to 1, otherwise FALSE.
+     * - If GDPR doesn't enforced by account - returns FALSE.
+     * - If there are no GDPR enforced vendors - returns FALSE.
+     */
+    public Future<Boolean> isGdprEnforced(String gdpr, String accountId, Set<Integer> vendorIds, Timeout timeout) {
+        return isValidGdpr(gdpr)
+                ? Future.succeededFuture(Objects.equals(gdpr, "1"))
+                : isGdprEnforcedByAccount(accountId, timeout)
+                .map(gdprEnforced -> ObjectUtils.firstNonNull(gdprEnforced, !vendorIds.isEmpty()));
+    }
+
+    private Future<Boolean> isGdprEnforcedByAccount(String accountId, Timeout timeout) {
+        return applicationSettings.getAccountById(accountId, timeout)
+                .map(Account::getEnforceGdpr)
+                .recover(GdprService::accountFallback);
+    }
+
+    private static Future<Boolean> accountFallback(Throwable exception) {
+        if (exception instanceof PreBidException) {
+            return Future.succeededFuture(); // no worry, account not found
+        }
+        logger.warn("Error occurred while fetching account", exception);
+        return Future.failedFuture(exception);
     }
 
     /**

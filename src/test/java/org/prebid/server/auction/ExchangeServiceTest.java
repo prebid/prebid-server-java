@@ -153,6 +153,7 @@ public class ExchangeServiceTest extends VertxTest {
     private ExchangeService exchangeService;
 
     private Timeout timeout;
+
     private MetricsContext metricsContext;
 
     @Before
@@ -168,6 +169,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        given(gdprService.isGdprEnforced(any(), any(), any(), any())).willReturn(Future.succeededFuture(true));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
 
@@ -424,6 +427,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, false));
+        given(gdprService.isGdprEnforced(any(), any(), any(), any())).willReturn(Future.succeededFuture(false));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(15, false), null)));
 
@@ -461,7 +465,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .ifa("ifa").macsha1("macsha1").macmd5("macmd5").didsha1("didsha1").didmd5("didmd5").dpidsha1("dpidsha1")
                 .dpidmd5("dpidmd5")
                 .build());
-        verifyZeroInteractions(gdprService);
     }
 
     @Test
