@@ -100,7 +100,6 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
-    private static final String BIDDER_EXT = "bidder";
 
     private static final String CACHE = "cache";
     private static final String DEFAULT_CURRENCY = "USD";
