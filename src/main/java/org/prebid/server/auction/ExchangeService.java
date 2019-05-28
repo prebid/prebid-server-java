@@ -99,6 +99,9 @@ import java.util.stream.StreamSupport;
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
+    private static final String CONTEXT_EXT = "context";
+    private static final String BIDDER_EXT = "bidder";
+
     private static final String CACHE = "cache";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
@@ -290,7 +293,7 @@ public class ExchangeService {
         // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
+                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT))
                         .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
                 .collect(Collectors.toList());
@@ -377,10 +380,10 @@ public class ExchangeService {
                                 bidderToMaskingRequired.get(bidder)))
                         .device(prepareDevice(device, bidderToMaskingRequired.get(bidder)))
                         .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
-                        .imp(prepareImps(bidder, imps))
+                        .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                         .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
                         .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
-                        .ext(removeExtPrebidDataBidders(requestExt))
+                        .ext(cleanExtPrebidDataBidders(bidder, firstPartyDataBidders, requestExt, bidRequest.getExt()))
                         .build()))
                 .collect(Collectors.toList());
 
@@ -401,13 +404,21 @@ public class ExchangeService {
     }
 
     /**
-     * Removes bidrequest.ext.prebid.data to hide list of allowed bidders from initial request.
+     * Removes all bidders except the given bidder from bidrequest.ext.prebid.data.bidders
+     * to hide list of allowed bidders from initial request.
      */
-    private static ObjectNode removeExtPrebidDataBidders(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
-        return requestExt == null ? null
-                : Json.mapper.valueToTree(ExtBidRequest.of(
-                prebid == null ? null : prebid.toBuilder().data(null).build()));
+    private static ObjectNode cleanExtPrebidDataBidders(String bidder, List<String> firstPartyDataBidders,
+                                                        ExtBidRequest requestExt, ObjectNode requestExtNode) {
+        if (firstPartyDataBidders.isEmpty()) {
+            return requestExtNode;
+        }
+
+        final ExtRequestPrebidData prebidData = firstPartyDataBidders.contains(bidder)
+                ? ExtRequestPrebidData.of(Collections.singletonList(bidder))
+                : null;
+        return Json.mapper.valueToTree(ExtBidRequest.of(requestExt.getPrebid().toBuilder()
+                .data(prebidData)
+                .build()));
     }
 
     /**
@@ -671,16 +682,35 @@ public class ExchangeService {
         return regs;
     }
 
-    private List<Imp> prepareImps(String bidder, List<Imp> imps) {
+    /**
+     * For each given imp creates a new imp with extension crafted to contain only "prebid", "context" and
+     * bidder-specific extension.
+     */
+    private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
         return imps.stream()
                 .filter(imp -> imp.getExt().hasNonNull(bidder))
-                // for each imp create a new imp with extension crafted to contain only "prebid" and
-                // bidder-specific extensions
                 .map(imp -> imp.toBuilder()
-                        .ext(Json.mapper.valueToTree(
-                                extractBidderExt(bidder, imp.getExt())))
+                        .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Creates a new imp extension for particular bidder having:
+     * <ul>
+     * <li>"prebid" field populated with an imp.ext.prebid field value, may be null</li>
+     * <li>"context" field populated with an imp.ext.context field value, may be null</li>
+     * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
+     * </ul>
+     */
+    private static ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
+        final ObjectNode result = Json.mapper.valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
+
+        if (useFirstPartyData) {
+            result.set(CONTEXT_EXT, impExt.get(CONTEXT_EXT));
+        }
+
+        return result;
     }
 
     /**
@@ -775,7 +805,6 @@ public class ExchangeService {
 
     private static Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
                                                                                    boolean isApp) {
-
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting != null
                 ? targeting.getMediatypepricegranularity() : null;
 
@@ -820,17 +849,6 @@ public class ExchangeService {
             throw new PreBidException(String.format("Error decoding bidRequest.prebid.targeting.pricegranularity: %s",
                     e.getMessage()), e);
         }
-    }
-
-    /**
-     * Creates a new imp extension for particular bidder having:
-     * <ul>
-     * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
-     * <li>"prebid" field populated with an imp.ext.prebid field value, may be null</li>
-     * </ul>
-     */
-    private static ExtPrebid<JsonNode, JsonNode> extractBidderExt(String bidder, ObjectNode impExt) {
-        return ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder));
     }
 
     /**
