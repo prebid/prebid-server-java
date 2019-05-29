@@ -30,6 +30,4 @@ public class ExtImpRubicon {
     JsonNode visitor;
 
     RubiconVideoParams video;
-
-    RubiconImpExtContext context;
 }

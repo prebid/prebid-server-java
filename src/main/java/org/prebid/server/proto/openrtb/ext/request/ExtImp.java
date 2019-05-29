@@ -10,8 +10,7 @@ import lombok.Value;
 @Value
 public class ExtImp {
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid
-     */
     ExtImpPrebid prebid;
+
+    ExtImpContext context;
 }

@@ -76,6 +76,7 @@ import java.util.stream.Stream;
 public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
+    private static final String CONTEXT_EXT = "context";
     private static final Locale LOCALE = Locale.US;
 
     private final BidderCatalog bidderCatalog;
@@ -781,10 +782,9 @@ public class RequestValidator {
         final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
-            String bidderName = bidderExtension.getKey();
-            if (!PREBID_EXT.equals(bidderName)) {
-                bidderName = aliases.getOrDefault(bidderName, bidderName);
-                validateImpBidderExtName(impIndex, bidderExtension, bidderName);
+            final String bidder = bidderExtension.getKey();
+            if (!Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)) {
+                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
             }
         }
     }

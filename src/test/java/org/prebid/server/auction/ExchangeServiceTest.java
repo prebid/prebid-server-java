@@ -1585,11 +1585,11 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldAlwaysRemoveRequestExtPrebidDataBidders() {
+    public void shouldCleanRequestExtPrebidDataBidders() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(singletonList("should_be_removed")))
+                        .data(ExtRequestPrebidData.of(asList("someBidder", "should_be_removed")))
                         .aliases(singletonMap("someBidder", "alias_should_stay"))
                         .build()))));
 
@@ -1601,6 +1601,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequestExt).isEqualTo(mapper.valueToTree(
                 ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("someBidder", "alias_should_stay"))
+                        .data(ExtRequestPrebidData.of(singletonList("someBidder")))
                         .build())));
     }
 
