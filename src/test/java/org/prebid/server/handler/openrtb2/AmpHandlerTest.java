@@ -276,8 +276,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
-                        ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest),
-                                null, null, null, null))));
+                        ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest), null, null, null, null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -288,17 +287,16 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithDebugInfoIncludedIfExtPrebidDebugIsTrue() {
+    public void shouldRespondWithDebugInfoIncludedIfExtPrebidDebugIsOn() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .id("reqId1")
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(true).build()))));
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(1).build()))));
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
 
         given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
-                        ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest),
-                                null, null, null, null))));
+                        ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest), null, null, null, null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -306,7 +304,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(
                 eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":1000,"
-                        + "\"ext\":{\"prebid\":{\"debug\":true}}}}}"));
+                        + "\"ext\":{\"prebid\":{\"debug\":1}}}}}"));
     }
 
     @Test

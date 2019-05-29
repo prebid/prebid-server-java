@@ -234,7 +234,7 @@ public class ExchangeService {
             return true;
         }
         final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), true);
+        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     /**

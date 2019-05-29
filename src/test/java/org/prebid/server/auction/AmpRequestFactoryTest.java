@@ -455,7 +455,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
 
         final ExtBidRequest extBidRequest = Json.mapper.treeToValue(captor.getValue().getExt(), ExtBidRequest.class);
-        assertThat(extBidRequest.getPrebid().getDebug()).isTrue();
+        assertThat(extBidRequest.getPrebid().getDebug()).isEqualTo(1);
     }
 
     @Test

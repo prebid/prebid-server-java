@@ -144,8 +144,8 @@ public class AmpRequestFactory {
         final Integer test = bidRequest.getTest();
         final boolean setTest = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
 
-        final Boolean debug = prebid != null ? prebid.getDebug() : null;
-        final boolean setDebug = !Objects.equals(debug, true) && Objects.equals(debugQueryParam, "1");
+        final Integer debug = prebid != null ? prebid.getDebug() : null;
+        final boolean setDebug = !Objects.equals(debug, 1) && Objects.equals(debugQueryParam, "1");
 
         return setDefaultTargeting || setDefaultCache || setSecure || setTest || setDebug
                 ? bidRequest.toBuilder()
@@ -363,7 +363,7 @@ public class AmpRequestFactory {
                                 ExtRequestPrebidCacheVastxml.of(null, null))
                                 : isPrebidNull ? null : prebid.getCache())
                         .data(isPrebidNull ? null : prebid.getData())
-                        .debug(setDebug ? Boolean.TRUE : isPrebidNull ? null : prebid.getDebug())
+                        .debug(setDebug ? Integer.valueOf(1) : isPrebidNull ? null : prebid.getDebug())
                         .build()))
                 : bidRequest.getExt();
     }
