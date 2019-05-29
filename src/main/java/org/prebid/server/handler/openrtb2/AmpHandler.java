@@ -238,7 +238,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
         final ExtBidRequest extBidRequest = extBidRequestFrom(bidRequest);
         final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), true);
+        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     /**

@@ -16,7 +16,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.debug
      */
-    Boolean debug;
+    Integer debug;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.aliases
