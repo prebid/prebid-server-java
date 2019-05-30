@@ -986,6 +986,27 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfNoImpFormat() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(builder -> builder.video(Video.builder().build())),
+                        givenImp(builder -> builder.banner(Banner.builder()
+                                .format(null).w(300).h(250)
+                                .build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.badInput("rubicon imps must have at least one imp.format element"));
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfNoValidSizes() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
