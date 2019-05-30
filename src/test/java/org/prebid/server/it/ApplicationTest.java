@@ -1,6 +1,8 @@
 package org.prebid.server.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.iab.gdpr.consent.VendorConsentEncoder;
 import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
 import com.iab.gdpr.consent.range.StartEndRangeEntry;
@@ -17,6 +19,7 @@ import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.Test;
@@ -35,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -460,9 +464,10 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException {
+    public void infoBiddersShouldReturnRegisteredActiveBidderNames() throws JSONException, IOException {
         // given
         final List<String> bidderNames = getBidderNamesFromParamFiles();
+        final List<String> bidderAliases = getBidderAliasesFromConfigFiles();
 
         // when
         final Response response = given(spec)
@@ -470,7 +475,8 @@ public class ApplicationTest extends IntegrationTest {
                 .get("/info/bidders");
 
         // then
-        JSONAssert.assertEquals(bidderNames.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        final String expectedResponse = CollectionUtils.union(bidderNames, bidderAliases).toString();
+        JSONAssert.assertEquals(expectedResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -609,6 +615,29 @@ public class ApplicationTest extends IntegrationTest {
             return Arrays.stream(listOfFiles)
                     .map(s -> s.substring(0, s.indexOf('.')))
                     .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
+    private static List<String> getBidderAliasesFromConfigFiles() throws IOException {
+        final String folderPath = "src/main/resources/bidder-config";
+        final File folder = new File(folderPath);
+        final String[] files = folder.list();
+        if (files != null) {
+            final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+
+            final List<String> aliases = new ArrayList<>();
+            for (String fileName : files) {
+                final JsonNode configNode = mapper.readValue(new File(folderPath, fileName), JsonNode.class);
+                final JsonNode aliasesNode = configNode.get("adapters").fields().next().getValue().get("aliases");
+
+                if (!aliasesNode.isNull()) {
+                    for (String alias : aliasesNode.textValue().split(",")) {
+                        aliases.add(alias.trim());
+                    }
+                }
+            }
+            return aliases;
         }
         return Collections.emptyList();
     }
