@@ -79,6 +79,9 @@ final class RubiconSize {
         return SIZES.getOrDefault(size(size.getW(), size.getH()), 0);
     }
 
+    /**
+     * Returns {@link Format}s corresponding to the given size IDs or empty if no one matched.
+     */
     static List<Format> idToSize(List<Integer> sizeIds) {
         final List<Format> result = new ArrayList<>();
         for (Integer id : sizeIds) {
