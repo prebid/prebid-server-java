@@ -377,6 +377,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static Banner makeBanner(Banner banner, List<Format> overriddenSizes) {
         final List<Format> sizes = ObjectUtils.defaultIfNull(overriddenSizes, banner.getFormat());
+        if (CollectionUtils.isEmpty(sizes)) {
+            throw new PreBidException("rubicon imps must have at least one imp.format element");
+        }
+
         return banner.toBuilder()
                 .format(sizes)
                 .ext(Json.mapper.valueToTree(makeBannerExt(sizes)))
