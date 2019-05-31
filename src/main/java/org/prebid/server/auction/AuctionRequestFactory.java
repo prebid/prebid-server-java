@@ -265,38 +265,71 @@ public class AuctionRequestFactory {
      * Updates imps with security 1, when secured request was received and imp security was not defined.
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+        List<Imp> result = null;
+
         if (Objects.equals(paramsExtractor.secureFrom(request), 1)
                 && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
-            return imps.stream()
+            result = imps.stream()
                     .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
                     .collect(Collectors.toList());
         }
-        return null;
+        return result;
     }
 
     /**
-     * Creates updated bidrequest.ext {@link ExtBidRequest} if required.
+     * Returns updated {@link ExtBidRequest} if required or null otherwise.
      */
-    private ObjectNode populateBidRequestExtension(ObjectNode ext, List<Imp> imps) {
-        final ExtBidRequest extBidRequest;
+    private ObjectNode populateBidRequestExtension(ObjectNode extNode, List<Imp> imps) {
+        final ExtBidRequest extBidRequest = extBidRequest(extNode);
+        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid);
+        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+
+        final ObjectNode result;
+        if (updatedTargeting != null || updatedAliases != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                    ? prebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+
+            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder
+                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .build()));
+        } else {
+            result = null;
+        }
+        return result;
+    }
+
+    /**
+     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
+     */
+    private static ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
         try {
-            extBidRequest = Json.mapper.treeToValue(ext, ExtBidRequest.class);
+            return Json.mapper.treeToValue(extBidRequestNode, ExtBidRequest.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
+    }
 
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
-
+    /**
+     * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
+     */
+    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
+
         final boolean isTargetingNotNull = targeting != null;
         final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity().isNull();
         final boolean isPriceGranularityTextual = isTargetingNotNull && targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 
-        final ExtRequestTargeting extRequestTargeting;
+        final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            extRequestTargeting = ExtRequestTargeting.of(
+            result = ExtRequestTargeting.of(
                     populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                             isPriceGranularityTextual),
                     targeting.getMediatypepricegranularity(),
@@ -304,23 +337,9 @@ public class AuctionRequestFactory {
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
                     isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
         } else {
-            extRequestTargeting = null;
+            result = null;
         }
-
-        final Map<String, String> aliases = aliases(prebid, imps);
-
-        if (extRequestTargeting != null || aliases != null) {
-            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                    .aliases(ObjectUtils.defaultIfNull(aliases, getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
-                    .bidadjustmentfactors(getIfNotNull(prebid, ExtRequestPrebid::getBidadjustmentfactors))
-                    .targeting(ObjectUtils.defaultIfNull(extRequestTargeting,
-                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                    .storedrequest(getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest))
-                    .cache(getIfNotNull(prebid, ExtRequestPrebid::getCache))
-                    .data(getIfNotNull(prebid, ExtRequestPrebid::getData))
-                    .build()));
-        }
-        return null;
+        return result;
     }
 
     /**
@@ -330,8 +349,8 @@ public class AuctionRequestFactory {
      * In case of invalid string value throws {@link InvalidRequestException}.
      * In case of missing Json node sets default custom value.
      */
-    private JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
-                                              boolean isPriceGranularityTextual) {
+    private static JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
+                                                     boolean isPriceGranularityTextual) {
         if (isPriceGranularityNull) {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
         } else if (isPriceGranularityTextual) {
@@ -350,10 +369,11 @@ public class AuctionRequestFactory {
      * Returns aliases according to request.imp[i].ext.{bidder}
      * or null (if no aliases at all or they are already presented in request).
      */
-    private Map<String, String> aliases(ExtRequestPrebid prebid, List<Imp> imps) {
+    private Map<String, String> aliasesOrNull(ExtRequestPrebid prebid, List<Imp> imps) {
         final Map<String, String> aliases = getIfNotNullOrDefault(prebid, ExtRequestPrebid::getAliases,
                 Collections.emptyMap());
 
+        // go through imps' bidders and figure out preconfigured aliases
         final Map<String, String> resolvedAliases = imps.stream()
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
                         .filter(bidder -> !aliases.containsKey(bidder))

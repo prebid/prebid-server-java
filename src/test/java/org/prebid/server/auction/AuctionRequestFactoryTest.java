@@ -557,6 +557,28 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassExtPrebidDebugFlagIfPresent() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .debug(1)
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsOnly(1);
+    }
+
+    @Test
     public void shouldReturnFailedFutureIfRequestValidationFailed() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
