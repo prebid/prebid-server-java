@@ -343,10 +343,10 @@ public class ExchangeService {
      * <p>
      * - bidrequest.user.buyeruid will be set to that Bidder's ID.
      * <p>
-     * - bidrequest.ext.prebid.data.bidders will be removed
+     * - bidrequest.ext.prebid.data.bidders will be removed.
      * <p>
      * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
-     * that don't have first party data allowed
+     * that don't have first party data allowed.
      */
     private List<BidderRequest> makeBidderRequests(List<String> bidders, ExtBidRequest requestExt,
                                                    BidRequest bidRequest, Map<String, String> uidsBody,
@@ -720,7 +720,7 @@ public class ExchangeService {
     }
 
     /**
-     * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
+     * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}.
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
                                                     Map<String, String> aliases, String publisherId,

@@ -33,11 +33,14 @@ import java.util.stream.Collectors;
 /**
  * Service provides GDPR support.
  * <p>
- * For more information about GDPR, see https://gdpr.iab.com
+ * For more information about GDPR, see https://gdpr.iab.com site.
  */
 public class GdprService {
 
-    public static final Logger logger = LoggerFactory.getLogger(GdprService.class);
+    private static final Logger logger = LoggerFactory.getLogger(GdprService.class);
+
+    private static final String GDPR_ZERO = "0";
+    private static final String GDPR_ONE = "1";
 
     private final ApplicationSettings applicationSettings;
     private final GeoLocationService geoLocationService;
@@ -63,7 +66,7 @@ public class GdprService {
      */
     public Future<Boolean> isGdprEnforced(String gdpr, String accountId, Set<Integer> vendorIds, Timeout timeout) {
         return isValidGdpr(gdpr)
-                ? Future.succeededFuture(Objects.equals(gdpr, "1"))
+                ? Future.succeededFuture(gdpr.equals(GDPR_ONE))
                 : isGdprEnforcedByAccount(accountId, timeout)
                 .map(gdprEnforced -> ObjectUtils.firstNonNull(gdprEnforced, !vendorIds.isEmpty()));
     }
@@ -225,7 +228,6 @@ public class GdprService {
         if (vendorId == null || !vendorIdToPurposes.containsKey(vendorId)) {
             return false;
         }
-
         try {
             return vendorConsent.isVendorAllowed(vendorId);
         } catch (ArrayIndexOutOfBoundsException | VendorConsentParseException e) {
@@ -239,10 +241,8 @@ public class GdprService {
      */
     private Future<GdprInfoWithCountry> toGdprInfo(String gdpr, String gdprConsent, String ipAddress, Timeout timeout) {
         // from request param
-        final String gdprFromRequest = StringUtils.stripToNull(gdpr);
-        if (isValidGdpr(gdprFromRequest)) {
-            return Future.succeededFuture(
-                    GdprInfoWithCountry.of(gdprFromRequest, vendorConsentFrom(gdprFromRequest, gdprConsent), null));
+        if (isValidGdpr(gdpr)) {
+            return Future.succeededFuture(GdprInfoWithCountry.of(gdpr, vendorConsentFrom(gdpr, gdprConsent), null));
         }
 
         // from geo location
@@ -263,9 +263,8 @@ public class GdprService {
     /**
      * Checks GDPR flag has valid value.
      */
-    private boolean isValidGdpr(String gdprFromRequest) {
-        return gdprFromRequest != null
-                && (Objects.equals(gdprFromRequest, "0") || Objects.equals(gdprFromRequest, "1"));
+    private boolean isValidGdpr(String gdpr) {
+        return gdpr != null && (gdpr.equals(GDPR_ZERO) || gdpr.equals(GDPR_ONE));
     }
 
     /**
@@ -278,7 +277,7 @@ public class GdprService {
      * - parsing of consent string is failed
      */
     private VendorConsent vendorConsentFrom(String gdpr, String gdprConsent) {
-        if (!Objects.equals(gdpr, "1") || StringUtils.isEmpty(gdprConsent)) {
+        if (!Objects.equals(gdpr, GDPR_ONE) || StringUtils.isEmpty(gdprConsent)) {
             return null;
         }
         try {
@@ -293,7 +292,7 @@ public class GdprService {
      * Creates {@link GdprInfoWithCountry} which GDPR value depends on if country is in eea list.
      */
     private GdprInfoWithCountry createGdprInfoWithCountry(String gdprConsent, String country) {
-        final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0";
+        final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? GDPR_ONE : GDPR_ZERO;
         return GdprInfoWithCountry.of(gdpr, vendorConsentFrom(gdpr, gdprConsent), country);
     }
 
@@ -301,7 +300,7 @@ public class GdprService {
      * Determines if user is in GDPR scope.
      */
     private static boolean inScope(GdprInfoWithCountry gdprInfo) {
-        return Objects.equals(gdprInfo.getGdpr(), "1");
+        return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
     }
 
     /**
