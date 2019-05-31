@@ -1,9 +1,9 @@
 package org.prebid.server.settings.model;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
+@Builder
 @Value
 public class Account {
 
@@ -16,4 +16,6 @@ public class Account {
     Integer videoCacheTtl;
 
     Boolean eventsEnabled;
+
+    Boolean enforceGdpr;
 }

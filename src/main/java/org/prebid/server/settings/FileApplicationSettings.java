@@ -48,11 +48,12 @@ public class FileApplicationSettings implements ApplicationSettings {
                                     Map<String, String> storedIdToImp) {
         accounts = toMap(settingsFile.getAccounts(),
                 Account::getId,
-                account -> Account.of(account.getId(), null, account.getBannerCacheTtl(), account.getVideoCacheTtl(),
-                        account.getEventsEnabled()));
+                Function.identity());
+
         configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
+
         this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
         this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
     }

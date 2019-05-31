@@ -126,7 +126,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Before
     public void setUp() {
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, null)));
+                .willReturn(Future.succeededFuture(Account.builder().build()));
 
         given(bidderCatalog.isValidAdapterName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
@@ -554,7 +554,6 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).updateAdapterBidMetrics(eq(RUBICON), eq("accountId"), eq(5670L), eq(false), eq("banner"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldIncrementNoBidMetrics() {
         // given

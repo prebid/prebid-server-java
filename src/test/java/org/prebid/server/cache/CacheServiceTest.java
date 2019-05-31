@@ -271,7 +271,7 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId1").nurl("adm2"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         cacheService.cacheBidsOpenrtb(
-                asList(bid1, bid2), asList(imp1),
+                asList(bid1, bid2), singletonList(imp1),
                 CacheContext.of(true, null, true, null), null, timeout);
 
         // then
@@ -430,7 +430,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.of(null, null, 10, null, null)));
+                .willReturn(Future.succeededFuture(Account.builder().bannerCacheTtl(10).build()));
 
         // when
         cacheService.cacheBidsOpenrtb(
