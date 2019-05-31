@@ -1,5 +1,4 @@
 {
-  "enabled": true,
   "maintainer": {
     "email": "header-bidding@rubiconproject.com"
   },
@@ -15,19 +14,5 @@
         "video"
       ]
     }
-  },
-  "vendors": [
-    "activeview",
-    "adform",
-    "comscore",
-    "doubleverify",
-    "integralads",
-    "moat",
-    "sizemek",
-    "whiteops"
-  ],
-  "gdpr": {
-    "vendorId": 52,
-    "enforced": true
   }
 }
