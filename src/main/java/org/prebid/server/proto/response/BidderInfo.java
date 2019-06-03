@@ -34,9 +34,17 @@ public class BidderInfo {
     }
 
     @Value
-    private static class MaintainerInfo {
+    public static class MaintainerInfo {
 
         String email;
+    }
+
+    @Value
+    public static class CapabilitiesInfo {
+
+        PlatformInfo app;
+
+        PlatformInfo site;
     }
 
     @Value
@@ -44,14 +52,6 @@ public class BidderInfo {
 
         @JsonProperty("mediaTypes")
         List<String> mediaTypes;
-    }
-
-    @Value
-    private static class CapabilitiesInfo {
-
-        PlatformInfo app;
-
-        PlatformInfo site;
     }
 
     @Value
