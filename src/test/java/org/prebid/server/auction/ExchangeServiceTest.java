@@ -40,7 +40,9 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
+import org.prebid.server.cache.model.CacheHttpCall;
 import org.prebid.server.cache.model.CacheIdInfo;
+import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
@@ -1214,7 +1216,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of("cacheId2", null))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid2, "cacheId2", null)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1252,7 +1254,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid1, CacheIdInfo.of(null, "cacheId1"))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid1, null, "cacheId1")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1286,7 +1288,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of(null, "videoCacheId2"))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid2, null, "videoCacheId2")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1325,7 +1327,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of(null, "videoCacheId2"))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid2, null, "videoCacheId2")));
 
         given(cacheService.getEndpointHost()).willReturn("someHost");
         given(cacheService.getEndpointPath()).willReturn("somePath");
@@ -1363,8 +1365,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(7.19)).build()))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(emptyMap()));
-
+                .willReturn(Future.succeededFuture(CacheServiceResult.empty()));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1402,7 +1403,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of("cacheId2", null))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid2, "cacheId2", null)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1759,7 +1760,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid, CacheIdInfo.of(null, null))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid, null, null)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -2296,7 +2297,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid, CacheIdInfo.of("cacheId", null))));
+                .willReturn(Future.succeededFuture(givenCacheServiceResult(bid, "cacheId", null)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -2327,7 +2328,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.failedFuture(new RuntimeException("error")));
+                .willReturn(Future.succeededFuture(
+                        CacheServiceResult.of(null, new RuntimeException("error"), Collections.emptyMap())));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -2346,8 +2348,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).contains(entry("prebid",
-                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                        "Error occurred while trying to cache bids. Message : error"))));
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "error"))));
     }
 
     @Test
@@ -2396,7 +2397,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(bid, CacheIdInfo.of("cacheId", null))));
+                .willReturn(Future.succeededFuture(
+                        CacheServiceResult.of(CacheHttpCall.of(null, null, 100), null, Collections.emptyMap())));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -2415,6 +2417,10 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getResponsetimemillis()).containsKeys("cache");
+    }
+
+    private static CacheServiceResult givenCacheServiceResult(Bid bid, String cacheId, String videoCacheId) {
+        return CacheServiceResult.of(null, null, singletonMap(bid, CacheIdInfo.of(cacheId, videoCacheId)));
     }
 
     private BidRequest captureBidRequest() {

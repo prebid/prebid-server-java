@@ -99,6 +99,14 @@
             "responsebody": "{\"id\":\"bidResponseId4\",\"seatbid\":[{\"bid\":[{\"id\":\"789353336\",\"impid\":\"impId4\",\"price\":6.0,\"adm\":\"adm4\",\"crid\":\"crid4\",\"dealid\":\"dealId4\",\"w\":300,\"h\":600},{\"id\":\"981876692\",\"impid\":\"impId41\",\"price\":5.0,\"adm\":\"adm41\",\"crid\":\"crid41\",\"dealid\":\"dealId41\",\"w\":300,\"h\":600}],\"seat\":\"seatId4\",\"group\":0}]}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"789353336\",\"impid\":\"impId4\",\"price\":6,\"adm\":\"adm4\",\"crid\":\"crid4\",\"dealid\":\"dealId4\",\"w\":300,\"h\":600}},{\"type\":\"json\",\"value\":{\"id\":\"981876692\",\"impid\":\"impId41\",\"price\":5,\"adm\":\"adm41\",\"crid\":\"crid41\",\"dealid\":\"dealId41\",\"w\":300,\"h\":600}},{\"type\":\"xml\",\"value\":\"adm41\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"c9eb3deb-2054-40f5-9cf3-f9047dc240a2\"},{\"uuid\":\"8f17dd0b-e615-48d1-a7b1-08a704aae48d\"},{\"uuid\":\"8300a9d5-4654-4406-b6b9-7bc5060e8a36\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {

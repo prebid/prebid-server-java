@@ -53,6 +53,14 @@
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"crid\":\"crid001\",\"adm\":\"adm001\",\"h\":250,\"w\":300}]}],\"bidid\":\"bid001\"}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"adm\":\"adm001\",\"crid\":\"crid001\",\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"ab634778-1ad8-4851-8f8d-b8588885ec78\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {

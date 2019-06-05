@@ -13,6 +13,7 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.json.Json;
+import org.json.JSONException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -21,6 +22,12 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.skyscreamer.jsonassert.ArrayValueMatcher;
+import org.skyscreamer.jsonassert.Customization;
+import org.skyscreamer.jsonassert.JSONCompare;
+import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.skyscreamer.jsonassert.ValueMatcher;
+import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
@@ -89,6 +96,7 @@ public abstract class IntegrationTest extends VertxTest {
         final String cacheEndpoint = "http://" + hostAndPort + cachePath;
 
         String result = jsonFrom(templatePath)
+                .replaceAll("\\{\\{ cache.endpoint }}", cacheEndpoint)
                 .replaceAll("\\{\\{ cache.resource_url }}", cacheEndpoint + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", hostAndPort)
                 .replaceAll("\\{\\{ cache.path }}", cachePath);
@@ -142,6 +150,30 @@ public abstract class IntegrationTest extends VertxTest {
         } catch (IOException e) {
             throw new IOException("Error while matching cache ids");
         }
+    }
+
+    /**
+     * Cache debug fields "requestbody" and "responsebody" are escaped JSON strings.
+     * This comparator allows to compare them with actual values as usual JSON objects.
+     */
+    static CustomComparator openrtbCacheDebugComparator() {
+        final ValueMatcher<Object> jsonStringValueMatcher = (actual, expected) -> {
+            try {
+                return !JSONCompare.compareJSON(actual.toString(), expected.toString(), JSONCompareMode.NON_EXTENSIBLE)
+                        .failed();
+            } catch (JSONException e) {
+                throw new RuntimeException("Unexpected json exception", e);
+            }
+        };
+
+        final ArrayValueMatcher<Object> arrayValueMatcher = new ArrayValueMatcher<>(new CustomComparator(
+                JSONCompareMode.NON_EXTENSIBLE,
+                new Customization("ext.debug.httpcalls.cache[*].requestbody", jsonStringValueMatcher),
+                new Customization("ext.debug.httpcalls.cache[*].responsebody", jsonStringValueMatcher)));
+
+        return new CustomComparator(
+                JSONCompareMode.NON_EXTENSIBLE,
+                new Customization("ext.debug.httpcalls.cache", arrayValueMatcher));
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {

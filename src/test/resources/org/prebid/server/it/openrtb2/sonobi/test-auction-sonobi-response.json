@@ -107,6 +107,14 @@
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid01\",\"impid\":\"impId002\",\"price\":2.25,\"cid\":\"1001\",\"crid\":\"crid002\",\"adid\":\"29681110\",\"adm\":\"adm002\",\"cat\":[\"IAB2\"],\"adomain\":[\"video-example.com\"],\"h\":480,\"w\":640}]}],\"bidid\":\"bid01\"}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"adm\":\"adm001\",\"crid\":\"crid001\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"bid01\",\"impid\":\"impId002\",\"price\":2.25,\"adm\":\"adm002\",\"adid\":\"29681110\",\"adomain\":[\"video-example.com\"],\"cid\":\"1001\",\"crid\":\"crid002\",\"cat\":[\"IAB2\"],\"w\":640,\"h\":480}},{\"type\":\"xml\",\"value\":\"adm002\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"9092799c-93b0-4e11-a232-2c0151d5d275\"},{\"uuid\":\"83cdc325-c816-4d2e-bf2c-9213a70671dd\"},{\"uuid\":\"99dc3357-34ac-4819-9f68-0820039a542f\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {
