@@ -222,7 +222,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
             }
         }
         if (slotWithoutSize) {
-            if (sizes == null || sizes.size() == 0) {
+            if (CollectionUtils.isEmpty(sizes)) {
                 errors.add(paramError(bidId, "Invalid AdSize", params));
                 logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: Size missing");
                 return null;
@@ -329,7 +329,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return Banner.builder()
                 .w(params != null ? params.getWidth() : format.getW())
                 .h(params != null ? params.getHeight() : format.getH())
-                .format(sizes != null && !sizes.isEmpty() ? sizes : null) // pubmatic now supports format object
+                .format(CollectionUtils.isNotEmpty(sizes) ? sizes : null) // pubmatic now supports format object
                 .topframe(adUnitBid.getTopframe())
                 .build();
     }

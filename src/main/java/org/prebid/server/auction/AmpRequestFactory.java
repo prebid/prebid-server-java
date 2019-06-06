@@ -416,10 +416,10 @@ public class AmpRequestFactory {
         final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
 
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
-                ? true : targeting.getIncludewinners();
+                || targeting.getIncludewinners();
 
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
-                ? true : targeting.getIncludebidderkeys();
+                || targeting.getIncludebidderkeys();
 
         return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
                 includeWinners, includeBidderKeys);

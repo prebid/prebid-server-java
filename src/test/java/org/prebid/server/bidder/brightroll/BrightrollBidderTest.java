@@ -307,8 +307,9 @@ public class BrightrollBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = brightrollBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getUri)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
                 .containsExactly("http://brightroll.com?publisher=publisher");
     }
 
@@ -514,7 +515,8 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidderBidWithBannerTypeWhenVideoAndBannerAreNotPresentInImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidderBidWithBannerTypeWhenVideoAndBannerAreNotPresentInImp()
+            throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
