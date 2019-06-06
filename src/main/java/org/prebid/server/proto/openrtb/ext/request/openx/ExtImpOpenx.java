@@ -1,11 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request.openx;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.Value;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.util.Map;
+import lombok.Builder;
+import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.imp[i].ext.openx
@@ -22,5 +22,5 @@ public class ExtImpOpenx {
     BigDecimal customFloor;
 
     @JsonProperty("customParams")
-    Map<String, String> customParams;
+    Map<String, JsonNode> customParams;
 }

@@ -1,6 +1,13 @@
 package org.prebid.server.bidder.openx;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -13,6 +20,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.json.Json;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -28,17 +40,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 public class OpenxBidderTest extends VertxTest {
 
@@ -207,7 +208,7 @@ public class OpenxBidderTest extends VertxTest {
                                         ExtPrebid.of(null,
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
-                                                        .customParams(singletonMap("foo1", "bar1"))
+                                                        .customParams(stringJsonNodeMap("foo1", singletonList("bar1")))
                                                         .delDomain("se-demo-d.openx.net")
                                                         .unit("unitId").build()))).build(),
                         Imp.builder()
@@ -217,7 +218,7 @@ public class OpenxBidderTest extends VertxTest {
                                         ExtPrebid.of(null,
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
-                                                        .customParams(singletonMap("foo2", "bar2"))
+                                                        .customParams(stringJsonNodeMap("foo2", "bar2"))
                                                         .delDomain("se-demo-d.openx.net")
                                                         .unit("unitId").build()))).build(),
                         Imp.builder()
@@ -227,7 +228,7 @@ public class OpenxBidderTest extends VertxTest {
                                         ExtPrebid.of(null,
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
-                                                        .customParams(singletonMap("foo3", "bar3"))
+                                                        .customParams(stringJsonNodeMap("foo3", "bar3"))
                                                         .delDomain("se-demo-d.openx.net")
                                                         .unit("unitId").build()))).build(),
                         Imp.builder()
@@ -237,7 +238,7 @@ public class OpenxBidderTest extends VertxTest {
                                         ExtPrebid.of(null,
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
-                                                        .customParams(singletonMap("foo4", "bar4"))
+                                                        .customParams(stringJsonNodeMap("foo4", "bar4"))
                                                         .delDomain("se-demo-d.openx.net")
                                                         .unit("unitId").build()))).build(),
 
@@ -271,7 +272,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
-                                                                        singletonMap("foo1", "bar1"))
+	                                                                stringJsonNodeMap("foo1", singletonList("bar1")))
                                                                 .build()))
                                                 .build(),
                                         Imp.builder()
@@ -282,7 +283,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
-                                                                        singletonMap("foo2", "bar2"))
+	                                                                stringJsonNodeMap("foo2", "bar2"))
                                                                 .build()))
                                                 .build()))
                                 .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
@@ -305,7 +306,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
-                                                                        singletonMap("foo3", "bar3"))
+	                                                                stringJsonNodeMap("foo3", "bar3"))
                                                                 .build()))
                                                 .build()))
 
@@ -328,7 +329,7 @@ public class OpenxBidderTest extends VertxTest {
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
-                                                                        singletonMap("foo4", "bar4"))
+                                                                        stringJsonNodeMap("foo4", "bar4"))
                                                                 .build()))
                                                 .build()))
                                 .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
@@ -441,11 +442,12 @@ public class OpenxBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
-    @Test
-    public void makeBidsShouldReturnResultContainingEmptyValueAndErrorsWhenSeatBidEmpty()
-            throws JsonProcessingException {
-        // given
-        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
+	@Test
+	public void makeBidsShouldReturnResultContainingEmptyValueAndErrorsWhenSeatBidEmpty()
+		throws JsonProcessingException {
+		// given
+		final HttpCall httpCall = givenHttpCall(
+			mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -461,6 +463,20 @@ public class OpenxBidderTest extends VertxTest {
     public void extractTargeting() {
         assertThat(openxBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
     }
+
+	private static Map<String, JsonNode> stringJsonNodeMap(String key, List<String> values) {
+		Map<String, JsonNode> stringJsonNodeHashMap = new HashMap<>();
+		JsonNode jsonNode = mapper.valueToTree(values);
+		stringJsonNodeHashMap.put(key, jsonNode);
+		return stringJsonNodeHashMap;
+	}
+
+	private static Map<String, JsonNode> stringJsonNodeMap(String key, String value) {
+		Map<String, JsonNode> stringJsonNodeHashMap = new HashMap<>();
+		JsonNode jsonNode = mapper.valueToTree(value);
+		stringJsonNodeHashMap.put(key, jsonNode);
+		return stringJsonNodeHashMap;
+	}
 
     private static HttpCall givenHttpCall(String body) {
         return HttpCall.success(null, HttpResponse.of(200, null, body), null);
