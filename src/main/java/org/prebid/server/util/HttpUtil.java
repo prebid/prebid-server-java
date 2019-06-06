@@ -6,8 +6,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -16,6 +14,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * This class consists of {@code static} utility methods for operating HTTP requests.
@@ -112,11 +111,22 @@ public final class HttpUtil {
     /**
      * Creates header from name and value, when value is not null or empty string.
      */
-    public static void addHeaderIfValueIsNotEmpty(MultiMap headers, String headerName, String headerValue) {
+    public static void addHeaderIfValueIsNotEmpty(MultiMap headers, CharSequence headerName, CharSequence headerValue) {
         if (StringUtils.isNotEmpty(headerValue)) {
             headers.add(headerName, headerValue);
         }
     }
+
+	/**
+	 * Creates header from name and value, or defaultValue if value is null or empty string.
+	 */
+	public static void addHeaderIfValueIsNotEmpty(MultiMap headers, CharSequence headerName, CharSequence headerValue, CharSequence defaultValue) {
+		if (StringUtils.isNotEmpty(headerValue)) {
+			headers.add(headerName, headerValue);
+		}else {
+			headers.add(headerName, defaultValue);
+		}
+	}
 
     /**
      * Determines IP-Address by checking "X-Forwarded-For", "X-Real-IP" http headers or remote host address

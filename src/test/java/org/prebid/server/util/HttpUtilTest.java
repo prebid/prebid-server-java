@@ -1,22 +1,21 @@
 package org.prebid.server.util;
 
-import io.vertx.core.MultiMap;
-import io.vertx.ext.web.Cookie;
-import io.vertx.ext.web.RoutingContext;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-
-import java.util.Map;
-
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
+
+import io.vertx.core.MultiMap;
+import io.vertx.ext.web.Cookie;
+import io.vertx.ext.web.RoutingContext;
+import java.util.Map;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 public class HttpUtilTest {
 
@@ -102,6 +101,49 @@ public class HttpUtilTest {
         // then
         assertThat(headers).isEmpty();
     }
+
+
+	@Test
+	public void addHeaderIfValueIsNotEmptyShouldAddHeaderWithValueIfValueIsNotEmptyAndNotNull() {
+		// given
+		final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+		// when
+		HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", "value","defaultValue");
+
+		// then
+		assertThat(headers)
+			.extracting(Map.Entry::getKey, Map.Entry::getValue)
+			.containsOnly(tuple("header", "value"));
+	}
+
+	@Test
+	public void addHeaderIfValueIsNotEmptyShouldAddHeaderWithDefaultValueIfValueIsEmpty() {
+		// given
+		final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+		// when
+		HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", "","defaultValue");
+
+		// then
+		assertThat(headers)
+			.extracting(Map.Entry::getKey, Map.Entry::getValue)
+			.containsOnly(tuple("header", "defaultValue"));
+	}
+
+	@Test
+	public void addHeaderIfValueIsNotEmptyShouldAddHeaderWithDefaultValueIfValueIsNull() {
+		// given
+		final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+		// when
+		HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", null,"defaultValue");
+
+		// then
+		assertThat(headers)
+			.extracting(Map.Entry::getKey, Map.Entry::getValue)
+			.containsOnly(tuple("header", "defaultValue"));
+	}
 
     @Test
     public void getDomainFromUrlShouldReturnDomain() {
