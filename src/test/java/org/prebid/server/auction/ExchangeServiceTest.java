@@ -1985,7 +1985,7 @@ public class ExchangeServiceTest extends VertxTest {
                 exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
         // then
-        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        assertThat(bidResponse.getSeatbid()).isEmpty();
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("bidder",
                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
@@ -2011,7 +2011,7 @@ public class ExchangeServiceTest extends VertxTest {
 
 
         // then
-        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        assertThat(bidResponse.getSeatbid()).isEmpty();
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("somebidder",
                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),

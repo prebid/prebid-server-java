@@ -470,7 +470,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage())
                 .startsWith("Cannot deserialize instance of `java.lang.String`");
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test

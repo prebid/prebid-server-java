@@ -1,7 +1,6 @@
 package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Rule;
@@ -26,8 +25,6 @@ public class HttpUtilTest {
 
     @Mock
     private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpRequest;
 
     @Test
     public void isSafariShouldReturnTrue() {
@@ -91,7 +88,7 @@ public class HttpUtilTest {
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", "");
 
         // then
-        assertThat(headers).hasSize(0);
+        assertThat(headers).isEmpty();
     }
 
     @Test
@@ -103,7 +100,7 @@ public class HttpUtilTest {
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", null);
 
         // then
-        assertThat(headers).hasSize(0);
+        assertThat(headers).isEmpty();
     }
 
     @Test

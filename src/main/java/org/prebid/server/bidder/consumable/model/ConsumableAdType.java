@@ -12,6 +12,11 @@ import java.util.stream.Collectors;
 
 public class ConsumableAdType {
 
+    private static final Map<String, Integer> SIZE_MAP = new HashMap<>();
+
+    private ConsumableAdType() {
+    }
+
     public static List<Integer> getSizeCodes(List<Format> formats) {
         if (CollectionUtils.isEmpty(formats)) {
             return Collections.emptyList();
@@ -22,8 +27,6 @@ public class ConsumableAdType {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
-
-    private static final Map<String, Integer> SIZE_MAP = new HashMap<>();
 
     static {
         SIZE_MAP.put("120x90", 1);
@@ -64,8 +67,5 @@ public class ConsumableAdType {
         SIZE_MAP.put("320x250", 331);
         SIZE_MAP.put("320x267", 3301);
         SIZE_MAP.put("728x250", 2730);
-    }
-
-    private ConsumableAdType() {
     }
 }

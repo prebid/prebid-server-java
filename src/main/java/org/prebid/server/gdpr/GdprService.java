@@ -211,8 +211,7 @@ public class GdprService {
 
             // confirm purposes
             final boolean purposesAreMatched = vendorIsAllowed
-                    ? verdictForPurposes.apply(purposeIds, vendorIdToPurposes.get(vendorId))
-                    : false;
+                    && verdictForPurposes.apply(purposeIds, vendorIdToPurposes.get(vendorId));
 
             result.put(vendorId, vendorIsAllowed && purposesAreMatched);
         }
