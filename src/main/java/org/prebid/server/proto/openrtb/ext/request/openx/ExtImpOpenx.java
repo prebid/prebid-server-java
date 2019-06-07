@@ -2,10 +2,11 @@ package org.prebid.server.proto.openrtb.ext.request.openx;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.math.BigDecimal;
-import java.util.Map;
 import lombok.Builder;
 import lombok.Value;
+
+import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * Defines the contract for bidrequest.imp[i].ext.openx

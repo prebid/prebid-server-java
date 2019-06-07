@@ -112,7 +112,6 @@ public class AuctionRequestFactory {
                 .map(interstitialProcessor::process);
     }
 
-
     /**
      * Parses request body to bid request. Throws {@link InvalidRequestException} if body is empty, exceeds max
      * request size or couldn't be deserialized to {@link BidRequest}.
