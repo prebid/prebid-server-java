@@ -16,6 +16,7 @@ import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
+import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
@@ -23,6 +24,7 @@ import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -269,41 +271,41 @@ public class BidderParamValidatorTest extends VertxTest {
         assertThat(messages.size()).isEqualTo(1);
     }
 
-//    @Test
-//    public void validateShouldNotReturnValidationMessagesWhenOpenxImpExtIsOk() {
-//        // given
-//        final ExtImpOpenx ext = ExtImpOpenx.builder()
-//                .customParams(Collections.singletonMap("foo", "bar"))
-//                .customFloor(BigDecimal.valueOf(0.2))
-//                .delDomain("se-demo-d.openx.net")
-//                .unit("2222")
-//                .build();
-//        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-//
-//        // when
-//        final Set<String> messages = bidderParamValidator.validate(OPENX, node);
-//
-//        // then
-//        assertThat(messages).isEmpty();
-//    }
-//
-//    @Test
-//    public void validateShouldReturnValidationMessagesWhenOpenxExtNotValid() {
-//        // given
-//        final ExtImpOpenx ext = ExtImpOpenx.builder()
-//                .customParams(Collections.singletonMap("foo", "bar"))
-//                .customFloor(BigDecimal.valueOf(0.2))
-//                .delDomain("se-demo-d.openx.net")
-//                .unit("not-numeric")
-//                .build();
-//        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-//
-//        // when
-//        final Set<String> messages = bidderParamValidator.validate(OPENX, node);
-//
-//        // then
-//        assertThat(messages.size()).isEqualTo(1);
-//    }
+    @Test
+    public void validateShouldNotReturnValidationMessagesWhenOpenxImpExtIsOk() {
+        // given
+        final ExtImpOpenx ext = ExtImpOpenx.builder()
+                .customParams(Collections.singletonMap("foo", "bar"))
+                .customFloor(BigDecimal.valueOf(0.2))
+                .delDomain("se-demo-d.openx.net")
+                .unit("2222")
+                .build();
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(OPENX, node);
+
+        // then
+        assertThat(messages).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenOpenxExtNotValid() {
+        // given
+        final ExtImpOpenx ext = ExtImpOpenx.builder()
+                .customParams(Collections.singletonMap("foo", "bar"))
+                .customFloor(BigDecimal.valueOf(0.2))
+                .delDomain("se-demo-d.openx.net")
+                .unit("not-numeric")
+                .build();
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(OPENX, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
+    }
 
 
     @Test
