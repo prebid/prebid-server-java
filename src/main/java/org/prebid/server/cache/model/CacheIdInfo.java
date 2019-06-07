@@ -10,6 +10,8 @@ import lombok.Value;
 @Value
 public class CacheIdInfo {
 
+    private static final CacheIdInfo EMPTY = CacheIdInfo.of(null, null);
+
     /**
      * Cache ID for whole bid
      */
@@ -19,4 +21,8 @@ public class CacheIdInfo {
      * Cache ID for VAST
      */
     String videoCacheId;
+
+    public static CacheIdInfo empty() {
+        return EMPTY;
+    }
 }

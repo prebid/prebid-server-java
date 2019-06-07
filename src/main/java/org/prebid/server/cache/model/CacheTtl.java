@@ -12,11 +12,13 @@ import lombok.Value;
 @Value
 public class CacheTtl {
 
+    private static final CacheTtl EMPTY = CacheTtl.of(null, null);
+
     Integer bannerCacheTtl;
 
     Integer videoCacheTtl;
 
     public static CacheTtl empty() {
-        return CacheTtl.of(null, null);
+        return EMPTY;
     }
 }

@@ -83,6 +83,14 @@
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"crid\":\"crid001\",\"adm\":\"adm001\",\"adid\":\"adid001\",\"cid\":\"cid001\"},{\"id\":\"bid002\",\"impid\":\"impId002\",\"price\":2,\"crid\":\"crid002\",\"adm\":\"adm002\",\"adid\":\"adid002\",\"cid\":\"cid002\"}]}]}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"adm\":\"adm001\",\"adid\":\"adid001\",\"cid\":\"cid001\",\"crid\":\"crid001\"}},{\"type\":\"json\",\"value\":{\"id\":\"bid002\",\"impid\":\"impId002\",\"price\":2,\"adm\":\"adm002\",\"adid\":\"adid002\",\"cid\":\"cid002\",\"crid\":\"crid002\"}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"},{\"uuid\":\"eaf3e2cd-57af-42d1-9daf-38836ae7bca7\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {

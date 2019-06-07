@@ -56,6 +56,14 @@
             "responsebody": "{\"id\":\"bidResponseId13\",\"seatbid\":[{\"bid\":[{\"id\":\"600527793\",\"impid\":\"impId13\",\"price\":5.78,\"adm\":\"adm+13\",\"crid\":\"crid13\",\"dealid\":\"dealId13\",\"w\":300,\"h\":250}],\"seat\":\"seatId13\",\"group\":0}]}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"600527793\",\"impid\":\"impId13\",\"price\":5.78,\"adm\":\"adm 13\",\"crid\":\"crid13\",\"dealid\":\"dealId13\",\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"1e6fb739-d0e7-4b7c-9b00-21aa40dc3301\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {
