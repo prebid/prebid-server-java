@@ -122,7 +122,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .doesNotContain(tuple("Accept-Language", "null"));
+                .doesNotContain(tuple("Accept-Language", null));
     }
 
     @Test
