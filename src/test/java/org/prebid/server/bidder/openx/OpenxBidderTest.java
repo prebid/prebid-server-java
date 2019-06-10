@@ -32,13 +32,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
@@ -465,18 +465,8 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(openxBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
     }
 
-    private static Map<String, JsonNode> stringJsonNodeMap(String key, List<String> values) {
-        Map<String, JsonNode> stringJsonNodeHashMap = new HashMap<>();
-        JsonNode jsonNode = mapper.valueToTree(values);
-        stringJsonNodeHashMap.put(key, jsonNode);
-        return stringJsonNodeHashMap;
-    }
-
-    private static Map<String, JsonNode> stringJsonNodeMap(String key, String value) {
-        Map<String, JsonNode> stringJsonNodeHashMap = new HashMap<>();
-        JsonNode jsonNode = mapper.valueToTree(value);
-        stringJsonNodeHashMap.put(key, jsonNode);
-        return stringJsonNodeHashMap;
+    private static Map<String, JsonNode> stringJsonNodeMap(String key, Object values) {
+        return singletonMap(key, mapper.valueToTree(values));
     }
 
     private static HttpCall givenHttpCall(String body) {

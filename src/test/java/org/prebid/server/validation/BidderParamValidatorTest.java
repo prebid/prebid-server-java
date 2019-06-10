@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -278,7 +277,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldNotReturnValidationMessagesWhenOpenxImpExtIsOk() {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
-                .customParams(Collections.singletonMap("foo", mapper.convertValue("bar",JsonNode.class)))
+                .customParams(Collections.singletonMap("foo", mapper.convertValue("bar", JsonNode.class)))
                 .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("2222")
@@ -296,7 +295,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessagesWhenOpenxExtNotValid() {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
-                .customParams(Collections.singletonMap("foo", mapper.convertValue("bar",JsonNode.class)))
+                .customParams(Collections.singletonMap("foo", mapper.convertValue("bar", JsonNode.class)))
                 .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("not-numeric")
