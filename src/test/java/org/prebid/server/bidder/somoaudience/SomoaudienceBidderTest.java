@@ -102,7 +102,7 @@ public class SomoaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersWhenRequestHeadersAreNull() {
+    public void makeHttpRequestsShouldTolerateMissingDeviceLanguage() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -120,18 +120,9 @@ public class SomoaudienceBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("http://somoaudience.com?s=placementId");
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple("x-openrtb-version", "2.5"),
-                        tuple("User-Agent", "User Agent"),
-                        tuple("X-Forwarded-For", "ip"),
-                        tuple("DNT", "1"));
+                .doesNotContain(tuple("Accept-Language", "null"));
     }
 
     @Test

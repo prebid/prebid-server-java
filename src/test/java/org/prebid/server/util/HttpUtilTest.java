@@ -12,7 +12,10 @@ import org.mockito.junit.MockitoRule;
 import java.util.Map;
 
 import static java.util.Collections.singleton;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
 
 public class HttpUtilTest {
