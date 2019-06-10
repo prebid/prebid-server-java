@@ -15,7 +15,11 @@
       "bidfloor": 0.1,
       "ext": {
         "customParams": {
-          "foo": "bar"
+          "foo": "bar",
+          "multifoo": [
+            "bar1",
+            "bar2"
+          ]
         }
       }
     },
