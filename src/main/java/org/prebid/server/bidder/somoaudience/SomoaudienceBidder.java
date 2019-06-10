@@ -154,9 +154,9 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
     }
 
     private static void addDeviceHeaders(MultiMap headers, Device device) {
-        headers.add("User-Agent", device.getUa());
-        headers.add("X-Forwarded-For", device.getIp());
-        headers.add("Accept-Language", device.getLanguage());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
 
         final Integer dnt = device.getDnt();
         headers.add("DNT", dnt != null ? dnt.toString() : "0");

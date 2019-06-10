@@ -102,6 +102,30 @@ public class SomoaudienceBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldTolerateMissingDeviceLanguage() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
+                        .build()))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                        null, "consent", null, null, null))).build())
+                .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language(null).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .doesNotContain(tuple("Accept-Language", null));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnCorrectRequestBodyAndUri() throws IOException {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(asList(

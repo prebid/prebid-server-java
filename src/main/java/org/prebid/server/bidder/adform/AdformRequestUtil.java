@@ -37,7 +37,6 @@ class AdformRequestUtil {
         return extUser;
     }
 
-
     /**
      * Retrieves gdpr from regs.ext.gdpr and in case of any exception or invalid values returns empty string.
      */
