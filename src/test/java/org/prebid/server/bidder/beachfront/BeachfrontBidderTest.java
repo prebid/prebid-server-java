@@ -673,7 +673,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldTreatEmptyArrayInResponseAsEmptyResponse() {
-
+        // given
         final BeachfrontVideoRequest beachfrontVideoRequest = BeachfrontVideoRequest.builder()
                 .imp(singletonList(
                         BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), null, null, "impIdReq", 1))).build();

@@ -102,8 +102,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final BeachfrontVideoRequest beachfrontVideoRequest = makeVideoRequest(bidRequest, errors);
 
         return Result.of(Collections.singletonList(
-                getHttpRequestBuilderWithDeviceHeaders(bidRequest.getDevice())
-                        .method(HttpMethod.POST)
+                httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
                         .uri(String.format("%s%s%s", endpoint, beachfrontVideoRequest.getAppId(),
                                 VIDEO_ENDPOINT_SUFFIX))
                         .body(Json.encode(beachfrontVideoRequest))
@@ -121,8 +120,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final BeachfrontBannerRequest beachfrontBannerRequest = makeBannerRequest(bidRequest, bidRequest.getImp(),
                 errors);
         return Result.of(Collections.singletonList(
-                getHttpRequestBuilderWithDeviceHeaders(bidRequest.getDevice())
-                        .method(HttpMethod.POST)
+                httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
                         .uri(endpoint)
                         .body(Json.encode(beachfrontBannerRequest))
                         .payload(BeachfrontRequests.of(beachfrontBannerRequest, null))
@@ -130,13 +128,13 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
                 makeBadInputErrors(errors));
     }
 
-    //Also can include body as Object parameter, and set method POST by defoult
-    private static HttpRequestBuilder<BeachfrontRequests> getHttpRequestBuilderWithDeviceHeaders(Device device) {
+    private static HttpRequestBuilder<BeachfrontRequests> httpRequestBuilderWithPopulatedHeadersAndMethod(
+            Device device, HttpMethod httpMethod) {
         final MultiMap headers = BidderUtil.headers();
         if (device != null) {
             addDeviceHeaders(headers, device);
         }
-        return HttpRequest.<BeachfrontRequests>builder().headers(headers);
+        return HttpRequest.<BeachfrontRequests>builder().method(httpMethod).headers(headers);
     }
 
     private static void addDeviceHeaders(MultiMap headers, Device device) {
