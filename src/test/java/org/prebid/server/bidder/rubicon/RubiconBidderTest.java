@@ -655,6 +655,25 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSuppressExtPrebidIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().build()))),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .containsOnly(mapper.valueToTree(ExtBidRequest.of(null)));
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateRequestPerImp() {
         // given
         final Imp imp = givenImp(builder -> builder.video(Video.builder().build()));
