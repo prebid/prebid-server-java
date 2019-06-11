@@ -141,9 +141,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
-
-        final Integer dnt = device.getDnt();
-        headers.add("DNT", dnt != null ? dnt.toString() : "0");
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
     }
 
     /**

@@ -108,8 +108,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("User-Agent", "ua"),
-                        tuple("X-Forwarded-For", "127.0.0.1"),
-                        tuple("DNT", "0"));
+                        tuple("X-Forwarded-For", "127.0.0.1"));
 
         assertThat(result.getValue()).
                 extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
