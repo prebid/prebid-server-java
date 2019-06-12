@@ -200,6 +200,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .site(makeSite(site, rubiconImpExt))
                 .app(makeApp(app, rubiconImpExt))
                 .cur(null) // suppress currencies
+                .ext(null) // suppress ext
                 .build();
     }
 
