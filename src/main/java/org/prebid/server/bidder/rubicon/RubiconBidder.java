@@ -200,7 +200,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .site(makeSite(site, rubiconImpExt))
                 .app(makeApp(app, rubiconImpExt))
                 .cur(null) // suppress currencies
-                .ext(makeExt(bidRequest))
+                .ext(null) // suppress ext
                 .build();
     }
 
@@ -507,13 +507,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static RubiconAppExt makeAppExt(ExtImpRubicon rubiconImpExt) {
         return RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
-    }
-
-    /**
-     * Suppresses ext.prebid object if {@link ExtBidRequest} is present in request or returns null otherwise.
-     */
-    private static ObjectNode makeExt(BidRequest bidRequest) {
-        return bidRequest.getExt() != null ? Json.mapper.valueToTree(ExtBidRequest.of(null)) : null;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {

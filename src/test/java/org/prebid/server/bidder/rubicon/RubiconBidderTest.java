@@ -655,7 +655,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSuppressExtPrebidIfPresent() {
+    public void makeHttpRequestsShouldSuppressExtIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().build()))),
@@ -669,8 +669,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt)
-                .containsOnly(mapper.valueToTree(ExtBidRequest.of(null)));
+                .extracting(BidRequest::getExt).hasSize(1).containsNull();
     }
 
     @Test
