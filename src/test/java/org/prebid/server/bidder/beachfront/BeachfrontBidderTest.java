@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.junit.Before;
@@ -38,7 +37,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -90,7 +88,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .user(User.builder().id("userId").buyeruid("buyerId").build())
-                .device(Device.builder().ua("ua").ip("127.0.0.1").build())
+                .device(Device.builder().ua("ua").ip("127.0.0.1").language(null).build())
                 .app(App.builder().domain("appDomain").id("appId").build())
                 .build();
 
@@ -101,14 +99,19 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getUri).containsOnly(
                 "http://video-beachfront.com?exchange_id=appIdExt&prebidserver");
 
+        assertThat(result.getErrors()).isEmpty();
+
         assertThat(result.getValue()).
                 flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"),
+                        tuple("User-Agent", "ua"),
+                        tuple("X-Forwarded-For", "127.0.0.1"));
 
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
+        assertThat(result.getValue()).
+                extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
                 BeachfrontVideoRequest.builder().isPrebid(true).appId("appIdExt")
                         .imp(singletonList(BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), 1f, 0, "impId", 1)))
                         .site(Site.builder().domain("appDomain").page("appId").build())
@@ -402,7 +405,6 @@ public class BeachfrontBidderTest extends VertxTest {
                 .device(Device.builder().ip("127.0.0.1").model("model").os("os").dnt(5).ua("ua").build())
                 .user(User.builder().buyeruid("buyeruid").id("userId").build())
                 .app(App.builder().domain("rubicon.com").id("appId").build())
-
                 .build();
 
         // when
@@ -416,15 +418,19 @@ public class BeachfrontBidderTest extends VertxTest {
                 flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"),
+                        tuple("User-Agent", "ua"),
+                        tuple("X-Forwarded-For", "127.0.0.1"),
+                        tuple("DNT", "5"));
+
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder()
                         .slots(singletonList(BeachfrontSlot.of("impId1", "appIdExt", BigDecimal.valueOf(1.0),
                                 asList(BeachfrontSize.of(100, 200), BeachfrontSize.of(300, 400)))))
                         .domain("rubicon.com").page("appId").deviceOs("os").deviceModel("model")
                         .ua("ua").dnt(5).user(User.builder().id("userId").buyeruid("buyeruid").build())
-                        .adapterName("BF_PREBID_S2S").adapterVersion("0.2.2")
+                        .adapterName("BF_PREBID_S2S").adapterVersion("0.3.0")
                         .ip("127.0.0.1").secure(1).requestId("request id")
                         .build()));
     }
@@ -548,7 +554,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 BeachfrontSlot.of("impId2", "appIdExt", BigDecimal.valueOf(2),
                                         singletonList(BeachfrontSize.of(200, 300)))))
                         .adapterName("BF_PREBID_S2S")
-                        .adapterVersion("0.2.2")
+                        .adapterVersion("0.3.0")
                         .build()));
     }
 
@@ -570,7 +576,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                                 singletonList(BeachfrontSize.of(null, null)))))
                         .adapterName("BF_PREBID_S2S")
-                        .adapterVersion("0.2.2")
+                        .adapterVersion("0.3.0")
                         .build()));
     }
 
@@ -594,7 +600,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                         singletonList(BeachfrontSize.of(null, null))))).domain("rubiconapp.com").page(
                         "appId").adapterName("BF_PREBID_S2S")
-                        .adapterVersion("0.2.2").build()));
+                        .adapterVersion("0.3.0").build()));
     }
 
     @Test
@@ -614,7 +620,7 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                         singletonList(BeachfrontSize.of(null, null))))).domain("rubiconpage.com")
-                        .page("http://rubiconpage.com/adunits").adapterName("BF_PREBID_S2S").adapterVersion("0.2.2")
+                        .page("http://rubiconpage.com/adunits").adapterName("BF_PREBID_S2S").adapterVersion("0.3.0")
                         .build()));
     }
 
@@ -643,7 +649,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().seatbid(singletonList(
                 SeatBid.builder().bid(singletonList(Bid.builder().h(100).w(200).id("bidId")
-                        .price(BigDecimal.ONE).nurl("\"nurl1\"nurl2\"nurl3").impid("impId").crid("crid")
+                        .price(BigDecimal.ONE).nurl("\"nurl1\"nurl2\"nurl3").impid("impIdReq").crid("crid")
                         .build())).build())).build());
 
         final BeachfrontVideoRequest beachfrontVideoRequest = BeachfrontVideoRequest.builder()
@@ -662,6 +668,27 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .id("bidRequestId").impid("impIdReq").price(BigDecimal.ONE).w(300).h(400).crid("nurl2")
                 .nurl("\"nurl1\"nurl2\"nurl3").build(), BidType.video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldTreatEmptyArrayInResponseAsEmptyResponse() {
+        // given
+        final BeachfrontVideoRequest beachfrontVideoRequest = BeachfrontVideoRequest.builder()
+                .imp(singletonList(
+                        BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), null, null, "impIdReq", 1))).build();
+
+        final BidRequest bidRequest = BidRequest.builder().id("bidRequestId")
+                .imp(singletonList(Imp.builder().video(Video.builder().build()).build())).build();
+
+        final HttpCall<BeachfrontRequests> httpCall = givenHttpCall("[]", beachfrontVideoRequest);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
