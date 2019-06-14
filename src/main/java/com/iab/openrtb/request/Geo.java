@@ -18,10 +18,14 @@ import lombok.Value;
 @Value
 public class Geo {
 
-    /** Latitude from -90.0 to +90.0, where negative is south. */
+    /**
+     * Latitude from -90.0 to +90.0, where negative is south.
+     */
     Float lat;
 
-    /** Longitude from -180.0 to +180.0, where negative is west. */
+    /**
+     * Longitude from -180.0 to +180.0, where negative is west.
+     */
     Float lon;
 
     /**
@@ -51,10 +55,14 @@ public class Geo {
      */
     Integer ipservice;
 
-    /** Country code using ISO-3166-1-alpha-3. */
+    /**
+     * Country code using ISO-3166-1-alpha-3.
+     */
     String country;
 
-    /** Region code using ISO-3166-2; 2-letter state code if USA. */
+    /**
+     * Region code using ISO-3166-2; 2-letter state code if USA.
+     */
     String region;
 
     /**
@@ -75,12 +83,25 @@ public class Geo {
      */
     String city;
 
-    /** Zip or postal code. */
+    /**
+     * Zip or postal code.
+     */
     String zip;
 
-    /** Local time as the number +/- of minutes from UTC. */
+    /**
+     * Local time as the number +/- of minutes from UTC.
+     */
     Integer utcoffset;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
+
+    /**
+     * Return true if all fields are not defined.
+     */
+    public boolean isEmpty() {
+        return this.equals(Geo.builder().build());
+    }
 }

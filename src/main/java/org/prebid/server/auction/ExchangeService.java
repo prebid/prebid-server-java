@@ -609,7 +609,7 @@ public class ExchangeService {
                 if (coppaMaskingRequired || gdprMaskingRequired) {
                     builder
                             .buyeruid(null)
-                            .geo(maskGeo(user.getGeo(), coppaMaskingRequired));
+                            .geo(coppaMaskingRequired ? maskGeoForCoppa(user.getGeo()) : maskGeoForGdpr(user.getGeo()));
                 }
             } else {
                 builder = User.builder();
@@ -654,6 +654,35 @@ public class ExchangeService {
     }
 
     /**
+     * Returns masked for COPPA {@link Geo}.
+     */
+    private static Geo maskGeoForCoppa(Geo geo) {
+        final Geo updatedGeo = geo != null
+                ? geo.toBuilder().lat(null).lon(null).metro(null).city(null).zip(null).build()
+                : null;
+        return updatedGeo == null || updatedGeo.isEmpty() ? null : updatedGeo;
+    }
+
+    /**
+     * Returns masked for GDPR {@link Geo} by rounding lon and lat properties.
+     */
+    private static Geo maskGeoForGdpr(Geo geo) {
+        return geo != null
+                ? geo.toBuilder()
+                .lat(maskGeoCoordinate(geo.getLat()))
+                .lon(maskGeoCoordinate(geo.getLon()))
+                .build()
+                : null;
+    }
+
+    /**
+     * Returns masked geo coordinate with rounded value to two decimals.
+     */
+    private static Float maskGeoCoordinate(Float coordinate) {
+        return coordinate != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(coordinate)) : null;
+    }
+
+    /**
      * Prepares device, suppresses device information if COPPA or GDPR masking is required.
      */
     private static Device prepareDevice(Device device, boolean coppaMaskingRequired, boolean gdprMaskingRequired) {
@@ -661,7 +690,7 @@ public class ExchangeService {
                 ? device.toBuilder()
                 .ip(maskIpv4(device.getIp()))
                 .ipv6(maskIpv6(device.getIpv6()))
-                .geo(maskGeo(device.getGeo(), coppaMaskingRequired))
+                .geo(coppaMaskingRequired ? maskGeoForCoppa(device.getGeo()) : maskGeoForGdpr(device.getGeo()))
                 .ifa(null)
                 .macsha1(null).macmd5(null)
                 .dpidsha1(null).dpidmd5(null)
@@ -689,30 +718,6 @@ public class ExchangeService {
      */
     private static String maskIp(String ip, char delimiter) {
         return StringUtils.isNotEmpty(ip) ? ip.substring(0, ip.lastIndexOf(delimiter) + 1) + "0" : ip;
-    }
-
-    /**
-     * Masks {@link Geo} by rounding lon and lat properties.
-     * <p>
-     * Also, removes metro, city and zip properties if COPPA masking is required.
-     */
-    private static Geo maskGeo(Geo geo, boolean coppaMaskingRequired) {
-        return geo != null
-                ? geo.toBuilder()
-                .lat(maskGeoCoordinate(geo.getLat()))
-                .lon(maskGeoCoordinate(geo.getLon()))
-                .metro(coppaMaskingRequired ? null : geo.getMetro())
-                .city(coppaMaskingRequired ? null : geo.getCity())
-                .zip(coppaMaskingRequired ? null : geo.getZip())
-                .build()
-                : null;
-    }
-
-    /**
-     * Returns masked geo coordinate with rounded value to two decimals.
-     */
-    private static Float maskGeoCoordinate(Float coordinate) {
-        return coordinate != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(coordinate)) : null;
     }
 
     /**

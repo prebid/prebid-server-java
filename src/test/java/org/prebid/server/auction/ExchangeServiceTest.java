@@ -492,9 +492,11 @@ public class ExchangeServiceTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null)))
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
                 .build());
-        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
+        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder()
+                .ip("192.168.0.0")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
-                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
+                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
+                .build());
         assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
     }
 
@@ -666,7 +668,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .device(Device.builder()
                                 .ip("192.168.0.10")
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
-                                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F)
+                                .geo(Geo.builder().country("US").lon(-85.34321F).lat(189.342323F)
                                         .metro("metro").city("city").zip("zip").build())
                                 .ifa("ifa")
                                 .macsha1("macsha1")
@@ -687,11 +689,13 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
                 .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null)))
-                .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
+                .geo(null)
                 .build());
-        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
+        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder()
+                .ip("192.168.0.0")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
-                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
+                .geo(Geo.builder().country("US").build())
+                .build());
         assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(0))));
     }
 
