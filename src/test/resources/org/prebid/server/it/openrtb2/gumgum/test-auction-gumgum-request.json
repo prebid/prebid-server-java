@@ -109,12 +109,12 @@
   },
   "user": {
     "ext": {
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      },
-      "consent": "consentValue"
+      }
     }
   },
   "regs": {

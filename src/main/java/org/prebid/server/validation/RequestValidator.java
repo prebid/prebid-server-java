@@ -456,11 +456,11 @@ public class RequestValidator {
      * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
      */
     private void validateRegs(Regs regs) throws ValidationException {
-        if (regs != null) {
+        if (regs != null && regs.getExt() != null) {
             try {
                 final ExtRegs extRegs = Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
                 final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
-                if (gdpr != null && (gdpr < 0 || gdpr > 1)) {
+                if (gdpr != null && gdpr != 0 && gdpr != 1) {
                     throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
                 }
             } catch (JsonProcessingException e) {

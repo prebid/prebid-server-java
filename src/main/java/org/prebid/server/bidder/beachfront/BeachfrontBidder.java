@@ -413,7 +413,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
             return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
         }
 
-        //Beachfront sending an empty array and 200 as their "no results" response.
+        // Beachfront sending an empty array and 200 as their "no results" response.
         if (bodyString.equals("[]")) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }

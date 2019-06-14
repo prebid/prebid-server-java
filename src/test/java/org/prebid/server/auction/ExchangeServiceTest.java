@@ -330,53 +330,6 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskUserAndDevicePropertiesIfGdprIsEnforcedForBidderAndGdprServiceRespondThatGdprIsEnabled() {
-        // given
-        final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("someBidder", bidder, givenEmptySeatBid());
-
-        final Map<String, String> uids = singletonMap("someBidder", "uidval");
-
-        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(15, false), null)));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .user(User.builder().ext(mapper.valueToTree(
-                                ExtUser.of(ExtUserPrebid.of(uids), null, null, null, null)))
-                                .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).build())
-                                .build())
-                        .device(Device.builder()
-                                .ip("192.168.0.10")
-                                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
-                                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                                .ifa("ifa")
-                                .macsha1("macsha1")
-                                .macmd5("macmd5")
-                                .didsha1("didsha1")
-                                .didmd5("didmd5")
-                                .dpidsha1("dpidsha1")
-                                .dpidmd5("dpidmd5")
-                                .build()));
-
-        // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
-
-        // then
-        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(httpBidderRequester).requestBids(same(bidder), bidRequestCaptor.capture(), any(), anyBoolean());
-        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
-        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
-                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null)))
-                .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
-                .build());
-        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
-                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
-                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
-        assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
-    }
-
-    @Test
     public void shouldNotChangeRequestIfEnforcedForBidderIsTrueAndGdprServiceRespondThatGdprIsNotEnabled() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -496,6 +449,53 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
                 .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null))).build());
+    }
+
+    @Test
+    public void shouldMaskUserAndDevicePropertiesIfGdprIsEnforcedForBidderAndGdprServiceRespondThatGdprIsEnabled() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final Map<String, String> uids = singletonMap("someBidder", "uidval");
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(15, false), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(uids), null, null, null, null)))
+                                .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).build())
+                                .build())
+                        .device(Device.builder()
+                                .ip("192.168.0.10")
+                                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+                                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                                .ifa("ifa")
+                                .macsha1("macsha1")
+                                .macmd5("macmd5")
+                                .didsha1("didsha1")
+                                .didmd5("didmd5")
+                                .dpidsha1("dpidsha1")
+                                .dpidmd5("dpidmd5")
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder), bidRequestCaptor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null)))
+                .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
+                .build());
+        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
+                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
+                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
+        assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
     }
 
     @Test
@@ -640,6 +640,59 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .extracting(User::getBuyeruid)
                 .containsOnly("should_not_be_masked");
+    }
+
+    @Test
+    public void shouldApplyMaskingForUserAndDeviceIfCoppaPassedInRequest() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final Map<String, String> uids = singletonMap("someBidder", "uidval");
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(false, emptyMap(), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(uids), null, null, null, null)))
+                                .geo(Geo.builder().lon(-85.1245F).lat(189.9531F)
+                                        .metro("metro").city("city").zip("zip").build())
+                                .id("userId")
+                                .yob(2019)
+                                .gender("gender")
+                                .build())
+                        .device(Device.builder()
+                                .ip("192.168.0.10")
+                                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+                                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F)
+                                        .metro("metro").city("city").zip("zip").build())
+                                .ifa("ifa")
+                                .macsha1("macsha1")
+                                .macmd5("macmd5")
+                                .didsha1("didsha1")
+                                .didmd5("didmd5")
+                                .dpidsha1("dpidsha1")
+                                .dpidmd5("dpidmd5")
+                                .build())
+                        .regs(Regs.of(1, mapper.valueToTree(ExtRegs.of(0)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder), bidRequestCaptor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null)))
+                .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
+                .build());
+        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
+                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
+                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
+        assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(0))));
     }
 
     @Test
