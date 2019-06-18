@@ -18,7 +18,7 @@ import lombok.Value;
 @Value
 public class Geo {
 
-    private static final Geo EMPTY = Geo.builder().build();
+    public static final Geo EMPTY = Geo.builder().build();
 
     /**
      * Latitude from -90.0 to +90.0, where negative is south.
@@ -99,11 +99,4 @@ public class Geo {
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ObjectNode ext;
-
-    /**
-     * Return true if all fields are not defined.
-     */
-    public static boolean isEmpty(Geo geo) {
-        return geo == null || geo.equals(EMPTY);
-    }
 }

@@ -660,7 +660,7 @@ public class ExchangeService {
         final Geo updatedGeo = geo != null
                 ? geo.toBuilder().lat(null).lon(null).metro(null).city(null).zip(null).build()
                 : null;
-        return Geo.isEmpty(updatedGeo) ? null : updatedGeo;
+        return updatedGeo == null || updatedGeo.equals(Geo.EMPTY) ? null : updatedGeo;
     }
 
     /**
