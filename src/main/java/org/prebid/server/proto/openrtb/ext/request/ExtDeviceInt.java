@@ -11,7 +11,7 @@ import lombok.Value;
 @Value
 public class ExtDeviceInt {
 
-    @JsonProperty("minwidtheperc")
+    @JsonProperty("minwidthperc")
     Integer minWidthPerc;
 
     @JsonProperty("minheightperc")

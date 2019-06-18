@@ -47,7 +47,7 @@
     "ext": {
       "prebid": {
         "interstitial": {
-          "minwidtheperc": 50,
+          "minwidthperc": 50,
           "minheightperc": 60
         }
       }
