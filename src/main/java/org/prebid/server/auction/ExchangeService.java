@@ -1416,8 +1416,8 @@ public class ExchangeService {
             return ExtHttpCall.builder()
                     .uri(request.getUri())
                     .requestbody(request.getBody())
-                    .status(response.getStatusCode())
-                    .responsebody(response.getBody())
+                    .status(response != null ? response.getStatusCode() : null)
+                    .responsebody(response != null ? response.getBody() : null)
                     .build();
         }
         return null;
