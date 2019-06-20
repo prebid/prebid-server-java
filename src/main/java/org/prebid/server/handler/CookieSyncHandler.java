@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
@@ -116,11 +117,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final List<String> biddersFromRequest = cookieSyncRequest.getBidders();
-
-        // if bidder list was omitted in request, that means sync should be done for all bidders
-        final Collection<String> biddersToSync = biddersFromRequest == null
-                ? bidderCatalog.names() : biddersFromRequest;
+        final Collection<String> biddersToSync = biddersToSync(cookieSyncRequest.getBidders());
 
         final Set<Integer> vendorIds = gdprVendorIdsFor(biddersToSync);
         vendorIds.add(gdprHostVendorId);
@@ -132,6 +129,17 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 timeoutFactory.create(defaultTimeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, biddersToSync,
                         gdprAsString, gdprConsent, cookieSyncRequest.getLimit()));
+    }
+
+    /**
+     * Returns bidder names to sync.
+     * <p>
+     * If bidder list was omitted in request, that means sync should be done for all bidders.
+     */
+    private Collection<String> biddersToSync(List<String> biddersFromRequest) {
+        return CollectionUtils.isEmpty(biddersFromRequest)
+                ? bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet())
+                : biddersFromRequest;
     }
 
     /**
