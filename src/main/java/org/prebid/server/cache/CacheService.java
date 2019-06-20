@@ -208,6 +208,8 @@ public class CacheService {
 
     /**
      * Fetches {@link CacheTtl} for the given account.
+     * <p>
+     * This data is not critical, so returns empty {@link CacheTtl} if any error occurred.
      */
     private Future<CacheTtl> accountCacheTtlFrom(boolean impWithNoExpExists, String publisherId, Timeout timeout) {
         return impWithNoExpExists && StringUtils.isNotEmpty(publisherId)
@@ -221,7 +223,7 @@ public class CacheService {
     private Future<CacheTtl> makeCacheTtl(String publisherId, Timeout timeout) {
         return applicationSettings.getAccountById(publisherId, timeout)
                 .map(CacheService::cacheTtlFrom)
-                .otherwise(CacheService::fallbackResult);
+                .otherwise(CacheService::accountFallback);
     }
 
     /**
@@ -234,9 +236,9 @@ public class CacheService {
     }
 
     /**
-     * Returns empty {@link CacheTtl} result.
+     * Returns empty {@link CacheTtl} if account is not found or any exception occurred.
      */
-    private static CacheTtl fallbackResult(Throwable exception) {
+    private static CacheTtl accountFallback(Throwable exception) {
         if (!(exception instanceof PreBidException)) {
             logger.warn("Error occurred while fetching account", exception);
         }

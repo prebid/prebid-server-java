@@ -34,13 +34,21 @@ public class EventsService {
                 String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, VIEW_EVENT_TYPE, bidId, bidder));
     }
 
+    /**
+     * Returns events enabled flag for the given account.
+     * <p>
+     * This data is not critical, so returns false if any error occurred.
+     */
     public Future<Boolean> isEventsEnabled(String publisherId, Timeout timeout) {
         return applicationSettings.getAccountById(publisherId, timeout)
                 .map(account -> ObjectUtils.defaultIfNull(account.getEventsEnabled(), false))
-                .otherwise(EventsService::fallbackResult);
+                .otherwise(EventsService::accountFallback);
     }
 
-    private static boolean fallbackResult(Throwable exception) {
+    /**
+     * Returns false if account is not found or any exception occurred.
+     */
+    private static Boolean accountFallback(Throwable exception) {
         if (!(exception instanceof PreBidException)) {
             logger.warn("Error occurred while fetching account", exception);
         }
