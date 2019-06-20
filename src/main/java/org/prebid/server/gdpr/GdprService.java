@@ -68,21 +68,28 @@ public class GdprService {
         return isValidGdpr(gdpr)
                 ? Future.succeededFuture(gdpr.equals(GDPR_ONE))
                 : isGdprEnforcedByAccount(accountId, timeout)
-                .map(gdprEnforced -> ObjectUtils.firstNonNull(gdprEnforced, !vendorIds.isEmpty()));
+                .map(gdprEnforced -> ObjectUtils.defaultIfNull(gdprEnforced, !vendorIds.isEmpty()));
     }
 
+    /**
+     * Returns enforce GDPR flag for the given account.
+     * <p>
+     * This data is not critical, so returns null if any error occurred.
+     */
     private Future<Boolean> isGdprEnforcedByAccount(String accountId, Timeout timeout) {
         return applicationSettings.getAccountById(accountId, timeout)
                 .map(Account::getEnforceGdpr)
-                .recover(GdprService::accountFallback);
+                .otherwise(GdprService::accountFallback);
     }
 
-    private static Future<Boolean> accountFallback(Throwable exception) {
-        if (exception instanceof PreBidException) {
-            return Future.succeededFuture(); // no worry, account not found
+    /**
+     * Returns null if account is not found or any exception occurred.
+     */
+    private static Boolean accountFallback(Throwable exception) {
+        if (!(exception instanceof PreBidException)) {
+            logger.warn("Error occurred while fetching account", exception);
         }
-        logger.warn("Error occurred while fetching account", exception);
-        return Future.failedFuture(exception);
+        return null;
     }
 
     /**

@@ -78,10 +78,24 @@ public class GdprServiceTest {
     }
 
     @Test
-    public void isGdprEnforcedShouldConsiderGdprEnforcedVendors() {
+    public void isGdprEnforcedShouldConsiderGdprEnforcedVendorsIfApplicationSettingsReturnsEmptyResult() {
         // given
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
+
+        // when
+        final Future<Boolean> future = gdprService.isGdprEnforced(null, null, singleton(1), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isTrue();
+    }
+
+    @Test
+    public void isGdprEnforcedShouldConsiderGdprEnforcedVendorsIfApplicationSettingFailed() {
+        // given
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException("exception")));
 
         // when
         final Future<Boolean> future = gdprService.isGdprEnforced(null, null, singleton(1), null);

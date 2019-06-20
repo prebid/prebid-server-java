@@ -31,15 +31,16 @@ public class EventsServiceTest {
     @Mock
     private ApplicationSettings applicationSettings;
 
-    private Timeout timeout;
-
     private EventsService eventsService;
+
+    private Timeout timeout;
 
     @Before
     public void setUp() {
+        eventsService = new EventsService(applicationSettings, "http://external.org");
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
-        eventsService = new EventsService(applicationSettings, "http://external.org");
     }
 
     @Test
@@ -49,11 +50,11 @@ public class EventsServiceTest {
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(false).build()));
 
         // when
-        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
+        final Future<Boolean> future = eventsService.isEventsEnabled("publisherId", timeout);
 
         // then
-        assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isFalse();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isFalse();
     }
 
     @Test
@@ -63,25 +64,39 @@ public class EventsServiceTest {
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
 
         // when
-        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
+        final Future<Boolean> future = eventsService.isEventsEnabled("publisherId", timeout);
 
         // then
-        assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isTrue();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isTrue();
     }
 
     @Test
-    public void isEventEnabledShouldReturnFalseWhenApplicationSettingsReturnedFailedFuture() {
+    public void isEventEnabledShouldReturnFalseWhenApplicationSettingsReturnsEmptyResult() {
         // given
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
 
         // when
-        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
+        final Future<Boolean> future = eventsService.isEventsEnabled("publisherId", timeout);
 
         // then
-        assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isFalse();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isFalse();
+    }
+
+    @Test
+    public void isEventEnabledShouldReturnFalseWhenApplicationSettingFailed() {
+        // given
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException("exception")));
+
+        // when
+        final Future<Boolean> future = eventsService.isEventsEnabled("publisherId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isFalse();
     }
 
     @Test

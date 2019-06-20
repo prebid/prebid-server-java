@@ -1246,6 +1246,15 @@ public class ExchangeService {
     }
 
     /**
+     * Creates a map with {@link Bid} as a key and null as a value.
+     */
+    private static Map<Bid, CacheIdInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
+        final Map<Bid, CacheIdInfo> result = new HashMap<>(bids.size());
+        bids.forEach(bid -> result.put(bid, CacheIdInfo.empty()));
+        return result;
+    }
+
+    /**
      * Adds bids with no cache id info.
      */
     private static CacheServiceResult addNotCachedBids(CacheServiceResult cacheResult, Set<Bid> bids) {
@@ -1264,15 +1273,6 @@ public class ExchangeService {
     }
 
     /**
-     * Creates a map with {@link Bid} as a key and null as a value.
-     */
-    private static Map<Bid, CacheIdInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
-        final Map<Bid, CacheIdInfo> result = new HashMap<>(bids.size());
-        bids.forEach(bid -> result.put(bid, CacheIdInfo.empty()));
-        return result;
-    }
-
-    /**
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
@@ -1284,9 +1284,8 @@ public class ExchangeService {
                                                    boolean eventsEnabled, boolean debugEnabled) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
-                .map(bidderResponse ->
-                        toSeatBid(bidderResponse, keywordsCreator, keywordsCreatorByBidType, cacheResult,
-                                winningBids, winningBidsByBidder, cacheInfo, eventsEnabled))
+                .map(bidderResponse -> toSeatBid(bidderResponse, keywordsCreator, keywordsCreatorByBidType, cacheResult,
+                        winningBids, winningBidsByBidder, cacheInfo, eventsEnabled))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
