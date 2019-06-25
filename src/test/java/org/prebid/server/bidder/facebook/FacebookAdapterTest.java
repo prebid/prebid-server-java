@@ -154,8 +154,7 @@ public class FacebookAdapterTest extends VertxTest {
         adapterRequest = givenBidder(builder -> builder
                 .mediaTypes(new HashSet<>(singletonList(MediaType.banner)))
                 .instl(0)
-                .sizes(singletonList(Format.builder().h(42).build()))
-        );
+                .sizes(singletonList(Format.builder().h(42).build())));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
@@ -198,8 +197,7 @@ public class FacebookAdapterTest extends VertxTest {
                         .mediaTypes(singleton(MediaType.video))
                         .video(Video.builder()
                                 .mimes(emptyList())
-                                .build())
-                )));
+                                .build()))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
@@ -213,8 +211,7 @@ public class FacebookAdapterTest extends VertxTest {
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
-                        .mediaTypes(emptySet())
-                )));
+                        .mediaTypes(emptySet()))));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
@@ -234,8 +231,7 @@ public class FacebookAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .params(mapper.valueToTree(FacebookParams.of("pub1_place1")))
-                        .sizes(singletonList(Format.builder().w(300).h(250).build()))
-        );
+                        .sizes(singletonList(Format.builder().w(300).h(250).build())));
 
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -246,10 +242,10 @@ public class FacebookAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
-        );
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -289,7 +285,7 @@ public class FacebookAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

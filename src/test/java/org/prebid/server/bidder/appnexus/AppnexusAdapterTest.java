@@ -176,8 +176,7 @@ public class AppnexusAdapterTest extends VertxTest {
                 givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(emptySet()),
-                        identity()
-                )));
+                        identity())));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
@@ -227,14 +226,14 @@ public class AppnexusAdapterTest extends VertxTest {
                         .ua("userAgent"),
                 builder -> builder
                         .tid("tid1")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .timeoutMillis(1500L)
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
-                                .build())
-        );
+                                .build()));
 
         given(uidsCookie.uidFrom(eq(COOKIE_FAMILY))).willReturn("buyerUid");
 
@@ -277,7 +276,7 @@ public class AppnexusAdapterTest extends VertxTest {
                         .user(User.builder()
                                 .buyeruid("buyerUid")
                                 .id("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
@@ -332,8 +331,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                         .mimes(singletonList("Mime"))
                                         .playbackMethod(1)
                                         .build()),
-                        identity()
-                )));
+                        identity())));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
@@ -353,8 +351,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .tagid("30011")
                                 .ext(mapper.valueToTree(AppnexusImpExt.of(
                                         AppnexusImpExtAppnexus.of(9848285, null, null, null, null))))
-                                .build()
-                );
+                                .build());
     }
 
     @Test
@@ -397,8 +394,7 @@ public class AppnexusAdapterTest extends VertxTest {
                 tuple(
                         "legacyInvCode1",
                         mapper.valueToTree(AppnexusImpExt.of(
-                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))
-                ));
+                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))));
     }
 
     @Test

@@ -246,18 +246,15 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (id).
      */
     private User populateUser(User user, RoutingContext context) {
-        User result = null;
-
         final String id = user != null ? user.getId() : null;
         if (StringUtils.isBlank(id)) {
             final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
             if (StringUtils.isNotBlank(parsedId)) {
                 final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-                builder.id(parsedId);
-                result = builder.build();
+                return builder.id(parsedId).build();
             }
         }
-        return result;
+        return null;
     }
 
     /**

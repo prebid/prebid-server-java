@@ -38,8 +38,8 @@ public class AdformRequestUtilTest {
     @Test
     public void getExtUserShouldReturnNullIfExtUserIsInvalidJSON() throws IOException {
         // given and when
-        final ExtUser extUser = AdformRequestUtil.getExtUser(User.builder().ext(
-                (ObjectNode) mapper.readTree("{\"prebid\":1}")).build());
+        final ExtUser extUser = AdformRequestUtil.getExtUser(User.builder()
+                .ext((ObjectNode) mapper.readTree("{\"prebid\":1}")).build());
 
         // then
         assertThat(extUser).isNull();
@@ -49,10 +49,10 @@ public class AdformRequestUtilTest {
     public void getExtUserShouldReturnExtUser() {
         // given and when
         final ExtUser extUser = AdformRequestUtil.getExtUser(User.builder()
-                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.builder().build())).build());
 
         // then
-        assertThat(extUser).isEqualTo(ExtUser.of(null, null, null, null, null));
+        assertThat(extUser).isEqualTo(ExtUser.builder().build());
     }
 
     @Test
@@ -86,8 +86,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getGdprAppliesShouldReturnEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
-        final String gdpr = AdformRequestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(2))));
+        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(2))));
 
         // then
         assertThat(gdpr).isEmpty();
@@ -96,8 +95,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getGdprAppliesShouldReturnOne() {
         // given and when
-        final String gdpr = AdformRequestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
+        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -106,8 +104,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getGdprAppliesShouldReturnZero() {
         // given and when
-        final String gdpr = AdformRequestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(0))));
+        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(0))));
 
         // then
         assertThat(gdpr).isEqualTo("0");
@@ -125,7 +122,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getConsentShouldReturnEmptyValueWhenConsentIsNull() {
         // given and when
-        final String consent = AdformRequestUtil.getConsent(ExtUser.of(null, null, null, null, null));
+        final String consent = AdformRequestUtil.getConsent(ExtUser.builder().build());
 
         // then
         assertThat(consent).isEmpty();
@@ -134,7 +131,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getConsentShouldReturnConsent() {
         // given and when
-        final String consent = AdformRequestUtil.getConsent(ExtUser.of(null, "consent", null, null, null));
+        final String consent = AdformRequestUtil.getConsent(ExtUser.builder().consent("consent").build());
 
         // then
         assertThat(consent).isEqualTo("consent");
@@ -152,8 +149,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getAdformDigiTrustShouldReturnNullIfUserExtDigitrustIsNull() {
         // given and when
-        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(
-                ExtUser.of(null, null, null, null, null));
+        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.builder().build());
 
         // then
         assertThat(adformDigitrust).isNull();
@@ -162,8 +158,9 @@ public class AdformRequestUtilTest {
     @Test
     public void getAdformDigiTrustShouldReturnAdformDigitrustWithOptOutFalseIfPrefIsZero() {
         // given and when
-        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.of(
-                null, null, ExtUserDigiTrust.of("id", 123, 0), null, null));
+        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.builder()
+                .digitrust(ExtUserDigiTrust.of("id", 123, 0))
+                .build());
 
         // then
         assertThat(adformDigitrust).isEqualTo(AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(false)));
@@ -172,8 +169,9 @@ public class AdformRequestUtilTest {
     @Test
     public void getAdformDigiTrustShouldReturnAdformDigitrustWithOptOutTrueIfPrefIsNotZero() {
         // given and when
-        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.of(
-                null, null, ExtUserDigiTrust.of("id", 123, 1), null, null));
+        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.builder()
+                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                .build());
 
         // then
         assertThat(adformDigitrust).isEqualTo(AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));

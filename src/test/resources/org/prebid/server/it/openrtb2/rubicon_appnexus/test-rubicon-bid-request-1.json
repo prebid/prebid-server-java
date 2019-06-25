@@ -97,11 +97,24 @@
       "tpid": [
         {
           "source": "tdid",
-          "uid": "19cfaea8-a429-48fc-9537-8a19a8eb4f0c"
+          "uid": "cd96870f-f53d-4986-a08e-cd1612fb13b0"
+        }
+      ],
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "cd96870f-f53d-4986-a08e-cd1612fb13b0",
+              "ext": {
+                "rtiPartner": "TDID"
+              }
+            }
+          ]
         },
         {
           "source": "pubcid",
-          "uid": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
         }
       ]
     }

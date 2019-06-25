@@ -62,8 +62,7 @@ public class BrightrollBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
-                        null, "consent", null, null, null))).build())
+                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
                 .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                 .build();
 
@@ -91,12 +90,12 @@ public class BrightrollBidderTest extends VertxTest {
                                 .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                         .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
-                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
+                        .user(User.builder()
+                                .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                         .at(1)
-                        .build()
-        ));
+                        .build()));
     }
 
     @Test
@@ -190,8 +189,7 @@ public class BrightrollBidderTest extends VertxTest {
                                 .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                         .at(1)
-                        .build()
-        ));
+                        .build()));
     }
 
     @Test
@@ -265,8 +263,7 @@ public class BrightrollBidderTest extends VertxTest {
                                 .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                         .at(1)
-                        .build()
-        ));
+                        .build()));
     }
 
     @Test
@@ -576,5 +573,4 @@ public class BrightrollBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(String body) {
         return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
-
 }

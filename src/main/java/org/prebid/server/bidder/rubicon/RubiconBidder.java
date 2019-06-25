@@ -63,7 +63,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
@@ -90,6 +92,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
+    private static final String ADSERVER_EID = "adserver.org";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
@@ -414,38 +417,31 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static User makeUser(User user, ExtImpRubicon rubiconImpExt) {
         final User result;
 
-        final JsonNode visitor = !rubiconImpExt.getVisitor().isNull() ? rubiconImpExt.getVisitor() : null;
-        final boolean hasUser = user != null;
-        final String gender = hasUser ? user.getGender() : null;
-        final Integer yob = hasUser ? user.getYob() : null;
-        final Geo geo = hasUser ? user.getGeo() : null;
-
-        final RubiconUserExtRp userExtRp = visitor != null || gender != null || yob != null || geo != null
-                ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null;
-
-        final ExtUser extUser = hasUser ? getExtUser(user.getExt()) : null;
-        final ExtUserDigiTrust userExtDt = extUser != null ? extUser.getDigitrust() : null;
-        final String consent = extUser != null ? extUser.getConsent() : null;
-        final List<ExtUserTpId> tpId = extUser != null ? extUser.getTpid() : null;
-
+        final ExtUser extUser = user != null ? extUser(user.getExt()) : null;
+        final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt);
+        final List<ExtUserTpId> userExtTpIds = extUser != null ? extractExtUserTpIds(extUser.getEids()) : null;
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
-        if (userExtData != null) {
-            final ObjectNode userExtRpNode = userExtRp != null
-                    ? Json.mapper.valueToTree(userExtRp)
-                    : Json.mapper.createObjectNode();
 
-            populateObjectNode(userExtRpNode, userExtData);
-
-            final ObjectNode userExt = Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt, tpId));
-            userExt.set("rp", userExtRpNode);
-
-            result = user.toBuilder()
-                    .ext(userExt)
+        if (userExtRp != null || userExtTpIds != null || userExtData != null) {
+            final RubiconUserExt rubiconUserExt = RubiconUserExt.builderFrom(extUser)
+                    .rp(userExtRp)
+                    .tpid(userExtTpIds)
                     .build();
-        } else if (userExtRp != null || consent != null || userExtDt != null || tpId != null) {
+            final ObjectNode rubiconUserExtNode = Json.mapper.valueToTree(rubiconUserExt);
+
+            if (userExtData != null) {
+                final ObjectNode userExtRpNode = userExtRp != null
+                        ? Json.mapper.valueToTree(userExtRp)
+                        : Json.mapper.createObjectNode();
+
+                populateObjectNode(userExtRpNode, userExtData);
+
+                rubiconUserExtNode.set("rp", userExtRpNode);
+            }
+
             final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
             result = userBuilder
-                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt, tpId)))
+                    .ext(rubiconUserExtNode)
                     .build();
         } else {
             result = user;
@@ -454,11 +450,54 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return result;
     }
 
-    private static ExtUser getExtUser(ObjectNode extNode) {
+    private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
+        final JsonNode visitor = !rubiconImpExt.getVisitor().isNull() ? rubiconImpExt.getVisitor() : null;
+
+        final boolean hasUser = user != null;
+        final String gender = hasUser ? user.getGender() : null;
+        final Integer yob = hasUser ? user.getYob() : null;
+        final Geo geo = hasUser ? user.getGeo() : null;
+
+        return visitor != null || gender != null || yob != null || geo != null
+                ? RubiconUserExtRp.of(visitor, gender, yob, geo)
+                : null;
+    }
+
+    /**
+     * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpId}s for supported vendors.
+     */
+    private static List<ExtUserTpId> extractExtUserTpIds(List<ExtUserEid> eids) {
+        final List<ExtUserTpId> result = new ArrayList<>();
+        for (ExtUserEid eid : CollectionUtils.emptyIfNull(eids)) {
+            if (Objects.equals(eid.getSource(), ADSERVER_EID)) {
+                final List<ExtUserEidUid> uids = eid.getUids();
+                final ExtUserTpId tpId = CollectionUtils.isNotEmpty(uids) ? extUserTpIdForAdServer(uids.get(0)) : null;
+                if (tpId != null) {
+                    result.add(tpId);
+                }
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    /**
+     * Extracts {@link ExtUserTpId} for AdServer.
+     */
+    private static ExtUserTpId extUserTpIdForAdServer(ExtUserEidUid adServerEidUid) {
+        final ExtUserEidUidExt ext = adServerEidUid != null ? adServerEidUid.getExt() : null;
+        return ext != null && Objects.equals(ext.getRtiPartner(), "TDID")
+                ? ExtUserTpId.of("tdid", adServerEidUid.getId())
+                : null;
+    }
+
+    /**
+     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
+     */
+    private static ExtUser extUser(ObjectNode extNode) {
         try {
             return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
         }
     }
 
