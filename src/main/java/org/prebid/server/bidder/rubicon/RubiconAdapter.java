@@ -346,11 +346,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
                         .consent(extUser.getConsent())
                         .eids(extUser.getEids());
             }
-
             return userExtBuilder
                     .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
                     .build();
-
         }
         return null;
     }
