@@ -5,7 +5,7 @@ import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 
 import java.util.List;
 import java.util.function.Function;
@@ -20,7 +20,7 @@ public class RubiconUserExt {
 
     List<ExtUserEid> eids;
 
-    List<ExtUserTpId> tpid;
+    List<ExtUserTpIdRubicon> tpid;
 
     RubiconUserExtRp rp;
 

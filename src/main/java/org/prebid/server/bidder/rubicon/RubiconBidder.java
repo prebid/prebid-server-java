@@ -66,8 +66,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -419,7 +419,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final ExtUser extUser = user != null ? extUser(user.getExt()) : null;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt);
-        final List<ExtUserTpId> userExtTpIds = extUser != null ? extractExtUserTpIds(extUser.getEids()) : null;
+        final List<ExtUserTpIdRubicon> userExtTpIds = extUser != null ? extractExtUserTpIds(extUser.getEids()) : null;
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
 
         if (userExtRp != null || userExtTpIds != null || userExtData != null) {
@@ -464,14 +464,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpId}s for supported vendors.
+     * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpIdRubicon}s for supported vendors.
      */
-    private static List<ExtUserTpId> extractExtUserTpIds(List<ExtUserEid> eids) {
-        final List<ExtUserTpId> result = new ArrayList<>();
+    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(List<ExtUserEid> eids) {
+        final List<ExtUserTpIdRubicon> result = new ArrayList<>();
         for (ExtUserEid eid : CollectionUtils.emptyIfNull(eids)) {
             if (Objects.equals(eid.getSource(), ADSERVER_EID)) {
                 final List<ExtUserEidUid> uids = eid.getUids();
-                final ExtUserTpId tpId = CollectionUtils.isNotEmpty(uids) ? extUserTpIdForAdServer(uids.get(0)) : null;
+                final ExtUserTpIdRubicon tpId = CollectionUtils.isNotEmpty(uids) ? extUserTpIdForAdServer(
+                        uids.get(0)) : null;
                 if (tpId != null) {
                     result.add(tpId);
                 }
@@ -481,12 +482,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Extracts {@link ExtUserTpId} for AdServer.
+     * Extracts {@link ExtUserTpIdRubicon} for AdServer.
      */
-    private static ExtUserTpId extUserTpIdForAdServer(ExtUserEidUid adServerEidUid) {
+    private static ExtUserTpIdRubicon extUserTpIdForAdServer(ExtUserEidUid adServerEidUid) {
         final ExtUserEidUidExt ext = adServerEidUid != null ? adServerEidUid.getExt() : null;
         return ext != null && Objects.equals(ext.getRtiPartner(), "TDID")
-                ? ExtUserTpId.of("tdid", adServerEidUid.getId())
+                ? ExtUserTpIdRubicon.of("tdid", adServerEidUid.getId())
                 : null;
     }
 

@@ -64,9 +64,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.util.HttpUtil;
 
@@ -544,7 +544,7 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconUserExt.builder()
                         .eids(singletonList(ExtUserEid.of("adserver.org", null,
                                 singletonList(ExtUserEidUid.of("adServerUid", ExtUserEidUidExt.of("TDID"))))))
-                        .tpid(singletonList(ExtUserTpId.of("tdid", "adServerUid")))
+                        .tpid(singletonList(ExtUserTpIdRubicon.of("tdid", "adServerUid")))
                         .build());
     }
 
