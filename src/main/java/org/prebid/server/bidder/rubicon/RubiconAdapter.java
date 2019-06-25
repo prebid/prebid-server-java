@@ -339,12 +339,20 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final Geo geo = user != null ? user.getGeo() : null;
         final boolean makeRp = visitor != null || gender != null || yob != null || geo != null;
 
-        return digiTrust != null || visitor != null || gender != null || yob != null || geo != null
-                ? RubiconUserExt.builderFrom(extUser)
-                .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
-                .digitrust(null)
-                .build()
-                : null;
+        if (digiTrust != null || visitor != null || gender != null || yob != null || geo != null) {
+            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
+            if (extUser != null) {
+                userExtBuilder
+                        .consent(extUser.getConsent())
+                        .eids(extUser.getEids());
+            }
+
+            return userExtBuilder
+                    .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
+                    .build();
+
+        }
+        return null;
     }
 
     private static void validateBidRequests(List<BidRequest> bidRequests) {

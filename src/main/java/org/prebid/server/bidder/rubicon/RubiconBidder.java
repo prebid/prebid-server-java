@@ -423,7 +423,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
 
         if (userExtRp != null || userExtTpIds != null || userExtData != null) {
-            final RubiconUserExt rubiconUserExt = RubiconUserExt.builderFrom(extUser)
+            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
+            if (extUser != null) {
+                userExtBuilder
+                        .consent(extUser.getConsent())
+                        .digitrust(extUser.getDigitrust())
+                        .eids(extUser.getEids());
+            }
+
+            final RubiconUserExt rubiconUserExt = userExtBuilder
                     .rp(userExtRp)
                     .tpid(userExtTpIds)
                     .build();
@@ -448,6 +456,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return result;
+    }
+
+    /**
+     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
+     */
+    private static ExtUser extUser(ObjectNode extNode) {
+        try {
+            return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
+        }
     }
 
     private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
@@ -489,17 +508,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return ext != null && Objects.equals(ext.getRtiPartner(), "TDID")
                 ? ExtUserTpIdRubicon.of("tdid", adServerEidUid.getId())
                 : null;
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
-    private static ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-        }
     }
 
     private static Device makeDevice(Device device) {
