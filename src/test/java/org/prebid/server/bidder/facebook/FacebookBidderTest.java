@@ -286,8 +286,7 @@ public class FacebookBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                        null, "consent", null, null, null))).build())
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .site(Site.builder()
                         .publisher(Publisher.builder().build())
@@ -311,8 +310,9 @@ public class FacebookBidderTest extends VertxTest {
                                         .build())
                                 .tagid("pub1_placement1")
                                 .build()))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .site(Site.builder()
                                 .publisher(Publisher.builder()
@@ -334,8 +334,7 @@ public class FacebookBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                        null, "consent", null, null, null))).build())
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .app(App.builder()
                         .publisher(Publisher.builder().build())
@@ -359,8 +358,9 @@ public class FacebookBidderTest extends VertxTest {
                                         .build())
                                 .tagid("pub1_placement1")
                                 .build()))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .app(App.builder()
                                 .publisher(Publisher.builder()
@@ -415,7 +415,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall("invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -430,7 +430,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -461,8 +461,7 @@ public class FacebookBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
-    private static HttpCall givenHttpCall(String body) {
+    private static HttpCall<BidRequest> givenHttpCall(String body) {
         return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
-
 }

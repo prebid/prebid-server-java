@@ -207,10 +207,10 @@ public class IxAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid1")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
-        );
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid1");
 
@@ -250,7 +250,7 @@ public class IxAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid1")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
@@ -311,8 +311,7 @@ public class IxAdapterTest extends VertxTest {
                                 Format.builder().w(300).h(300).build()))),
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode2")
-                        .sizes(singletonList(Format.builder().w(600).h(480).build())))
-        ));
+                        .sizes(singletonList(Format.builder().w(600).h(480).build())))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,

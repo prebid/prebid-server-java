@@ -51,8 +51,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -61,6 +62,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -404,14 +406,8 @@ public class RequestValidator {
         if (user != null && user.getExt() != null) {
             try {
                 final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
-                final ExtUserDigiTrust digitrust = extUser.getDigitrust();
+
                 final ExtUserPrebid prebid = extUser.getPrebid();
-                final List<ExtUserTpId> tpid = extUser.getTpid();
-
-                if (digitrust != null && !Objects.equals(digitrust.getPref(), 0)) {
-                    throw new ValidationException("request.user contains a digitrust object that is not valid");
-                }
-
                 if (prebid != null) {
                     final Map<String, String> buyerUids = prebid.getBuyeruids();
                     if (MapUtils.isEmpty(buyerUids)) {
@@ -428,21 +424,50 @@ public class RequestValidator {
                     }
                 }
 
-                if (tpid != null) {
-                    if (tpid.isEmpty()) {
+                final ExtUserDigiTrust digitrust = extUser.getDigitrust();
+                if (digitrust != null && !Objects.equals(digitrust.getPref(), 0)) {
+                    throw new ValidationException("request.user contains a digitrust object that is not valid");
+                }
+
+                final List<ExtUserEid> eids = extUser.getEids();
+                if (eids != null) {
+                    if (eids.isEmpty()) {
                         throw new ValidationException(
-                                "request.user.ext.tpid must contain at least one element or be undefined");
+                                "request.user.ext.eids must contain at least one element or be undefined");
                     }
-                    for (int index = 0; index < tpid.size(); index++) {
-                        final ExtUserTpId extUserTpId = tpid.get(index);
-                        if (StringUtils.isBlank(extUserTpId.getSource())) {
+                    final Set<String> uniqueSources = new HashSet<>(eids.size());
+                    for (int index = 0; index < eids.size(); index++) {
+                        final ExtUserEid eid = eids.get(index);
+                        if (StringUtils.isBlank(eid.getSource())) {
                             throw new ValidationException(
-                                    "request.user.ext.tpid[%s].source missing required field: \"source\"", index);
+                                    "request.user.ext.eids[%d].source missing required field: \"source\"", index);
                         }
-                        if (StringUtils.isBlank(extUserTpId.getUid())) {
+                        final String eidId = eid.getId();
+                        final List<ExtUserEidUid> eidUids = eid.getUids();
+                        if (eidId == null && eidUids == null) {
                             throw new ValidationException(
-                                    "request.user.ext.tpid[%s].uid missing required field: \"uid\"", index);
+                                    "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
                         }
+                        if (eidId == null) {
+                            if (eidUids.isEmpty()) {
+                                throw new ValidationException(
+                                        "request.user.ext.eids[%d].uids must contain at least one element "
+                                                + "or be undefined", index);
+                            }
+                            for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
+                                final ExtUserEidUid uid = eidUids.get(uidsIndex);
+                                if (StringUtils.isBlank(uid.getId())) {
+                                    throw new ValidationException(
+                                            "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
+                                            uidsIndex);
+                                }
+                            }
+                        }
+                        uniqueSources.add(eid.getSource());
+                    }
+
+                    if (eids.size() != uniqueSources.size()) {
+                        throw new ValidationException("request.user.ext.eids must contain unique sources");
                     }
                 }
             } catch (JsonProcessingException e) {
@@ -508,12 +533,12 @@ public class RequestValidator {
 
     private static Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
         if (StringUtils.isBlank(rawStringNativeRequest)) {
-            throw new ValidationException("request.imp.[%s].ext.native contains empty request value", impIndex);
+            throw new ValidationException("request.imp.[%d].ext.native contains empty request value", impIndex);
         }
         try {
             return Json.mapper.readValue(rawStringNativeRequest, Request.class);
         } catch (IOException e) {
-            throw new ValidationException("Error while parsing request.imp.[%s].ext.native.request", impIndex);
+            throw new ValidationException("Error while parsing request.imp.[%d].ext.native.request", impIndex);
         }
     }
 
@@ -765,7 +790,7 @@ public class RequestValidator {
 
     private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
         if (ext == null || ext.size() < 1) {
-            throw new ValidationException("request.imp[%s].ext must contain at least one bidder", impIndex);
+            throw new ValidationException("request.imp[%d].ext must contain at least one bidder", impIndex);
         }
 
         final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();

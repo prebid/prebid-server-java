@@ -408,8 +408,7 @@ public class ExchangeService {
      * Determines if COPPA is required.
      */
     private static boolean isCoppaMaskingRequired(Regs regs) {
-        final Integer coppa = regs != null ? regs.getCoppa() : null;
-        return Objects.equals(coppa, 1);
+        return regs != null && Objects.equals(regs.getCoppa(), 1);
     }
 
     /**
@@ -559,7 +558,7 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts {@link ExtUser} from {@link User} or returns null if not presents.
+     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
      */
     private static ExtUser extUser(User user) {
         final ObjectNode userExt = user != null ? user.getExt() : null;
@@ -583,9 +582,9 @@ public class ExchangeService {
                              Map<String, String> uidsBody, UidsCookie uidsCookie,
                              boolean useFirstPartyData, boolean coppaMaskingRequired, boolean gdprMaskingRequired) {
 
-        final ObjectNode updatedExt = updatedUserExt(extUser, useFirstPartyData);
+        final ObjectNode updatedExt = updateUserExt(extUser, useFirstPartyData);
         final String updatedBuyerUid = !coppaMaskingRequired && !gdprMaskingRequired
-                ? updatedUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie)
+                ? updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie)
                 : null;
 
         if (updatedExt != null || updatedBuyerUid != null || coppaMaskingRequired || gdprMaskingRequired) {
@@ -626,25 +625,40 @@ public class ExchangeService {
     }
 
     /**
-     * Returns json encoded {@link ExtUser} without request.user.ext.prebid.buyeruids
-     * to avoid leaking of buyeruids across bidders.
+     * Returns json encoded {@link ObjectNode} of {@link ExtUser} with changes applied:
      * <p>
-     * Also, removes request.user.ext.data if bidder doesn't allow first party data to be passed.
+     * - Removes request.user.ext.prebid.buyeruids to avoid leaking of buyeruids across bidders.
+     * <p>
+     * - Removes request.user.ext.data if bidder doesn't allow first party data to be passed.
      * <p>
      * Returns null if {@link ExtUser} doesn't need to be updated.
      */
-    private static ObjectNode updatedUserExt(ExtUser extUser, boolean useFirstPartyData) {
-        return extUser != null && (extUser.getPrebid() != null || (!useFirstPartyData && extUser.getData() != null))
-                ? Json.mapper.valueToTree(ExtUser.of(null, extUser.getConsent(), extUser.getDigitrust(),
-                extUser.getTpid(), useFirstPartyData ? extUser.getData() : null))
-                : null;
+    private static ObjectNode updateUserExt(ExtUser extUser, boolean useFirstPartyData) {
+        if (extUser != null) {
+            final boolean removePrebid = extUser.getPrebid() != null;
+            final boolean removeFirstPartyData = !useFirstPartyData && extUser.getData() != null;
+
+            if (removePrebid || removeFirstPartyData) {
+                final ExtUser.ExtUserBuilder builder = extUser.toBuilder();
+
+                if (removePrebid) {
+                    builder.prebid(null);
+                }
+                if (removeFirstPartyData) {
+                    builder.data(null);
+                }
+
+                return Json.mapper.valueToTree(builder.build());
+            }
+        }
+        return null;
     }
 
     /**
      * Returns updated buyerUid or null if it doesn't need to be updated.
      */
-    private String updatedUserBuyerUid(User user, String bidder, Map<String, String> aliases,
-                                       Map<String, String> uidsBody, UidsCookie uidsCookie) {
+    private String updateUserBuyerUid(User user, String bidder, Map<String, String> aliases,
+                                      Map<String, String> uidsBody, UidsCookie uidsCookie) {
         final String buyerUidFromBodyOrCookie = extractUid(uidsBody, uidsCookie, resolveBidder(bidder, aliases));
         final String buyerUidFromUser = user != null ? user.getBuyeruid() : null;
 

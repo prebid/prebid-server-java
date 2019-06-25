@@ -60,8 +60,13 @@ public class AdformBidderTest extends VertxTest {
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L, "gross")))).build()))
                 .site(Site.builder().page("www.example.com").build())
                 .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
-                .user(User.builder().buyeruid("buyeruid").ext(mapper.valueToTree(ExtUser.of(
-                        null, "consent", ExtUserDigiTrust.of("id", 123, 1), null, null))).build())
+                .user(User.builder()
+                        .buyeruid("buyeruid")
+                        .ext(mapper.valueToTree(ExtUser.builder()
+                                .consent("consent")
+                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                                .build()))
+                        .build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
                 .source(Source.builder().tid("tid").build())
                 .build();

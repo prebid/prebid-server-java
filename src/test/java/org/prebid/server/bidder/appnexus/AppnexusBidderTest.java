@@ -522,8 +522,9 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build()),
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build()),
                 builder -> builder.banner(Banner.builder().build()),
                 identity());
 
@@ -534,8 +535,8 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser)
-                .containsOnly(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                        null, "consent", null, null, null))).build());
+                .extracting(User::getExt)
+                .containsOnly(mapper.valueToTree(ExtUser.builder().consent("consent").build()));
     }
 
     @Test
@@ -582,9 +583,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .containsOnly(tuple(
                         "legacyInvCode1",
                         mapper.valueToTree(AppnexusImpExt.of(
-                                AppnexusImpExtAppnexus.of(
-                                        101, null, "legacyTrafficSourceCode1", null, null)))
-                ));
+                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))));
     }
 
     @Test

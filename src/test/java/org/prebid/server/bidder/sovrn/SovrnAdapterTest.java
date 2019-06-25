@@ -124,8 +124,7 @@ public class SovrnAdapterTest extends VertxTest {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(givenAdUnitBid(
                 adUnitBidBuilder -> adUnitBidBuilder
-                        .params(null)
-        )));
+                        .params(null))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
@@ -152,8 +151,7 @@ public class SovrnAdapterTest extends VertxTest {
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
-                        .mediaTypes(emptySet())
-                )));
+                        .mediaTypes(emptySet()))));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
@@ -169,8 +167,7 @@ public class SovrnAdapterTest extends VertxTest {
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
-                        .mediaTypes(EnumSet.of(MediaType.video))
-                )));
+                        .mediaTypes(EnumSet.of(MediaType.video)))));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
@@ -237,13 +234,13 @@ public class SovrnAdapterTest extends VertxTest {
                 builder -> builder
                         .tid("tid1")
                         .timeoutMillis(1500L)
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
-                                .build())
-        );
+                                .build()));
 
         given(uidsCookie.uidFrom(eq(COOKIE_FAMILY))).willReturn("110099");
 
@@ -283,8 +280,7 @@ public class SovrnAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("110099")
-                                .ext(mapper.valueToTree(ExtUser.of(
-                                        null, "consent", null, null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

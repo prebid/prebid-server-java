@@ -1,11 +1,11 @@
-package org.prebid.server.proto.openrtb.ext.request;
+package org.prebid.server.proto.openrtb.ext.request.rubicon;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtUserTpId {
+public class ExtUserTpIdRubicon {
 
     /**
      * PubCommon ID - an ID is generated on the user’s browser and stored for later use on this publisher’s domain.

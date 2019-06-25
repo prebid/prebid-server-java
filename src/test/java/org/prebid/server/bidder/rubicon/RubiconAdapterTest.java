@@ -536,10 +536,9 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithConsentFromPreBidRequestUserExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null)))
-                                .build()));
+                builder -> builder.user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .build()));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -558,10 +557,9 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithNullUserExtRpWhenVisitorIsNull() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null)))
-                                .build()));
+                builder -> builder.user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .build()));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -580,8 +578,8 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtIsNotValidJson() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .user(User.builder().ext((ObjectNode) mapper.createObjectNode()
+                builder -> builder.user(User.builder()
+                        .ext((ObjectNode) mapper.createObjectNode()
                                 .set("consent", mapper.createObjectNode())).build()));
 
         // when
@@ -594,8 +592,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithGdprFromPreBidRequestRegsExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5)))));
+                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5)))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -685,8 +682,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         exchangeCall = givenExchangeCallCustomizable(identity(),
                 bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("anotherAdUnitCode")
-                                .price(new BigDecimal(10)).build()))
+                        .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").price(new BigDecimal(10)).build()))
                         .build())));
 
         // when and then

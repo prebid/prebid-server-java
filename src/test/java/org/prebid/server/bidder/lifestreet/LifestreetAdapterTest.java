@@ -206,10 +206,10 @@ public class LifestreetAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
-        );
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -244,7 +244,7 @@ public class LifestreetAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

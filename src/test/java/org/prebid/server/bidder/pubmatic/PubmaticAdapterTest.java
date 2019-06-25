@@ -125,7 +125,6 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
@@ -243,10 +242,10 @@ public class PubmaticAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", null, null, null))).build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
-        );
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -284,7 +283,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
@@ -413,8 +412,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .tagid("slot1")
                                 .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
                                         .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
-                                .build()
-                );
+                                .build());
     }
 
     @Test
@@ -431,7 +429,8 @@ public class PubmaticAdapterTest extends VertxTest {
         // then
         assertThat(httpRequests).hasSize(1)
                 .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
-                .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
+                .extracting(Imp::getId)
+                .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     @Test
@@ -440,7 +439,7 @@ public class PubmaticAdapterTest extends VertxTest {
         adapterRequest = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
 
         exchangeCall = givenExchangeCallCustomizable(identity(),
-                b -> b.seatbid(singletonList(SeatBid.builder()
+                builder -> builder.seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").build()))
                         .build())));
 
@@ -509,7 +508,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
-        assertThat(bids)
+        assertThat(bids).hasSize(1)
                 .extracting(org.prebid.server.proto.response.Bid::getMediaType)
                 .containsExactly(MediaType.banner);
     }
@@ -530,7 +529,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
-        assertThat(bids)
+        assertThat(bids).hasSize(1)
                 .extracting(org.prebid.server.proto.response.Bid::getMediaType)
                 .containsExactly(MediaType.banner);
     }
@@ -552,7 +551,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
-        assertThat(bids)
+        assertThat(bids).hasSize(1)
                 .extracting(org.prebid.server.proto.response.Bid::getMediaType)
                 .containsExactly(MediaType.video);
     }
