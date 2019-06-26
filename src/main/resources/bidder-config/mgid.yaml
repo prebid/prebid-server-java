@@ -1,0 +1,23 @@
+adapters:
+  mgid:
+    enabled: false
+    endpoint: https://prebid.mgid.com/prebid/
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@mgid.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 358
+    usersync:
+      url: https://cm.mgid.com/m?cdsp=363893&adu=
+      redirect-url: /setuid?bidder=mgid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={muidn}
+      cookie-family-name: mgid
+      type: redirect
+      support-cors: false
