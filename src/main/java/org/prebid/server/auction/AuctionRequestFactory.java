@@ -28,6 +28,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -242,16 +244,69 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Populates the request body's 'user' section from the incoming http request if the original is partially filled
-     * and the request contains necessary info (id).
+     * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
     private User populateUser(User user, RoutingContext context) {
+        final String id = userIdOrNull(user, context);
+        final ObjectNode ext = userExtOrNull(user);
+
+        if (id != null || ext != null) {
+            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
+
+            if (id != null) {
+                builder.id(id);
+            }
+            if (ext != null) {
+                builder.ext(ext);
+            }
+
+            return builder.build();
+        }
+        return null;
+    }
+
+    /**
+     * Returns new user ID from host cookie if no request.user.id
+     * or null in case of request.user.id is already presented  or no host cookie passed in request.
+     */
+    private String userIdOrNull(User user, RoutingContext context) {
         final String id = user != null ? user.getId() : null;
         if (StringUtils.isBlank(id)) {
             final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
             if (StringUtils.isNotBlank(parsedId)) {
-                final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-                return builder.id(parsedId).build();
+                return parsedId;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
+     */
+    private static ObjectNode userExtOrNull(User user) {
+        final ExtUser extUser = extUser(user);
+
+        // set request.user.ext.digitrust.perf if not defined
+        final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
+        if (digitrust != null && digitrust.getPref() == null) {
+            final ExtUser updatedExtUser = extUser.toBuilder()
+                    .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
+                    .build();
+            return Json.mapper.valueToTree(updatedExtUser);
+        }
+        return null;
+    }
+
+    /**
+     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
+     */
+    private static ExtUser extUser(User user) {
+        final ObjectNode userExt = user != null ? user.getExt() : null;
+        if (userExt != null) {
+            try {
+                return Json.mapper.treeToValue(userExt, ExtUser.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
             }
         }
         return null;

@@ -28,6 +28,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -335,6 +337,29 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldSetUserExtDigitrustPerfIfNotDefined() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder()
+                                .digitrust(ExtUserDigiTrust.of("id", 123, null))
+                                .build()))
+                        .build())
+                .build());
+
+        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getUser().getExt())
+                .isEqualTo(mapper.valueToTree(ExtUser.builder()
+                        .digitrust(ExtUserDigiTrust.of("id", 123, 0))
+                        .build()));
     }
 
     @Test

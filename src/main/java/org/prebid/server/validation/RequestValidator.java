@@ -425,7 +425,7 @@ public class RequestValidator {
                 }
 
                 final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-                if (digitrust != null && !Objects.equals(digitrust.getPref(), 0)) {
+                if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
                     throw new ValidationException("request.user contains a digitrust object that is not valid");
                 }
 

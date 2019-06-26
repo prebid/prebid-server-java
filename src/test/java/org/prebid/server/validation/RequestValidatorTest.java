@@ -1629,7 +1629,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
-                                .digitrust(ExtUserDigiTrust.of(null, null, null)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 1)).build()))
                         .build())
                 .build();
 

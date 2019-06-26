@@ -203,8 +203,7 @@
       "consent": "consentValue",
       "digitrust": {
         "id": "id",
-        "keyv": 123,
-        "pref": 0
+        "keyv": 123
       },
       "eids": [
         {
