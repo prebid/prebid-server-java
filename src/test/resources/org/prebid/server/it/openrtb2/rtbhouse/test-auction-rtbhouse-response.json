@@ -1,0 +1,82 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "seat": "rtbhouse",
+      "group": 0,
+      "bid": [
+        {
+          "id": "randomid",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adid": "12345678",
+          "cid": "987",
+          "crid": "12345678",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "rtbhouse": [
+          {
+            "uri": "http://localhost:8090/rtbhouse-exchange",
+            "requestbody": "{\"id\":\"test-request-id\",\"imp\":[{\"id\":\"test-imp-id\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"ext\":{\"bidder\":{}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"https://good.site/url\",\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.0\"},\"user\":{},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"regs\":{\"ext\":{\"gdpr\":1}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"seat\":\"rtbhouse\",\"bid\":[{\"id\":\"randomid\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adid\":\"12345678\",\"adm\":\"some-test-ad\",\"cid\":\"987\",\"crid\":\"12345678\",\"h\":250,\"w\":300}]}],\"bidid\":\"bid01\"}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "test-request-id",
+        "imp": [
+          {
+            "id": "test-imp-id",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "rtbhouse": {}
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "https://good.site/url",
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "ip": "192.168.244.1"
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ]
+      }
+    },
+    "responsetimemillis": {
+      "rtbhouse": "{{ rtbhouse.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}
