@@ -1,0 +1,20 @@
+adapters:
+  rtbhouse:
+    enabled: false
+    endpoint: http://prebidserver-s2s-ams.creativecdn.com/bidder/prebidserver/bids
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: inventory.devel@rtbhouse.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 16
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: rtbhouse
+      type: redirect
+      support-cors: false
