@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 public class MgidBidder implements Bidder<BidRequest> {
 
-    private static final RequestCreationStrategy MGID_REQUEST_STRATEGY = RequestCreationStrategy.SINGLE_REQUEST;
+    private static final RequestCreationStrategy MGID_REQUEST_STRATEGY = RequestCreationStrategy.REQUEST_PER_IMP;
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String mgidEndpoint;
 
