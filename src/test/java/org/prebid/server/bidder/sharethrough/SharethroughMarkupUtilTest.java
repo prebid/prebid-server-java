@@ -1,0 +1,77 @@
+package org.prebid.server.bidder.sharethrough;
+
+import org.junit.Test;
+import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
+import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+public class SharethroughMarkupUtilTest {
+
+    @Test
+    public void getAdMarkupShouldReturnScriptWithParametersFromImpResponseAndUriParameters() {
+        // given
+        final ExtImpSharethroughResponse impResponse = ExtImpSharethroughResponse.builder()
+                .bidId("bid")
+                .adserverRequestId("arid")
+                .build();
+
+        final StrUriParameters uriParameters = StrUriParameters.builder()
+                .pkey("pkey")
+                .build();
+
+        // when
+        final String result = SharethroughMarkupUtil.getAdMarkup(impResponse, uriParameters);
+
+        // then
+        final String expected = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid\" />\n" +
+                "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n" +
+                // Encoded {"adserverRequestId":"arid","bidId":"bid"}
+                "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCJ9\"</script>";
+
+        assertTrue(result.contains(expected));
+    }
+
+    @Test
+    public void getAdMarkupShouldContainsIframeScriptWhenIframeItTrue() {
+        // given
+        final ExtImpSharethroughResponse impResponse = ExtImpSharethroughResponse.builder()
+                .bidId("bid")
+                .adserverRequestId("arid")
+                .build();
+
+        final StrUriParameters uriParameters = StrUriParameters.builder()
+                .pkey("pkey")
+                .iframe(true)
+                .build();
+
+        // when
+        final String result = SharethroughMarkupUtil.getAdMarkup(impResponse, uriParameters);
+
+        // then
+        final String expectedContains = "<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n";
+        assertTrue(result.contains(expectedContains));
+    }
+
+    @Test
+    public void getAdMarkupShouldContainsScriptWhenIframeItFalse() {
+        // given
+        final ExtImpSharethroughResponse impResponse = ExtImpSharethroughResponse.builder()
+                .bidId("bid")
+                .adserverRequestId("arid")
+                .build();
+
+        final StrUriParameters uriParameters = StrUriParameters.builder()
+                .pkey("pkey")
+                .build();
+
+        // when
+        final String result = SharethroughMarkupUtil.getAdMarkup(impResponse, uriParameters);
+
+        // then
+        final String expectedContains = "<script src=\"//native.sharethrough.com/assets/sfp-set-targeting.js\"></script>";
+        assertTrue(result.contains(expectedContains));
+    }
+}
