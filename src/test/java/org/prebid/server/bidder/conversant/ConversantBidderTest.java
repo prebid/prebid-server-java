@@ -143,7 +143,7 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPassRequestAppAsItIs() {
+    public void makeHttpRequestsShouldSetAppIdFromExtSiteId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.app(App.builder().id("app_id").build()),
@@ -159,7 +159,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getId)
-                .containsOnly("app_id");
+                .containsOnly("site id");
     }
 
     @Test
