@@ -18,7 +18,6 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
@@ -46,23 +45,46 @@ public class MgidBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
-        final List<ImpWithExt<ExtImpMgid>> modifiedImpsWithExts = new ArrayList<>();
+        final List<Imp> imps = new ArrayList<>();
+        String accountId = null;
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpMgid impExt = parseImpExt(imp);
+
+                if (StringUtils.isBlank(accountId) && StringUtils.isNotBlank(impExt.getAccountId())) {
+                    accountId = impExt.getAccountId();
+                }
+
                 final Imp modifiedImp = modifyImp(imp, impExt);
-                modifiedImpsWithExts.add(new ImpWithExt<>(modifiedImp, impExt));
+                imps.add(modifiedImp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-                return Result.of(Collections.emptyList(), errors);
+                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
         }
-        if (modifiedImpsWithExts.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+
+        if (StringUtils.isBlank(accountId)) {
+            return Result.emptyWithError(BidderError.badInput("accountId is not set"));
         }
 
-        return makeRequest(bidRequest, modifiedImpsWithExts);
+        Long tmax = bidRequest.getTmax();
+        if (tmax == null || tmax.equals(0L)) {
+            tmax = 200L;
+        }
+
+        final BidRequest outgoingRequest = bidRequest.toBuilder()
+                .tmax(tmax)
+                .imp(imps)
+                .build();
+
+        final String body = Json.encode(outgoingRequest);
+
+        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(mgidEndpoint + accountId)
+                .body(body)
+                .headers(BidderUtil.headers())
+                .payload(outgoingRequest)
+                .build()), Collections.emptyList());
     }
 
     private Imp modifyImp(Imp imp, ExtImpMgid impExt) throws PreBidException {
@@ -94,10 +116,10 @@ public class MgidBidder implements Bidder<BidRequest> {
 
     private BigDecimal getBidFloor(ExtImpMgid impMgid) {
         BigDecimal bidfloor = impMgid.getBidfloor();
-        if (bidfloor.compareTo(BigDecimal.ZERO) <= 0) {
+        if (bidfloor == null || bidfloor.compareTo(BigDecimal.ZERO) <= 0) {
             bidfloor = impMgid.getBidFloorSecond();
         }
-        if (bidfloor.compareTo(BigDecimal.ZERO) > 0) {
+        if (bidfloor != null && bidfloor.compareTo(BigDecimal.ZERO) > 0) {
             return bidfloor;
         }
         return null;
@@ -109,47 +131,6 @@ public class MgidBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    private Result<List<HttpRequest<BidRequest>>> makeRequest(BidRequest bidRequest,
-                                                              List<ImpWithExt<ExtImpMgid>> impsWithExt) {
-        Long tmax = bidRequest.getTmax();
-        if (tmax == null || tmax.equals(0L)) {
-            tmax = 200L;
-        }
-
-        String endpoint = getEndpoint(impsWithExt);
-        if (StringUtils.isBlank(endpoint)) {
-            return Result.emptyWithError(BidderError.badInput("accountId is not set"));
-        }
-
-        final List<Imp> imps = impsWithExt.stream()
-                .map(ImpWithExt::getImp)
-                .collect(Collectors.toList());
-
-        final BidRequest outgoingRequest = bidRequest.toBuilder()
-                .tmax(tmax)
-                .imp(imps)
-                .build();
-
-        final String body = Json.encode(outgoingRequest);
-
-        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(mgidEndpoint + endpoint)
-                .body(body)
-                .headers(BidderUtil.headers())
-                .payload(outgoingRequest)
-                .build()), Collections.emptyList());
-    }
-
-    private String getEndpoint(List<ImpWithExt<ExtImpMgid>> impsWithExt) {
-        return impsWithExt.stream()
-                .map(ImpWithExt::getImpExt)
-                .map(ExtImpMgid::getAccountId)
-                .filter(StringUtils::isNotBlank)
-                .findFirst()
-                .orElse("");
     }
 
     @Override
@@ -178,8 +159,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid
-                        .of(bid, getBidType(bid), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
