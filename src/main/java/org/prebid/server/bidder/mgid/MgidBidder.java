@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.mgid;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -14,6 +13,7 @@ import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
+import org.prebid.server.bidder.mgid.model.BidExtResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -27,6 +27,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -183,33 +184,25 @@ public class MgidBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid) {
-        String extType = getCrtype(bid);
-        if (StringUtils.isBlank(extType)) {
+        BidExtResponse bidExt = getBidExt(bid);
+
+        if (bidExt == null || StringUtils.isBlank(bidExt.getCrtype())) {
             return BidType.banner;
         }
-        if (extType.equalsIgnoreCase("banner")) {
-            return BidType.banner;
-        } else if (extType.equalsIgnoreCase("native")) {
-            return BidType.xNative;
-        } else if (extType.equalsIgnoreCase("video")) {
-            return BidType.video;
-        } else if (extType.equalsIgnoreCase("audio")) {
-            return BidType.audio;
-        } else {
-            return BidType.banner;
-        }
+
+        String crtype = bidExt.getCrtype();
+        return Arrays.stream(BidType.values())
+                .filter(bidType -> bidType.name().equalsIgnoreCase(crtype))
+                .findFirst()
+                .orElse(BidType.banner);
     }
 
-    private String getCrtype(Bid bid) {
-        String result = "";
-        final ObjectNode ext = bid.getExt();
-        if (ext != null) {
-            JsonNode crtype = ext.get("crtype");
-            if (crtype != null) {
-                result = crtype.textValue();
-            }
+    private BidExtResponse getBidExt(Bid bid) {
+        try {
+            return Json.mapper.convertValue(bid.getExt(), BidExtResponse.class);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
-        return result;
     }
 
     @Override
