@@ -14,7 +14,7 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 644
     usersync:
       url: https://rtb.gamoshi.io/pix/0000/scm?gdpr={{gdpr}}&consent={{gdpr_consent}}&rurl=
       redirect-url: /setuid?bidder=gamoshi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[gusr]
