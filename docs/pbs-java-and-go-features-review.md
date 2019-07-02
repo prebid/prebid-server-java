@@ -4,18 +4,18 @@
 
  Feature | Java | Go 
 | --- | :---: | :---:|
-Video Endpoint |-|+
 First Party data |+|-
-Universal Id |+|+
-Currency Conversion** |+/-|+
-Geolocation |+|-
-Circuit Breaker |+|-
+Currency Conversion** |+|+
+Geo location (used for GDPR) |+|-
+Circuit Breaker (Http, DB) |+|-
 Passing Bidder ext in `imp[...].ext.prebid.bidder` |-|+
 Media Type Price Granularity |+|-
-Stored Responses |+|-
-User IDs |+|-
-Categories |-|+
-`/event` endpoint |+|-
+Stored Responses*** |+|-
+User ID module |+|+
+Bid Categories |-|+
+Event endpoint |+|-
+Video Endpoint |-|+
+COPPA |+|-
 All adapters ported to OpenRTB |+|-
 Bidder Generator |+|-
 
@@ -25,3 +25,4 @@ Bidder Generator |+|-
 * PBS-Java Currency conversion supports finding intermediate conversion rate;
 * PBS-Go Currency Conversion debug endpoint exposes more information, PBS-Java currently provides last updated time only;
 
+*** Currently in progress
