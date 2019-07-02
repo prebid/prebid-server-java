@@ -89,6 +89,8 @@ public class AdformHttpUtilTest {
         final String url = AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(asList(15L, 16L))
+                        .keyValues(asList("color:red", "age:30-40"))
+                        .keyWords(asList("red", "blue"))
                         .priceTypes(singletonList("gross"))
                         .endpointUrl("http://adx.adform.net/adx")
                         .tid("tid")
@@ -104,7 +106,8 @@ public class AdformHttpUtilTest {
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url).isEqualTo(
                 "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA" +
+                        "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
 
     @Test

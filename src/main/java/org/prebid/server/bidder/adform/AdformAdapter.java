@@ -115,6 +115,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         return AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterIds(adformParams))
+                        .keyValues(getKeyValues(adformParams))
+                        .keyWords(getKeyWords(adformParams))
                         .priceTypes(getPriceTypes(adformParams))
                         .endpointUrl(endpointUrl)
                         .tid(ObjectUtils.firstNonNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
@@ -133,6 +135,20 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
      */
     private List<Long> getMasterIds(List<AdformParams> adformParams) {
         return adformParams.stream().map(AdformParams::getMid).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to key values {@link List}
+     */
+    private List<String> getKeyValues(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getKeyValues).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to key words {@link List}
+     */
+    private List<String> getKeyWords(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getKeyWords).collect(Collectors.toList());
     }
 
     /**

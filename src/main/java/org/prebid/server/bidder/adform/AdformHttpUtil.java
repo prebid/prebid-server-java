@@ -93,10 +93,32 @@ class AdformHttpUtil {
         params.add("gdpr=" + parameters.getGdprApplies());
         params.add("gdpr_consent=" + parameters.getConsent());
 
-        final String mids = parameters.getMasterTagIds().stream()
-                .map(masterTagId -> String.format("mid=%s&rcur=%s", masterTagId, parameters.getCurrency()))
-                .map(mid -> Base64.getUrlEncoder().withoutPadding().encodeToString(mid.getBytes()))
-                .collect(Collectors.joining("&"));
+        final List<String> encodedMids = new ArrayList<>();
+        final List<Long> masterTagIds = parameters.getMasterTagIds();
+        final List<String> keyValues = parameters.getKeyValues();
+        final List<String> keyWords = parameters.getKeyWords();
+        for (int i = 0; i < masterTagIds.size(); i++) {
+            final StringBuilder mid = new StringBuilder(
+                    String.format("mid=%s&rcur=%s", masterTagIds.get(i), parameters.getCurrency()));
+
+            if (CollectionUtils.isNotEmpty(keyValues)) {
+                final String keyValue = keyValues.get(i);
+                if (StringUtils.isNotBlank(keyValue)) {
+                    mid.append(String.format("&mkv=%s", keyValue));
+                }
+            }
+
+            if (CollectionUtils.isNotEmpty(keyWords)) {
+                final String keyWord = keyWords.get(i);
+                if (StringUtils.isNotBlank(keyWord)) {
+                    mid.append(String.format("&mkw=%s", keyWord));
+                }
+            }
+
+            encodedMids.add(Base64.getUrlEncoder().withoutPadding().encodeToString(mid.toString().getBytes()));
+        }
+
+        final String mids = String.join("&", encodedMids);
 
         final String urlParams = params.stream().sorted().collect(Collectors.joining("&"));
 
@@ -105,6 +127,7 @@ class AdformHttpUtil {
 
         return String.format("%s?%s&%s", uri, urlParams, mids);
     }
+
 
     /**
      * Returns price type parameter if valid is found. Otherwise returns empty string.
