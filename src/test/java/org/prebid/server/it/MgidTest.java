@@ -23,7 +23,7 @@ public class MgidTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheMgid() throws IOException, JSONException {
-//         given
+        // given
         wireMockRule.stubFor(post(urlPathEqualTo("/mgid-exchange/123"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/mgid/test-mgid-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/mgid/test-mgid-bid-response.json"))));
@@ -39,7 +39,7 @@ public class MgidTest extends IntegrationTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-//                 this uids cookie value stands for {"uids":{"mgid":"MGID-UID"}}
+        // this uids cookie value stands for {"uids":{"mgid":"MGID-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImxpZmVzdH9uZSI6IlJPLVVJRCJ9fQ1")
                 .body(jsonFrom("openrtb2/mgid/test-auction-mgid-request.json"))
                 .post("/openrtb2/auction");

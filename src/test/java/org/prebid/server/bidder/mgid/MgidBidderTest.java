@@ -70,7 +70,7 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddBidFloorCurAndBidFloorToIncomingRequest() {
+    public void makeHttpRequestsShouldAddBidFloorCurAndBidFloorAndTmaxToIncomingRequest() {
         // given
         String currency = "GRP";
         BigDecimal bidFlor = new BigDecimal(10.3);
@@ -93,6 +93,7 @@ public class MgidBidderTest extends VertxTest {
                                 ExtImpMgid.of("accId", placementId, currency, currency,
                                         bidFlor, bidFlor))))
                         .build()))
+                .tmax(200L)
                 .id("reqID")
                 .build();
 

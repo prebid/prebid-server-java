@@ -14,10 +14,10 @@ import java.math.BigDecimal;
 )
 @Value
 public class ExtImpMgid {
-    @JsonProperty(value = "accountId")
+    @JsonProperty("accountId")
     String accountId;
 
-    @JsonProperty(value = "placementId")
+    @JsonProperty("placementId")
     String placementId;
 
     @JsonProperty("cur")
@@ -30,5 +30,5 @@ public class ExtImpMgid {
     BigDecimal bidfloor;
 
     @JsonProperty("bidFloor")
-    BigDecimal bidFlor;
+    BigDecimal bidFloorSecond;
 }

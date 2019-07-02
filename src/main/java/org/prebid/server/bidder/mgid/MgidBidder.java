@@ -1,15 +1,17 @@
 package org.prebid.server.bidder.mgid;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,7 +36,6 @@ import java.util.stream.Collectors;
 
 public class MgidBidder implements Bidder<BidRequest> {
 
-    private static final RequestCreationStrategy MGID_REQUEST_STRATEGY = RequestCreationStrategy.REQUEST_PER_IMP;
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String mgidEndpoint;
 
@@ -53,20 +54,22 @@ public class MgidBidder implements Bidder<BidRequest> {
                 modifiedImpsWithExts.add(new ImpWithExt<>(modifiedImp, impExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                return Result.of(Collections.emptyList(), errors);
             }
         }
         if (modifiedImpsWithExts.isEmpty()) {
             return Result.of(Collections.emptyList(), errors);
         }
-        return Result.of(createHttpRequests(bidRequest, modifiedImpsWithExts), errors);
+
+        return makeRequest(bidRequest, modifiedImpsWithExts);
     }
 
     private Imp modifyImp(Imp imp, ExtImpMgid impExt) throws PreBidException {
-        ImpBuilder impBuilder = imp.toBuilder();
-        String cur = getCur(impExt);
-        BigDecimal bidFlor = getBidFlor(impExt);
+        final ImpBuilder impBuilder = imp.toBuilder();
+        final String cur = getCur(impExt);
+        final BigDecimal bidFlor = getBidFloor(impExt);
 
-        if (cur != null && !cur.equals("USD")) {
+        if (StringUtils.isNotBlank(cur)) {
             impBuilder.bidfloorcur(cur);
         }
         if (bidFlor != null) {
@@ -79,11 +82,24 @@ public class MgidBidder implements Bidder<BidRequest> {
     }
 
     private String getCur(ExtImpMgid impMgid) {
-        return ObjectUtils.defaultIfNull(impMgid.getCur(), impMgid.getCurrency());
+        if (StringUtils.isNotBlank(impMgid.getCurrency()) && !impMgid.getCurrency().equals("USD")) {
+            return impMgid.getCurrency();
+        }
+        if (StringUtils.isNotBlank(impMgid.getCur()) && !impMgid.getCur().equals("USD")) {
+            return impMgid.getCur();
+        }
+        return "";
     }
 
-    private BigDecimal getBidFlor(ExtImpMgid impMgid) {
-        return ObjectUtils.defaultIfNull(impMgid.getBidfloor(), impMgid.getBidFlor());
+    private BigDecimal getBidFloor(ExtImpMgid impMgid) {
+        BigDecimal bidfloor = impMgid.getBidfloor();
+        if (bidfloor.compareTo(BigDecimal.ZERO) <= 0) {
+            bidfloor = impMgid.getBidFloorSecond();
+        }
+        if (bidfloor.compareTo(BigDecimal.ZERO) > 0) {
+            return bidfloor;
+        }
+        return null;
     }
 
     private ExtImpMgid parseImpExt(Imp imp) {
@@ -94,62 +110,45 @@ public class MgidBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<HttpRequest<BidRequest>> createHttpRequests(BidRequest bidRequest,
-                                                             List<ImpWithExt<ExtImpMgid>> impsWithExts) {
-        switch (MGID_REQUEST_STRATEGY) {
-            case REQUEST_PER_IMP:
-                return impsWithExts.stream()
-                        .map(impWithExt -> makeSingleRequest(impWithExt, bidRequest))
-                        .collect(Collectors.toList());
-            case SINGLE_REQUEST:
-                return makeBatchRequest(bidRequest, impsWithExts);
-            default:
-                throw new IllegalArgumentException(
-                        String.format("Invalid request creation strategy: %s",
-                                MGID_REQUEST_STRATEGY));
+    private Result<List<HttpRequest<BidRequest>>> makeRequest(BidRequest bidRequest,
+                                                              List<ImpWithExt<ExtImpMgid>> impsWithExt) {
+        Long tmax = bidRequest.getTmax();
+        if (tmax == null || tmax.equals(0L)) {
+            tmax = 200L;
         }
-    }
 
-    private HttpRequest<BidRequest> makeSingleRequest(ImpWithExt<ExtImpMgid> impWithExt,
-                                                      BidRequest bidRequest) {
-        return makeRequest(createEndpointFromAccountId(impWithExt), bidRequest,
-                Collections.singletonList(impWithExt.getImp()));
-    }
+        String endpoint = getEndpoint(impsWithExt);
+        if (StringUtils.isBlank(endpoint)) {
+            return Result.emptyWithError(BidderError.badInput("accountId is not set"));
+        }
 
-    private List<HttpRequest<BidRequest>> makeBatchRequest(BidRequest bidRequest,
-                                                           List<ImpWithExt<ExtImpMgid>> impsWithExts) {
-        return splitIntoMapOfImpByEndpoint(impsWithExts).entrySet().stream()
-                .map(impWithExtByEndpoint -> makeRequest(impWithExtByEndpoint.getKey(), bidRequest,
-                        impWithExtByEndpoint.getValue()))
+        final List<Imp> imps = impsWithExt.stream()
+                .map(ImpWithExt::getImp)
                 .collect(Collectors.toList());
-    }
 
-    private Map<String, List<Imp>> splitIntoMapOfImpByEndpoint(
-            List<ImpWithExt<ExtImpMgid>> impsWithExts) {
-        return impsWithExts.stream()
-                .collect(Collectors.groupingBy(this::createEndpointFromAccountId,
-                        Collectors.mapping(ImpWithExt::getImp, Collectors.toList())));
-    }
-
-    private String createEndpointFromAccountId(ImpWithExt<ExtImpMgid> mgidExt) {
-        return mgidEndpoint + mgidExt.getImpExt().getAccountId();
-    }
-
-    private HttpRequest<BidRequest> makeRequest(String endpoint, BidRequest bidRequest,
-                                                List<Imp> imps) {
         final BidRequest outgoingRequest = bidRequest.toBuilder()
+                .tmax(tmax)
                 .imp(imps)
                 .build();
 
         final String body = Json.encode(outgoingRequest);
 
-        return HttpRequest.<BidRequest>builder()
+        return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(endpoint)
+                .uri(mgidEndpoint + endpoint)
                 .body(body)
                 .headers(BidderUtil.headers())
                 .payload(outgoingRequest)
-                .build();
+                .build()), Collections.emptyList());
+    }
+
+    private String getEndpoint(List<ImpWithExt<ExtImpMgid>> impsWithExt) {
+        return impsWithExt.stream()
+                .map(ImpWithExt::getImpExt)
+                .map(ExtImpMgid::getAccountId)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse("");
     }
 
     @Override
@@ -158,60 +157,63 @@ public class MgidBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = Json
                     .decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse),
+            return Result.of(extractBids(bidResponse),
                     Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid
-                        .of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), getBidCurrency()))
+                        .of(bid, getBidType(bid), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(String impId, List<Imp> imps) {
-        BidType bidType = BidType.banner;
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return bidType;
-                } else if (imp.getVideo() != null) {
-                    bidType = BidType.video;
-                } else if (imp.getXNative() != null) {
-                    bidType = BidType.xNative;
-                } else if (imp.getAudio() != null) {
-                    bidType = BidType.audio;
-                }
-            }
+    private BidType getBidType(Bid bid) {
+        String extType = getCrtype(bid);
+        if (StringUtils.isBlank(extType)) {
+            return BidType.banner;
         }
-        return bidType;
+        if (extType.equalsIgnoreCase("banner")) {
+            return BidType.banner;
+        } else if (extType.equalsIgnoreCase("native")) {
+            return BidType.xNative;
+        } else if (extType.equalsIgnoreCase("video")) {
+            return BidType.video;
+        } else if (extType.equalsIgnoreCase("audio")) {
+            return BidType.audio;
+        } else {
+            return BidType.banner;
+        }
     }
 
-    private String getBidCurrency() {
-        return DEFAULT_BID_CURRENCY;
+    private String getCrtype(Bid bid) {
+        String result = "";
+        final ObjectNode ext = bid.getExt();
+        if (ext != null) {
+            JsonNode crtype = ext.get("crtype");
+            if (crtype != null) {
+                result = crtype.textValue();
+            }
+        }
+        return result;
     }
 
     @Override
     public final Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
-    }
-
-    public enum RequestCreationStrategy {
-        SINGLE_REQUEST,
-        REQUEST_PER_IMP
     }
 }
