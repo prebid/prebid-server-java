@@ -157,7 +157,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
@@ -178,7 +178,7 @@ public class AmpHandlerTest extends VertxTest {
 
         final ObjectNode ext = mapper.createObjectNode();
         ext.set("prebid", new TextNode("non-ExtBidRequest"));
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any())).willReturn(givenBidResponse(ext));
+        given(exchangeService.holdAuction(any())).willReturn(givenBidResponse(ext));
 
         // when
         ampHandler.handle(routingContext);
@@ -214,7 +214,7 @@ public class AmpHandlerTest extends VertxTest {
         final Map<String, String> targeting = new HashMap<>();
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(
                         mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, targeting, null, null), null))));
 
@@ -237,7 +237,7 @@ public class AmpHandlerTest extends VertxTest {
         final Map<String, String> targeting = new HashMap<>();
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .seatbid(singletonList(SeatBid.builder()
                                 .seat("bidder1")
@@ -274,7 +274,7 @@ public class AmpHandlerTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("reqId1").test(1));
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest), null, null, null, null))));
 
@@ -294,7 +294,7 @@ public class AmpHandlerTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(1).build()))));
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest), null, null, null, null))));
 
@@ -313,7 +313,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -330,7 +330,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(builder -> builder.app(App.builder().build()))));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -347,7 +347,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -370,7 +370,7 @@ public class AmpHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         givenBidRequest(builder -> builder.imp(singletonList(Imp.builder().build())))));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -417,7 +417,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         // simulate calling end handler that is supposed to update request_time timer value
@@ -453,7 +453,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -476,7 +476,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -493,7 +493,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
 
@@ -532,7 +532,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(bidRequest));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
 
         // when
@@ -556,7 +556,7 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(bidRequest));
 
-        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+        given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
                         ExtPrebid.of(ExtBidPrebid.of(null, singletonMap("hb_cache_id_bidder1", "value1"), null, null),
                                 null))));
