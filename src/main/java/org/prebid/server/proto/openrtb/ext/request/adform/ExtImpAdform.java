@@ -19,4 +19,10 @@ public class ExtImpAdform {
 
     @JsonProperty("priceType")
     String priceType;
+
+    @JsonProperty("mkv")
+    String keyValues;
+
+    @JsonProperty("mkw")
+    String keyWords;
 }
