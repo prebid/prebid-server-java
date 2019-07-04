@@ -27,6 +27,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.RequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -150,8 +151,13 @@ public class ExchangeService {
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
-                                           MetricsContext metricsContext, RoutingContext context) {
+    public Future<BidResponse> holdAuction(RequestContext context) {
+        final RoutingContext routingContext = context.getRoutingContext();
+        final UidsCookie uidsCookie = context.getUidsCookie();
+        final BidRequest bidRequest = context.getBidRequest();
+        final Timeout timeout = context.getTimeout();
+        final MetricsContext metricsContext = context.getMetricsContext();
+
         final ExtBidRequest requestExt;
         try {
             requestExt = requestExt(bidRequest);
@@ -188,7 +194,7 @@ public class ExchangeService {
                         toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorByBidType,
                                 cacheInfo, publisherId, timeout, result.getRight(), debugEnabled))
                 .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(context, uidsCookie, bidRequest, bidResponse));
+                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
     }
 
     /**
