@@ -54,7 +54,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AdkernelAdnBidder("invalid_ulr"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdkernelAdnBidder("invalid_url"));
     }
 
     @Test
