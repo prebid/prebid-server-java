@@ -106,7 +106,7 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorAndTmaxToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor() {
+    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor() {
         // given
         final String currency = "GRP";
         final BigDecimal bidFloor = new BigDecimal(10.3);
@@ -126,7 +126,7 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
-        BidRequest expected = BidRequest.builder()
+        final BidRequest expected = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(bidFloor)
                         .bidfloorcur(currency)
@@ -134,7 +134,6 @@ public class MgidBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMgid.of("accId", placementId, currency, null, bidFloor, null))))
                         .build()))
-                .tmax(200L)
                 .id("reqID")
                 .build();
 
@@ -144,7 +143,7 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorAndTmaxToIncomingRequestWhenImpExtHasNotBlankCurencyAndBidFloor() {
+    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurencyAndBidFloor() {
         // given
         final String currency = "GRP";
         final BigDecimal bidFloor = new BigDecimal(10.3);
@@ -164,7 +163,7 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
-        BidRequest expected = BidRequest.builder()
+        final BidRequest expected = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(bidFloor)
                         .bidfloorcur(currency)
@@ -172,7 +171,6 @@ public class MgidBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMgid.of("accId", placementId, null, currency, null, bidFloor))))
                         .build()))
-                .tmax(200L)
                 .id("reqID")
                 .build();
 
@@ -199,7 +197,7 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
-        BidRequest expected = BidRequest.builder()
+        final BidRequest expected = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .tagid(placementId)
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -278,9 +276,9 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnXNativeBidWhenBidIsPresentAndExtCrtypeIsXnative() throws JsonProcessingException {
+    public void makeBidsShouldReturnXNativeBidWhenBidIsPresentAndExtCrtypeIsNative() throws JsonProcessingException {
         // given
-        final ObjectNode crtypeNode = Json.mapper.createObjectNode().put("crtype", "xnative");
+        final ObjectNode crtypeNode = Json.mapper.createObjectNode().put("crtype", "native");
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))

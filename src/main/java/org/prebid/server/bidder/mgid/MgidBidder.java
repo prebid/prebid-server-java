@@ -10,10 +10,11 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
-import org.prebid.server.bidder.mgid.model.BidExtResponse;
+import org.prebid.server.bidder.mgid.model.ExtBidMgid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -26,7 +27,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -37,10 +37,10 @@ import java.util.stream.Collectors;
 public class MgidBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private final String mgidEndpoint;
+    private final String endpointUrl;
 
     public MgidBidder(String endpoint) {
-        mgidEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
     }
 
     @Override
@@ -66,13 +66,8 @@ public class MgidBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("accountId is not set"));
         }
 
-        Long tmax = bidRequest.getTmax();
-        if (tmax == null || tmax.equals(0L)) {
-            tmax = 200L;
-        }
-
         final BidRequest outgoingRequest = bidRequest.toBuilder()
-                .tmax(tmax)
+                .tmax(bidRequest.getTmax())
                 .imp(imps)
                 .build();
 
@@ -80,23 +75,32 @@ public class MgidBidder implements Bidder<BidRequest> {
 
         return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(mgidEndpoint + accountId)
+                .uri(endpointUrl + accountId)
                 .body(body)
                 .headers(BidderUtil.headers())
                 .payload(outgoingRequest)
                 .build()), Collections.emptyList());
     }
 
-    private Imp modifyImp(Imp imp, ExtImpMgid impExt) throws PreBidException {
-        final ImpBuilder impBuilder = imp.toBuilder();
-        final String cur = getCur(impExt);
-        final BigDecimal bidFlor = getBidFloor(impExt);
+    private static ExtImpMgid parseImpExt(Imp imp) {
+        try {
+            return Json.mapper.convertValue(imp.getExt().get("bidder"), ExtImpMgid.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
 
+    private static Imp modifyImp(Imp imp, ExtImpMgid impExt) throws PreBidException {
+        final ImpBuilder impBuilder = imp.toBuilder();
+
+        final String cur = getCur(impExt);
         if (StringUtils.isNotBlank(cur)) {
             impBuilder.bidfloorcur(cur);
         }
-        if (bidFlor != null) {
-            impBuilder.bidfloor(bidFlor);
+
+        final BigDecimal bidFloor = getBidFloor(impExt);
+        if (bidFloor != null) {
+            impBuilder.bidfloor(bidFloor);
         }
 
         return impBuilder
@@ -104,33 +108,22 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String getCur(ExtImpMgid impMgid) {
-        if (StringUtils.isNotBlank(impMgid.getCurrency()) && !impMgid.getCurrency().equals("USD")) {
-            return impMgid.getCurrency();
-        }
-        if (StringUtils.isNotBlank(impMgid.getCur()) && !impMgid.getCur().equals("USD")) {
-            return impMgid.getCur();
-        }
-        return "";
+    private static String getCur(ExtImpMgid impMgid) {
+        return ObjectUtils.defaultIfNull(
+                currencyValueOrNull(impMgid.getCurrency()), currencyValueOrNull(impMgid.getCur()));
     }
 
-    private BigDecimal getBidFloor(ExtImpMgid impMgid) {
-        BigDecimal bidfloor = impMgid.getBidfloor();
-        if (bidfloor == null || bidfloor.compareTo(BigDecimal.ZERO) <= 0) {
-            bidfloor = impMgid.getBidFloorSecond();
-        }
-        if (bidfloor != null && bidfloor.compareTo(BigDecimal.ZERO) > 0) {
-            return bidfloor;
-        }
-        return null;
+    private static BigDecimal getBidFloor(ExtImpMgid impMgid) {
+        return ObjectUtils.defaultIfNull(
+                bidFloorValueOrNull(impMgid.getBidfloor()), bidFloorValueOrNull(impMgid.getBidFloorSecond()));
     }
 
-    private ExtImpMgid parseImpExt(Imp imp) {
-        try {
-            return Json.mapper.convertValue(imp.getExt().get("bidder"), ExtImpMgid.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
+    private static String currencyValueOrNull(String value) {
+        return StringUtils.isNotBlank(value) && !value.equals("USD") ? value : null;
+    }
+
+    private static BigDecimal bidFloorValueOrNull(BigDecimal value) {
+        return value != null && value.compareTo(BigDecimal.ZERO) > 0 ? value : null;
     }
 
     @Override
@@ -146,14 +139,14 @@ public class MgidBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -163,23 +156,19 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid bid) {
-        BidExtResponse bidExt = getBidExt(bid);
-
-        if (bidExt == null || StringUtils.isBlank(bidExt.getCrtype())) {
+    private static BidType getBidType(Bid bid) {
+        final ExtBidMgid bidExt = getBidExt(bid);
+        if (bidExt == null) {
             return BidType.banner;
         }
 
-        String crtype = bidExt.getCrtype();
-        return Arrays.stream(BidType.values())
-                .filter(bidType -> bidType.name().equalsIgnoreCase(crtype))
-                .findFirst()
-                .orElse(BidType.banner);
+        final BidType crtype = bidExt.getCrtype();
+        return crtype == null ? BidType.banner : crtype;
     }
 
-    private BidExtResponse getBidExt(Bid bid) {
+    private static ExtBidMgid getBidExt(Bid bid) {
         try {
-            return Json.mapper.convertValue(bid.getExt(), BidExtResponse.class);
+            return Json.mapper.convertValue(bid.getExt(), ExtBidMgid.class);
         } catch (IllegalArgumentException e) {
             return null;
         }

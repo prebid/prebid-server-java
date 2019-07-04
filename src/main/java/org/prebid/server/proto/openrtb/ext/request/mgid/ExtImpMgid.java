@@ -20,13 +20,10 @@ public class ExtImpMgid {
     @JsonProperty("placementId")
     String placementId;
 
-    @JsonProperty("cur")
     String cur;
 
-    @JsonProperty("currency")
     String currency;
 
-    @JsonProperty("bidfloor")
     BigDecimal bidfloor;
 
     @JsonProperty("bidFloor")
