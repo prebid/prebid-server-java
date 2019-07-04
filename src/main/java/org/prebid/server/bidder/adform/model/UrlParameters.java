@@ -11,6 +11,10 @@ public class UrlParameters {
 
     List<Long> masterTagIds;
 
+    List<String> keyValues;
+
+    List<String> keyWords;
+
     List<String> priceTypes;
 
     String endpointUrl;

@@ -371,6 +371,29 @@ public class ConversantAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetAppIdFromParamsSiteId() {
+        // given
+        adapterRequest = givenBidder(
+                identity(),
+                paramsBuilder -> paramsBuilder.siteId("siteId42"));
+        preBidRequestContext = givenPreBidRequestContext(
+                identity(),
+                builder -> builder
+                        .app(App.builder().id("to_be_changed").build()));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(AdapterHttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getId)
+                .containsOnly("siteId42");
+    }
+
+    @Test
     public void makeHttpRequestsShouldThrowPrebidExceptionIfAppHasBlankOrMissingId() {
         // given
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder

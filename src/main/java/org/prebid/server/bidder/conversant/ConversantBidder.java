@@ -124,6 +124,8 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
         if (site != null) {
             requestBuilder.site(site.toBuilder().id(extSiteId).mobile(extMobile).build());
+        } else if (app != null) {
+            requestBuilder.app(app.toBuilder().id(extSiteId).build());
         }
 
         return requestBuilder.build();

@@ -12,4 +12,10 @@ public class AdformParams {
 
     @JsonProperty("priceType")
     String priceType;
+
+    @JsonProperty("mkv")
+    String keyValues;
+
+    @JsonProperty("mkw")
+    String keyWords;
 }
