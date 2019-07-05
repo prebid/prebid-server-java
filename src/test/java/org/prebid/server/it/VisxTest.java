@@ -39,8 +39,8 @@ public class VisxTest extends IntegrationTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"visx":"YM-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InlpZWxkbW8iOiJZTS1VSUQifX0=")
+                // this uids cookie value stands for {"uids":{"visx":"VISX-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InZpc3giOiJWSVNYLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/visx/test-auction-visx-request.json"))
                 .post("/openrtb2/auction");
 

@@ -53,6 +53,9 @@
   "test": 1,
   "at": 1,
   "tmax": 2000,
+  "user":{
+    "buyeruid": "VISX-UID"
+  },
   "source": {
     "tid": "283746293874293"
   },

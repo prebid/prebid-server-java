@@ -1,8 +1,10 @@
 package org.prebid.server.bidder.visx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -20,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.visx.ExtImpVisx;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -68,7 +69,7 @@ public class VisxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, 
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpVisx.of(123, Arrays.asList(10,20)))))
                         .build()))
                 .id("request_id")
@@ -128,35 +129,38 @@ public class VisxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldAlwaysReturnBidWithTypeBanner() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .imp(Arrays.asList(Imp.builder().id("123").video(Video.builder().build()).build(),
+                                Imp.builder().id("345").banner(Banner.builder().build()).build(),
+                                Imp.builder().id("567").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
+                        BidResponse.builder()
+                                .seatbid(singletonList(SeatBid.builder()
+                                        .bid(Arrays.asList(
+                                                Bid.builder().impid("123").build(),
+                                                Bid.builder().impid("345").build(),
+                                                Bid.builder().impid("567").build()))
+                                        .build()))
+                                .build()));
         // when
         final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(
+                        BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"),
+                        BidderBid.of(Bid.builder().impid("345").build(), banner, "USD"),
+                        BidderBid.of(Bid.builder().impid("567").build(), banner, "USD"));
     }
 
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(visxBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
