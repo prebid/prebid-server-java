@@ -16,7 +16,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.TimeoutResolver;
-import org.prebid.server.auction.model.RequestContext;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -80,7 +80,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))
                 .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
 
-                .map(bidRequest -> RequestContext.builder()
+                .map(bidRequest -> AuctionContext.builder()
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookie)
                         .bidRequest(bidRequest)
@@ -116,7 +116,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
     }
 
-    private void handleResult(AsyncResult<Tuple2<BidResponse, RequestContext>> responseResult,
+    private void handleResult(AsyncResult<Tuple2<BidResponse, AuctionContext>> responseResult,
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder, RoutingContext context,
                               long startTime) {
         final boolean responseSucceeded = responseResult.succeeded();

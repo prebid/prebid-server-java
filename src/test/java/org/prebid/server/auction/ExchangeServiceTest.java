@@ -31,7 +31,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.RequestContext;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -2514,8 +2514,8 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(ext.getResponsetimemillis()).containsKeys("cache");
     }
 
-    private RequestContext givenRequestContext(BidRequest bidRequest) {
-        return RequestContext.builder()
+    private AuctionContext givenRequestContext(BidRequest bidRequest) {
+        return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
