@@ -10,7 +10,7 @@ import org.prebid.server.metric.MetricName;
 
 @Builder
 @Value
-public class RequestContext {
+public class AuctionContext {
 
     RoutingContext routingContext;
 

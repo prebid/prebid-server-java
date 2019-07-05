@@ -27,7 +27,7 @@ import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.TimeoutResolver;
-import org.prebid.server.auction.model.RequestContext;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
@@ -121,7 +121,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))
                 .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
 
-                .map(bidRequest -> RequestContext.builder()
+                .map(bidRequest -> AuctionContext.builder()
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookie)
                         .bidRequest(bidRequest)

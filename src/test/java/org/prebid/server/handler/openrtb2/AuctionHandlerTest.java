@@ -26,7 +26,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.TimeoutResolver;
-import org.prebid.server.auction.model.RequestContext;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -524,7 +524,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     private Timeout captureTimeout() {
-        final ArgumentCaptor<RequestContext> timeoutCaptor = ArgumentCaptor.forClass(RequestContext.class);
+        final ArgumentCaptor<AuctionContext> timeoutCaptor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(exchangeService).holdAuction(timeoutCaptor.capture());
         return timeoutCaptor.getValue().getTimeout();
     }
