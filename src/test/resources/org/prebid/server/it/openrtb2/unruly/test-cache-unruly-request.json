@@ -1,0 +1,38 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "bid001",
+        "impid": "impId001",
+        "price": 1.25,
+        "adm": "adm001",
+        "crid": "crid001",
+        "w": 800,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bid002",
+        "impid": "impId002",
+        "price": 2.25,
+        "adm": "adm002",
+        "crid": "crid002",
+        "w": 640,
+        "h": 480
+      }
+    },
+    {
+      "type": "xml",
+      "value": "adm001",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm002",
+      "expiry": 120
+    }
+  ]
+}

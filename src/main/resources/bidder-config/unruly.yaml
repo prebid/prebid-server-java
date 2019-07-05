@@ -1,0 +1,21 @@
+adapters:
+  unruly:
+    enabled: false
+    endpoint: http://targeting.unrulymedia.com/openrtb/2.2
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prodev@unrulymedia.com
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 162
+    usersync:
+      url: https://usermatch.targeting.unrulymedia.com/pbsync?gdpr={{gdpr}}&consent={{gdpr_consent}}&rurl=
+      redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      cookie-family-name: unruly
+      type: redirect
+      support-cors: false
