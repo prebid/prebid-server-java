@@ -56,7 +56,6 @@ import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -159,8 +158,6 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
-    private MetricsContext metricsContext;
-
     @Before
     public void setUp() {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
@@ -183,7 +180,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
-        metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
@@ -2522,7 +2518,7 @@ public class ExchangeServiceTest extends VertxTest {
         return RequestContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .metricsContext(metricsContext)
+                .requestTypeMetric(MetricName.openrtb2web)
                 .timeout(timeout)
                 .build();
     }
@@ -2556,15 +2552,15 @@ public class ExchangeServiceTest extends VertxTest {
 
     private void givenBidder(BidderSeatBid response) {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
-        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean())).willReturn(
-                Future.succeededFuture(response));
+        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(response));
     }
 
     private void givenBidder(String bidderName, Bidder<?> bidder, BidderSeatBid response) {
         given(bidderCatalog.isValidName(eq(bidderName))).willReturn(true);
         doReturn(bidder).when(bidderCatalog).bidderByName(eq(bidderName));
-        given(httpBidderRequester.requestBids(same(bidder), any(), any(), anyBoolean())).willReturn(
-                Future.succeededFuture(response));
+        given(httpBidderRequester.requestBids(same(bidder), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(response));
     }
 
     private static BidderSeatBid givenSeatBid(List<BidderBid> bids) {

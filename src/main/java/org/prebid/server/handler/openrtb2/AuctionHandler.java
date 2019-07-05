@@ -25,7 +25,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -86,7 +85,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .uidsCookie(uidsCookie)
                         .bidRequest(bidRequest)
                         .timeout(timeout(bidRequest, startTime))
-                        .metricsContext(toMetricsContext(bidRequest))
+                        .requestTypeMetric(requestTypeMetric(bidRequest))
                         .build())
 
                 .compose(context -> exchangeService.holdAuction(context)
@@ -108,13 +107,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return bidRequest;
     }
 
-    private static MetricsContext toMetricsContext(BidRequest bidRequest) {
-        return MetricsContext.of(bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web);
-    }
-
     private Timeout timeout(BidRequest bidRequest, long startTime) {
         final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
         return timeoutFactory.create(startTime, timeout);
+    }
+
+    private static MetricName requestTypeMetric(BidRequest bidRequest) {
+        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
     }
 
     private void handleResult(AsyncResult<Tuple2<BidResponse, RequestContext>> responseResult,
@@ -123,7 +122,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final boolean responseSucceeded = responseResult.succeeded();
 
         final MetricName requestType = responseSucceeded
-                ? responseResult.result().getRight().getMetricsContext().getRequestType()
+                ? responseResult.result().getRight().getRequestTypeMetric()
                 : MetricName.openrtb2web;
 
         // don't send the response if client has gone

@@ -6,8 +6,7 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.metric.model.MetricsContext;
-import org.prebid.server.settings.model.Account;
+import org.prebid.server.metric.MetricName;
 
 @Builder
 @Value
@@ -21,7 +20,5 @@ public class RequestContext {
 
     Timeout timeout;
 
-    MetricsContext metricsContext;
-
-    Account account;
+    MetricName requestTypeMetric;
 }
