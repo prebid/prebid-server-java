@@ -39,7 +39,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -70,8 +69,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
-
-    private static final MetricsContext METRICS_CONTEXT = MetricsContext.of(MetricName.amp);
+    private static final MetricName REQUEST_TYPE_METRIC = MetricName.amp;
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
@@ -128,7 +126,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .uidsCookie(uidsCookie)
                         .bidRequest(bidRequest)
                         .timeout(timeout(bidRequest, startTime))
-                        .metricsContext(METRICS_CONTEXT)
+                        .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
 
                 .compose(context ->
@@ -283,16 +281,14 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext context, long startTime) {
-        final MetricName requestType = METRICS_CONTEXT.getRequestType();
-
         // Don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
             return;
         }
 
-        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
+        context.response().exceptionHandler(this::handleResponseException);
 
         final String origin = originFrom(context);
         ampEventBuilder.origin(origin);
@@ -341,7 +337,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         metrics.updateRequestTimeMetric(clock.millis() - startTime);
-        metrics.updateRequestTypeMetric(requestType, requestStatus);
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, requestStatus);
         analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
     }
 
@@ -358,8 +354,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         return origin;
     }
 
-    private void handleResponseException(Throwable throwable, MetricName requestType) {
+    private void handleResponseException(Throwable throwable) {
         logger.warn("Failed to send amp response", throwable);
-        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 }
