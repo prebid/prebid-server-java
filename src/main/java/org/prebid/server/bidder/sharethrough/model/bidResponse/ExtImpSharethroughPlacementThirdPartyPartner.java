@@ -5,7 +5,9 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpSharethroughPlacementThirdPartyPartner {
+class ExtImpSharethroughPlacementThirdPartyPartner {
+
     String key;
+
     String tag;
 }

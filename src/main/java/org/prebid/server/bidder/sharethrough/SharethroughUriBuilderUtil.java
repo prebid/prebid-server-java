@@ -37,8 +37,8 @@ class SharethroughUriBuilderUtil {
      */
     static StrUriParameters buildSharethroughUrlParameters(String uri) {
         try {
-            URIBuilder uriBuilder = new URIBuilder(uri);
-            List<NameValuePair> queryParams = uriBuilder.getQueryParams();
+            final URIBuilder uriBuilder = new URIBuilder(uri);
+            final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
 
             return StrUriParameters.builder()
                     .height(getHeight(queryParams))
@@ -56,7 +56,7 @@ class SharethroughUriBuilderUtil {
     }
 
     private static int getHeight(List<NameValuePair> nameValuePairs) {
-        String height = getValueByKey(nameValuePairs, "height");
+        final String height = getValueByKey(nameValuePairs, "height");
         try {
             return Integer.parseInt(height);
         } catch (NumberFormatException e) {
@@ -65,7 +65,7 @@ class SharethroughUriBuilderUtil {
     }
 
     private static int getWidth(List<NameValuePair> nameValuePairs) {
-        String width = getValueByKey(nameValuePairs, "width");
+        final String width = getValueByKey(nameValuePairs, "width");
         try {
             return Integer.parseInt(width);
         } catch (NumberFormatException e) {

@@ -7,21 +7,19 @@ import lombok.Value;
 
 @Builder
 @Value
-public class ExtImpSharethroughPlacement {
+class ExtImpSharethroughPlacement {
 
-    @JsonProperty("allow_instant_play")
     boolean allowInstantPlay;
 
-    @JsonProperty("articles_before_first_ad")
     int articlesBeforeFirstAd;
 
-    @JsonProperty("articles_between_ads")
     int articlesBetweenAds;
 
     String layout;
 
     JsonNode metadata;
 
+    @JsonProperty("placementAttributes")
     ExtImpSharethroughPlacementAttributes placementAttributes;
 
     String status;

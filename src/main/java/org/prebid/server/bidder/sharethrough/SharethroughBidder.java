@@ -74,7 +74,7 @@ public class SharethroughBidder implements Bidder<Void> {
         final MultiMap headers = HttpUtil.headers()
                 .add("Origin", SharethroughRequestUtil.getHost(page));
 
-        List<HttpRequest<Void>> httpRequests = strUriParameters.stream()
+        final List<HttpRequest<Void>> httpRequests = strUriParameters.stream()
                 .map(strUriParameter -> SharethroughUriBuilderUtil.buildSharethroughUrl(
                         endpointUrl, SUPPLY_ID, VERSION, strUriParameter))
                 .map(uri -> makeHttpRequest(uri, headers))
@@ -109,9 +109,9 @@ public class SharethroughBidder implements Bidder<Void> {
      * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values
      */
     private StrUriParameters createStrUriParameters(BidRequest bidRequest, Imp imp, ExtImpSharethrough extImpStr) {
-        Size size = SharethroughRequestUtil.getSize(imp, extImpStr);
-        ExtUser extUser = SharethroughRequestUtil.getExtUser(bidRequest.getUser());
-        String ua = SharethroughRequestUtil.getUa(bidRequest.getDevice());
+        final Size size = SharethroughRequestUtil.getSize(imp, extImpStr);
+        final ExtUser extUser = SharethroughRequestUtil.getExtUser(bidRequest.getUser());
+        final String ua = SharethroughRequestUtil.getUa(bidRequest.getDevice());
         return StrUriParameters.builder()
                 .pkey(extImpStr.getPkey())
                 .bidID(imp.getId())
@@ -159,11 +159,11 @@ public class SharethroughBidder implements Bidder<Void> {
         }
 
         try {
-            StrUriParameters strUriParameters = SharethroughUriBuilderUtil
+            final StrUriParameters strUriParameters = SharethroughUriBuilderUtil
                     .buildSharethroughUrlParameters(request.getUri());
-            ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
+            final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
 
-            String adMarkup = SharethroughMarkupUtil.getAdMarkup(sharethroughBid, strUriParameters);
+            final String adMarkup = SharethroughMarkupUtil.getAdMarkup(sharethroughBid, strUriParameters);
             if (StringUtils.isBlank(adMarkup)) {
                 return Result.emptyWithError(BidderError.badServerResponse("Cant parse markup"));
             }

@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtImpSharethroughCreative {
+
+    @JsonProperty("auctionWinId")
     String auctionWinId;
 
     BigDecimal cpm;

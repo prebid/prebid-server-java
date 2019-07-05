@@ -9,7 +9,6 @@ import java.util.List;
 @Builder
 @Value
 public class ExtImpSharethroughResponse {
-    //Be aware that in prod we change name to snake_case so we need specify value explicitly
 
     @JsonProperty("adserverRequestId")
     String adserverRequestId;

@@ -15,16 +15,16 @@ class SharethroughMarkupUtil {
     }
 
     static String getAdMarkup(ExtImpSharethroughResponse strResponse, StrUriParameters strUriParameters) {
-        StringBuilder tmplBody = new StringBuilder();
+        final StringBuilder tmplBody = new StringBuilder();
 
-        String strRespId = String.format("str_response_%s", strResponse.getBidId());
-        String arId = strResponse.getAdserverRequestId();
-        String jsonStrResponse = parseResponseToString(strResponse);
+        final String strRespId = String.format("str_response_%s", strResponse.getBidId());
+        final String arId = strResponse.getAdserverRequestId();
+        final String jsonStrResponse = parseResponseToString(strResponse);
         if (StringUtils.isBlank(jsonStrResponse)) {
             return "";
         }
 
-        String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonStrResponse.getBytes());
+        final String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonStrResponse.getBytes());
 
         tmplBody.append("<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=").append(arId).append("\" />\n")
                 .append("\t\t<div data-str-native-key=\"").append(strUriParameters.getPkey()).append("\" ")

@@ -34,7 +34,7 @@ class SharethroughRequestUtil {
      * Retrieves size from imp.ext.sharethrough.iframeSize or from im.banner.format
      */
     static Size getSize(Imp imp, ExtImpSharethrough extImpSharethrough) {
-        List<Integer> iframeSize = extImpSharethrough.getIframeSize();
+        final List<Integer> iframeSize = extImpSharethrough.getIframeSize();
         if (CollectionUtils.isNotEmpty(iframeSize) && iframeSize.size() >= 2 && !iframeSize.contains(0)) {
             return Size.builder().height(iframeSize.get(0)).width(iframeSize.get(1)).build();
         } else {
@@ -46,8 +46,8 @@ class SharethroughRequestUtil {
      * Retrieves banner from imp.banner and get the biggest format.
      */
     private static Size getBiggestSizeFromBannerFormat(Imp imp) {
-        Size.SizeBuilder builder = Size.builder().width(1).height(1);
-        Banner banner = imp.getBanner();
+        final Size.SizeBuilder builder = Size.builder().width(1).height(1);
+        final Banner banner = imp.getBanner();
         if (banner == null) {
             return builder.build();
         }
@@ -94,13 +94,11 @@ class SharethroughRequestUtil {
      */
     static ExtUser getExtUser(User user) {
         final ObjectNode extUserNode = user != null ? user.getExt() : null;
-        ExtUser extUser;
         try {
-            extUser = extUserNode != null ? Json.mapper.treeToValue(extUserNode, ExtUser.class) : null;
+            return extUserNode != null ? Json.mapper.treeToValue(extUserNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
-            extUser = null;
+            return null;
         }
-        return extUser;
     }
 
     /**
@@ -135,8 +133,8 @@ class SharethroughRequestUtil {
             return "";
         }
         try {
-            URI uri = new URI(uriString);
-            String host = uri.getHost();
+            final URI uri = new URI(uriString);
+            final String host = uri.getHost();
             return host != null ? host : "";
         } catch (URISyntaxException e) {
             return "";
