@@ -1,0 +1,246 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "impId001",
+          "price": 1.25,
+          "adm": "adm001",
+          "crid": "crid001",
+          "w": 800,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_unruly": "1.20",
+                "hb_cache_id_unruly": "d7ec26d4-4336-4661-988a-79e96040e281",
+                "hb_cache_id": "d7ec26d4-4336-4661-988a-79e96040e281",
+                "hb_uuid_unruly": "54a3b0a5-e145-43cf-a1cc-1beaa8b29018",
+                "hb_pb": "1.20",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "54a3b0a5-e145-43cf-a1cc-1beaa8b29018",
+                "hb_bidder_unruly": "unruly",
+                "hb_size": "800x600",
+                "hb_bidder": "unruly",
+                "hb_size_unruly": "800x600",
+                "hb_cache_host_unruly": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_path_unruly": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}d7ec26d4-4336-4661-988a-79e96040e281",
+                  "cacheId": "d7ec26d4-4336-4661-988a-79e96040e281"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}54a3b0a5-e145-43cf-a1cc-1beaa8b29018",
+                  "cacheId": "54a3b0a5-e145-43cf-a1cc-1beaa8b29018"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "bid002",
+          "impid": "impId002",
+          "price": 2.25,
+          "adm": "adm002",
+          "crid": "crid002",
+          "w": 640,
+          "h": 480,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_unruly": "2.20",
+                "hb_cache_id_unruly": "51c3e63e-5ece-4d16-b781-4314ce9e3ea8",
+                "hb_cache_id": "51c3e63e-5ece-4d16-b781-4314ce9e3ea8",
+                "hb_uuid_unruly": "41c08fce-546f-4a57-a657-1158fd62af3d",
+                "hb_pb": "2.20",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "41c08fce-546f-4a57-a657-1158fd62af3d",
+                "hb_bidder_unruly": "unruly",
+                "hb_size": "640x480",
+                "hb_bidder": "unruly",
+                "hb_size_unruly": "640x480",
+                "hb_cache_host_unruly": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_path_unruly": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}51c3e63e-5ece-4d16-b781-4314ce9e3ea8",
+                  "cacheId": "51c3e63e-5ece-4d16-b781-4314ce9e3ea8"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}41c08fce-546f-4a57-a657-1158fd62af3d",
+                  "cacheId": "41c08fce-546f-4a57-a657-1158fd62af3d"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "unruly",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"adm\":\"adm001\",\"crid\":\"crid001\",\"w\":800,\"h\":600}},{\"type\":\"json\",\"value\":{\"id\":\"bid002\",\"impid\":\"impId002\",\"price\":2.25,\"adm\":\"adm002\",\"crid\":\"crid002\",\"w\":640,\"h\":480}},{\"type\":\"xml\",\"value\":\"adm001\",\"expiry\":120},{\"type\":\"xml\",\"value\":\"adm002\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"d7ec26d4-4336-4661-988a-79e96040e281\"},{\"uuid\":\"51c3e63e-5ece-4d16-b781-4314ce9e3ea8\"},{\"uuid\":\"54a3b0a5-e145-43cf-a1cc-1beaa8b29018\"},{\"uuid\":\"41c08fce-546f-4a57-a657-1158fd62af3d\"}]}",
+            "status": 200
+          }
+        ],
+        "unruly": [
+          {
+            "uri": "{{ unruly.exchange_uri }}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId001\",\"video\":{\"mimes\":[\"video/mp4\"],\"w\":800,\"h\":600,\"skipmin\":0,\"skipafter\":0},\"ext\":{\"unruly\":{\"uuid\":\"uu_id_1\",\"siteid\":\"site_id_1\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"UR-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":1.25,\"crid\":\"crid001\",\"adm\":\"adm001\",\"h\":600,\"w\":800}]}],\"bidid\":\"bid001\"}",
+            "status": 200
+          },
+          {
+            "uri": "{{ unruly.exchange_uri }}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId002\",\"video\":{\"mimes\":[\"video/mp4\"],\"w\":640,\"h\":480,\"skipmin\":0,\"skipafter\":0},\"ext\":{\"unruly\":{\"uuid\":\"uu_id_2\",\"siteid\":\"site_id_2\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"UR-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid002\",\"impid\":\"impId002\",\"price\":2.25,\"crid\":\"crid002\",\"adm\":\"adm002\",\"h\":480,\"w\":640}]}],\"bidid\":\"bid002\"}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId001",
+            "video": {
+              "mimes": [
+                "video/mp4"
+              ],
+              "w": 800,
+              "h": 600,
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "ext": {
+              "unruly": {
+                "uuid": "uu_id_1",
+                "siteid": "site_id_1"
+              }
+            }
+          },
+          {
+            "id": "impId002",
+            "video": {
+              "mimes": [
+                "video/mp4"
+              ],
+              "w": 640,
+              "h": 480,
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "ext": {
+              "unruly": {
+                "uuid": "uu_id_2",
+                "siteid": "site_id_2"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "consent": "consentValue",
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            }
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "unruly": "{{ unruly.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}

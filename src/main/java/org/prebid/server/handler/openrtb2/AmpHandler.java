@@ -27,6 +27,7 @@ import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.RequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
@@ -103,37 +104,46 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
         // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
         // more accurately if we note the real start time, and use it to compute the auction timeout.
         final long startTime = clock.millis();
 
-        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpUtil.USER_AGENT_HEADER));
+        final boolean isSafari = HttpUtil.isSafari(routingContext.request().headers().get(HttpUtil.USER_AGENT_HEADER));
         metrics.updateSafariRequestsMetric(isSafari);
 
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
+        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
 
         final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
-                .httpContext(HttpContext.from(context));
+                .httpContext(HttpContext.from(routingContext));
 
-        ampRequestFactory.fromRequest(context)
+        ampRequestFactory.fromRequest(routingContext)
                 .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))
                 .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
-                .compose(bidRequest ->
-                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
-                                METRICS_CONTEXT, context)
-                                .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
-                .map((Tuple2<BidRequest, BidResponse> result) ->
-                        addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
-                .map((Tuple2<BidRequest, BidResponse> result) -> Tuple3.of(result.getLeft(), result.getRight(),
-                        toAmpResponse(result.getLeft(), result.getRight())))
-                .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
-                        ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
-                                context))
+
+                .map(bidRequest -> RequestContext.builder()
+                        .routingContext(routingContext)
+                        .uidsCookie(uidsCookie)
+                        .bidRequest(bidRequest)
+                        .timeout(timeout(bidRequest, startTime))
+                        .metricsContext(METRICS_CONTEXT)
+                        .build())
+
+                .compose(context ->
+                        exchangeService.holdAuction(context)
+                                .map(bidResponse -> Tuple2.of(bidResponse, context)))
+
+                .map(result -> addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
+                .map(result -> Tuple3.of(result.getLeft(), result.getRight(),
+                        toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
+                .compose(result ->
+                        ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(), result.getLeft(),
+                                result.getRight(), routingContext))
+
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context, startTime));
+                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
