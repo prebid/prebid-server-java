@@ -36,7 +36,7 @@ class SharethroughRequestUtil {
     static Size getSize(Imp imp, ExtImpSharethrough extImpSharethrough) {
         final List<Integer> iframeSize = extImpSharethrough.getIframeSize();
         if (CollectionUtils.isNotEmpty(iframeSize) && iframeSize.size() >= 2 && !iframeSize.contains(0)) {
-            return Size.builder().height(iframeSize.get(0)).width(iframeSize.get(1)).build();
+            return Size.of(iframeSize.get(0), iframeSize.get(1));
         } else {
             return getBiggestSizeFromBannerFormat(imp);
         }
@@ -46,17 +46,15 @@ class SharethroughRequestUtil {
      * Retrieves banner from imp.banner and get the biggest format.
      */
     private static Size getBiggestSizeFromBannerFormat(Imp imp) {
-        final Size.SizeBuilder builder = Size.builder().width(1).height(1);
         final Banner banner = imp.getBanner();
         if (banner == null) {
-            return builder.build();
+            return Size.of(1, 1);
         }
 
-        banner.getFormat().stream()
+        return banner.getFormat().stream()
                 .max(Comparator.comparingInt(format -> format.getW() * format.getH()))
-                .ifPresent(format -> builder.width(format.getW()).height(format.getH()));
-
-        return builder.build();
+                .map(format -> Size.of(format.getH(), format.getW()))
+                .orElse(Size.of(1, 1));
     }
 
     /**

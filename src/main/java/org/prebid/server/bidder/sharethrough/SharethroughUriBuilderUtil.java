@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.sharethrough;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
@@ -20,16 +21,20 @@ class SharethroughUriBuilderUtil {
                 .setPath(baseUri)
                 .addParameter("placement_key", params.getPkey())
                 .addParameter("bidId", params.getBidID())
-                .addParameter("consent_required", String.valueOf(params.isConsentRequired()))
+                .addParameter("consent_required", getBooleanStringValue(params.getConsentRequired()))
                 .addParameter("consent_string", params.getConsentString())
-                .addParameter("instant_play_capable", String.valueOf(params.isInstantPlayCapable()))
-                .addParameter("stayInIframe", String.valueOf(params.isIframe()))
+                .addParameter("instant_play_capable", getBooleanStringValue(params.getInstantPlayCapable()))
+                .addParameter("stayInIframe", getBooleanStringValue(params.getIframe()))
                 .addParameter("height", String.valueOf(params.getHeight()))
                 .addParameter("width", String.valueOf(params.getWidth()))
 
                 .addParameter("supplyId", supplyId)
                 .addParameter("strVersion", strVersion)
                 .toString();
+    }
+
+    private static String getBooleanStringValue(Boolean bool) {
+        return String.valueOf(BooleanUtils.toBoolean(bool));
     }
 
     /**

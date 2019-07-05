@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Sharethrough Params",
+  "title": "Sharethrough Adapter Params",
   "description": "A schema which validates params accepted by the Sharethrough",
   "type": "object",
   "properties": {

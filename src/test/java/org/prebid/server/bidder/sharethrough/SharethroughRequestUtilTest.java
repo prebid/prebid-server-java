@@ -233,7 +233,7 @@ public class SharethroughRequestUtilTest {
         final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList());
 
         // when and then
-        final Size expected = Size.builder().height(1).width(1).build();
+        final Size expected = Size.of(1, 1);
 
         assertEquals(expected, SharethroughRequestUtil.getSize(notBannerImp, extImpSharethrough));
         assertEquals(expected, SharethroughRequestUtil.getSize(bannerImpEmptyFormat, extImpSharethrough));
@@ -248,7 +248,7 @@ public class SharethroughRequestUtilTest {
         final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Arrays.asList(100, 100));
 
         // when and then
-        final Size expected = Size.builder().height(100).width(100).build();
+        final Size expected = Size.of(100, 100);
 
         assertEquals(expected, SharethroughRequestUtil.getSize(imp, extImpSharethrough));
     }
@@ -258,17 +258,15 @@ public class SharethroughRequestUtilTest {
         // given
         final Format firstFormat = Format.builder().w(200).h(400).build();
         final Format secondFormat = Format.builder().w(500).h(100).build();
-        final Format thirdFormat = Format.builder().w(300).h(300).build();
+        final Format thirdFormat = Format.builder().w(300).h(320).build();
         final List<Format> formats = Arrays.asList(firstFormat, secondFormat, thirdFormat);
         final Banner banner = Banner.builder().format(formats).build();
         final Imp imp = Imp.builder().banner(banner).build();
         final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList());
 
         // when and then
-        final Size expected = Size.builder().height(300).width(300).build();
+        final Size expected = Size.of(320, 300);
 
         assertEquals(expected, SharethroughRequestUtil.getSize(imp, extImpSharethrough));
     }
-
-
 }

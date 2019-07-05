@@ -9,11 +9,12 @@ import java.util.List;
 @Builder
 @Value
 class ExtImpSharethroughPlacementAttributes {
+
     String adServerKey;
 
     String adServerPath;
 
-    boolean allowDynamicCropping;
+    Boolean allowDynamicCropping;
 
     List<String> appThirdPartyPartners;
 
@@ -25,19 +26,19 @@ class ExtImpSharethroughPlacementAttributes {
 
     String domain;
 
-    boolean enableLinkRedirection;
+    Boolean enableLinkRedirection;
 
     JsonNode featuredContent;
 
-    int maxHeadlineLength;
+    Integer maxHeadlineLength;
 
-    boolean multiAdPlacement;
+    Boolean multiAdPlacement;
 
     String promotedByText;
 
     String publisherKey;
 
-    int renderingPixelOffset;
+    Integer renderingPixelOffset;
 
     List<Integer> safeFrameSize;
 
@@ -48,4 +49,5 @@ class ExtImpSharethroughPlacementAttributes {
     String template;
 
     List<ExtImpSharethroughPlacementThirdPartyPartner> thirdPartyPartners;
+
 }

@@ -193,5 +193,4 @@ public class SharethroughBidder implements Bidder<Void> {
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
     }
-
 }

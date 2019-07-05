@@ -50,8 +50,8 @@ public class SharethroughUriBuilderUtilTest {
         final String uriEmpty = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=30&stayInIframe=";
 
         // when and then
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).isIframe());
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).isIframe());
+        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).getIframe());
+        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).getIframe());
     }
 
     @Test
@@ -61,8 +61,8 @@ public class SharethroughUriBuilderUtilTest {
         final String uriEmpty = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=30&consentRequired=";
 
         // when and then
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).isConsentRequired());
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).isConsentRequired());
+        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).getConsentRequired());
+        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).getConsentRequired());
     }
 
     @Test
@@ -87,13 +87,13 @@ public class SharethroughUriBuilderUtilTest {
         // when and then
         assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriWithoutOptionalParameters))
                 .satisfies(strUriParameters -> {
-                    assertEquals(30, strUriParameters.getHeight());
-                    assertEquals(30, strUriParameters.getWidth());
+                    assertThat(strUriParameters.getHeight()).isEqualTo(30);
+                    assertThat(strUriParameters.getWidth()).isEqualTo(30);
                     assertEquals("bidid", strUriParameters.getBidID());
                     assertEquals("pkey", strUriParameters.getPkey());
                     assertEquals("123", strUriParameters.getConsentString());
-                    assertTrue(strUriParameters.isConsentRequired());
-                    assertTrue(strUriParameters.isIframe());
+                    assertTrue(strUriParameters.getConsentRequired());
+                    assertTrue(strUriParameters.getIframe());
                 });
     }
 

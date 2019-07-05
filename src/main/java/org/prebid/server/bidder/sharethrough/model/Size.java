@@ -1,12 +1,14 @@
 package org.prebid.server.bidder.sharethrough.model;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Builder
+@AllArgsConstructor(staticName = "of")
 @Value
 public class Size {
-    int height;
 
-    int width;
+    Integer height;
+
+    Integer width;
+
 }

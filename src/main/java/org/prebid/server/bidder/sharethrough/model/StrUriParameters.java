@@ -6,20 +6,21 @@ import lombok.Value;
 @Builder
 @Value
 public class StrUriParameters {
+
     String pkey;
 
     String bidID;
 
-    boolean consentRequired;
+    Boolean consentRequired;
 
     String consentString;
 
-    boolean instantPlayCapable;
+    Boolean instantPlayCapable;
 
-    boolean iframe;
+    Boolean iframe;
 
-    int height;
+    Integer height;
 
-    int width;
+    Integer width;
 
 }

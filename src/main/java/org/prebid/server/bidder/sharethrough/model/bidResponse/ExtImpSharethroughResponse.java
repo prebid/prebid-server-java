@@ -25,4 +25,5 @@ public class ExtImpSharethroughResponse {
 
     @JsonProperty("stxUserId")
     String stxUserId;
+
 }

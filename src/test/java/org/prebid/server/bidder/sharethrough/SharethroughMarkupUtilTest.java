@@ -1,14 +1,13 @@
 package org.prebid.server.bidder.sharethrough;
 
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class SharethroughMarkupUtilTest {
+public class SharethroughMarkupUtilTest extends VertxTest {
 
     @Test
     public void getAdMarkupShouldReturnScriptWithParametersFromImpResponseAndUriParameters() {

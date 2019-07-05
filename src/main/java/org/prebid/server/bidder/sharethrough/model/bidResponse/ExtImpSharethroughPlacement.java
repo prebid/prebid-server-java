@@ -9,11 +9,11 @@ import lombok.Value;
 @Value
 class ExtImpSharethroughPlacement {
 
-    boolean allowInstantPlay;
+    Boolean allowInstantPlay;
 
-    int articlesBeforeFirstAd;
+    Integer articlesBeforeFirstAd;
 
-    int articlesBetweenAds;
+    Integer articlesBetweenAds;
 
     String layout;
 

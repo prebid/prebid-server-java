@@ -31,13 +31,13 @@ public class ExtImpSharethroughCreativeMetadata {
 
     String description;
 
-    boolean forceClickToPlay;
+    Boolean forceClickToPlay;
 
     String iconUrl;
 
     String impressionHtml;
 
-    int instantPlayMobileCount;
+    Integer instantPlayMobileCount;
 
     String instantPlayMobileUrl;
 

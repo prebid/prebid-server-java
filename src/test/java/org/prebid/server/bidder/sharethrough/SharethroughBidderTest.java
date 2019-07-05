@@ -197,14 +197,14 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
-        final ExtImpSharethroughCreative metadata = ExtImpSharethroughCreative.builder()
-                .cpm(BigDecimal.valueOf(10))
-                .metadata(ExtImpSharethroughCreativeMetadata.builder()
-                        .campaignKey("cmpKey")
-                        .creativeKey("creaKey")
-                        .dealId("dealId")
-                        .build())
+        final ExtImpSharethroughCreativeMetadata creativeMetadata = ExtImpSharethroughCreativeMetadata.builder()
+                .campaignKey("cmpKey")
+                .creativeKey("creaKey")
+                .dealId("dealId")
                 .build();
+
+        final ExtImpSharethroughCreative metadata = ExtImpSharethroughCreative.of(
+                null, BigDecimal.valueOf(10), creativeMetadata, 0);
 
         final ExtImpSharethroughResponse response = ExtImpSharethroughResponse.builder()
                 .adserverRequestId("arid")
@@ -222,7 +222,8 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         final String adm = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid\" />\n" +
                 "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n" +
-                "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQiLCJmb3JjZV9jbGlja190b19wbGF5IjpmYWxzZSwiaW5zdGFudF9wbGF5X21vYmlsZV9jb3VudCI6MH0sInZlcnNpb24iOjB9XX0=\"</script>\n" +
+                //Decoded: {"adserverRequestId":"arid","bidId":"bid","creatives":[{"cpm":10,"creative":{"campaign_key":"cmpKey","creative_key":"creaKey","deal_id":"dealId"},"version":0}]}
+                "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n" +
                 "\t\t\t<script src=\"//native.sharethrough.com/assets/sfp-set-targeting.js\"></script>\n" +
                 "\t    \t<script>\n" +
                 "\t     (function() {\n" +
