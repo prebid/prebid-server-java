@@ -7,7 +7,7 @@ import java.util.List;
 @Value
 public class SettingsFile {
 
-    List<String> accounts;
+    List<Account> accounts;
 
     List<AdUnitConfig> configs;
 

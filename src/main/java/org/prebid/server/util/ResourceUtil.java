@@ -1,5 +1,7 @@
 package org.prebid.server.util;
 
+import org.apache.commons.compress.utils.IOUtils;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,5 +31,16 @@ public class ResourceUtil {
                 StandardCharsets.UTF_8))) {
             return reader.lines().collect(Collectors.joining("\n"));
         }
+    }
+
+    /**
+     * Reads files from classpath as array of bytes. Throws {@link IllegalArgumentException} if file was not found.
+     */
+    public static byte[] readByteArrayFromClassPath(String path) throws IOException {
+        final InputStream resourceAsStream = ResourceUtil.class.getClassLoader().getResourceAsStream(path);
+        if (resourceAsStream == null) {
+            throw new IllegalArgumentException(String.format("Could not find file at path: %s", path));
+        }
+        return IOUtils.toByteArray(resourceAsStream);
     }
 }

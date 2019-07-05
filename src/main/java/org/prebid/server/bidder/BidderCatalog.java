@@ -71,6 +71,13 @@ public class BidderCatalog {
     }
 
     /**
+     * Returns a list of registered bidders' aliases.
+     */
+    public Set<String> aliases() {
+        return new HashSet<>(aliases.keySet());
+    }
+
+    /**
      * Tells if given name corresponds to any of the registered bidder's alias.
      */
     public boolean isAlias(String name) {

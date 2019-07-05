@@ -171,7 +171,8 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("some source", "any version"))))
+                                .ext(mapper.valueToTree(ExtApp.of(
+                                        ExtAppPrebid.of("some source", "any version"), null)))
                                 .build()),
                 builder -> builder.banner(Banner.builder().build()),
                 builder -> builder.placementId(20));
@@ -194,7 +195,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(null)))
+                                .ext(mapper.valueToTree(ExtApp.of(null, null)))
                                 .build()),
                 builder -> builder.banner(Banner.builder().build()),
                 builder -> builder.placementId(20));
@@ -217,7 +218,8 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of(null, "version"))))
+                                .ext(mapper.valueToTree(ExtApp.of(
+                                        ExtAppPrebid.of(null, "version"), null)))
                                 .build()),
                 builder -> builder.banner(Banner.builder().build()),
                 builder -> builder.placementId(20));
@@ -240,7 +242,8 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("source", null))))
+                                .ext(mapper.valueToTree(ExtApp.of(
+                                        ExtAppPrebid.of("source", null), null)))
                                 .build()),
                 builder -> builder.banner(Banner.builder().build()),
                 builder -> builder.placementId(20));
@@ -263,7 +266,8 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("some source", "any version"))))
+                                .ext(mapper.valueToTree(ExtApp.of(
+                                        ExtAppPrebid.of("some source", "any version"), null)))
                                 .build()),
                 builder -> builder.banner(Banner.builder().build()).displaymanagerver("string exists"),
                 builder -> builder.placementId(20));
@@ -518,7 +522,9 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build()),
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build()),
                 builder -> builder.banner(Banner.builder().build()),
                 identity());
 
@@ -529,7 +535,8 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser)
-                .containsOnly(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build());
+                .extracting(User::getExt)
+                .containsOnly(mapper.valueToTree(ExtUser.builder().consent("consent").build()));
     }
 
     @Test
@@ -576,9 +583,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .containsOnly(tuple(
                         "legacyInvCode1",
                         mapper.valueToTree(AppnexusImpExt.of(
-                                AppnexusImpExtAppnexus.of(
-                                        101, null, "legacyTrafficSourceCode1", null, null)))
-                ));
+                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))));
     }
 
     @Test

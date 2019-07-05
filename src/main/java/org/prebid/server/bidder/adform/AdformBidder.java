@@ -12,6 +12,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -42,8 +43,9 @@ import java.util.stream.Collectors;
  */
 public class AdformBidder implements Bidder<Void> {
 
-    private static final String VERSION = "0.1.2";
+    private static final String VERSION = "0.1.3";
     private static final String BANNER = "banner";
+    private static final String DEFAULT_CURRENCY = "USD";
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdform>>() {
@@ -71,11 +73,14 @@ public class AdformBidder implements Bidder<Void> {
             return Result.of(Collections.emptyList(), errors);
         }
 
+        final String currency = resolveRequestCurrency(request.getCur());
         final Device device = request.getDevice();
         final ExtUser extUser = AdformRequestUtil.getExtUser(request.getUser());
         final String url = AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterTagIds(extImpAdforms))
+                        .keyValues(getKeyValues(extImpAdforms))
+                        .keyWords(getKeyWords(extImpAdforms))
                         .priceTypes(getPriceType(extImpAdforms))
                         .endpointUrl(endpointUrl)
                         .tid(getTid(request.getSource()))
@@ -84,6 +89,7 @@ public class AdformBidder implements Bidder<Void> {
                         .secure(getSecure(imps))
                         .gdprApplies(AdformRequestUtil.getGdprApplies(request.getRegs()))
                         .consent(AdformRequestUtil.getConsent(extUser))
+                        .currency(currency)
                         .build());
 
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
@@ -103,6 +109,14 @@ public class AdformBidder implements Bidder<Void> {
                         .payload(null)
                         .build()),
                 errors);
+    }
+
+    private List<String> getKeyValues(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getKeyValues).collect(Collectors.toList());
+    }
+
+    private List<String> getKeyWords(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getKeyWords).collect(Collectors.toList());
     }
 
     /**
@@ -160,6 +174,16 @@ public class AdformBidder implements Bidder<Void> {
         }
 
         return Result.of(extImpAdforms, errors);
+    }
+
+    /**
+     * Resolves a currency that should be forwarded to bidder. Default - USD, if request
+     * doesn't contain USD - select the top level currency (first one);
+     */
+    private static String resolveRequestCurrency(List<String> currencies) {
+        return CollectionUtils.isNotEmpty(currencies) && !currencies.contains(DEFAULT_CURRENCY)
+                ? currencies.get(0)
+                : DEFAULT_CURRENCY;
     }
 
     /**
@@ -232,6 +256,8 @@ public class AdformBidder implements Bidder<Void> {
     private List<BidderBid> toBidderBid(List<AdformBid> adformBids, List<Imp> imps) {
         final List<BidderBid> bidderBids = new ArrayList<>();
 
+        final String currency = CollectionUtils.isNotEmpty(adformBids) ? adformBids.get(0).getWinCur() : null;
+
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
             if (StringUtils.isEmpty(adformBid.getBanner()) || !Objects.equals(adformBid.getResponse(), BANNER)) {
@@ -248,7 +274,8 @@ public class AdformBidder implements Bidder<Void> {
                             .dealid(adformBid.getDealId())
                             .crid(adformBid.getWinCrid())
                             .build(),
-                    BidType.banner, null));
+                    BidType.banner,
+                    currency));
         }
 
         return bidderBids;

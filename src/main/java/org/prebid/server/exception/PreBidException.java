@@ -1,5 +1,6 @@
 package org.prebid.server.exception;
 
+@SuppressWarnings("serial")
 public class PreBidException extends RuntimeException {
 
     public PreBidException(String message) {

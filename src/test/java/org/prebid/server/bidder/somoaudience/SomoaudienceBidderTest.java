@@ -63,7 +63,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .build();
@@ -91,12 +91,36 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build())
                                 .bidfloor(BigDecimal.valueOf(1.39))
                                 .build()))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                         .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
-                        .build()
-        ));
+                        .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldTolerateMissingDeviceLanguage() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
+                        .build()))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language(null).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = somoaudienceBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .doesNotContain(tuple("Accept-Language", null));
     }
 
     @Test
@@ -136,11 +160,13 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
         final String expectedVideoSting = mapper.writeValueAsString(BidRequest.builder()
-                .imp(singletonList(Imp.builder().video(Video.builder().build()).bidfloor(BigDecimal.valueOf(1.97)).build()))
+                .imp(singletonList(
+                        Imp.builder().video(Video.builder().build()).bidfloor(BigDecimal.valueOf(1.97)).build()))
                 .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
         final String expectedNativeString = mapper.writeValueAsString(BidRequest.builder()
-                .imp(singletonList(Imp.builder().xNative(Native.builder().build()).bidfloor(BigDecimal.valueOf(2.52)).build()))
+                .imp(singletonList(
+                        Imp.builder().xNative(Native.builder().build()).bidfloor(BigDecimal.valueOf(2.52)).build()))
                 .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
 
@@ -219,7 +245,8 @@ public class SomoaudienceBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getId).containsExactly("impId2");
+                .extracting(Imp::getId)
+                .containsExactly("impId2");
     }
 
     @Test
@@ -385,7 +412,8 @@ public class SomoaudienceBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getId).containsExactly("bidId1", "bidId2");
+                .extracting(Bid::getId)
+                .containsExactly("bidId1", "bidId2");
     }
 
     @Test

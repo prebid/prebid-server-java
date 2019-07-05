@@ -7,7 +7,8 @@ import org.prebid.server.auction.PriceGranularity;
 import java.util.List;
 
 /**
- * Defines the contract for bidrequest.ext.prebid.targeting.pricegranularity
+ * Defines the contract for bidrequest.ext.prebid.targeting.pricegranularity and
+ * bidrequest.ext.prebid.targeting.mediatypepricegranularity.banner|video|native
  */
 @AllArgsConstructor(staticName = "of")
 @Value

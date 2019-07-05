@@ -19,6 +19,7 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
 - `requests.(ok|badinput|err|networkerr).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
 - `db_circuitbreaker_closed` - number of how many times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
@@ -47,6 +48,9 @@ Following metrics are collected and submitted if account is configured with `det
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received
+- `cookie_sync.<bidder-name>.gen` - number of times cookies was synced per bidder 
+- `cookie_sync.<bidder-name>.matches` - number of times cookie was already matched when synced per bidder 
+- `cookie_sync.<bidder-name>.gpdr_prevent` - number of times cookie sync was prevented by gdpr per bidder
 
 ## /setuid endpoint metrics
 - `usersync.opt_outs` - number of requests received with `uids` cookie containing `optout=true`

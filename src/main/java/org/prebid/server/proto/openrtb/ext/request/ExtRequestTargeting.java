@@ -17,6 +17,11 @@ public class ExtRequestTargeting {
     JsonNode pricegranularity;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.targeting.mediatypepricegranularity
+     */
+    ExtMediaTypePriceGranularity mediatypepricegranularity;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.targeting.currency
      */
     ExtCurrency currency;

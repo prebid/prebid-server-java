@@ -1,0 +1,69 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 980,
+            "h": 120
+          }
+        ],
+        "w": 300,
+        "h": 600,
+        "ext": {
+          "rp": {
+            "size_id": 31,
+            "mime": "text/html"
+          }
+        }
+      },
+      "tagid": "overwrite-tagId",
+      "secure": 1,
+      "ext": {
+        "rp": {
+          "zone_id": 7001,
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "https://google.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 5001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 6001
+      },
+      "amp": 1
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1",
+    "ext": {
+      "rp": {}
+    }
+  },
+  "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT"
+  },
+  "at": 1,
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

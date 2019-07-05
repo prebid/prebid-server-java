@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
@@ -31,6 +32,7 @@ import org.prebid.server.util.HttpUtil;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,15 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String VERSION = "2.5";
     private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+
+    private static final List<Integer> BLOCKED_CREATIVETYPES_FOR_AD_THRIVE = Arrays.asList(1, 2, 3, 6, 9, 10);
+    private static final List<String> BLOCKED_CATEGORIES_FOR_ADTHRIVE =
+            Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30", "IAB14-1", "IAB22-1", "IAB3-7", "IAB7-3",
+                    "IAB14-3", "IAB11", "IAB11-1", "IAB11-2", "IAB11-3", "IAB11-4", "IAB11-5", "IAB23", "IAB23-1",
+                    "IAB23-2", "IAB23-3", "IAB23-4", "IAB23-5", "IAB23-6", "IAB23-7", "IAB23-8", "IAB23-9", "IAB23-10",
+                    "IAB7-39", "IAB9-30", "IAB7-44", "IAB25", "IAB25-1", "IAB25-2", "IAB25-3", "IAB25-4", "IAB25-5",
+                    "IAB25-6", "IAB25-7", "IAB26", "IAB26-1", "IAB26-2", "IAB26-3", "IAB26-4");
+
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
@@ -60,7 +71,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final BidRequest updateBidRequest = updateBidRequest(request, errors);
+        final String firstImpExtPublisher;
+        try {
+            firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
+        } catch (PreBidException ex) {
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
+        }
+
+        final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);
 
         if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
@@ -75,17 +93,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        final String publisher;
-        try {
-            publisher = getPublisher(request.getImp().get(0));
-        } catch (PreBidException ex) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
-        }
-
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(String.format("%s?publisher=%s", endpointUrl, publisher))
+                        .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
                         .body(bidRequestBody)
                         .headers(createHeaders(updateBidRequest.getDevice()))
                         .payload(updateBidRequest)
@@ -94,33 +105,50 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Updates {@link BidRequest} with default auction type
-     * and {@link Imp}s if something changed or dropped from the list.
+     * Extracts and validates {@link ExtImpBrightroll} from given impression.
      */
-    private static BidRequest updateBidRequest(BidRequest bidRequest, List<BidderError> errors) {
-        final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder();
-        //Defaulting to first price auction for all prebid requests
-        builder.at(1);
-
-        final List<Imp> imps = bidRequest.getImp();
-        final boolean requiresImpsUpdate = imps.stream().anyMatch(BrightrollBidder::isUpdateRequired);
-        if (requiresImpsUpdate) {
-            builder.imp(imps.stream()
-                    .filter(imp -> isImpValid(imp, errors))
-                    .map(BrightrollBidder::updateImpSize)
-                    .collect(Collectors.toList()));
+    private String getAndValidateImpExt(Imp imp) {
+        final ObjectNode impExt = imp.getExt();
+        if (impExt == null || impExt.size() == 0) {
+            throw new PreBidException("ext.bidder not provided");
         }
-        return builder.build();
+
+        final String publisher;
+        try {
+            publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
+                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("ext.bidder.publisher not provided");
+        }
+
+        if (StringUtils.isEmpty(publisher)) {
+            throw new PreBidException("publisher is empty");
+        }
+
+        return publisher;
     }
 
     /**
-     * Checks if {@link Imp} requires changes.
+     * Updates {@link BidRequest} with default auction type
+     * and {@link Imp}s if something changed or dropped from the list.
      */
-    private static boolean isUpdateRequired(Imp imp) {
-        final Banner banner = imp.getBanner();
-        return (banner == null && imp.getVideo() == null)
-                || (banner != null && banner.getW() == null && banner.getH() == null
-                && CollectionUtils.isNotEmpty(banner.getFormat()));
+    private static BidRequest updateBidRequest(BidRequest bidRequest, String firstImpExtPublisher,
+                                               List<BidderError> errors) {
+        final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder();
+        // Defaulting to first price auction for all prebid requests
+        builder.at(1);
+
+        final boolean isAdthrivePublisher = Objects.equals(firstImpExtPublisher, "adthrive");
+        if (isAdthrivePublisher) {
+            builder.bcat(BLOCKED_CATEGORIES_FOR_ADTHRIVE);
+        }
+
+        builder.imp(bidRequest.getImp().stream()
+                .filter(imp -> isImpValid(imp, errors))
+                .map(imp -> updateImp(imp, isAdthrivePublisher))
+                .collect(Collectors.toList()));
+
+        return builder.build();
     }
 
     /**
@@ -137,19 +165,31 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Updates {@link Imp} {@link Banner} if required.
+     * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
-    private static Imp updateImpSize(Imp imp) {
+    private static Imp updateImp(Imp imp, boolean isAdthrivePublisher) {
         final Banner banner = imp.getBanner();
-        if (banner != null && banner.getW() == null && banner.getH() == null
-                && CollectionUtils.isNotEmpty(banner.getFormat())) {
-
-            // update banner with size from first format
-            final Format firstFormat = banner.getFormat().get(0);
+        if (banner != null) {
+            final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
+            if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
+                // update banner with size from first format
+                final Format firstFormat = banner.getFormat().get(0);
+                bannerBuilder
+                        .w(firstFormat.getW())
+                        .h(firstFormat.getH());
+            }
+            if (isAdthrivePublisher) {
+                bannerBuilder.battr(BLOCKED_CREATIVETYPES_FOR_AD_THRIVE);
+            }
             return imp.toBuilder()
-                    .banner(banner.toBuilder()
-                            .w(firstFormat.getW())
-                            .h(firstFormat.getH())
+                    .banner(bannerBuilder.build())
+                    .build();
+        }
+        final Video video = imp.getVideo();
+        if (video != null && isAdthrivePublisher) {
+            return imp.toBuilder()
+                    .video(video.toBuilder()
+                            .battr(BLOCKED_CREATIVETYPES_FOR_AD_THRIVE)
                             .build())
                     .build();
         }
@@ -174,30 +214,6 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         }
 
         return headers;
-    }
-
-    /**
-     * Extracts publisher from {@link ExtImpBrightroll}.
-     */
-    private String getPublisher(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        if (impExt == null || impExt.size() == 0) {
-            throw new PreBidException("ext.bidder not provided");
-        }
-
-        final String publisher;
-        try {
-            publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
-                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("ext.bidder.publisher not provided");
-        }
-
-        if (StringUtils.isEmpty(publisher)) {
-            throw new PreBidException("publisher is empty");
-        }
-
-        return publisher;
     }
 
     /**

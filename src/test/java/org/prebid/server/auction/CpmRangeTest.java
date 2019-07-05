@@ -21,8 +21,9 @@ public class CpmRangeTest {
     @Test
     public void fromCpmShouldReturnPriceWithCorrectPrecision() {
         // given
-        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(ExtPriceGranularity.of(1, singletonList(
-                ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.1)))));
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(1, singletonList(
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.1)))));
 
         // when
         final String cpm = CpmRange.fromCpm(BigDecimal.valueOf(5.1245), priceGranularity);
@@ -109,8 +110,9 @@ public class CpmRangeTest {
     @Test
     public void fromCpmAsNumberShouldReturnExpectedResult() {
         // given
-        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(ExtPriceGranularity.of(null,
-                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)))));
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(null,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)))));
 
         // when
         final BigDecimal result = CpmRange.fromCpmAsNumber(BigDecimal.valueOf(2.333), priceGranularity);

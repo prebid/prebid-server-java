@@ -1,4 +1,14 @@
-.idea
-.vertx
-target
+.idea/
 *.iml
+
+.settings/
+*.classpath
+
+.vscode/
+*.project
+*.factorypath
+
+.vertx/
+target/
+
+.DS_Store

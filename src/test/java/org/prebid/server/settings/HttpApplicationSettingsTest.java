@@ -137,7 +137,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 timeout);
 
         // then
-        verify(httpClient).get(eq("http://stored-requests?request-ids=[\"id2\",\"id1\"]&imp-ids=[\"id4\",\"id3\"]"), any(), anyLong());
+        verify(httpClient).get(eq("http://stored-requests?request-ids=[\"id2\",\"id1\"]&imp-ids=[\"id4\",\"id3\"]"),
+                any(), anyLong());
     }
 
     @Test
@@ -151,7 +152,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
-        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=[\"id1\"]&imp-ids=[\"id2\"]"), any(), anyLong());
+        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=[\"id1\"]&imp-ids=[\"id2\"]"), any(),
+                anyLong());
     }
 
     @Test

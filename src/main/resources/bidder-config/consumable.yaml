@@ -1,0 +1,21 @@
+adapters:
+  consumable:
+    enabled: false
+    endpoint: https://e.serverbid.com/api/v2
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: naffis@consumable.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 65535
+    usersync:
+      url: https://e.serverbid.com/udb/9969/match?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&redir=
+      redirect-url: /setuid?bidder=consumable&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=
+      cookie-family-name: consumable
+      type: redirect
+      support-cors: false

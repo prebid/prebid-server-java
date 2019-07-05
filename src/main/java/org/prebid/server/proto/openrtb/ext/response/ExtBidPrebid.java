@@ -17,4 +17,6 @@ public class ExtBidPrebid {
     Map<String, String> targeting;
 
     ExtResponseCache cache;
+
+    Events events;
 }

@@ -67,9 +67,8 @@ import static org.mockito.BDDMockito.given;
 public class IxAdapterTest extends VertxTest {
 
     private static final String BIDDER = "ix";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://exchange.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -81,15 +80,13 @@ public class IxAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private IxAdapter adapter;
-    private IxUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        usersyncer = new IxUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new IxAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new IxAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
@@ -97,13 +94,13 @@ public class IxAdapterTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new IxAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new IxAdapter(usersyncer, null));
+                () -> new IxAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new IxAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new IxAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -148,25 +145,12 @@ public class IxAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
         // given
-        adapterRequest = givenBidder(builder -> builder.params(
-                mapper.valueToTree(IxParams.of(null, null))));
+        adapterRequest = givenBidder(builder -> builder.params(mapper.valueToTree(IxParams.of(null))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Missing siteId param");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldFailIfAdUnitBidParamSizeIsInvalid() {
-        // given
-        adapterRequest = givenBidder(builder -> builder.params(
-                mapper.valueToTree(IxParams.of("id", singletonList(33)))));
-
-        // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Incorrect Size param: expected at least 2 values");
     }
 
     @Test
@@ -212,7 +196,7 @@ public class IxAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(mapper.valueToTree(IxParams.of("486", asList(300, 250)))));
+                        .params(mapper.valueToTree(IxParams.of("486"))));
 
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -223,9 +207,10 @@ public class IxAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid1")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
-        );
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid1");
 
@@ -265,7 +250,7 @@ public class IxAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid1")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
@@ -317,30 +302,6 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnListWithOnlyOneRequestWithValidSizesFromParams() {
-        // given
-        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
-                givenAdUnitBid(builder -> builder
-                        .adUnitCode("adUnitCode1")
-                        .sizes(asList(Format.builder().w(300).h(250).build(),
-                                Format.builder().w(300).h(300).build()))
-                        .params(mapper.valueToTree(IxParams.of("486", asList(300, 250))))
-                )));
-
-        // when
-        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
-                preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .extracting(AdapterHttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .flatExtracting(Banner::getFormat)
-                .containsOnly(Format.builder().w(300).h(250).build());
-    }
-
-    @Test
     public void makeHttpRequestsShouldPrioritizeSlotsOverSizes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
@@ -350,8 +311,7 @@ public class IxAdapterTest extends VertxTest {
                                 Format.builder().w(300).h(300).build()))),
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode2")
-                        .sizes(singletonList(Format.builder().w(600).h(480).build())))
-        ));
+                        .sizes(singletonList(Format.builder().w(600).h(480).build())))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -525,7 +485,7 @@ public class IxAdapterTest extends VertxTest {
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(mapper.valueToTree(IxParams.of("42", null)))
+                .params(mapper.valueToTree(IxParams.of("42")))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

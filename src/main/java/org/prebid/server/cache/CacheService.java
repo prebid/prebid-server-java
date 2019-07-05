@@ -11,10 +11,13 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.cache.account.AccountCacheService;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
+import org.prebid.server.cache.model.CacheHttpCall;
+import org.prebid.server.cache.model.CacheHttpRequest;
+import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
+import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
@@ -26,12 +29,15 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,36 +50,35 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Client stores values in Prebid Cache. For more info, see https://github.com/prebid/prebid-cache
+ * Client stores values in Prebid Cache.
+ * <p>
+ * For more info, see https://github.com/prebid/prebid-cache project.
  */
 public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private final AccountCacheService accountCacheService;
+    private final ApplicationSettings applicationSettings;
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
+    private final Clock clock;
 
-    public CacheService(AccountCacheService accountCacheService, CacheTtl mediaTypeCacheTtl,
-                        HttpClient httpClient, URL endpointUrl, String cachedAssetUrlTemplate) {
-        this.accountCacheService = Objects.requireNonNull(accountCacheService);
+    public CacheService(ApplicationSettings applicationSettings, CacheTtl mediaTypeCacheTtl, HttpClient httpClient,
+                        URL endpointUrl, String cachedAssetUrlTemplate, Clock clock) {
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     public String getEndpointHost() {
-        String host = endpointUrl.getHost();
-        int port = endpointUrl.getPort();
-
-        if (port == -1) {
-            return host;
-        } else {
-            return String.format("%s:%d", host, port);
-        }
+        final String host = endpointUrl.getHost();
+        final int port = endpointUrl.getPort();
+        return port != -1 ? String.format("%s:%d", host, port) : host;
     }
 
     public String getEndpointPath() {
@@ -109,15 +114,42 @@ public class CacheService {
     }
 
     /**
+     * Asks external prebid cache service to store the given value.
+     */
+    private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout) {
+        if (bidCount == 0) {
+            return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
+        }
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return failResponse(new TimeoutException("Timeout has been exceeded"));
+        }
+
+        return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
+                remainingTimeout)
+                .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount))
+                .recover(CacheService::failResponse);
+    }
+
+    /**
+     * Handles errors occurred while HTTP request or response processing.
+     */
+    private static Future<BidCacheResponse> failResponse(Throwable exception) {
+        logger.warn("Error occurred while interacting with cache service", exception);
+        return Future.failedFuture(exception);
+    }
+
+    /**
      * Makes cache for OpenRTB {@link com.iab.openrtb.response.Bid}s.
      */
-    public Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> cacheBidsOpenrtb(
+    public Future<CacheServiceResult> cacheBidsOpenrtb(
             List<com.iab.openrtb.response.Bid> bids, List<Imp> imps, CacheContext cacheContext, String publisherId,
             Timeout timeout) {
-        final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> result;
+        final Future<CacheServiceResult> result;
 
         if (CollectionUtils.isEmpty(bids)) {
-            result = Future.succeededFuture(Collections.emptyMap());
+            result = Future.succeededFuture(CacheServiceResult.empty());
         } else {
             final Map<String, Integer> impIdToTtl = new HashMap<>(imps.size());
             boolean impWithNoExpExists = false; // indicates at least one impression without expire presents
@@ -176,19 +208,48 @@ public class CacheService {
 
     /**
      * Fetches {@link CacheTtl} for the given account.
+     * <p>
+     * This data is not critical, so returns empty {@link CacheTtl} if any error occurred.
      */
     private Future<CacheTtl> accountCacheTtlFrom(boolean impWithNoExpExists, String publisherId, Timeout timeout) {
         return impWithNoExpExists && StringUtils.isNotEmpty(publisherId)
-                ? accountCacheService.getCacheTtlByAccountId(publisherId, timeout)
+                ? makeCacheTtl(publisherId, timeout)
                 : Future.succeededFuture(CacheTtl.empty());
+    }
+
+    /**
+     * Makes {@link CacheTtl} from {@link Account} fetched by {@link ApplicationSettings}.
+     */
+    private Future<CacheTtl> makeCacheTtl(String publisherId, Timeout timeout) {
+        return applicationSettings.getAccountById(publisherId, timeout)
+                .map(CacheService::cacheTtlFrom)
+                .otherwise(CacheService::accountFallback);
+    }
+
+    /**
+     * Verifies if configs for {@link CacheTtl} are present in {@link Account}.
+     */
+    private static CacheTtl cacheTtlFrom(Account account) {
+        return account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null
+                ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
+                : CacheTtl.empty();
+    }
+
+    /**
+     * Returns empty {@link CacheTtl} if account is not found or any exception occurred.
+     */
+    private static CacheTtl accountFallback(Throwable exception) {
+        if (!(exception instanceof PreBidException)) {
+            logger.warn("Error occurred while fetching account", exception);
+        }
+        return CacheTtl.empty();
     }
 
     /**
      * Creates {@link CacheBid} from given {@link com.iab.openrtb.response.Bid} and determined cache ttl.
      */
     private CacheBid toCacheBid(com.iab.openrtb.response.Bid bid, Map<String, Integer> impIdToTtl, Integer requestTtl,
-                                CacheTtl accountCacheTtl,
-                                boolean isVideoBid) {
+                                CacheTtl accountCacheTtl, boolean isVideoBid) {
         final Integer bidTtl = bid.getExp();
         final Integer impTtl = impIdToTtl.get(bid.getImpid());
         final Integer accountMediaTypeTtl = isVideoBid
@@ -208,71 +269,68 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
-    private Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> doCacheOpenrtb(
-            List<CacheBid> bids, List<CacheBid> videoBids, Timeout timeout) {
-
+    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids, Timeout timeout) {
         final List<PutObject> putObjects = Stream.concat(
                 bids.stream().map(CacheService::createJsonPutObjectOpenrtb),
                 videoBids.stream().map(CacheService::createXmlPutObjectOpenrtb))
                 .collect(Collectors.toList());
 
-        return makeRequest(BidCacheRequest.of(putObjects), putObjects.size(), timeout)
-                .map(bidCacheResponse -> toResponse(bidCacheResponse, CacheObject::getUuid))
-                .map(uuids -> toResultMap(bids, videoBids, uuids));
-    }
-
-    /**
-     * Asks external prebid cache service to store the given value.
-     */
-    private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout) {
-        if (bidCount == 0) {
-            return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
+        if (putObjects.isEmpty()) {
+            return Future.succeededFuture(CacheServiceResult.empty());
         }
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failResponse(new TimeoutException("Timeout has been exceeded"));
+            return Future.succeededFuture(CacheServiceResult.of(null, new TimeoutException("Timeout has been exceeded"),
+                    Collections.emptyMap()));
         }
 
-        return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
-                remainingTimeout)
-                .compose(response -> processResponse(response, bidCount))
-                .recover(CacheService::failResponse);
+        final String url = endpointUrl.toString();
+        final String body = Json.encode(BidCacheRequest.of(putObjects));
+        final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
+
+        final long startTime = clock.millis();
+        return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
+                .map(response -> processResponseOpenrtb(response, httpRequest, putObjects.size(), bids, videoBids,
+                        startTime))
+                .otherwise(exception -> failResponseOpenrtb(exception, httpRequest, startTime));
+    }
+
+    /**
+     * Creates {@link CacheServiceResult} from the given {@link HttpClientResponse}.
+     */
+    private CacheServiceResult processResponseOpenrtb(HttpClientResponse response, CacheHttpRequest httpRequest,
+                                                      int bidCount, List<CacheBid> bids, List<CacheBid> videoBids,
+                                                      long startTime) {
+        final CacheHttpResponse httpResponse = CacheHttpResponse.of(response.getStatusCode(), response.getBody());
+        final CacheHttpCall httpCall = CacheHttpCall.of(httpRequest, httpResponse, responseTime(startTime));
+
+        final BidCacheResponse bidCacheResponse;
+        try {
+            bidCacheResponse = toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount);
+        } catch (PreBidException e) {
+            return CacheServiceResult.of(httpCall, e, Collections.emptyMap());
+        }
+
+        final List<String> uuids = toResponse(bidCacheResponse, CacheObject::getUuid);
+        return CacheServiceResult.of(httpCall, null, toResultMap(bids, videoBids, uuids));
     }
 
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<BidCacheResponse> failResponse(Throwable exception) {
+    private CacheServiceResult failResponseOpenrtb(Throwable exception, CacheHttpRequest request, long startTime) {
         logger.warn("Error occurred while interacting with cache service", exception);
-        return Future.failedFuture(exception);
+
+        final CacheHttpCall httpCall = CacheHttpCall.of(request, null, responseTime(startTime));
+        return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
     }
 
     /**
-     * Handles {@link HttpClientResponse}, analyzes response status
-     * and creates {@link Future} with {@link BidCacheResponse} from body content
-     * or throws {@link PreBidException} in case of errors.
+     * Calculates execution time since the given start time.
      */
-    private static Future<BidCacheResponse> processResponse(HttpClientResponse response, int bidCount) {
-        final int statusCode = response.getStatusCode();
-        if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
-        }
-
-        final String body = response.getBody();
-        final BidCacheResponse bidCacheResponse;
-        try {
-            bidCacheResponse = Json.decodeValue(body, BidCacheResponse.class);
-        } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
-        }
-
-        final List<CacheObject> responses = bidCacheResponse.getResponses();
-        if (responses == null || responses.size() != bidCount) {
-            throw new PreBidException("The number of response cache objects doesn't match with bids");
-        }
-
-        return Future.succeededFuture(bidCacheResponse);
+    private int responseTime(long startTime) {
+        return Math.toIntExact(clock.millis() - startTime);
     }
 
     /**
@@ -328,6 +386,30 @@ public class CacheService {
     private BidCacheResult createBidCacheResult(CacheObject cacheObject) {
         final String uuid = cacheObject.getUuid();
         return BidCacheResult.of(uuid, getCachedAssetURL(uuid));
+    }
+
+    /**
+     * Handles http response, analyzes response status and creates {@link BidCacheResponse} from response body
+     * or throws {@link PreBidException} in case of errors.
+     */
+    private static BidCacheResponse toBidCacheResponse(int statusCode, String responseBody, int bidCount) {
+        if (statusCode != 200) {
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+        }
+
+        final BidCacheResponse bidCacheResponse;
+        try {
+            bidCacheResponse = Json.decodeValue(responseBody, BidCacheResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
+        }
+
+        final List<CacheObject> responses = bidCacheResponse.getResponses();
+        if (responses == null || responses.size() != bidCount) {
+            throw new PreBidException("The number of response cache objects doesn't match with bids");
+        }
+
+        return bidCacheResponse;
     }
 
     /**

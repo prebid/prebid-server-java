@@ -24,7 +24,6 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
@@ -60,8 +59,8 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
     private final String endpointUrl;
 
-    public PubmaticAdapter(Usersyncer usersyncer, String endpointUrl) {
-        super(usersyncer);
+    public PubmaticAdapter(String cookieFamilyName, String endpointUrl) {
+        super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
@@ -151,6 +150,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private static NormalizedPubmaticParams parseAndValidateParams(AdUnitBid adUnitBid,
                                                                    String requestId, List<String> errors) {
         final ObjectNode params = adUnitBid.getParams();
+        final List<Format> sizes = adUnitBid.getSizes();
         final String bidId = adUnitBid.getBidId();
         if (params == null) {
             errors.add(paramError(bidId, "Params section is missing", null));
@@ -176,43 +176,59 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         }
 
         final String adSlot = StringUtils.trimToNull(pubmaticParams.getAdSlot());
-        if (StringUtils.isEmpty(adSlot)) {
-            errors.add(paramError(bidId, "Missing AdSlot", params));
-            logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: adSlot missing");
-            return null;
-        }
+        Integer width = null;
+        Integer height = null;
+        String tagId = null;
+        boolean slotWithoutSize = true;
+        if (!StringUtils.isEmpty(adSlot)) {
+            if (!adSlot.contains("@")) {
+                tagId = adSlot;
+            } else {
+                final String[] adSlots = adSlot.split("@");
+                if (adSlots.length != 2 || StringUtils.isEmpty(adSlots[0].trim())
+                        || StringUtils.isEmpty(adSlots[1].trim())) {
+                    errors.add(paramError(bidId, "Invalid AdSlot", params));
+                    logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot [%s]", adSlot);
+                    return null;
+                }
+                tagId = adSlots[0].trim();
+                final String[] adSizes = adSlots[1].toLowerCase().split("x");
+                if (adSizes.length != 2) {
+                    errors.add(paramError(bidId, "Invalid AdSize", params));
+                    logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSize [%s]",
+                            adSlots[1]);
+                    return null;
+                }
 
-        final String[] adSlots = adSlot.split("@");
-        if (adSlots.length != 2 || StringUtils.isEmpty(adSlots[0]) || StringUtils.isEmpty(adSlots[1])) {
-            errors.add(paramError(bidId, "Invalid AdSlot", params));
-            logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot [%s]", adSlot);
-            return null;
-        }
+                try {
+                    width = Integer.parseInt(adSizes[0].trim());
+                } catch (NumberFormatException e) {
+                    errors.add(paramError(bidId, "Invalid Width", params));
+                    logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot width [%s]",
+                            adSizes[0]);
+                    return null;
+                }
 
-        final String[] adSizes = adSlots[1].toLowerCase().split("x");
-        if (adSizes.length != 2) {
-            errors.add(paramError(bidId, "Invalid AdSize", params));
-            logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSize [%s]", adSlots[1]);
-            return null;
+                final String[] adSizeHeights = adSizes[1].split(":");
+                try {
+                    height = Integer.parseInt(adSizeHeights[0].trim());
+                } catch (NumberFormatException e) {
+                    errors.add(paramError(bidId, "Invalid Height", params));
+                    logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot height [%s]",
+                            adSizes[0]);
+                    return null;
+                }
+                slotWithoutSize = false;
+            }
         }
-
-        final int width;
-        try {
-            width = Integer.parseInt(adSizes[0].trim());
-        } catch (NumberFormatException e) {
-            errors.add(paramError(bidId, "Invalid Width", params));
-            logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot width [%s]", adSizes[0]);
-            return null;
-        }
-
-        final int height;
-        final String[] adSizeHeights = adSizes[1].split(":");
-        try {
-            height = Integer.parseInt(adSizeHeights[0].trim());
-        } catch (NumberFormatException e) {
-            errors.add(paramError(bidId, "Invalid Height", params));
-            logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot height [%s]", adSizes[0]);
-            return null;
+        if (slotWithoutSize) {
+            if (CollectionUtils.isEmpty(sizes)) {
+                errors.add(paramError(bidId, "Invalid AdSize", params));
+                logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: Size missing");
+                return null;
+            }
+            height = sizes.get(0).getH();
+            width = sizes.get(0).getW();
         }
 
         final ObjectNode wrapExt;
@@ -244,7 +260,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
             keyValue = null;
         }
 
-        return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height, wrapExt, keyValue);
+        return NormalizedPubmaticParams.of(publisherId, adSlot, tagId, width, height, wrapExt, keyValue);
     }
 
     private static String paramError(String bidId, String message, ObjectNode params) {
@@ -313,7 +329,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return Banner.builder()
                 .w(params != null ? params.getWidth() : format.getW())
                 .h(params != null ? params.getHeight() : format.getH())
-                .format(params != null ? null : sizes) // pubmatic doesn't support
+                .format(CollectionUtils.isNotEmpty(sizes) ? sizes : null) // pubmatic now supports format object
                 .topframe(adUnitBid.getTopframe())
                 .build();
     }
@@ -348,7 +364,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
     private String makeUserCookie(PreBidRequestContext preBidRequestContext) {
         final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
-        final String cookieValue = uidsCookie != null ? uidsCookie.uidFrom(usersyncer.cookieFamilyName()) : null;
+        final String cookieValue = uidsCookie != null ? uidsCookie.uidFrom(cookieFamilyName) : null;
 
         return Cookie.cookie("KADUSERCOOKIE", ObjectUtils.firstNonNull(cookieValue, "")).encode();
     }

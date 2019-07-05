@@ -24,4 +24,20 @@ public class ResourceUtilTest {
         // then
         assertThat(content).isEqualTo("Test content");
     }
+
+    @Test
+    public void shouldThrowIllegalArgumentExceptionOnNotExistingPathWhenReadBytesCalled() {
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> ResourceUtil.readByteArrayFromClassPath("notExistingPath"));
+    }
+
+    @Test
+    public void readFromFileReturnsExpectedContentWhenReadBytesCalled() throws IOException {
+        // when
+        final byte[] content = ResourceUtil.readByteArrayFromClassPath(
+                "org/prebid/server/util/resource/test-data.txt");
+
+        // then
+        assertThat(content).isEqualTo(new byte[]{84, 101, 115, 116, 32, 99, 111, 110, 116, 101, 110, 116});
+    }
 }

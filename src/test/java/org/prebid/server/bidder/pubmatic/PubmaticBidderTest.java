@@ -98,7 +98,7 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("invalid ad slot"));
+                extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("invalid ad slot@"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -137,7 +137,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid width or height provided in adSlot"));
+                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -153,7 +153,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid width or height provided in adSlot"));
+                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"));
         assertThat(result.getValue()).isEmpty();
     }
 

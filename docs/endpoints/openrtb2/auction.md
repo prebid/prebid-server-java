@@ -7,6 +7,7 @@ This document describes the behavior of the Prebid Server auction endpoint, incl
 - Debugging and performance tips
 - How user syncing works
 - Departures from OpenRTB
+- Server-to-server
 
 ## `POST /openrtb2/auction`
 
@@ -375,6 +376,42 @@ This adds two optional properties:
 
 These fields will be forwarded to each Bidder, so they can decide how to process them.
 
+#### Interstitial support
+Additional support for interstitials is enabled through the addition of two fields to the request:
+device.ext.prebid.interstitial.minwidthperc and device.ext.interstial.minheightperc
+The values will be numbers that indicate the minimum allowed size for the ad, as a percentage of the base side. For example, a width of 600 and "minwidthperc": 60 would allow ads with widths from 360 to 600 pixels inclusive.
+
+Example:
+```
+{
+  "imp": [
+    {
+      ...
+      "banner": {
+        ...
+      }
+      "instl": 1,
+      ...
+    }
+  ]
+  "device": {
+    ...
+    "h": 640,
+    "w": 320,
+    "ext": {
+      "prebid": {
+        "interstitial": {
+          "minwidthperc": 60,
+          "minheightperc": 60
+        }
+      }
+    }
+  }
+}
+```
+
+PBS receiving a request for an interstitial imp and these parameters set, it will rewrite the format object within the interstitial imp. If the format array's first object is a size, PBS will take it as the max size for the interstitial. If that size is 1x1, it will look up the device's size and use that as the max size. If the format is not present, it will also use the device size as the max size. (1x1 support so that you don't have to omit the format object to use the device size)
+PBS with interstitial support will come preconfigured with a list of common ad sizes. Preferentially organized by weighing the larger and more common sizes first. But no guarantees to the ordering will be made. PBS will generate a new format list for the interstitial imp by traversing this list and picking the first 10 sizes that fall within the imp's max size and minimum percentage size. There will be no attempt to favor aspect ratios closer to the original size's aspect ratio. The limit of 10 is enforced to ensure we don't overload bidders with an overlong list. All the interstitial parameters will still be passed to the bidders, so they may recognize them and use their own size matching algorithms if they prefer.
 
 #### Viewability
 
@@ -399,8 +436,8 @@ This supports publishers who want to sell different impressions to different bid
 This endpoint returns a 400 if the request contains deprecated properties (e.g. `imp.wmin`, `imp.hmax`).
 
 The error message in the response should describe how to "fix" the request to make it legal.
-If the message is unclear, please [log an issue](https://github.com/prebid/prebid-server-java/issues)
-or [submit a pull request](https://github.com/prebid/prebid-server-java/pulls) to improve it.
+If the message is unclear, please [log an issue](https://github.com/rubicon-project/prebid-server-java/issues)
+or [submit a pull request](https://github.com/rubicon-project/prebid-server-java/pulls) to improve it.
 
 #### Determining Bid Security (http/https)
 
@@ -413,6 +450,19 @@ In the OpenRTB spec, `request.imp[i].secure` says:
 In Prebid Server, an `https` request which does not define `secure` will be forwarded to Bidders with a `1`.
 Publishers who run `https` sites and want insecure ads can still set this to `0` explicitly.
 
+### Server to Server
+
+To support scenarios where the upstream client is a proxy server that funnels demand from actual end users (e.g. an ad server's direct connection), Prebid Server prioritizes OpenRTB fields over values in HTTP headers where available. The upstream server must make the end user's values available:
+
+- `request.device.ip` override the X-Forwarded-For HTTP header when available
+- `request.site.ref` overrides the Referer HTTP header when available
+- `request.device.ua` overrides the User-Agent HTTP header when available
+- `request.device.dnt` overrides the DNT HTTP header when available
+
+It is recommended that upstream servers set the following values for analytics purposes:
+
+- `source.ext.integration` - carries a code indicating the source. e.g. "custom ad server"
+- `source.ext.geocode` - carries a code indicating the geographic region of the source. e.g. "us-east". This can be used to analyze whether the server-to-server connections are optimal.
 
 ### See also
 

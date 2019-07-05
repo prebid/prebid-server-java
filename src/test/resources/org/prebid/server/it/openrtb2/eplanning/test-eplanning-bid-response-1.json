@@ -1,0 +1,18 @@
+{
+  "sp": [
+    {
+      "k": "testadunitcode",
+      "a": [
+        {
+          "i": "123456789abcdef",
+          "pr": "0.5",
+          "adm": "<div>test</div>",
+          "crid": "abcdef123456789",
+          "id": "adid12345",
+          "w": 600,
+          "h": 300
+        }
+      ]
+    }
+  ]
+}

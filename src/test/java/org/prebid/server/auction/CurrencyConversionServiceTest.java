@@ -153,7 +153,8 @@ public class CurrencyConversionServiceTest extends VertxTest {
         requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.5)));
 
         // when
-        final BigDecimal price = currencyService.convertCurrency(new BigDecimal("1.23"), requestConversionRates, EUR, USD);
+        final BigDecimal price = currencyService.convertCurrency(new BigDecimal("1.23"), requestConversionRates, EUR,
+                USD);
 
         // then
         assertThat(price.compareTo(BigDecimal.valueOf(2.460))).isEqualTo(0);
@@ -257,7 +258,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private static CurrencyConversionService createAndInitService(String url, long refreshPeriod, Vertx vertx,
                                                                   HttpClient httpClient) {
         final CurrencyConversionService currencyService =
-                new CurrencyConversionService(url, refreshPeriod, vertx, httpClient);
+                new CurrencyConversionService(url, 1000L, refreshPeriod, vertx, httpClient);
         currencyService.initialize();
         return currencyService;
     }

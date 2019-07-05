@@ -13,10 +13,12 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -50,12 +52,10 @@ public class AmpRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
-    public AmpRequestFactory(long defaultTimeout, long maxTimeout, long timeoutAdjustment,
-                             StoredRequestProcessor storedRequestProcessor,
+    public AmpRequestFactory(TimeoutResolver timeoutResolver, StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
@@ -105,7 +105,7 @@ public class AmpRequestFactory {
     /**
      * Updates {@link BidRequest}.ext.prebid.targeting and {@link BidRequest}.ext.prebid.cache.bids with default values
      * if it was not included by user. Updates {@link Imp} security if required to ensure that amp always uses
-     * https protocol. Sets {@link BidRequest}.test = 1 if it was passed in context.
+     * https protocol. Sets {@link BidRequest}.test = 1 if it was passed in {@link RoutingContext}.
      */
     private static BidRequest fillExplicitParameters(BidRequest bidRequest, RoutingContext context) {
         final List<Imp> imps = bidRequest.getImp();
@@ -114,17 +114,11 @@ public class AmpRequestFactory {
         final Integer secure = imp.getSecure();
         final boolean setSecure = secure == null || secure != 1;
 
+        final ExtBidRequest extBidRequest = extBidRequest(bidRequest.getExt());
+        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+
         // AMP won't function unless ext.prebid.targeting and ext.prebid.cache.bids are defined.
         // If the user didn't include them, default those here.
-        final ExtBidRequest requestExt;
-        try {
-            requestExt = Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
-        }
-
-        final ExtRequestPrebid prebid = requestExt.getPrebid();
-
         final boolean setDefaultTargeting;
         final boolean setDefaultCache;
 
@@ -141,28 +135,69 @@ public class AmpRequestFactory {
             setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
         }
 
-        final String debugQueryParam = context.request().getParam(DEBUG_REQUEST_PARAM);
-        final Integer test = bidRequest.getTest();
-        final boolean setTestParam = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
+        final Integer debugQueryParam = debugFromQueryStringParam(context);
 
-        return setDefaultTargeting || setDefaultCache || setSecure || setTestParam
-                ? bidRequest.toBuilder()
-                .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
-                .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
-                .test(setTestParam ? Integer.valueOf(1) : test)
-                .build()
-                : bidRequest;
+        final Integer test = bidRequest.getTest();
+        final Integer updatedTest = debugQueryParam != null && !Objects.equals(debugQueryParam, test)
+                ? debugQueryParam
+                : null;
+
+        final Integer debug = prebid != null ? prebid.getDebug() : null;
+        final Integer updatedDebug = debugQueryParam != null && !Objects.equals(debugQueryParam, debug)
+                ? debugQueryParam
+                : null;
+
+        final BidRequest result;
+        if (setSecure || setDefaultTargeting || setDefaultCache || updatedTest != null || updatedDebug != null) {
+            result = bidRequest.toBuilder()
+                    .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
+                    .test(ObjectUtils.defaultIfNull(updatedTest, test))
+                    .ext(extBidRequestNode(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
+                    .build();
+        } else {
+            result = bidRequest;
+        }
+        return result;
+    }
+
+    /**
+     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
+     */
+    private static ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
+        try {
+            return Json.mapper.treeToValue(extBidRequestNode, ExtBidRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
+        }
+    }
+
+    /**
+     * Returns debug flag from request query string if it is equal to either 0 or 1, or null if otherwise.
+     */
+    private static Integer debugFromQueryStringParam(RoutingContext context) {
+        final String debug = context.request().getParam(DEBUG_REQUEST_PARAM);
+        return Objects.equals(debug, "1") ? Integer.valueOf(1) : Objects.equals(debug, "0") ? 0 : null;
     }
 
     /**
      * This method extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
+    private static BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
-        final Long updatedTimeout = overridenTimeout(request);
+        final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
 
-        return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
+        final BidRequest result;
+        if (updatedSite != null || updatedImp != null || updatedTimeout != null) {
+            result = bidRequest.toBuilder()
+                    .site(updatedSite != null ? updatedSite : bidRequest.getSite())
+                    .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
+                    .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
+                    .build();
+        } else {
+            result = bidRequest;
+        }
+        return result;
     }
 
     private static Site overrideSite(Site site, HttpServerRequest request) {
@@ -177,14 +212,23 @@ public class AmpRequestFactory {
                 siteBuilder.page(canonicalUrl);
             }
             if (shouldSetExtAmp) {
-                siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1)));
+                final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
+                siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1, data)));
             }
             return siteBuilder.build();
         }
-        return site;
+        return null;
     }
 
-    private Imp overrideImp(Imp imp, HttpServerRequest request) {
+    private static String canonicalUrl(HttpServerRequest request) {
+        try {
+            return HttpUtil.decodeUrl(request.getParam(CURL_REQUEST_PARAM));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static Imp overrideImp(Imp imp, HttpServerRequest request) {
         final String tagId = request.getParam(SLOT_REQUEST_PARAM);
         final Banner banner = imp.getBanner();
         final List<Format> overwrittenFormats = banner != null
@@ -203,7 +247,6 @@ public class AmpRequestFactory {
      * Creates formats from request parameters to override origin amp banner formats.
      */
     private static List<Format> createOverrideBannerFormats(HttpServerRequest request, List<Format> formats) {
-        final List<Format> overrideFormats;
         final int overrideWidth = parseIntParamOrZero(request, OW_REQUEST_PARAM);
         final int width = parseIntParamOrZero(request, W_REQUEST_PARAM);
         final int overrideHeight = parseIntParamOrZero(request, OH_REQUEST_PARAM);
@@ -213,13 +256,9 @@ public class AmpRequestFactory {
         final List<Format> paramsFormats = createFormatsFromParams(overrideWidth, width, overrideHeight, height,
                 multiSizeParam);
 
-        if (paramsFormats != null) {
-            overrideFormats = paramsFormats;
-        } else {
-            overrideFormats = updateFormatsFromParams(formats, width, height);
-        }
-
-        return overrideFormats;
+        return CollectionUtils.isNotEmpty(paramsFormats)
+                ? paramsFormats
+                : updateFormatsFromParams(formats, width, height);
     }
 
     /**
@@ -227,31 +266,34 @@ public class AmpRequestFactory {
      */
     private static List<Format> createFormatsFromParams(Integer overrideWidth, Integer width, Integer overrideHeight,
                                                         Integer height, String multiSizeParam) {
-        List<Format> overrideFormats = null;
+        final List<Format> formats = new ArrayList<>();
+
         if (overrideWidth != 0 && overrideHeight != 0) {
-            overrideFormats = Collections.singletonList(Format.builder().w(overrideWidth).h(overrideHeight).build());
+            formats.add(Format.builder().w(overrideWidth).h(overrideHeight).build());
         } else if (overrideWidth != 0 && height != 0) {
-            overrideFormats = Collections.singletonList(Format.builder().w(overrideWidth).h(height).build());
+            formats.add(Format.builder().w(overrideWidth).h(height).build());
         } else if (width != 0 && overrideHeight != 0) {
-            overrideFormats = Collections.singletonList(Format.builder().w(width).h(overrideHeight).build());
-        } else {
-            final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
-                    ? parseMultiSizeParam(multiSizeParam)
-                    : Collections.emptyList();
-            if (!multiSizeFormats.isEmpty()) {
-                overrideFormats = multiSizeFormats;
-            } else if (width != 0 && height != 0) {
-                overrideFormats = Collections.singletonList(Format.builder().w(width).h(height).build());
-            }
+            formats.add(Format.builder().w(width).h(overrideHeight).build());
+        } else if (width != 0 && height != 0) {
+            formats.add(Format.builder().w(width).h(height).build());
         }
-        return overrideFormats;
+
+        // Append formats from multi-size param if exist
+        final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
+                ? parseMultiSizeParam(multiSizeParam)
+                : Collections.emptyList();
+        if (!multiSizeFormats.isEmpty()) {
+            formats.addAll(multiSizeFormats);
+        }
+
+        return formats;
     }
 
     /**
      * Updates origin amp banner formats from parameters.
      */
     private static List<Format> updateFormatsFromParams(List<Format> formats, Integer width, Integer height) {
-        List<Format> updatedFormats = null;
+        final List<Format> updatedFormats;
         if (width != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(width).h(format.getH()).build())
@@ -260,6 +302,8 @@ public class AmpRequestFactory {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(format.getW()).h(height).build())
                     .collect(Collectors.toList());
+        } else {
+            updatedFormats = Collections.emptyList();
         }
         return updatedFormats;
     }
@@ -270,30 +314,20 @@ public class AmpRequestFactory {
                 : banner;
     }
 
-    private static Long overridenTimeout(HttpServerRequest request) {
-        final String timeout = request.getParam(TIMEOUT_REQUEST_PARAM);
-        if (timeout == null) {
+    private static Long overrideTimeout(Long tmax, HttpServerRequest request) {
+        final String timeoutQueryParam = request.getParam(TIMEOUT_REQUEST_PARAM);
+        if (timeoutQueryParam == null) {
             return null;
         }
 
+        final long timeout;
         try {
-            return Long.parseLong(timeout);
+            timeout = Long.parseLong(timeoutQueryParam);
         } catch (NumberFormatException e) {
             return null;
         }
-    }
 
-    private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,
-                                               Long timeout) {
-        final boolean isValidTimeout = timeout != null && timeout > 0;
-        if (outgoingSite != null || outgoingImp != null || isValidTimeout) {
-            return bidRequest.toBuilder()
-                    .site(outgoingSite != null ? outgoingSite : bidRequest.getSite())
-                    .imp(outgoingImp != null ? Collections.singletonList(outgoingImp) : bidRequest.getImp())
-                    .tmax(isValidTimeout ? timeout : bidRequest.getTmax())
-                    .build();
-        }
-        return bidRequest;
+        return timeout > 0 && !Objects.equals(timeout, tmax) ? timeout : null;
     }
 
     private static Integer parseIntParamOrZero(HttpServerRequest request, String name) {
@@ -332,34 +366,34 @@ public class AmpRequestFactory {
         return formats;
     }
 
-    private static String canonicalUrl(HttpServerRequest request) {
-        try {
-            return HttpUtil.decodeUrl(request.getParam(CURL_REQUEST_PARAM));
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
     /**
-     * Creates updated with default values bidrequest.ext {@link ObjectNode}
+     * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private static ObjectNode createExtWithDefaults(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                                    boolean setDefaultTargeting, boolean setDefaultCache) {
-        final boolean isPrebidNull = prebid == null;
+    private static ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                                boolean setDefaultTargeting, boolean setDefaultCache,
+                                                Integer updatedDebug) {
+        final ObjectNode result;
+        if (setDefaultTargeting || setDefaultCache || updatedDebug != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                    ? prebid.toBuilder()
+                    : ExtRequestPrebid.builder();
 
-        return setDefaultTargeting || setDefaultCache
-                ? Json.mapper.valueToTree(ExtBidRequest.of(
-                ExtRequestPrebid.of(
-                        isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
-                        isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
-                        setDefaultTargeting || isPrebidNull
-                                ? createTargetingWithDefaults(prebid) : prebid.getTargeting(),
-                        isPrebidNull ? null : prebid.getStoredrequest(),
-                        setDefaultCache
-                                ? ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                                ExtRequestPrebidCacheVastxml.of(null, null))
-                                : isPrebidNull ? null : prebid.getCache())))
-                : bidRequest.getExt();
+            if (setDefaultTargeting) {
+                prebidBuilder.targeting(createTargetingWithDefaults(prebid));
+            }
+            if (setDefaultCache) {
+                prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                        ExtRequestPrebidCacheVastxml.of(null, null)));
+            }
+            if (updatedDebug != null) {
+                prebidBuilder.debug(updatedDebug);
+            }
+
+            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder.build()));
+        } else {
+            result = bidRequest.getExt();
+        }
+        return result;
     }
 
     /**
@@ -370,20 +404,24 @@ public class AmpRequestFactory {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
         final boolean isTargetingNull = targeting == null;
 
-        final JsonNode priceGranularity = isTargetingNull ? null : targeting.getPricegranularity();
-        final boolean isPriceGranularityNull = priceGranularity == null || priceGranularity.isNull();
+        final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
+        final boolean isPriceGranularityNull = priceGranularityNode == null || priceGranularityNode.isNull();
         final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
                 ? Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
-                : priceGranularity;
+                : priceGranularityNode;
+
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
+                ? null : targeting.getMediatypepricegranularity();
 
         final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
 
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
-                ? true : targeting.getIncludewinners();
+                || targeting.getIncludewinners();
 
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
-                ? true : targeting.getIncludebidderkeys();
+                || targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners, includeBidderKeys);
+        return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
+                includeWinners, includeBidderKeys);
     }
 }

@@ -218,11 +218,11 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     private void doWaitForOpeningInterval(TestContext context) {
-        doWait(context, 200L);
+        doWait(context, 150L);
     }
 
     private void doWaitForClosingInterval(TestContext context) {
-        doWait(context, 300L);
+        doWait(context, 250L);
     }
 
     private void doWait(TestContext context, long timeout) {

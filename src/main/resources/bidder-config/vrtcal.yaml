@@ -1,0 +1,20 @@
+adapters:
+  vrtcal:
+    enabled: false
+    endpoint: http://rtb.vrtcal.com/bidder_prebid.vap?ssp=1804
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: support@vrtcal.com
+      app-media-types:
+        - banner
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: vrtcal
+      type: redirect
+      support-cors: false

@@ -85,8 +85,8 @@ import static org.mockito.BDDMockito.given;
 public class RubiconAdapterTest extends VertxTest {
 
     private static final String BIDDER = "rubicon";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://exchange.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
     private static final String USER = "user";
     private static final String PASSWORD = "password";
 
@@ -100,28 +100,26 @@ public class RubiconAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private RubiconAdapter adapter;
-    private RubiconUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new RubiconUsersyncer(USERSYNC_URL);
-        adapter = new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, PASSWORD);
+        adapter = new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, USER, PASSWORD);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(usersyncer, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(usersyncer, ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, USER, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new RubiconAdapter(usersyncer, "invalid_url", USER, PASSWORD))
+                .isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, "invalid_url", USER, PASSWORD))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -538,9 +536,9 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithConsentFromPreBidRequestUserExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
-                                .build()));
+                builder -> builder.user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .build()));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -556,11 +554,32 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnBidRequestWithNullUserExtRpWhenVisitorIsNull() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
+                builder -> builder.user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .build()));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests)
+                .extracting(r -> r.getPayload().getUser()).isNotNull()
+                .extracting(User::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
+                .extracting(RubiconUserExt::getRp)
+                .containsNull();
+    }
+
+    @Test
     public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtIsNotValidJson() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .user(User.builder().ext((ObjectNode) mapper.createObjectNode()
+                builder -> builder.user(User.builder()
+                        .ext((ObjectNode) mapper.createObjectNode()
                                 .set("consent", mapper.createObjectNode())).build()));
 
         // when
@@ -573,8 +592,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithGdprFromPreBidRequestRegsExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder
-                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5)))));
+                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5)))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -664,8 +682,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         exchangeCall = givenExchangeCallCustomizable(identity(),
                 bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("anotherAdUnitCode")
-                                .price(new BigDecimal(10)).build()))
+                        .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").price(new BigDecimal(10)).build()))
                         .build())));
 
         // when and then

@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -8,12 +9,11 @@ import java.util.List;
 /**
  * Defines the contract for bidrequest.user.ext
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class ExtUser {
 
     ExtUserPrebid prebid;
-
 
     /**
      * Consent is a GDPR consent string. See "Advised Extensions" of
@@ -30,7 +30,12 @@ public class ExtUser {
     ExtUserDigiTrust digitrust;
 
     /**
-     * A list of Universal IDs that contain PubCommon ID and Unified ID.
+     * Standardized User IDs.
      */
-    List<ExtUserTpId> tpid;
+    List<ExtUserEid> eids;
+
+    /**
+     * Defines the contract for bidrequest.user.ext.data.
+     */
+    ObjectNode data;
 }

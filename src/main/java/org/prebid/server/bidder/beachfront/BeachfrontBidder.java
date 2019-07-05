@@ -34,6 +34,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpRequest.HttpRequestBuilder;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -57,14 +58,12 @@ import java.util.stream.Collectors;
 public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.2.2";
+    private static final String BEACHFRONT_VERSION = "0.3.0";
     private static final String VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
             };
-
-    private static final MultiMap VIDEO_HEADERS = BidderUtil.headers();
 
     private final String bannerEndpointUrl;
     private final String videoEndpointUrl;
@@ -103,12 +102,10 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final BeachfrontVideoRequest beachfrontVideoRequest = makeVideoRequest(bidRequest, errors);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BeachfrontRequests>builder()
-                        .method(HttpMethod.POST)
+                httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
                         .uri(String.format("%s%s%s", endpoint, beachfrontVideoRequest.getAppId(),
                                 VIDEO_ENDPOINT_SUFFIX))
                         .body(Json.encode(beachfrontVideoRequest))
-                        .headers(VIDEO_HEADERS)
                         .payload(BeachfrontRequests.of(null, beachfrontVideoRequest))
                         .build()),
                 makeBadInputErrors(errors));
@@ -123,14 +120,28 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final BeachfrontBannerRequest beachfrontBannerRequest = makeBannerRequest(bidRequest, bidRequest.getImp(),
                 errors);
         return Result.of(Collections.singletonList(
-                HttpRequest.<BeachfrontRequests>builder()
-                        .method(HttpMethod.POST)
+                httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
                         .uri(endpoint)
                         .body(Json.encode(beachfrontBannerRequest))
-                        .headers(BidderUtil.headers())
                         .payload(BeachfrontRequests.of(beachfrontBannerRequest, null))
                         .build()),
                 makeBadInputErrors(errors));
+    }
+
+    private static HttpRequestBuilder<BeachfrontRequests> httpRequestBuilderWithPopulatedHeadersAndMethod(
+            Device device, HttpMethod httpMethod) {
+        final MultiMap headers = BidderUtil.headers();
+        if (device != null) {
+            addDeviceHeaders(headers, device);
+        }
+        return HttpRequest.<BeachfrontRequests>builder().method(httpMethod).headers(headers);
+    }
+
+    private static void addDeviceHeaders(MultiMap headers, Device device) {
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
     }
 
     /**
@@ -400,6 +411,11 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final String bodyString = httpCall.getResponse().getBody();
         if (StringUtils.isBlank(bodyString)) {
             return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
+        }
+
+        // Beachfront sending an empty array and 200 as their "no results" response.
+        if (bodyString.equals("[]")) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
         final String id = bidRequest.getId();

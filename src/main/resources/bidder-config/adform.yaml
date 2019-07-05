@@ -2,7 +2,6 @@ adapters:
   adform:
     enabled: false
     endpoint: http://adx.adform.net/adx
-    usersync-url: //cm.adform.net/cookie?redirect_url=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -14,3 +13,9 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 50
+    usersync:
+      url: //cm.adform.net/cookie?redirect_url=
+      redirect-url: /setuid?bidder=adform&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      cookie-family-name: adform
+      type: redirect
+      support-cors: false

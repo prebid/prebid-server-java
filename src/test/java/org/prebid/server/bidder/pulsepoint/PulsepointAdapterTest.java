@@ -69,10 +69,8 @@ import static org.mockito.BDDMockito.given;
 public class PulsepointAdapterTest extends VertxTest {
 
     private static final String BIDDER = "pulsepoint";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -83,14 +81,12 @@ public class PulsepointAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private PulsepointAdapter adapter;
-    private PulsepointUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new PulsepointUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new PulsepointAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new PulsepointAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
@@ -98,13 +94,13 @@ public class PulsepointAdapterTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new PulsepointAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new PulsepointAdapter(usersyncer, null));
+                () -> new PulsepointAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PulsepointAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new PulsepointAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -287,7 +283,9 @@ public class PulsepointAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid1")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid1");
@@ -328,7 +326,7 @@ public class PulsepointAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid1")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

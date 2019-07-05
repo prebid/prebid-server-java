@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
@@ -27,6 +28,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -42,6 +46,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Used in OpenRTB request processing.
+ */
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
@@ -54,14 +61,15 @@ public class AuctionRequestFactory {
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
+    private final InterstitialProcessor interstitialProcessor;
 
     public AuctionRequestFactory(
-            long defaultTimeout, long maxTimeout, long timeoutAdjustment, long maxRequestSize, String adServerCurrency,
+            TimeoutResolver timeoutResolver, long maxRequestSize, String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator) {
+            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
+            InterstitialProcessor interstitialProcessor) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -69,6 +77,7 @@ public class AuctionRequestFactory {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.requestValidator = Objects.requireNonNull(requestValidator);
+        this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
     }
 
     /**
@@ -101,7 +110,8 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processStoredRequests(bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
-                .map(this::validateRequest);
+                .map(this::validateRequest)
+                .map(interstitialProcessor::process);
     }
 
     /**
@@ -144,7 +154,7 @@ public class AuctionRequestFactory {
         final ObjectNode populatedExt = ext != null
                 ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
                 : null;
-        final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
+        final boolean updateCurrency = CollectionUtils.isEmpty(bidRequest.getCur()) && adServerCurrency != null;
         final Long resolvedTmax = resolveTmax(bidRequest.getTmax(), timeoutResolver);
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
@@ -200,8 +210,10 @@ public class AuctionRequestFactory {
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
         final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(ExtSite.of(0)) : null;
+        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(
+                ExtSite.of(0, data)) : null;
 
         String referer = null;
         String parsedDomain = null;
@@ -232,80 +244,153 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Populates the request body's 'user' section from the incoming http request if the original is partially filled
-     * and the request contains necessary info (id).
+     * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
     private User populateUser(User user, RoutingContext context) {
-        User result = null;
+        final String id = userIdOrNull(user, context);
+        final ObjectNode ext = userExtOrNull(user);
 
+        if (id != null || ext != null) {
+            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
+
+            if (id != null) {
+                builder.id(id);
+            }
+            if (ext != null) {
+                builder.ext(ext);
+            }
+
+            return builder.build();
+        }
+        return null;
+    }
+
+    /**
+     * Returns new user ID from host cookie if no request.user.id
+     * or null in case of request.user.id is already presented  or no host cookie passed in request.
+     */
+    private String userIdOrNull(User user, RoutingContext context) {
         final String id = user != null ? user.getId() : null;
         if (StringUtils.isBlank(id)) {
-            final String parsedId = uidsCookieService.parseHostCookie(context);
+            final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
             if (StringUtils.isNotBlank(parsedId)) {
-                final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-                builder.id(parsedId);
-                result = builder.build();
+                return parsedId;
             }
         }
-        return result;
+        return null;
+    }
+
+    /**
+     * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
+     */
+    private static ObjectNode userExtOrNull(User user) {
+        final ExtUser extUser = extUser(user);
+
+        // set request.user.ext.digitrust.perf if not defined
+        final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
+        if (digitrust != null && digitrust.getPref() == null) {
+            final ExtUser updatedExtUser = extUser.toBuilder()
+                    .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
+                    .build();
+            return Json.mapper.valueToTree(updatedExtUser);
+        }
+        return null;
+    }
+
+    /**
+     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
+     */
+    private static ExtUser extUser(User user) {
+        final ObjectNode userExt = user != null ? user.getExt() : null;
+        if (userExt != null) {
+            try {
+                return Json.mapper.treeToValue(userExt, ExtUser.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
+            }
+        }
+        return null;
     }
 
     /**
      * Updates imps with security 1, when secured request was received and imp security was not defined.
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+        List<Imp> result = null;
+
         if (Objects.equals(paramsExtractor.secureFrom(request), 1)
                 && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
-            return imps.stream()
+            result = imps.stream()
                     .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
                     .collect(Collectors.toList());
         }
-        return null;
+        return result;
     }
 
     /**
-     * Creates updated bidrequest.ext {@link ExtBidRequest} if required.
+     * Returns updated {@link ExtBidRequest} if required or null otherwise.
      */
-    private ObjectNode populateBidRequestExtension(ObjectNode ext, List<Imp> imps) {
-        final ExtBidRequest extBidRequest;
+    private ObjectNode populateBidRequestExtension(ObjectNode extNode, List<Imp> imps) {
+        final ExtBidRequest extBidRequest = extBidRequest(extNode);
+        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid);
+        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+
+        final ObjectNode result;
+        if (updatedTargeting != null || updatedAliases != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                    ? prebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+
+            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder
+                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .build()));
+        } else {
+            result = null;
+        }
+        return result;
+    }
+
+    /**
+     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
+     */
+    private static ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
         try {
-            extBidRequest = Json.mapper.treeToValue(ext, ExtBidRequest.class);
+            return Json.mapper.treeToValue(extBidRequestNode, ExtBidRequest.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
+    }
 
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
-
+    /**
+     * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
+     */
+    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
-        final boolean isPriceGranularityNull = targeting != null && targeting.getPricegranularity().isNull();
-        final boolean isPriceGranularityTextual = targeting != null && targeting.getPricegranularity().isTextual();
-        final boolean isIncludeWinnersNull = targeting != null && targeting.getIncludewinners() == null;
-        final boolean isIncludeBidderKeysNull = targeting != null && targeting.getIncludebidderkeys() == null;
 
-        final ExtRequestTargeting extRequestTargeting;
+        final boolean isTargetingNotNull = targeting != null;
+        final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity().isNull();
+        final boolean isPriceGranularityTextual = isTargetingNotNull && targeting.getPricegranularity().isTextual();
+        final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
+        final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
+
+        final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            extRequestTargeting = ExtRequestTargeting.of(
+            result = ExtRequestTargeting.of(
                     populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                             isPriceGranularityTextual),
+                    targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
                     isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
         } else {
-            extRequestTargeting = null;
+            result = null;
         }
-
-        final Map<String, String> aliases = aliases(prebid, imps);
-
-        if (extRequestTargeting != null || aliases != null) {
-            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                    ObjectUtils.defaultIfNull(aliases, getIfNotNull(prebid, ExtRequestPrebid::getAliases)),
-                    getIfNotNull(prebid, ExtRequestPrebid::getBidadjustmentfactors),
-                    ObjectUtils.defaultIfNull(extRequestTargeting,
-                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)),
-                    getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest),
-                    getIfNotNull(prebid, ExtRequestPrebid::getCache))));
-        }
-        return null;
+        return result;
     }
 
     /**
@@ -315,8 +400,8 @@ public class AuctionRequestFactory {
      * In case of invalid string value throws {@link InvalidRequestException}.
      * In case of missing Json node sets default custom value.
      */
-    private JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
-                                              boolean isPriceGranularityTextual) {
+    private static JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
+                                                     boolean isPriceGranularityTextual) {
         if (isPriceGranularityNull) {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
         } else if (isPriceGranularityTextual) {
@@ -335,10 +420,11 @@ public class AuctionRequestFactory {
      * Returns aliases according to request.imp[i].ext.{bidder}
      * or null (if no aliases at all or they are already presented in request).
      */
-    private Map<String, String> aliases(ExtRequestPrebid prebid, List<Imp> imps) {
+    private Map<String, String> aliasesOrNull(ExtRequestPrebid prebid, List<Imp> imps) {
         final Map<String, String> aliases = getIfNotNullOrDefault(prebid, ExtRequestPrebid::getAliases,
                 Collections.emptyMap());
 
+        // go through imps' bidders and figure out preconfigured aliases
         final Map<String, String> resolvedAliases = imps.stream()
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
                         .filter(bidder -> !aliases.containsKey(bidder))

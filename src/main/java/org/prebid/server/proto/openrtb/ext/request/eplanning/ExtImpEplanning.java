@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.eplanning;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -10,8 +11,8 @@ import lombok.Value;
 @Value
 public class ExtImpEplanning {
 
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.eplanning.exchange_id
-     */
-    String exchangeId;
+    @JsonProperty("ci")
+    String clientId;
+
+    String adunitCode;
 }

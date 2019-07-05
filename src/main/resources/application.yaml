@@ -16,6 +16,8 @@ admin:
 http-client:
   max-pool-size: 4000
   connect-timeout-ms: 2500
+  use-compression: false
+  max-redirects: 0
 external-url: http://localhost:8000
 default-timeout-ms: 900
 max-timeout-ms: 5000
@@ -26,8 +28,6 @@ auction:
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
   max-request-size: 262144
-  currency-rates-refresh-period-ms: 900000
-  currency-rates-url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
   cache:
     expected-request-time-ms: 10
 amp:
@@ -38,6 +38,11 @@ setuid:
   default-timeout-ms: 2000
 cookie-sync:
   default-timeout-ms: 2000
+currency-converter:
+  enabled: true
+  url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
+  default-timeout-ms: 4000
+  refresh-period-ms: 900000
 metrics:
   metricType: flushingCounter
   accounts:

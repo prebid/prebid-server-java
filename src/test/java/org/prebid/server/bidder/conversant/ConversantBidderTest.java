@@ -53,7 +53,7 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfRequestHasApp() {
+    public void makeHttpRequestsShouldReturnErrorIfRequestAppHasBlankOrMissingId() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
@@ -63,8 +63,7 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Conversant doesn't support App requests"));
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Missing app id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -82,7 +81,8 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid MediaType. Conversant supports only Banner and Video. Ignoring ImpID=123"));
+                .containsOnly(BidderError.badInput(
+                        "Invalid MediaType. Conversant supports only Banner and Video. Ignoring ImpID=123"));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -97,15 +97,16 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtSiteIdIsNullOrEmpty() {
+    public void makeHttpRequestsShouldReturnErrorIfRequestHasSiteAndImpExtSiteIdIsNullOrEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().build())
                 .imp(asList(
                         givenImp(identity(), builder -> builder.siteId(null)),
                         givenImp(identity(), builder -> builder.siteId(""))))
@@ -115,15 +116,19 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsOnly(BidderError.badInput("Missing site id"));
+        assertThat(result.getErrors()).hasSize(3)
+                .containsOnly(BidderError.badInput("Missing site id"),
+                        BidderError.badInput("No valid impressions"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteIdFromImpExt() {
+    public void makeHttpRequestsShouldSetSiteIdFromImpExtForSiteRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder().build()),
+                identity(),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
@@ -138,9 +143,31 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetAppIdFromExtSiteId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.app(App.builder().id("app_id").build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getApp)
+                .extracting(App::getId)
+                .containsOnly("site id");
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetSiteMobileFromImpExtIfPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), identity(),
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder().build()),
+                identity(),
                 extBuilder -> extBuilder.mobile(1));
 
         // when
@@ -514,9 +541,10 @@ public class ConversantBidderTest extends VertxTest {
         assertThat(conversantBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();

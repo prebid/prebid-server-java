@@ -64,9 +64,8 @@ import static org.mockito.BDDMockito.given;
 public class PubmaticAdapterTest extends VertxTest {
 
     private static final String BIDDER = "pubmatic";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -78,26 +77,24 @@ public class PubmaticAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private PubmaticAdapter adapter;
-    private PubmaticUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, EXTERNAL_URL);
-        adapter = new PubmaticAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new PubmaticAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PubmaticAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -128,7 +125,6 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
@@ -154,12 +150,12 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp()).hasSize(6);
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getTagid)
-                .containsOnly("slot1", null, null, null, null, null);
+                .containsOnly("slot1", null, null, "slot42", null, null);
 
         final List formats = singletonList(Format.builder().w(480).h(320).build());
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getFormat)
-                .containsOnly(null, formats, formats, formats, formats, formats);
+                .containsOnly(formats, formats, formats, formats, formats, formats);
 
         assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getW)
@@ -175,7 +171,8 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         adapterRequest = givenBidderCustomizable(
                 builder -> builder
-                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz", null, null))));
+                        .params(mapper.valueToTree(
+                                PubmaticParams.of("publisherID", "slot42@200x150:zzz", null, null))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -245,9 +242,10 @@ public class PubmaticAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
-        );
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -269,6 +267,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .banner(Banner.builder()
                                         .w(200)
                                         .h(150)
+                                        .format(singletonList(Format.builder().w(300).h(250).build()))
                                         .topframe(1)
                                         .build())
                                 .ext(mapper.readValue("{\"key1\":\"value1\"}", ObjectNode.class))
@@ -284,7 +283,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
@@ -408,12 +407,12 @@ public class PubmaticAdapterTest extends VertxTest {
                 .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
-                                .banner(Banner.builder().w(300).h(250).build())
+                                .banner(Banner.builder().w(300).h(250)
+                                        .format(singletonList(Format.builder().w(480).h(320).build())).build())
                                 .tagid("slot1")
                                 .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
                                         .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
-                                .build()
-                );
+                                .build());
     }
 
     @Test
@@ -430,7 +429,8 @@ public class PubmaticAdapterTest extends VertxTest {
         // then
         assertThat(httpRequests).hasSize(1)
                 .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
-                .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
+                .extracting(Imp::getId)
+                .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     @Test
@@ -439,7 +439,7 @@ public class PubmaticAdapterTest extends VertxTest {
         adapterRequest = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
 
         exchangeCall = givenExchangeCallCustomizable(identity(),
-                b -> b.seatbid(singletonList(SeatBid.builder()
+                builder -> builder.seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").build()))
                         .build())));
 
@@ -508,7 +508,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
-        assertThat(bids)
+        assertThat(bids).hasSize(1)
                 .extracting(org.prebid.server.proto.response.Bid::getMediaType)
                 .containsExactly(MediaType.banner);
     }
@@ -529,7 +529,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
-        assertThat(bids)
+        assertThat(bids).hasSize(1)
                 .extracting(org.prebid.server.proto.response.Bid::getMediaType)
                 .containsExactly(MediaType.banner);
     }
@@ -551,7 +551,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
-        assertThat(bids)
+        assertThat(bids).hasSize(1)
                 .extracting(org.prebid.server.proto.response.Bid::getMediaType)
                 .containsExactly(MediaType.video);
     }

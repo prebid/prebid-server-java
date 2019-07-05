@@ -89,6 +89,8 @@ public class AdformHttpUtilTest {
         final String url = AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(asList(15L, 16L))
+                        .keyValues(asList("color:red", "age:30-40"))
+                        .keyWords(asList("red", "blue"))
                         .priceTypes(singletonList("gross"))
                         .endpointUrl("http://adx.adform.net/adx")
                         .tid("tid")
@@ -97,13 +99,15 @@ public class AdformHttpUtilTest {
                         .gdprApplies("1")
                         .consent("consent")
                         .secure(false)
+                        .currency("USD")
                         .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url).isEqualTo(
                 "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1&bWlkPTE2");
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA" +
+                        "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
 
     @Test
@@ -119,13 +123,14 @@ public class AdformHttpUtilTest {
                 .gdprApplies("")
                 .consent("")
                 .secure(true)
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url).isEqualTo(
                 "https://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1&bWlkPTE2");
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 
     @Test
@@ -140,13 +145,14 @@ public class AdformHttpUtilTest {
                 .advertisingId(null)
                 .gdprApplies("")
                 .consent("")
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4&"
-                        + "stid=tid&bWlkPTE1&bWlkPTE2");
+                        + "stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 
     @Test
@@ -160,12 +166,13 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .consent("")
                 .gdprApplies("")
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url).isEqualTo(
-                "http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&"
+                + "stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 
     @Test
@@ -179,12 +186,13 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url).isEqualTo(
-                "http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&"
+                + "stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 
     @Test
@@ -198,12 +206,13 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url).isEqualTo(
-                "http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=net&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=net&rp=4&"
+                + "stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 
     @Test
@@ -217,13 +226,14 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1&bWlkPTE2");
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 
     @Test
@@ -237,12 +247,13 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
+                .currency("USD")
                 .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1&bWlkPTE2");
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
     }
 }

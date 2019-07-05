@@ -2,7 +2,7 @@
 
 ## Create an issue
 
-[Create an issue](https://github.com/prebid/prebid-server-java/issues/new) describing the motivation for your changes.
+[Create an issue](https://github.com/rubicon-project/prebid-server-java/issues/new) describing the motivation for your changes.
 Are you fixing a bug? Improving documentation? Optimizing some slow code?
 
 Pull Requests without associated Issues may still be accepted, if the motivation is obvious.
@@ -29,6 +29,6 @@ those updates must be submitted in the same Pull Request as the code changes.
 ## Open a Pull Request
 
 When you're ready, [submit a Pull Request](https://help.github.com/articles/creating-a-pull-request/)
-against the `master` branch of [our GitHub repository](https://github.com/prebid/prebid-server-java/compare).
+against the `master` branch of [our GitHub repository](https://github.com/rubicon-project/prebid-server-java/compare).
 
 If the tests pass locally, but fail on your PR, [update your fork](https://help.github.com/articles/syncing-a-fork/) with the latest code from `master`.

@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -28,7 +29,6 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
@@ -52,6 +52,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
@@ -84,8 +85,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private final String endpointUrl;
     private final String authHeader;
 
-    public RubiconAdapter(Usersyncer usersyncer, String endpointUrl, String xapiUsername, String xapiPassword) {
-        super(usersyncer);
+    public RubiconAdapter(String cookieFamilyName, String endpointUrl, String xapiUsername, String xapiPassword) {
+        super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
                 + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
@@ -314,28 +315,42 @@ public class RubiconAdapter extends OpenrtbAdapter {
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
         final ObjectNode ext = user == null ? null : user.getExt();
-        final String consent = ext == null ? null : getExtUserConsentFromUserExt(ext);
-        final RubiconUserExt userExt = makeUserExt(rubiconParams, consent);
-        return userExt != null
-                ? userBuilder.ext(Json.mapper.valueToTree(userExt)).build()
+        final ExtUser extUser = extUser(ext);
+        final RubiconUserExt rubiconUserExt = makeUserExt(rubiconParams, user, extUser);
+        return rubiconUserExt != null
+                ? userBuilder.ext(Json.mapper.valueToTree(rubiconUserExt)).build()
                 : userBuilder.build();
     }
 
-    private static String getExtUserConsentFromUserExt(ObjectNode extNode) {
+    private static ExtUser extUser(ObjectNode extNode) {
         try {
-            final ExtUser extUser = Json.mapper.treeToValue(extNode, ExtUser.class);
-            return extUser != null ? extUser.getConsent() : null;
+            return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, String consent) {
-        final JsonNode visitor = rubiconParams.getVisitor();
-        final boolean visitorIsNotNull = !visitor.isNull();
-        return visitorIsNotNull || consent != null
-                ? RubiconUserExt.of(visitorIsNotNull ? RubiconUserExtRp.of(visitor) : null, consent, null, null)
-                : null;
+    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, User user, ExtUser extUser) {
+        final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
+        final JsonNode visitorNode = rubiconParams.getVisitor();
+        final JsonNode visitor = !visitorNode.isNull() ? visitorNode : null;
+        final String gender = user != null ? user.getGender() : null;
+        final Integer yob = user != null ? user.getYob() : null;
+        final Geo geo = user != null ? user.getGeo() : null;
+        final boolean makeRp = visitor != null || gender != null || yob != null || geo != null;
+
+        if (digiTrust != null || visitor != null || gender != null || yob != null || geo != null) {
+            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
+            if (extUser != null) {
+                userExtBuilder
+                        .consent(extUser.getConsent())
+                        .eids(extUser.getEids());
+            }
+            return userExtBuilder
+                    .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
+                    .build();
+        }
+        return null;
     }
 
     private static void validateBidRequests(List<BidRequest> bidRequests) {

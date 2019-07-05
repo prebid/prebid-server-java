@@ -6,7 +6,7 @@ Create application configuration files as described [here](config.md).
 
 Run server:
 ```
-java -Dlogging.config=<LOGGING_CONFIG_FILE> -jar prebid-server.jar --spring.config.location=<APPLICATION_CONFIG_FILE>
+java -Dlogging.config=<LOGGING_CONFIG_FILE> -jar prebid-server.jar --spring.config.additional-location=<APPLICATION_CONFIG_FILE>
 ```
 where
 - <LOGGING_CONFIG_FILE> - file with configuration for logger

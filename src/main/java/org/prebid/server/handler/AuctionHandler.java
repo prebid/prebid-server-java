@@ -111,10 +111,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(preBidRequestContext ->
                         updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext, isSafari))
 
-                .compose(preBidRequestContext -> applicationSettings.getAccountById(
-                        preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
-                        .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
-                        .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal))
+                .compose(preBidRequestContext -> accountFrom(preBidRequestContext)
+                        .map(account -> Tuple2.of(preBidRequestContext, account)))
 
                 .map(this::updateAccountRequestAndRequestTimeMetric)
 
@@ -163,6 +161,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static <T> Future<T> failWithInvalidRequest(String message, Throwable exception) {
         return Future.failedFuture(new InvalidRequestException(message, exception));
+    }
+
+    private Future<Account> accountFrom(PreBidRequestContext preBidRequestContext) {
+        return applicationSettings.getAccountById(preBidRequestContext.getPreBidRequest().getAccountId(),
+                preBidRequestContext.getTimeout())
+                .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal);
     }
 
     private static <T> Future<T> failWithUnknownAccountOrPropagateOriginal(Throwable exception) {

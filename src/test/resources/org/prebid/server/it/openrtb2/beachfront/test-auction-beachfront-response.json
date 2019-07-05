@@ -1,0 +1,181 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "tid",
+          "impid": "impId18",
+          "price": 8.43,
+          "nurl": "nurl181\"nurl182\"nurl183",
+          "adm": "adm18",
+          "crid": "nurl183",
+          "dealid": "dealId18",
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "8.40",
+                "hb_bidder_beachfront": "beachfront",
+                "hb_uuid_beachfront": "4f492116-5605-4d9b-bdb3-70e5cbf52da4",
+                "hb_uuid": "4f492116-5605-4d9b-bdb3-70e5cbf52da4",
+                "hb_bidder": "beachfront",
+                "hb_cache_id_beachfront": "7ab57e95-a553-41b8-a790-4ae8bc1db564",
+                "hb_cache_id": "7ab57e95-a553-41b8-a790-4ae8bc1db564",
+                "hb_pb_beachfront": "8.40",
+                "hb_deal": "dealId18",
+                "hb_deal_beachfront": "dealId18",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_beachfront": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_beachfront": "{{ cache.path }}"
+              },
+              "cache": {
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}4f492116-5605-4d9b-bdb3-70e5cbf52da4",
+                  "cacheId": "4f492116-5605-4d9b-bdb3-70e5cbf52da4"
+                },
+                "bids": {
+                  "url": "{{ cache.resource_url }}7ab57e95-a553-41b8-a790-4ae8bc1db564",
+                  "cacheId": "7ab57e95-a553-41b8-a790-4ae8bc1db564"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "beachfront",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "beachfront": [
+          {
+            "uri": "{{ beachfront.exchange_uri }}/video?exchange_id=beachfrontAppId&prebidserver",
+            "requestbody": "{\"isPrebid\":true,\"appId\":\"beachfrontAppId\",\"imp\":[{\"video\":{},\"bidfloor\":1.0,\"id\":0,\"impid\":\"impId18\",\"secure\":0}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"js\":\"1\"},\"user\":{\"buyeruid\":\"BF-UID\"},\"cur\":[\"USD\"]}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"62016038043\",\"impid\":\"impId18\",\"price\":8.43,\"adm\":\"adm18\",\"nurl\":\"nurl181\\\"nurl182\\\"nurl183\",\"crid\":\"crid18\",\"dealid\":\"dealId18\",\"w\":300,\"h\":250}],\"seat\":\"seatId18\",\"group\":0}]}",
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"tid\",\"impid\":\"impId18\",\"price\":8.43,\"nurl\":\"nurl181\\\"nurl182\\\"nurl183\",\"adm\":\"adm18\",\"crid\":\"nurl183\",\"dealid\":\"dealId18\"},\"expiry\":230},{\"type\":\"xml\",\"value\":\"adm18\",\"expiry\":230}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"7ab57e95-a553-41b8-a790-4ae8bc1db564\"},{\"uuid\":\"4f492116-5605-4d9b-bdb3-70e5cbf52da4\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId18",
+            "video": {
+              "mimes": [
+                "mimes"
+              ],
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "exp": 230,
+            "ext": {
+              "beachfront": {
+                "appId": "beachfrontAppId",
+                "bidfloor": 1
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "beachfront": "{{ beachfront.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}
