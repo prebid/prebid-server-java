@@ -19,5 +19,5 @@ public class ExtImpSharethroughCreative {
     ExtImpSharethroughCreativeMetadata metadata;
 
     Integer version;
-
 }
+

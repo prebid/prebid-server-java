@@ -49,5 +49,5 @@ class ExtImpSharethroughPlacementAttributes {
     String template;
 
     List<ExtImpSharethroughPlacementThirdPartyPartner> thirdPartyPartners;
-
 }
+

@@ -123,25 +123,25 @@ public class SharethroughRequestUtilTest {
     }
 
     @Test
-    public void isBrowserCanAutoPlayVideoShouldReturnFalseWhenUserAgentIsBlank() {
+    public void canBrowserAutoPlayVideoShouldReturnFalseWhenUserAgentIsBlank() {
         // given when and then
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(null));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(""));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(null));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(""));
     }
 
     @Test
-    public void isBrowserCanAutoPlayVideoShouldReturnTrueWhenUserAgentIsNotParsed() {
+    public void canBrowserAutoPlayVideoShouldReturnTrueWhenUserAgentIsNotParsed() {
         // given
         final String firstUserAgent = "strange behavior";
         final String secondUserAgent = "very very strange behavior";
 
         // when and then
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(firstUserAgent));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(secondUserAgent));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(firstUserAgent));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(secondUserAgent));
     }
 
     @Test
-    public void isBrowserCanAutoPlayVideoShouldReturnTrueWhenUserAgentIsValid() {
+    public void canBrowserAutoPlayVideoShouldReturnTrueWhenUserAgentIsValid() {
         // given
         final String androidUserAgent1 = "Android Chrome/60.0";
         final String androidUserAgent2 = "Android Chrome/53.0";
@@ -154,19 +154,19 @@ public class SharethroughRequestUtilTest {
         final String iosSafariUserAgent3 = "iPad Version/14.0";
 
         // when and then
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(androidUserAgent1));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(androidUserAgent2));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(androidUserAgent3));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosChromeUserAgent1));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosChromeUserAgent2));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosChromeUserAgent3));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosSafariUserAgent1));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosSafariUserAgent2));
-        assertTrue(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosSafariUserAgent3));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2));
+        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3));
     }
 
     @Test
-    public void isBrowserCanAutoPlayVideoShouldReturnFalseWhenUserAgentIsInvalid() {
+    public void canBrowserAutoPlayVideoShouldReturnFalseWhenUserAgentIsInvalid() {
         // given
         final String androidUserAgent1 = "Android Chrome/52.0";
         final String androidUserAgent2 = "Android Chrome/10.0";
@@ -179,15 +179,15 @@ public class SharethroughRequestUtilTest {
         final String iosSafariUserAgent3 = "iPad Version/1.0";
 
         // when and then
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(androidUserAgent1));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(androidUserAgent2));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(androidUserAgent3));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosChromeUserAgent1));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosChromeUserAgent2));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosChromeUserAgent3));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosSafariUserAgent1));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosSafariUserAgent2));
-        assertFalse(SharethroughRequestUtil.isBrowserCanAutoPlayVideo(iosSafariUserAgent3));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2));
+        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3));
     }
 
     @Test

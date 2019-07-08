@@ -14,12 +14,13 @@ class SharethroughMarkupUtil {
     private SharethroughMarkupUtil() {
     }
 
-    static String getAdMarkup(ExtImpSharethroughResponse strResponse, StrUriParameters strUriParameters) {
+    static String getAdMarkup(ExtImpSharethroughResponse strResponse, StrUriParameters strUriParameters)
+            throws JsonProcessingException {
         final StringBuilder tmplBody = new StringBuilder();
 
         final String strRespId = String.format("str_response_%s", strResponse.getBidId());
         final String arId = strResponse.getAdserverRequestId();
-        final String jsonStrResponse = parseResponseToString(strResponse);
+        final String jsonStrResponse = Json.mapper.writeValueAsString(strResponse);
         if (StringUtils.isBlank(jsonStrResponse)) {
             return "";
         }
@@ -53,12 +54,5 @@ class SharethroughMarkupUtil {
         }
         return tmplBody.toString();
     }
-
-    private static String parseResponseToString(ExtImpSharethroughResponse response) {
-        try {
-            return Json.mapper.writeValueAsString(response);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
 }
+

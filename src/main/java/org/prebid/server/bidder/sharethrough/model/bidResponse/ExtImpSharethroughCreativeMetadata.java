@@ -52,5 +52,5 @@ public class ExtImpSharethroughCreativeMetadata {
     String title;
 
     String variantKey;
-
 }
+

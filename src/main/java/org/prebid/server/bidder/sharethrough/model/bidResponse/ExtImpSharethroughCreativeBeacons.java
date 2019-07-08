@@ -20,5 +20,5 @@ public class ExtImpSharethroughCreativeBeacons {
 
     @JsonProperty("win-notification")
     List<String> winNotification;
-
 }
+

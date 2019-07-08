@@ -10,5 +10,5 @@ public class Size {
     Integer height;
 
     Integer width;
-
 }
+

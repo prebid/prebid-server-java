@@ -10,5 +10,5 @@ class ExtImpSharethroughPlacementThirdPartyPartner {
     String key;
 
     String tag;
-
 }
+

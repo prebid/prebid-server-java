@@ -109,7 +109,7 @@ class SharethroughRequestUtil {
     /**
      * Check min browser version from userAgent
      */
-    static boolean isBrowserCanAutoPlayVideo(String userAgent) {
+    static boolean canBrowserAutoPlayVideo(String userAgent) {
         if (StringUtils.isBlank(userAgent)) {
             return false;
         }
@@ -139,3 +139,4 @@ class SharethroughRequestUtil {
         }
     }
 }
+

@@ -23,5 +23,5 @@ class ExtImpSharethroughPlacement {
     ExtImpSharethroughPlacementAttributes placementAttributes;
 
     String status;
-
 }
+

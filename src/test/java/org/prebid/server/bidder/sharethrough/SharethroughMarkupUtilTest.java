@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.sharethrough;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
@@ -10,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 public class SharethroughMarkupUtilTest extends VertxTest {
 
     @Test
-    public void getAdMarkupShouldReturnScriptWithParametersFromImpResponseAndUriParameters() {
+    public void getAdMarkupShouldReturnScriptWithParametersFromImpResponseAndUriParameters() throws JsonProcessingException {
         // given
         final ExtImpSharethroughResponse impResponse = ExtImpSharethroughResponse.builder()
                 .bidId("bid")
@@ -34,7 +35,7 @@ public class SharethroughMarkupUtilTest extends VertxTest {
     }
 
     @Test
-    public void getAdMarkupShouldContainsIframeScriptWhenIframeItTrue() {
+    public void getAdMarkupShouldContainsIframeScriptWhenIframeItTrue() throws JsonProcessingException {
         // given
         final ExtImpSharethroughResponse impResponse = ExtImpSharethroughResponse.builder()
                 .bidId("bid")
@@ -55,7 +56,7 @@ public class SharethroughMarkupUtilTest extends VertxTest {
     }
 
     @Test
-    public void getAdMarkupShouldContainsScriptWhenIframeItFalse() {
+    public void getAdMarkupShouldContainsScriptWhenIframeItFalse() throws JsonProcessingException {
         // given
         final ExtImpSharethroughResponse impResponse = ExtImpSharethroughResponse.builder()
                 .bidId("bid")
