@@ -3,7 +3,6 @@ package org.prebid.server.bidder.sharethrough;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
 
@@ -21,10 +20,6 @@ class SharethroughMarkupUtil {
         final String strRespId = String.format("str_response_%s", strResponse.getBidId());
         final String arId = strResponse.getAdserverRequestId();
         final String jsonStrResponse = Json.mapper.writeValueAsString(strResponse);
-        if (StringUtils.isBlank(jsonStrResponse)) {
-            return "";
-        }
-
         final String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonStrResponse.getBytes());
 
         tmplBody.append("<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=").append(arId).append("\" />\n")
@@ -34,7 +29,7 @@ class SharethroughMarkupUtil {
                 .append("\"").append(encodedJsonResponse).append("\"</script>\n");
 
         if (BooleanUtils.toBoolean(strUriParameters.getIframe())) {
-            tmplBody.append("\n\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n");
+            tmplBody.append("\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n");
         } else {
             tmplBody.append("\t\t\t<script src=\"//native.sharethrough.com/assets/sfp-set-targeting.js\"></script>\n")
                     .append("\t    \t<script>\n")

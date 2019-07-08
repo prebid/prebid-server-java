@@ -28,7 +28,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -44,20 +43,6 @@ public class SharethroughBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private SharethroughBidder sharethroughBidder;
-
-    private static HttpCall<Void> givenHttpCall(Void bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<Void>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
-
-    private static HttpCall<Void> givenHttpCallWithUri(String uri, String body) {
-        return HttpCall.success(
-                HttpRequest.<Void>builder().uri(uri).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
 
     @Before
     public void setUp() {
@@ -111,13 +96,10 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestWithHeaderOriginDomainAndBodyNull() {
         // given
-        final ArrayList<Integer> iframeSize = new ArrayList<>();
-        iframeSize.add(100);
-        iframeSize.add(200);
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSharethrough.of("pkey", false, iframeSize))))
+                                ExtImpSharethrough.of("pkey", false, Arrays.asList(100, 200)))))
                         .build()))
                 .id("request_id")
                 .site(Site.builder().page("http://page.com").build())
@@ -279,5 +261,19 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(sharethroughBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+    }
+
+    private static HttpCall<Void> givenHttpCall(Void bidRequest, String body) {
+        return HttpCall.success(
+                HttpRequest.<Void>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
+    private static HttpCall<Void> givenHttpCallWithUri(String uri, String body) {
+        return HttpCall.success(
+                HttpRequest.<Void>builder().uri(uri).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 }

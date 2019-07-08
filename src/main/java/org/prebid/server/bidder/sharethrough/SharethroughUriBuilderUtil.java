@@ -27,7 +27,6 @@ class SharethroughUriBuilderUtil {
                 .addParameter("stayInIframe", getBooleanStringValue(params.getIframe()))
                 .addParameter("height", String.valueOf(params.getHeight()))
                 .addParameter("width", String.valueOf(params.getWidth()))
-
                 .addParameter("supplyId", supplyId)
                 .addParameter("strVersion", strVersion)
                 .toString();

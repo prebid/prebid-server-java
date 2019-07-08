@@ -88,8 +88,6 @@ public class SharethroughBidder implements Bidder<Void> {
      * Retrieves from {@link Imp} and filter not valid {@link ExtImpSharethrough} and returns list result with errors.
      */
     private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request) {
-        final List<StrUriParameters> strUriParameters = new ArrayList<>();
-
         final boolean consentRequired = SharethroughRequestUtil.isConsentRequired(request.getRegs());
 
         final ExtUser extUser = SharethroughRequestUtil.getExtUser(request.getUser());
@@ -98,6 +96,7 @@ public class SharethroughBidder implements Bidder<Void> {
         final String ua = SharethroughRequestUtil.getUa(request.getDevice());
         final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(ua);
 
+        final List<StrUriParameters> strUriParameters = new ArrayList<>();
         for (Imp imp : request.getImp()) {
             ExtImpSharethrough extImpStr = Json.mapper.<ExtPrebid<?, ExtImpSharethrough>>convertValue(
                     imp.getExt(), SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
@@ -147,10 +146,8 @@ public class SharethroughBidder implements Bidder<Void> {
         try {
             sharethroughBid = Json.mapper.readValue(httpResponse.getBody(), ExtImpSharethroughResponse.class);
             return Result.of(toBidderBid(sharethroughBid, httpCall.getRequest()), Collections.emptyList());
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -165,7 +162,6 @@ public class SharethroughBidder implements Bidder<Void> {
 
         final StrUriParameters strUriParameters = SharethroughUriBuilderUtil
                 .buildSharethroughUrlParameters(request.getUri());
-        final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
 
         final String adMarkup;
         try {
@@ -174,6 +170,7 @@ public class SharethroughBidder implements Bidder<Void> {
             throw new IOException("Cant parse markup", e);
         }
 
+        final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
         return Collections.singletonList(
                 BidderBid.of(
                         Bid.builder()
