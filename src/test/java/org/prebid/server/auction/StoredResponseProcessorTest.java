@@ -114,6 +114,44 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void getStoredResponseResultShouldSkipImpStoredResponseProcessingWhenExtImpNodeIsNotDefined() {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder().build());
+        given(bidderCatalog.isValidName(any())).willReturn(true);
+
+        // when
+        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
+                DEFAULT_TIMEOUT, Collections.emptyMap());
+
+        // then
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(singletonList(Imp.builder().build()),
+                Collections.emptyList()));
+        verifyZeroInteractions(applicationSettings);
+    }
+
+    @Test
+    public void getStoredResponseResultShouldAddImpToRequiredRequestWhenItsStoredBidResponseIsEmpty() {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder().id("impId1")
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                        emptyList()), null)))
+                .build());
+
+        // when
+        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
+                DEFAULT_TIMEOUT, Collections.emptyMap());
+
+        // then
+        assertThat(result.result()).isEqualTo(StoredResponseResult.of(
+                singletonList(Imp.builder().id("impId1")
+                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                                emptyList()), null)))
+                        .build()),
+                Collections.emptyList()));
+        verifyZeroInteractions(applicationSettings);
+    }
+
+    @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenErrorHappenedDuringRetrievingStoredResponse() {
         // given
         final List<Imp> imps = singletonList(Imp.builder()
@@ -390,6 +428,28 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
+    public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCantBeParsed() {
+        // given
+
+        final List<Imp> imps = singletonList(Imp.builder().id("impId")
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null),
+                        null))).build());
+
+        given(applicationSettings.getStoredResponses(any(), any()))
+                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(Collections.singletonMap("1", "{invalid"),
+                        Collections.emptyList())));
+
+        // when
+        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
+                DEFAULT_TIMEOUT, Collections.emptyMap());
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .hasMessage("Can't parse Json for stored response with id 1");
+    }
+
+    @Test
     public void mergeWithBidderResponsesShouldReturnMergedStoredSeatWithResponse() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
@@ -519,5 +579,24 @@ public class StoredResponseProcessorTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> storedResponseProcessor.mergeWithBidderResponses(emptyList(), seatBid, imps))
                 .isInstanceOf(PreBidException.class).hasMessage("Error decoding stored response bid.ext.prebid");
+    }
+
+    @Test
+    public void mergeWithBidderResponsesShouldReturnSameResponseWhenThereAreNoStoredResponses() {
+        // given
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                emptyList()), 100));
+
+        final List<Imp> imps = singletonList(Imp.builder().banner(Banner.builder().build()).build());
+
+        // when
+        final List<BidderResponse> result = storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
+                emptyList(), imps);
+
+        // then
+        assertThat(result).containsOnly(BidderResponse.of("rubicon", BidderSeatBid.of(
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                emptyList()), 100));
     }
 }
