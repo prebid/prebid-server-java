@@ -64,8 +64,8 @@ public class FileApplicationSettingsTest {
     public void getAccountByIdShouldReturnPresentAccount() {
         // given
         given(fileSystem.readFileBlocking(anyString()))
-                .willReturn(Buffer.buffer("accounts: [ { id: '123', bannerCacheTtl: '100', videoCacheTtl : '100'," +
-                        " eventsEnabled: 'true'} ]"));
+                .willReturn(Buffer.buffer("accounts: [ { id: '123', priceGranularity: 'low', bannerCacheTtl: '100',"
+                        + " videoCacheTtl : '100', eventsEnabled: 'true', enforceGdpr: 'true'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
@@ -75,13 +75,21 @@ public class FileApplicationSettingsTest {
 
         // then
         assertThat(account.succeeded()).isTrue();
-        assertThat(account.result()).isEqualTo(Account.of("123", null, 100, 100, true));
+        assertThat(account.result()).isEqualTo(Account.builder()
+                .id("123")
+                .priceGranularity("low")
+                .bannerCacheTtl(100)
+                .videoCacheTtl(100)
+                .eventsEnabled(true)
+                .enforceGdpr(true)
+                .build());
     }
 
     @Test
     public void getAccountByIdShouldReturnEmptyForUnknownAccount() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");

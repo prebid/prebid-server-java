@@ -59,7 +59,6 @@ public class AdformAdapterTest extends VertxTest {
     @Before
     public void setUp() {
         adformAdapter = new AdformAdapter(COOKIE_FAMILY, ENDPOINT_URL);
-        given(uidsCookie.uidFrom(BIDDER)).willReturn("buyeruid");
     }
 
     @Test
@@ -67,13 +66,22 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder().bidId("bidId").adUnitCode("AdUnitCode")
-                        .params(Json.mapper.valueToTree(AdformParams.of(15L, "gross"))).build()));
+                        .params(Json.mapper.valueToTree(
+                                AdformParams.of(15L, "gross", "color:red", "red")))
+                        .build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().preBidRequest(
                 PreBidRequest.builder().tid("tid").device(Device.builder().ifa("ifaId").build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
-                                null, "consent", ExtUserDigiTrust.of("id", 123, 1), null))).build()).build())
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder()
+                                        .consent("consent")
+                                        .digitrust(ExtUserDigiTrust.of("id", 123, 1))
+                                        .build()))
+                                .build())
+                        .build())
                 .secure(0).ua("userAgent").ip("192.168.0.1").referer("www.example.com").uidsCookie(uidsCookie).build();
+
+        given(uidsCookie.uidFrom(BIDDER)).willReturn("buyeruid");
 
         // when
         final List<AdapterHttpRequest<Void>> adapterHttpRequests = adformAdapter.makeHttpRequests(adapterRequest,
@@ -86,7 +94,7 @@ public class AdformAdapterTest extends VertxTest {
                 .extracting(AdapterHttpRequest::getUri)
                 .containsExactly(
                         "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=192.168.0.1"
-                                + "&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
+                                + "&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA");
 
         assertThat(adapterHttpRequests)
                 .extracting(AdapterHttpRequest::getMethod)
@@ -115,7 +123,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.valueToTree(AdformParams.of(0L, null))).build()));
+                        .params(Json.mapper.valueToTree(AdformParams.of(0L, null, null, null))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().build();
 
         // when and then
@@ -158,7 +166,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.valueToTree(AdformParams.of(15L, null))).build()));
+                        .params(Json.mapper.valueToTree(AdformParams.of(15L, null, null, null))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().secure(1)
                 .uidsCookie(uidsCookie)
                 .preBidRequest(PreBidRequest.builder().build()).build();

@@ -54,30 +54,33 @@ public class JdbcStoredDataResultMapper {
                 errors.add(String.format("No %s%s%s were found", errorRequests, separator, errorImps));
             }
         } else {
-            try {
-                for (JsonArray result : resultSet.getResults()) {
-                    final String id = result.getString(0);
-                    final String json = result.getString(1);
-                    final String typeAsString = result.getString(2);
-
-                    final StoredDataType type;
-                    try {
-                        type = StoredDataType.valueOf(typeAsString);
-                    } catch (IllegalArgumentException e) {
-                        logger.error("Result set with id={0} has invalid type: {1}. This will be ignored.", e, id,
-                                typeAsString);
-                        continue;
-                    }
-
-                    if (type == StoredDataType.request) {
-                        storedIdToRequest.put(id, json);
-                    } else {
-                        storedIdToImp.put(id, json);
-                    }
+            for (JsonArray result : resultSet.getResults()) {
+                final String id;
+                final String json;
+                final String typeAsString;
+                try {
+                    id = result.getString(0);
+                    json = result.getString(1);
+                    typeAsString = result.getString(2);
+                } catch (IndexOutOfBoundsException e) {
+                    errors.add("Result set column number is less than expected");
+                    return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
                 }
-            } catch (IndexOutOfBoundsException e) {
-                errors.add("Result set column number is less than expected");
-                return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
+
+                final StoredDataType type;
+                try {
+                    type = StoredDataType.valueOf(typeAsString);
+                } catch (IllegalArgumentException e) {
+                    logger.error("Result set with id={0} has invalid type: {1}. This will be ignored.", e, id,
+                            typeAsString);
+                    continue;
+                }
+
+                if (type == StoredDataType.request) {
+                    storedIdToRequest.put(id, json);
+                } else {
+                    storedIdToImp.put(id, json);
+                }
             }
 
             errors.addAll(errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request));

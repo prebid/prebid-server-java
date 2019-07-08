@@ -10,3 +10,5 @@
 
 .vertx/
 target/
+
+.DS_Store

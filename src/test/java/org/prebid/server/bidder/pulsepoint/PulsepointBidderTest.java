@@ -63,7 +63,8 @@ public class PulsepointBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid MediaType. Pulsepoint supports only Banner type. Ignoring ImpID=123"));
+                .containsOnly(BidderError.badInput(
+                        "Invalid MediaType. Pulsepoint supports only Banner type. Ignoring ImpID=123"));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -331,8 +332,9 @@ public class PulsepointBidderTest extends VertxTest {
         assertThat(pulsepointBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();

@@ -169,10 +169,6 @@ public class IxBidder implements Bidder<BidRequest> {
         return requests;
     }
 
-    private static boolean isValidIxSize(Format format, List<Integer> sizes) {
-        return Objects.equals(format.getW(), sizes.get(0)) && Objects.equals(format.getH(), sizes.get(1));
-    }
-
     private static Site modifySite(BidRequest bidRequest, ExtImpIx extImpIx) {
         final Site site = bidRequest.getSite();
         final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();

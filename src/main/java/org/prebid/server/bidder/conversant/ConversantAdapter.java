@@ -87,7 +87,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .at(1)
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .app(app)
+                .app(app != null ? makeApp(adUnitBidsWithParams, app) : app)
                 .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
@@ -201,6 +201,23 @@ public class ConversantAdapter extends OpenrtbAdapter {
         return bannerBuilder(adUnitBid)
                 .pos(params.getPosition())
                 .build();
+    }
+
+    private static App makeApp(List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams, App app) {
+        final String siteId = adUnitBidsWithParams.stream()
+                .map(AdUnitBidWithParams::getParams)
+                .filter(params -> params != null && StringUtils.isNotEmpty(params.getSiteId()))
+                .map(ConversantParams::getSiteId)
+                .reduce((first, second) -> second)
+                .orElse(null);
+
+        if (StringUtils.isNotBlank(siteId)) {
+            return app.toBuilder()
+                    .id(siteId)
+                    .build();
+        }
+
+        return app;
     }
 
     private static Site makeSite(PreBidRequestContext preBidRequestContext,

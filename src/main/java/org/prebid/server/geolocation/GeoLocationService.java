@@ -12,6 +12,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
  * Provided default implementation - {@link MaxMindGeoLocationService}
  * Each vendor (host company) might provide its own implementation and inject it via Spring configuration.
  */
+@FunctionalInterface
 public interface GeoLocationService {
 
     /**

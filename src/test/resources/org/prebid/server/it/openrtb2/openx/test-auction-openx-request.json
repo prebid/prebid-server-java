@@ -18,7 +18,11 @@
           "delDomain": "se-demo-d.openx.net",
           "customFloor": 0.1,
           "customParams": {
-            "foo": "bar"
+            "foo": "bar",
+            "multifoo": [
+              "bar1",
+              "bar2"
+            ]
           }
         }
       }
@@ -145,12 +149,12 @@
   },
   "user": {
     "ext": {
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      },
-      "consent": "consentValue"
+      }
     }
   },
   "regs": {

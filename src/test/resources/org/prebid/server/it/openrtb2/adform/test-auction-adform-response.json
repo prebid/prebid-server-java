@@ -52,6 +52,14 @@
             "responsebody": "{\"response\":\"banner\",\"banner\":\"banner\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\",\"win_crid\":\"crid12\"}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"impId12\",\"impid\":\"impId12\",\"price\":10.5,\"adm\":\"banner\",\"crid\":\"crid12\",\"w\":400,\"h\":300}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"ca2a4dd3-f974-4eff-be5c-986bf4e083ce\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {

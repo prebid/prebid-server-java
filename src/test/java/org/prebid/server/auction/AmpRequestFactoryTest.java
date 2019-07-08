@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -37,7 +38,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -184,8 +184,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultPrebidValuesIfPrebidIsNull() {
         // given
         final ObjectNode extBidRequest = mapper.valueToTree(ExtBidRequest.of(null));
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(extBidRequest),
-                Imp.builder().build());
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(extBidRequest), Imp.builder().build());
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -201,12 +200,13 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
-                .containsExactly(ExtRequestPrebid.of(emptyMap(),
-                        emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                .containsExactly(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                                        BigDecimal.valueOf(0.1))))), null, null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                                ExtRequestPrebidCacheVastxml.of(null, null))));
+                                        BigDecimal.valueOf(0.1))))), null, null, true, true))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                                ExtRequestPrebidCacheVastxml.of(null, null)))
+                        .build());
     }
 
     @Test
@@ -416,10 +416,11 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("debug")).willReturn("1");
 
-        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null,
-                null, null, null),
-                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                        ExtRequestPrebidCacheVastxml.of(null, null)));
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .test(0)
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
         // when
@@ -430,6 +431,28 @@ public class AmpRequestFactoryTest extends VertxTest {
         verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
 
         assertThat(captor.getValue().getTest()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldRespondWithBidRequestWithDebugFlagOn() throws JsonProcessingException {
+        // given
+        given(httpRequest.getParam("debug")).willReturn("1");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(0).build()))),
+                Imp.builder().build());
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+
+        // when
+        factory.fromRequest(routingContext);
+
+        // then
+        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
+
+        final ExtBidRequest extBidRequest = Json.mapper.treeToValue(captor.getValue().getExt(), ExtBidRequest.class);
+        assertThat(extBidRequest.getPrebid().getDebug()).isEqualTo(1);
     }
 
     @Test
@@ -476,7 +499,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getExt)
-                .containsOnly(mapper.valueToTree(ExtSite.of(1)));
+                .containsOnly(mapper.valueToTree(ExtSite.of(1, null)));
     }
 
     @Test
@@ -502,7 +525,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1))));
+                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
     }
 
     @Test
@@ -528,7 +551,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1))));
+                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
     }
 
     @Test
@@ -1046,6 +1069,32 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.getTmax()).isEqualTo(1000L);
     }
 
+    @Test
+    public void shouldPassExtPrebidDebugFlagIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .debug(1)
+                                .build()))),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getDebug)
+                .containsOnly(1);
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Imp... imps) {
@@ -1059,7 +1108,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         return BidRequest.builder()
                 .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, null, extRequestTargeting, null, extRequestPrebidCache))))
+                        ExtRequestPrebid.builder()
+                                .targeting(extRequestTargeting)
+                                .cache(extRequestPrebidCache)
+                                .build())))
                 .build();
     }
 }

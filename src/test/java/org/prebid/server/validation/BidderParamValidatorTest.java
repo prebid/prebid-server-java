@@ -146,7 +146,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
         // given
-        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross");
+        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross", null, null);
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -277,7 +277,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldNotReturnValidationMessagesWhenOpenxImpExtIsOk() {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
-                .customParams(Collections.singletonMap("foo", "bar"))
+                .customParams(Collections.singletonMap("foo", mapper.convertValue("bar", JsonNode.class)))
                 .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("2222")
@@ -295,7 +295,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessagesWhenOpenxExtNotValid() {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
-                .customParams(Collections.singletonMap("foo", "bar"))
+                .customParams(Collections.singletonMap("foo", mapper.convertValue("bar", JsonNode.class)))
                 .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("not-numeric")

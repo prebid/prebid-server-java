@@ -39,6 +39,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * AdkernelAdn {@link Bidder} implementation.
+ */
 public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE =
@@ -96,7 +99,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return adkernelAdnExt;
     }
 
-    // Group impressions by AdKernel-specific parameters `pubId` & `host`.
+    /**
+     * Group impressions by AdKernel-specific parameters `pubId` & `host`.
+     */
     private static Map<ExtImpAdkernelAdn, List<Imp>> dispatchImpressions(List<Imp> imps,
                                                                          List<ExtImpAdkernelAdn> impExts) {
         final Map<ExtImpAdkernelAdn, List<Imp>> result = new HashMap<>();
@@ -110,7 +115,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return result;
     }
 
-    // Alter impression info to comply with adkernel platform requirements.
+    /**
+     * Alter impression info to comply with adkernel platform requirements.
+     */
     private static Imp compatImpression(Imp imp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner compatBanner = imp.getBanner();
@@ -118,7 +125,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         impBuilder.ext(null); // do not forward ext to adkernel platform
 
         if (compatBanner != null && compatBanner.getW() == null && compatBanner.getH() == null) {
-            //As banner.w/h are required fields for adkernel adn platform - take the first format entry
+            // As banner.w/h are required fields for adkernel adn platform - take the first format entry
             final List<Format> compatBannerFormat = compatBanner.getFormat();
 
             if (CollectionUtils.isEmpty(compatBannerFormat)) {
@@ -188,7 +195,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return bidRequestBuilder.build();
     }
 
-    // Builds endpoint url based on adapter-specific pub settings from imp.ext
+    /**
+     * Builds endpoint url based on adapter-specific pub settings from imp.ext.
+     */
     private static String buildEndpoint(ExtImpAdkernelAdn impExt, String endpointUrl) {
         final String updatedEndpointUrl;
 
@@ -237,7 +246,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    // Figures out which media type this bid is for.
+    /**
+     * Figures out which media type this bid is for.
+     */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {

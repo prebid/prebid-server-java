@@ -1,0 +1,53 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "bidfloor": 1.1,
+      "bidfloorcur": "GBP",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "tagid": "456",
+      "ext": {
+        "bidder": {
+          "accountId": "123",
+          "placementId": "456",
+          "bidfloor": 1.1,
+          "cur": "GBP"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.publisher.com",
+    "page": "http://www.publisher.com/awesome/site",
+    "ext": {
+      "amp" : 0
+    }
+  },
+  "device": {
+    "ua": "test-user-agent",
+    "dnt": 0,
+    "ip": "123.123.123.123",
+    "language": "en"
+  },
+  "user": {
+    "buyeruid": "test_reader_id"
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "cur": [
+    "USD"
+  ]
+}

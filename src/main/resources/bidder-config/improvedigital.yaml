@@ -8,8 +8,11 @@ adapters:
     meta-info:
       maintainer-email: j.bartek@improvedigital.com
       app-media-types:
+        - banner
+        - video
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 253
     usersync:

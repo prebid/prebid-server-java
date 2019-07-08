@@ -64,29 +64,43 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
         if (imp.getAudio() != null) {
             modifiedImp.audio(null);
         }
-        if (imp.getBanner() != null) {
-            final String adSlotString = extImpPubmatic.getAdSlot().trim();
-            final String[] adSlot = adSlotString.split("@");
-            if (adSlot.length != 2 || StringUtils.isBlank(adSlot[0]) || StringUtils.isBlank(adSlot[1])) {
-                throw new PreBidException("Invalid adSlot provided");
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
+            final String adSlotString = StringUtils.trimToNull(extImpPubmatic.getAdSlot());
+            Integer width = null;
+            Integer height = null;
+            if (!StringUtils.isEmpty(adSlotString)) {
+                if (!adSlotString.contains("@")) {
+                    modifiedImp.tagid(adSlotString);
+                } else {
+                    final String[] adSlot = adSlotString.split("@");
+                    if (adSlot.length != 2 || StringUtils.isEmpty(adSlot[0].trim())
+                            || StringUtils.isEmpty(adSlot[1].trim())) {
+                        throw new PreBidException("Invalid adSlot provided");
+                    }
+                    modifiedImp.tagid(adSlot[0].trim());
+                    final String[] adSize = adSlot[1].toLowerCase().split("x");
+                    if (adSize.length != 2) {
+                        throw new PreBidException("Invalid size provided in adSlot");
+                    }
+                    final String[] heightStr = adSize[1].split(":");
+                    try {
+                        width = Integer.valueOf(adSize[0].trim());
+                        height = Integer.valueOf(heightStr[0].trim());
+                    } catch (NumberFormatException e) {
+                        throw new PreBidException("Invalid size provided in adSlot");
+                    }
+                }
             }
-            modifiedImp.tagid(adSlot[0]);
+            if (width == null && height == null) {
+                final boolean isFormatsPresent = CollectionUtils.isNotEmpty(banner.getFormat());
+                width = isFormatsPresent && banner.getW() == null && banner.getH() == null
+                         ? banner.getFormat().get(0).getW() : banner.getW();
 
-            final String[] adSize = adSlot[1].trim().toLowerCase().split("x");
-            if (adSize.length != 2) {
-                throw new PreBidException("Invalid size provided in adSlot");
+                height = isFormatsPresent && banner.getH() == null && banner.getW() == null
+                         ? banner.getFormat().get(0).getH() : banner.getH();
             }
-
-            final Integer width;
-            final Integer height;
-            final String[] heightStr = adSize[1].trim().split(":");
-            try {
-                width = Integer.valueOf(adSize[0].trim());
-                height = Integer.valueOf(heightStr[0].trim());
-            } catch (NumberFormatException e) {
-                throw new PreBidException("Invalid width or height provided in adSlot");
-            }
-            final Banner updatedBanner = imp.getBanner().toBuilder().w(width).h(height).build();
+            final Banner updatedBanner = banner.toBuilder().w(width).h(height).build();
             modifiedImp.banner(updatedBanner);
         }
 

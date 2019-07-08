@@ -56,6 +56,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
         notificationHandler = NotificationEventHandler.create(analyticsReporter);
     }
 
@@ -106,7 +107,8 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Test
     public void shouldReturnBadRequestWhenBidderWasNotDefined() throws JsonProcessingException {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "id"));
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "id"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -120,8 +122,9 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Test
     public void shouldPassEventObjectToAnalyticReporter() throws JsonProcessingException {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                .add("bidder", "rubicon"));
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
+                        .add("bidder", "rubicon"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -133,8 +136,9 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenFormatParameterIsNotJPGOrPNG() throws JsonProcessingException {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                .add("bidder", "rubicon").add("format", "invalid"));
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
+                        .add("bidder", "rubicon").add("format", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -148,8 +152,9 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithPixelTrackingPngByteAndContentTypePngHeader() throws IOException {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                .add("bidder", "rubicon").add("format", "png"));
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
+                        .add("bidder", "rubicon").add("format", "png"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -165,8 +170,9 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithPixelTrackingJpgByteAndContentTypeJpgHeader() throws IOException {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                .add("bidder", "rubicon").add("format", "jpg"));
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
+                        .add("bidder", "rubicon").add("format", "jpg"));
 
         // when
         notificationHandler.handle(routingContext);

@@ -61,44 +61,6 @@
   },
   "at": 1,
   "tmax": 5000,
-  "ext": {
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 3,
-              "increment": 0.01
-            },
-            {
-              "max": 8,
-              "increment": 0.05
-            },
-            {
-              "max": 20,
-              "increment": 0.5
-            }
-          ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
-          }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {}
-      }
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0

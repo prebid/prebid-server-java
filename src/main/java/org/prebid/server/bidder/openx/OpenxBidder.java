@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 
 /**
  * OpenX {@link Bidder} implementation.
@@ -182,7 +182,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return impExtOpenx;
     }
 
-    private ObjectNode makeImpExt(Map<String, String> customParams) {
+    private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {
         return customParams != null
                 ? Json.mapper.valueToTree(OpenxImpExt.of(customParams))
                 : null;

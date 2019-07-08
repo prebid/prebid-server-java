@@ -1,0 +1,23 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "price": 0.500000,
+          "adm": "some-test-ad",
+          "impid": "1",
+          "auid": 46,
+          "id": "1",
+          "h": 250,
+          "adomain": [
+            "goodadvertiser.com"
+          ],
+          "crid": "11_222222",
+          "w": 300
+        }
+      ],
+      "seat": "51"
+    }
+  ]
+}

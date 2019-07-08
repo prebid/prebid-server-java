@@ -72,14 +72,16 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            HttpClient httpClient) {
+            HttpClient httpClient,
+            Clock clock) {
 
         return new CacheService(
                 applicationSettings,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
-                CacheService.getCachedAssetUrlTemplate(scheme, host, path, query));
+                CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
+                clock);
     }
 
     @Bean
@@ -271,13 +273,14 @@ public class ServiceConfiguration {
 
     @Bean
     GdprService gdprService(
+            ApplicationSettings applicationSettings,
             @Autowired(required = false) GeoLocationService geoLocationService,
             VendorListService vendorListService,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(geoLocationService, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(applicationSettings, geoLocationService, vendorListService, eeaCountries, defaultValue);
     }
 
     @Bean
@@ -392,12 +395,13 @@ public class ServiceConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
     CurrencyConversionService currencyConversionService(
-            @Value("${currency-converter.refresh-period-ms}") long refreshPeriod,
             @Value("${currency-converter.url}") String currencyServerUrl,
+            @Value("${currency-converter.default-timeout-ms}") long defaultTimeout,
+            @Value("${currency-converter.refresh-period-ms}") long refreshPeriod,
             Vertx vertx,
             HttpClient httpClient) {
 
-        return new CurrencyConversionService(currencyServerUrl, refreshPeriod, vertx, httpClient);
+        return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
     }
 
     @Configuration

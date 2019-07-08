@@ -81,7 +81,8 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid MediaType. Conversant supports only Banner and Video. Ignoring ImpID=123"));
+                .containsOnly(BidderError.badInput(
+                        "Invalid MediaType. Conversant supports only Banner and Video. Ignoring ImpID=123"));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -142,7 +143,7 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPassRequestAppAsItIs() {
+    public void makeHttpRequestsShouldSetAppIdFromExtSiteId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.app(App.builder().id("app_id").build()),
@@ -158,7 +159,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getId)
-                .containsOnly("app_id");
+                .containsOnly("site id");
     }
 
     @Test
@@ -540,9 +541,10 @@ public class ConversantBidderTest extends VertxTest {
         assertThat(conversantBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();

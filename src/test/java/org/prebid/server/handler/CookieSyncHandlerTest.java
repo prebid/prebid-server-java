@@ -246,11 +246,14 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
+        final String disabledBidder = "disabled_bidder";
+        given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
+
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
+
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
-
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON)));
 
         givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
 

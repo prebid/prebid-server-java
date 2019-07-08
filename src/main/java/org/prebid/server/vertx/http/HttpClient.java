@@ -8,6 +8,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 /**
  * Interface describes HTTP interactions.
  */
+@FunctionalInterface
 public interface HttpClient {
 
     Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body, long timeoutMs);

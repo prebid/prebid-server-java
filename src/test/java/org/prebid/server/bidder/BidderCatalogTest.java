@@ -86,6 +86,20 @@ public class BidderCatalogTest {
     }
 
     @Test
+    public void aliasesShouldReturnConfiguredAliases() {
+        // given
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(singletonList("alias"))
+                .build();
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.aliases()).containsOnly("alias");
+    }
+
+    @Test
     public void isAliasShouldReturnTrueForBidderAlias() {
         // given
         bidderDeps = BidderDeps.builder()

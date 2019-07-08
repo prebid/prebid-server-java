@@ -55,7 +55,6 @@
     }
   },
   "required": [
-    "publisherId",
-    "adSlot"
+    "publisherId"
   ]
 }

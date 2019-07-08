@@ -112,7 +112,7 @@ public final class HttpUtil {
     /**
      * Creates header from name and value, when value is not null or empty string.
      */
-    public static void addHeaderIfValueIsNotEmpty(MultiMap headers, String headerName, String headerValue) {
+    public static void addHeaderIfValueIsNotEmpty(MultiMap headers, CharSequence headerName, CharSequence headerValue) {
         if (StringUtils.isNotEmpty(headerValue)) {
             headers.add(headerName, headerValue);
         }

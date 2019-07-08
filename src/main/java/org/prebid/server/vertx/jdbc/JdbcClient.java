@@ -10,6 +10,7 @@ import java.util.function.Function;
 /**
  * Interface for asynchronous interaction with database over JDBC API
  */
+@FunctionalInterface
 public interface JdbcClient {
 
     /**

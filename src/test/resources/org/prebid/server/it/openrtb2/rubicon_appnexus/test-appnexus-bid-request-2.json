@@ -47,7 +47,7 @@
     "ext": {
       "prebid": {
         "interstitial": {
-          "minwidtheperc": 50,
+          "minwidthperc": 50,
           "minheightperc": 60
         }
       }
@@ -61,14 +61,21 @@
         "keyv": 123,
         "pref": 0
       },
-      "tpid": [
+      "eids": [
         {
-          "source": "tdid",
-          "uid": "19cfaea8-a429-48fc-9537-8a19a8eb4f0c"
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "cd96870f-f53d-4986-a08e-cd1612fb13b0",
+              "ext": {
+                "rtiPartner": "TDID"
+              }
+            }
+          ]
         },
         {
           "source": "pubcid",
-          "uid": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+          "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
         }
       ]
     }

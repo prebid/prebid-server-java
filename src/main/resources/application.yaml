@@ -41,6 +41,7 @@ cookie-sync:
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
+  default-timeout-ms: 4000
   refresh-period-ms: 900000
 metrics:
   metricType: flushingCounter

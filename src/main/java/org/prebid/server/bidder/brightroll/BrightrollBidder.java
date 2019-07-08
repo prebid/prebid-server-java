@@ -135,10 +135,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private static BidRequest updateBidRequest(BidRequest bidRequest, String firstImpExtPublisher,
                                                List<BidderError> errors) {
         final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder();
-        //Defaulting to first price auction for all prebid requests
+        // Defaulting to first price auction for all prebid requests
         builder.at(1);
 
-        final boolean isAdthrivePublisher = firstImpExtPublisher.equals("adthrive");
+        final boolean isAdthrivePublisher = Objects.equals(firstImpExtPublisher, "adthrive");
         if (isAdthrivePublisher) {
             builder.bcat(BLOCKED_CATEGORIES_FOR_ADTHRIVE);
         }

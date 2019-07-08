@@ -54,6 +54,14 @@
             "responsebody": "{\"decisions\":{\"impId001\":{\"adId\":1234567890,\"pricing\":{\"clearPrice\":0.5},\"width\":300,\"height\":250,\"impressionUrl\":\"http://localhost:8080/shown\",\"contents\":[{\"body\":\"<blink>Remember this: https://www.google.com/search?q=blink+tag ?</blink>\"}]}}}",
             "status": 200
           }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"tid\",\"impid\":\"impId001\",\"price\":0.5,\"adm\":\"<blink>Remember this: https://www.google.com/search?q=blink+tag ?</blink>\",\"crid\":\"1234567890\",\"w\":300,\"h\":250,\"exp\":30},\"expiry\":30}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"a5d3a873-d06e-4f2f-8556-120e05d62b28\"}]}",
+            "status": 200
+          }
         ]
       },
       "resolvedrequest": {

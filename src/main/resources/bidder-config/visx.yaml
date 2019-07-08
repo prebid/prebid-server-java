@@ -1,0 +1,20 @@
+adapters:
+  visx:
+    enabled: false
+    endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_standard
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: service@yoc.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://t.visx.net/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+      redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={UUID}
+      cookie-family-name: visx
+      type: redirect
+      support-cors: false
