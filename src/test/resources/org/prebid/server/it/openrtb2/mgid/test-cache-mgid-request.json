@@ -8,8 +8,12 @@
         "price": 3.5,
         "nurl": "nurl",
         "adm": "some-test-ad",
+        "crid": "crid002",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "crtype": "banner"
+        }
       }
     }
   ]
