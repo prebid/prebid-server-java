@@ -183,28 +183,33 @@ public class ExchangeService {
 
         return storedResponseResultFuture
                 .compose(storedResponseResult ->
-                                extractBidderRequests(bidRequest, storedResponseResult.getRequiredRequestImps(),
-                                        requestExt, uidsCookie, aliases, publisherId, timeout)
-                .map(bidderRequests ->
-                        updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, requestTypeMetric))
-                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
-                        .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                                auctionTimeout(timeout, cacheInfo.doCaching), debugEnabled, aliases,
-                                bidAdjustments(requestExt), currencyRates(targeting)))
-                        .collect(Collectors.toList())))
-                // send all the requests to the bidders and gathers results
-                .map(CompositeFuture::<BidderResponse>list)
-                // produce response from bidder results
-                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
-                .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
-                        storedResponseResultFuture.result().getStoredResponse(), bidRequest.getImp()))
-                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
-                        .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
-                .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
-                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorByBidType,
-                                cacheInfo, publisherId, timeout, result.getRight(), debugEnabled))
-                .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
+                        extractBidderRequests(bidRequest, storedResponseResult.getRequiredRequestImps(),
+                                requestExt, uidsCookie, aliases, publisherId, timeout)
+                                .map(bidderRequests ->
+                                        updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
+                                                requestTypeMetric))
+                                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
+                                        .map(bidderRequest -> requestBids(bidderRequest, startTime,
+                                                auctionTimeout(timeout, cacheInfo.doCaching), debugEnabled, aliases,
+                                                bidAdjustments(requestExt), currencyRates(targeting)))
+                                        .collect(Collectors.toList())))
+                                // send all the requests to the bidders and gathers results
+                                .map(CompositeFuture::<BidderResponse>list)
+                                // produce response from bidder results
+                                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
+                                .map(bidderResponses -> storedResponseProcessor
+                                        .mergeWithBidderResponses(bidderResponses,
+                                                storedResponseResultFuture.result().getStoredResponse(),
+                                                bidRequest.getImp()))
+                                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
+                                        .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
+                                .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
+                                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator,
+                                                keywordsCreatorByBidType, cacheInfo, publisherId, timeout,
+                                                result.getRight(), debugEnabled))
+                                .compose(bidResponse ->
+                                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest,
+                                                bidResponse)));
     }
 
     /**
@@ -299,9 +304,10 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
-    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, List<Imp> requestedImps, ExtBidRequest requestExt,
-                                                              UidsCookie uidsCookie, Map<String, String> aliases,
-                                                              String publisherId, Timeout timeout) {
+    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, List<Imp> requestedImps,
+                                                              ExtBidRequest requestExt, UidsCookie uidsCookie,
+                                                              Map<String, String> aliases, String publisherId,
+                                                              Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
                 .filter(imp -> imp.getExt() != null)

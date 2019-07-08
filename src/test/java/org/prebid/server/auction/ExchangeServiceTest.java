@@ -1424,7 +1424,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build()))), emptyList())));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -1462,7 +1462,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // when
         final BidResponse bidResponse =
-                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+                exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -1486,8 +1486,7 @@ public class ExchangeServiceTest extends VertxTest {
 
 
         // when
-        final Future<BidResponse> result =
-                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+        final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
         assertThat(result.failed()).isTrue();
@@ -1511,8 +1510,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
-        final Future<BidResponse> result =
-                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+        final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
         assertThat(result.failed()).isTrue();
