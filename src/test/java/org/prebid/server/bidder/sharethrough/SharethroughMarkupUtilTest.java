@@ -6,7 +6,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
 
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SharethroughMarkupUtilTest extends VertxTest {
 
@@ -31,7 +31,7 @@ public class SharethroughMarkupUtilTest extends VertxTest {
                 // Encoded {"adserverRequestId":"arid","bidId":"bid"}
                 "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCJ9\"</script>";
 
-        assertTrue(result.contains(expected));
+        assertThat(result.contains(expected)).isTrue();
     }
 
     @Test
@@ -52,7 +52,7 @@ public class SharethroughMarkupUtilTest extends VertxTest {
 
         // then
         final String expectedContains = "<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n";
-        assertTrue(result.contains(expectedContains));
+        assertThat(result.contains(expectedContains)).isTrue();
     }
 
     @Test
@@ -72,7 +72,7 @@ public class SharethroughMarkupUtilTest extends VertxTest {
 
         // then
         final String expectedContains = "<script src=\"//native.sharethrough.com/assets/sfp-set-targeting.js\"></script>";
-        assertTrue(result.contains(expectedContains));
+        assertThat(result.contains(expectedContains)).isTrue();
     }
 }
 

@@ -98,7 +98,7 @@ public class SharethroughBidder implements Bidder<Void> {
 
         final List<StrUriParameters> strUriParameters = new ArrayList<>();
         for (Imp imp : request.getImp()) {
-            ExtImpSharethrough extImpStr = Json.mapper.<ExtPrebid<?, ExtImpSharethrough>>convertValue(
+            final ExtImpSharethrough extImpStr = Json.mapper.<ExtPrebid<?, ExtImpSharethrough>>convertValue(
                     imp.getExt(), SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
 
             strUriParameters.add(createStrUriParameters(consentRequired, consent, canAutoPlay, imp, extImpStr));

@@ -5,9 +5,6 @@ import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class SharethroughUriBuilderUtilTest {
 
@@ -50,8 +47,8 @@ public class SharethroughUriBuilderUtilTest {
         final String uriEmpty = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=30&stayInIframe=";
 
         // when and then
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).getIframe());
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).getIframe());
+        assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).getIframe()).isFalse();
+        assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).getIframe()).isFalse();
     }
 
     @Test
@@ -61,8 +58,8 @@ public class SharethroughUriBuilderUtilTest {
         final String uriEmpty = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=30&consentRequired=";
 
         // when and then
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).getConsentRequired());
-        assertFalse(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).getConsentRequired());
+        assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriNull).getConsentRequired()).isFalse();
+        assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriEmpty).getConsentRequired()).isFalse();
     }
 
     @Test
@@ -73,9 +70,9 @@ public class SharethroughUriBuilderUtilTest {
         // when and then
         assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriWithoutOptionalParameters))
                 .satisfies(strUriParameters -> {
-                    assertEquals("", strUriParameters.getBidID());
-                    assertEquals("", strUriParameters.getPkey());
-                    assertEquals("", strUriParameters.getConsentString());
+                    assertThat(strUriParameters.getBidID()).isEmpty();
+                    assertThat(strUriParameters.getPkey()).isEmpty();
+                    assertThat(strUriParameters.getConsentString()).isEmpty();
                 });
     }
 
@@ -89,11 +86,11 @@ public class SharethroughUriBuilderUtilTest {
                 .satisfies(strUriParameters -> {
                     assertThat(strUriParameters.getHeight()).isEqualTo(30);
                     assertThat(strUriParameters.getWidth()).isEqualTo(30);
-                    assertEquals("bidid", strUriParameters.getBidID());
-                    assertEquals("pkey", strUriParameters.getPkey());
-                    assertEquals("123", strUriParameters.getConsentString());
-                    assertTrue(strUriParameters.getConsentRequired());
-                    assertTrue(strUriParameters.getIframe());
+                    assertThat(strUriParameters.getBidID()).isEqualTo("bidid");
+                    assertThat(strUriParameters.getPkey()).isEqualTo("pkey");
+                    assertThat(strUriParameters.getConsentString()).isEqualTo("123");
+                    assertThat(strUriParameters.getConsentRequired()).isTrue();
+                    assertThat(strUriParameters.getIframe()).isTrue();
                 });
     }
 
@@ -120,7 +117,7 @@ public class SharethroughUriBuilderUtilTest {
         final String result = SharethroughUriBuilderUtil.buildSharethroughUrl(baseUri, supplyId, strVersion, strUriParameters);
 
         // then
-        assertEquals(expected, result);
+        assertThat(result).isEqualTo(expected);
     }
 }
 

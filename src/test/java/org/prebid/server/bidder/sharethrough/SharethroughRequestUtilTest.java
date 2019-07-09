@@ -18,17 +18,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SharethroughRequestUtilTest {
 
     @Test
     public void getPageShouldReturnNullWhenSiteIsNull() {
         // given when and then
-        assertNull(SharethroughRequestUtil.getPage(null));
+        assertThat(SharethroughRequestUtil.getPage(null)).isNull();
     }
 
     @Test
@@ -38,13 +35,13 @@ public class SharethroughRequestUtilTest {
         final Site site = Site.builder().page(page).build();
 
         // when and then
-        assertEquals(page, SharethroughRequestUtil.getPage(site));
+        assertThat(SharethroughRequestUtil.getPage(site)).isEqualTo(page);
     }
 
     @Test
     public void getUaShouldReturnNullWhenDeviceIsNull() {
         // given when and then
-        assertNull(SharethroughRequestUtil.getUa(null));
+        assertThat(SharethroughRequestUtil.getUa(null)).isNull();
     }
 
     @Test
@@ -54,16 +51,16 @@ public class SharethroughRequestUtilTest {
         final Device device = Device.builder().ua(ua).build();
 
         // when and then
-        assertEquals(ua, SharethroughRequestUtil.getUa(device));
+        assertThat(SharethroughRequestUtil.getUa(device)).isEqualTo(ua);
     }
 
     @Test
     public void getHostShouldReturnEmptyStringWhenStringIsNotUri() {
         // given when and then
-        assertEquals("", SharethroughRequestUtil.getHost(null));
-        assertEquals("", SharethroughRequestUtil.getHost(""));
-        assertEquals("", SharethroughRequestUtil.getHost("not uri"));
-        assertEquals("", SharethroughRequestUtil.getHost("asdsadqzx"));
+        assertThat(SharethroughRequestUtil.getHost(null)).isEmpty();
+        assertThat(SharethroughRequestUtil.getHost("")).isEmpty();
+        assertThat(SharethroughRequestUtil.getHost("not uri")).isEmpty();
+        assertThat(SharethroughRequestUtil.getHost("asdsadqzx")).isEmpty();
     }
 
     @Test
@@ -74,9 +71,9 @@ public class SharethroughRequestUtilTest {
         final String thirdUri = "http://a.domain.com:8000/page?param=value/";
 
         // when and then
-        assertEquals("rubiconproject.com", SharethroughRequestUtil.getHost(firstUri));
-        assertEquals("a.domain.com", SharethroughRequestUtil.getHost(secondUri));
-        assertEquals("a.domain.com", SharethroughRequestUtil.getHost(thirdUri));
+        assertThat(SharethroughRequestUtil.getHost(firstUri)).isEqualTo("rubiconproject.com");
+        assertThat(SharethroughRequestUtil.getHost(secondUri)).isEqualTo("a.domain.com");
+        assertThat(SharethroughRequestUtil.getHost(thirdUri)).isEqualTo("a.domain.com");
     }
 
 
@@ -86,8 +83,8 @@ public class SharethroughRequestUtilTest {
         final ExtUser extUser = ExtUser.builder().consent(null).build();
 
         // when and then
-        assertEquals("", SharethroughRequestUtil.getConsent(null));
-        assertEquals("", SharethroughRequestUtil.getConsent(extUser));
+        assertThat(SharethroughRequestUtil.getConsent(null)).isEmpty();
+        assertThat(SharethroughRequestUtil.getConsent(extUser)).isEmpty();
     }
 
     @Test
@@ -97,7 +94,7 @@ public class SharethroughRequestUtilTest {
         final ExtUser extUser = ExtUser.builder().consent(consent).build();
 
         // when and then
-        assertEquals(consent, SharethroughRequestUtil.getConsent(extUser));
+        assertThat(SharethroughRequestUtil.getConsent(extUser)).isEqualTo(consent);
     }
 
     @Test
@@ -106,8 +103,8 @@ public class SharethroughRequestUtilTest {
         final User user = User.builder().ext(null).build();
 
         // when and then
-        assertNull(SharethroughRequestUtil.getExtUser(null));
-        assertNull(SharethroughRequestUtil.getExtUser(user));
+        assertThat(SharethroughRequestUtil.getExtUser(null)).isNull();
+        assertThat(SharethroughRequestUtil.getExtUser(user)).isNull();
     }
 
     @Test
@@ -119,14 +116,14 @@ public class SharethroughRequestUtilTest {
         final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        assertEquals(extUser, SharethroughRequestUtil.getExtUser(user));
+        assertThat(SharethroughRequestUtil.getExtUser(user)).isEqualTo(extUser);
     }
 
     @Test
     public void canBrowserAutoPlayVideoShouldReturnFalseWhenUserAgentIsBlank() {
         // given when and then
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(null));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(""));
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(null)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo("")).isFalse();
     }
 
     @Test
@@ -136,8 +133,8 @@ public class SharethroughRequestUtilTest {
         final String secondUserAgent = "very very strange behavior";
 
         // when and then
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(firstUserAgent));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(secondUserAgent));
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(firstUserAgent)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(secondUserAgent)).isTrue();
     }
 
     @Test
@@ -154,15 +151,15 @@ public class SharethroughRequestUtilTest {
         final String iosSafariUserAgent3 = "iPad Version/14.0";
 
         // when and then
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2));
-        assertTrue(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3));
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2)).isTrue();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3)).isTrue();
     }
 
     @Test
@@ -179,15 +176,15 @@ public class SharethroughRequestUtilTest {
         final String iosSafariUserAgent3 = "iPad Version/1.0";
 
         // when and then
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2));
-        assertFalse(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3));
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2)).isFalse();
+        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3)).isFalse();
     }
 
     @Test
@@ -197,9 +194,9 @@ public class SharethroughRequestUtilTest {
         final Regs regsWithGdprNull = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(null)));
 
         // when and then
-        assertFalse(SharethroughRequestUtil.isConsentRequired(null));
-        assertFalse(SharethroughRequestUtil.isConsentRequired(regs));
-        assertFalse(SharethroughRequestUtil.isConsentRequired(regsWithGdprNull));
+        assertThat(SharethroughRequestUtil.isConsentRequired(null)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regs)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWithGdprNull)).isFalse();
     }
 
     @Test
@@ -210,9 +207,9 @@ public class SharethroughRequestUtilTest {
         final Regs regsWith100 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(100)));
 
         // when and then
-        assertFalse(SharethroughRequestUtil.isConsentRequired(regsWith0));
-        assertFalse(SharethroughRequestUtil.isConsentRequired(regsWith3));
-        assertFalse(SharethroughRequestUtil.isConsentRequired(regsWith100));
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith0)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith3)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith100)).isFalse();
     }
 
     @Test
@@ -221,7 +218,7 @@ public class SharethroughRequestUtilTest {
         final Regs regs = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1)));
 
         // when and then
-        assertTrue(SharethroughRequestUtil.isConsentRequired(regs));
+        assertThat(SharethroughRequestUtil.isConsentRequired(regs)).isTrue();
     }
 
     @Test
@@ -235,8 +232,8 @@ public class SharethroughRequestUtilTest {
         // when and then
         final Size expected = Size.of(1, 1);
 
-        assertEquals(expected, SharethroughRequestUtil.getSize(notBannerImp, extImpSharethrough));
-        assertEquals(expected, SharethroughRequestUtil.getSize(bannerImpEmptyFormat, extImpSharethrough));
+        assertThat(SharethroughRequestUtil.getSize(notBannerImp, extImpSharethrough)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getSize(bannerImpEmptyFormat, extImpSharethrough)).isEqualTo(expected);
     }
 
     @Test
@@ -250,7 +247,7 @@ public class SharethroughRequestUtilTest {
         // when and then
         final Size expected = Size.of(100, 100);
 
-        assertEquals(expected, SharethroughRequestUtil.getSize(imp, extImpSharethrough));
+        assertThat(SharethroughRequestUtil.getSize(imp, extImpSharethrough)).isEqualTo(expected);
     }
 
     @Test
@@ -267,7 +264,7 @@ public class SharethroughRequestUtilTest {
         // when and then
         final Size expected = Size.of(320, 300);
 
-        assertEquals(expected, SharethroughRequestUtil.getSize(imp, extImpSharethrough));
+        assertThat(SharethroughRequestUtil.getSize(imp, extImpSharethrough)).isEqualTo(expected);
     }
 }
 

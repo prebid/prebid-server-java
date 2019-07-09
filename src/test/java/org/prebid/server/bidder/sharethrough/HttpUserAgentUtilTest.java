@@ -2,8 +2,7 @@ package org.prebid.server.bidder.sharethrough;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class HttpUserAgentUtilTest {
 
@@ -17,8 +16,8 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36";
 
         // when and then
-        assertTrue(HttpUserAgentUtil.isAndroid(firstUaAndroid));
-        assertTrue(HttpUserAgentUtil.isAndroid(secondUaAndroid));
+        assertThat(HttpUserAgentUtil.isAndroid(firstUaAndroid)).isTrue();
+        assertThat(HttpUserAgentUtil.isAndroid(secondUaAndroid)).isTrue();
     }
 
     @Test
@@ -32,9 +31,9 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10";
 
         // when and then
-        assertTrue(HttpUserAgentUtil.isIos(uaIphone));
-        assertTrue(HttpUserAgentUtil.isIos(uaIpad));
-        assertTrue(HttpUserAgentUtil.isIos(uaIpod));
+        assertThat(HttpUserAgentUtil.isIos(uaIphone)).isTrue();
+        assertThat(HttpUserAgentUtil.isIos(uaIpad)).isTrue();
+        assertThat(HttpUserAgentUtil.isIos(uaIpod)).isTrue();
     }
 
     @Test
@@ -46,10 +45,10 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/602.1.50 (KHTML, like Gecko) Mobile/14E5239e Safari/602.1";
 
         // when and then
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOsVersion, 2));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOsVersion, 1));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOs, 1));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOs, 100));
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOsVersion, 2)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOsVersion, 1)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOs, 1)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaWithoutCriOs, 100)).isFalse();
     }
 
 
@@ -62,10 +61,10 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/535.19 (KHTML, like Gecko)Mobile Safari/535.19";
 
         // when and then
-        assertFalse(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChromeVersion, 2));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChromeVersion, 1));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChrome, 1));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChrome, 100));
+        assertThat(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChromeVersion, 2)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChromeVersion, 1)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChrome, 1)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeVersion(uaWithoutChrome, 100)).isFalse();
     }
 
     @Test
@@ -77,10 +76,10 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/603.1.23 (KHTML, like Gecko) Mobile/14E5239e Safari/602.1";
 
         // when and then
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafariVersion, 2));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafariVersion, 1));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafari, 1));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafari, 100));
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafariVersion, 2)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafariVersion, 1)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafari, 1)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaWithoutSafari, 100)).isFalse();
     }
 
 
@@ -93,12 +92,12 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36";
 
         // when and then
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 19));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 20));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 190));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 31));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 32));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 300));
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 19)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 20)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 190)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 31)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 32)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 300)).isFalse();
     }
 
     @Test
@@ -112,15 +111,15 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/531.21.10 (KHTML, like Gecko) CriOS/13.0.2924.75  Mobile/7B314 ";
 
         // when and then
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 57));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 100));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 59));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 24));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 25));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 200));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 14));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 15));
-        assertFalse(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 240));
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 57)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 100)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 59)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 24)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 25)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 200)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 14)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 15)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 240)).isFalse();
     }
 
     @Test
@@ -134,9 +133,9 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10";
 
         // when and then
-        assertTrue(HttpUserAgentUtil.isIos(uaIphone));
-        assertTrue(HttpUserAgentUtil.isIos(uaIpad));
-        assertTrue(HttpUserAgentUtil.isIos(uaIpod));
+        assertThat(HttpUserAgentUtil.isIos(uaIphone)).isTrue();
+        assertThat(HttpUserAgentUtil.isIos(uaIpad)).isTrue();
+        assertThat(HttpUserAgentUtil.isIos(uaIpod)).isTrue();
     }
 
     @Test
@@ -148,12 +147,12 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36";
 
         // when and then
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 18));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 19));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 100));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 30));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 31));
-        assertFalse(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 300));
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 18)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 19)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(firstUaAndroid, 100)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 30)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 31)).isFalse();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(secondUaAndroid, 300)).isFalse();
     }
 
     @Test
@@ -167,15 +166,15 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/531.21.10 (KHTML, like Gecko) CriOS/13.0.2924.75  Mobile/7B314 ";
 
         // when and then
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 56));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 54));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 23));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 23));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 22));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 10));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 13));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 11));
-        assertTrue(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 2));
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 56)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 54)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIphone, 23)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 23)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 22)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpad, 10)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 13)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 11)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinChromeIosVersion(uaIpod, 2)).isTrue();
     }
 
     @Test
@@ -185,9 +184,9 @@ public class HttpUserAgentUtilTest {
                 "AppleWebKit/603.1.23 (KHTML, like Gecko) Version/10.0 Mobile/14E5239e Safari/602.1";
 
         // when and then
-        assertTrue(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 10));
-        assertTrue(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 9));
-        assertTrue(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 1));
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 10)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 9)).isTrue();
+        assertThat(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 1)).isTrue();
     }
 }
 
