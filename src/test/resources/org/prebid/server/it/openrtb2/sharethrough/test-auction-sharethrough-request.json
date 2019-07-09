@@ -1,60 +1,41 @@
 {
-  "id": "test-request-id",
+  "id": "tid",
   "imp": [
     {
-      "id": "test-imp-id",
+      "id": "bid",
       "banner": {
         "format": [
           {
             "w": 300,
             "h": 250
-          },
-          {
-            "w": 300,
-            "h": 600
           }
         ]
       },
-      "tagid": "456",
-      "bidfloor": 1.1,
-      "bidfloorcur": "GBP",
       "ext": {
-        "bidder": {
-          "accountId": "123",
-          "placementId": "456",
-          "bidfloor": 1.1,
-          "cur": "GBP"
+        "sharethrough": {
+          "pkey": "abc123",
+          "iframe": true,
+          "iframeSize": [
+            50,
+            50
+          ]
         }
       }
     }
   ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
   "site": {
-    "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
     },
     "ext": {
       "amp": 0
-    }
-  },
-  "device": {
-    "ua": "userAgent",
-    "dnt": 2,
-    "ip": "192.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
-  },
-  "user": {
-    "buyeruid": "MGID-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
     }
   },
   "test": 1,
@@ -66,11 +47,6 @@
   "source": {
     "fd": 1,
     "tid": "tid"
-  },
-  "regs": {
-    "ext": {
-      "gdpr": 0
-    }
   },
   "ext": {
     "prebid": {
@@ -94,12 +70,10 @@
               "USD": 1.2406
             },
             "USD": {
-              "EUR": 0.811
+              "EUR": 0.8110
             }
           }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
+        }
       },
       "cache": {
         "bids": {},
@@ -107,6 +81,21 @@
           "ttlseconds": 120
         }
       }
+    }
+  },
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
     }
   }
 }

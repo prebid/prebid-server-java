@@ -174,7 +174,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestShouldRemovePortIfHostIsSpecified() {
         // given
-        final String urlWithPort = "http://localhost:8090/rtbpub?account=";
+        final String urlWithPort = "http://test:8080/rtbpub?account=";
         adkernelAdnBidder = new AdkernelAdnBidder(urlWithPort);
 
         final BidRequest bidRequest = givenBidRequest(

@@ -38,8 +38,8 @@ public class RtbhouseTest extends IntegrationTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"rtbhouse":"RTB-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InB1Ym1hdGljIjoiUE0tVUlEIn19")
+                // this uids cookie value stands for {"uids":{"rtbhouse":"RTBH-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ0YmhvdXNlIjoiUlRCSC1VSUQifX0=")
                 .body(jsonFrom("openrtb2/rtbhouse/test-auction-rtbhouse-request.json"))
                 .post("/openrtb2/auction");
 
