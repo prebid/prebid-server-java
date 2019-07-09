@@ -173,21 +173,20 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
             return retriever.apply(
                     subtractSets(requestIds, storedIdToRequest.keySet()),
-                    subtractSets(impIds, storedIdToImp.keySet()),
-                    timeout)
-                    .compose(result -> Future.succeededFuture(StoredDataResult.of(
+                    subtractSets(impIds, storedIdToImp.keySet()), timeout)
+                    .map(result -> StoredDataResult.of(
                             combineMaps(storedIdToRequest, result.getStoredIdToRequest()),
                             combineMaps(storedIdToImp, result.getStoredIdToImp()),
-                            result.getErrors())));
+                            result.getErrors()));
         }
 
         private static Future<StoredResponseDataResult> getRemainingStoredResponses(
                 Set<String> responseIds, Timeout timeout, Map<String, String> storedSeatBids,
                 BiFunction<Set<String>, Timeout, Future<StoredResponseDataResult>> retriever) {
             return retriever.apply(subtractSets(responseIds, storedSeatBids.keySet()), timeout)
-                    .compose(result -> Future.succeededFuture(StoredResponseDataResult.of(
+                    .map(result -> StoredResponseDataResult.of(
                             combineMaps(storedSeatBids, result.getStoredSeatBid()),
-                            result.getErrors())));
+                            result.getErrors()));
         }
 
         private static <T> Set<T> subtractSets(Set<T> set1, Set<T> set2) {

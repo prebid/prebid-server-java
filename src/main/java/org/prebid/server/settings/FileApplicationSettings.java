@@ -58,7 +58,7 @@ public class FileApplicationSettings implements ApplicationSettings {
 
         this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
         this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
-        this.storedIdToSeatBid = storedIdToSeatBid;
+        this.storedIdToSeatBid = Objects.requireNonNull(storedIdToSeatBid);
     }
 
     /**
@@ -67,18 +67,18 @@ public class FileApplicationSettings implements ApplicationSettings {
      */
     public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
                                                  String storedRequestsDir, String storedImpsDir,
-                                                 String storedResponseDir) {
+                                                 String storedResponsesDir) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(settingsFileName);
         Objects.requireNonNull(storedRequestsDir);
         Objects.requireNonNull(storedImpsDir);
-        Objects.requireNonNull(storedResponseDir);
+        Objects.requireNonNull(storedResponsesDir);
 
         return new FileApplicationSettings(
                 readSettingsFile(fileSystem, settingsFileName),
                 readStoredData(fileSystem, storedRequestsDir),
                 readStoredData(fileSystem, storedImpsDir),
-                readStoredData(fileSystem, storedResponseDir));
+                readStoredData(fileSystem, storedResponsesDir));
     }
 
     @Override
@@ -98,23 +98,13 @@ public class FileApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        final Future<StoredDataResult> future;
-
-        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
-            future = Future.succeededFuture(
-                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
-        } else {
-            final List<String> requestErrors = errorsForMissedIds(requestIds, storedIdToRequest,
-                    StoredDataType.request);
-            final List<String> impErrors = errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp);
-            final List<String> errors = Stream.of(requestErrors, impErrors)
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-
-            future = Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, errors));
-        }
-
-        return future;
+        return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
+                ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
+                : StoredDataResult.of(storedIdToRequest, storedIdToImp, Stream.of(
+                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
+                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toList())));
     }
 
     /**
@@ -124,16 +114,10 @@ public class FileApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        final Future<StoredResponseDataResult> future;
-
-        if (CollectionUtils.isEmpty(responseIds)) {
-            future = Future.succeededFuture(
-                    StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList()));
-        } else {
-            final List<String> errors = errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid);
-            future = Future.succeededFuture(StoredResponseDataResult.of(storedIdToSeatBid, errors));
-        }
-        return future;
+        return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
+                ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
+                : StoredResponseDataResult.of(storedIdToSeatBid, errorsForMissedIds(responseIds,
+                storedIdToSeatBid, StoredDataType.seatbid)));
     }
 
     @Override

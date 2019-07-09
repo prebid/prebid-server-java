@@ -189,17 +189,17 @@ public class ExchangeServiceTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService, storedResponseProcessor,
-                metrics, clock, false, 0);
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
+                responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
+                eventsService, metrics, clock, false, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService, eventsService, storedResponseProcessor,
-                        metrics, clock, false, -1));
+                () -> new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
+                        responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
+                        eventsService, metrics, clock, false, -1));
     }
 
     @Test
@@ -2013,9 +2013,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService, storedResponseProcessor,
-                metrics, clock, false, 100);
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
+                responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
+                eventsService, metrics, clock, false, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));

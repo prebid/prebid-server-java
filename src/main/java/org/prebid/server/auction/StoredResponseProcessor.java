@@ -66,7 +66,7 @@ public class StoredResponseProcessor {
         this.defaultTimeout = defaultTimeout;
     }
 
-    public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Long tmax,
+    public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Timeout timeout,
                                                                 Map<String, String> aliases) {
         final List<Imp> requiredRequestImps = new ArrayList<>();
         final Map<String, String> storedResponseIdToImpId = new HashMap<>();
@@ -81,7 +81,7 @@ public class StoredResponseProcessor {
             return Future.succeededFuture(StoredResponseResult.of(imps, Collections.emptyList()));
         }
 
-        return applicationSettings.getStoredResponses(storedResponseIdToImpId.keySet(), timeout(tmax))
+        return applicationSettings.getStoredResponses(storedResponseIdToImpId.keySet(), timeout)
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored response fetching failed with reason: %s", exception.getMessage()))))
                 .map(storedResponseDataResult -> convertToSeatBid(storedResponseDataResult, storedResponseIdToImpId))
@@ -115,10 +115,6 @@ public class StoredResponseProcessor {
         for (final Imp imp : imps) {
             final String impId = imp.getId();
             final ObjectNode extImpNode = imp.getExt();
-            if (extImpNode == null) {
-                continue;
-            }
-
             final ExtImp extImp = getExtImp(extImpNode, impId);
             final ExtImpPrebid extImpPrebid = extImp != null ? extImp.getPrebid() : null;
             if (extImpPrebid == null) {
@@ -138,6 +134,15 @@ public class StoredResponseProcessor {
         }
     }
 
+    private ExtImp getExtImp(ObjectNode extImpNode, String impId) {
+        try {
+            return Json.mapper.treeToValue(extImpNode, ExtImp.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest.imp.ext for impId = %s : %s",
+                    impId, e.getMessage()));
+        }
+    }
+
     private void resolveStoredBidResponse(List<Imp> requiredRequestImps, Map<String, String> storedResponseIdToImpId,
                                           Map<String, String> aliases, Imp imp, String impId, ObjectNode extImpNode,
                                           ExtImpPrebid extImpPrebid) {
@@ -154,15 +159,6 @@ public class StoredResponseProcessor {
                     .collect(Collectors.toMap(Function.identity(), id -> impId)));
         } else {
             requiredRequestImps.add(imp);
-        }
-    }
-
-    private ExtImp getExtImp(ObjectNode extImpNode, String impId) {
-        try {
-            return Json.mapper.treeToValue(extImpNode, ExtImp.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.imp.ext for impId = %s : %s",
-                    impId, e.getMessage()));
         }
     }
 
@@ -240,7 +236,7 @@ public class StoredResponseProcessor {
         return bids.stream().map(bid -> updateBidWithImpId(bid, impId)).collect(Collectors.toList());
     }
 
-    private Bid updateBidWithImpId(Bid bid, String impId) {
+    private static Bid updateBidWithImpId(Bid bid, String impId) {
         return bid.toBuilder().impid(impId).build();
     }
 
@@ -291,7 +287,7 @@ public class StoredResponseProcessor {
                 ? seatBid.getBid().stream()
                 .map(bid -> makeBidderBid(bid, bidCurrency, impIdToBidType))
                 .collect(Collectors.toList())
-                : Collections.emptyList();
+                : new ArrayList<>();
         if (nonNullBidderSeatBid) {
             bidderBids.addAll(bidderSeatBid.getBids());
         }
@@ -316,10 +312,6 @@ public class StoredResponseProcessor {
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding stored response bid.ext.prebid");
         }
-    }
-
-    private Timeout timeout(Long tmax) {
-        return timeoutFactory.create(tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 
     private BidType resolveBidType(Imp imp) {

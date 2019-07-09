@@ -112,6 +112,7 @@ public class ExchangeService {
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private final BidderCatalog bidderCatalog;
+    private final StoredResponseProcessor storedResponseProcessor;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
@@ -119,22 +120,22 @@ public class ExchangeService {
     private final CurrencyConversionService currencyService;
     private final GdprService gdprService;
     private final EventsService eventsService;
-    private final StoredResponseProcessor storedResponseProcessor;
     private final Metrics metrics;
     private final Clock clock;
     private final boolean useGeoLocation;
     private final long expectedCacheTime;
 
-    public ExchangeService(BidderCatalog bidderCatalog, HttpBidderRequester httpBidderRequester,
-                           ResponseBidValidator responseBidValidator, CacheService cacheService,
-                           BidResponsePostProcessor bidResponsePostProcessor,
+    public ExchangeService(BidderCatalog bidderCatalog, StoredResponseProcessor storedResponseProcessor,
+                           HttpBidderRequester httpBidderRequester, ResponseBidValidator responseBidValidator,
+                           CacheService cacheService, BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService, GdprService gdprService,
-                           EventsService eventsService, StoredResponseProcessor storedResponseProcessor,
-                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime) {
+                           EventsService eventsService, Metrics metrics, Clock clock, boolean useGeoLocation,
+                           long expectedCacheTime) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -142,7 +143,6 @@ public class ExchangeService {
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.gdprService = gdprService;
         this.eventsService = eventsService;
-        this.storedResponseProcessor = storedResponseProcessor;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.useGeoLocation = useGeoLocation;
@@ -177,39 +177,45 @@ public class ExchangeService {
                 keywordsCreatorByBidType(targeting, isApp);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
         final long startTime = clock.millis();
+        final List<SeatBid> storedResponse = new ArrayList<>();
 
-        final Future<StoredResponseResult> storedResponseResultFuture = storedResponseProcessor
-                .getStoredResponseResult(bidRequest.getImp(), bidRequest.getTmax(), aliases);
+        return storedResponseProcessor
+                .getStoredResponseResult(bidRequest.getImp(), timeout, aliases)
+                .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
+                .compose(impsRequiredRequest -> extractBidderRequests(bidRequest, impsRequiredRequest, requestExt,
+                        uidsCookie, aliases, publisherId, timeout))
+                .map(bidderRequests ->
+                        updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
+                                requestTypeMetric))
+                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
+                        .map(bidderRequest -> requestBids(bidderRequest, startTime,
+                                auctionTimeout(timeout, cacheInfo.doCaching), debugEnabled, aliases,
+                                bidAdjustments(requestExt), currencyRates(targeting)))
+                        .collect(Collectors.toList())))
+                // send all the requests to the bidders and gathers results
+                .map(CompositeFuture::<BidderResponse>list)
+                // produce response from bidder results
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
+                .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
+                        storedResponse, bidRequest.getImp()))
+                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
+                        .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
+                .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
+                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator,
+                                keywordsCreatorByBidType, cacheInfo, publisherId, timeout,
+                                result.getRight(), debugEnabled))
+                .compose(bidResponse ->
+                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest,
+                                bidResponse));
+    }
 
-        return storedResponseResultFuture
-                .compose(storedResponseResult ->
-                        extractBidderRequests(bidRequest, storedResponseResult.getRequiredRequestImps(),
-                                requestExt, uidsCookie, aliases, publisherId, timeout)
-                                .map(bidderRequests ->
-                                        updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
-                                                requestTypeMetric))
-                                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
-                                        .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                                                auctionTimeout(timeout, cacheInfo.doCaching), debugEnabled, aliases,
-                                                bidAdjustments(requestExt), currencyRates(targeting)))
-                                        .collect(Collectors.toList())))
-                                // send all the requests to the bidders and gathers results
-                                .map(CompositeFuture::<BidderResponse>list)
-                                // produce response from bidder results
-                                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
-                                .map(bidderResponses -> storedResponseProcessor
-                                        .mergeWithBidderResponses(bidderResponses,
-                                                storedResponseResultFuture.result().getStoredResponse(),
-                                                bidRequest.getImp()))
-                                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
-                                        .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
-                                .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
-                                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator,
-                                                keywordsCreatorByBidType, cacheInfo, publisherId, timeout,
-                                                result.getRight(), debugEnabled))
-                                .compose(bidResponse ->
-                                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest,
-                                                bidResponse)));
+    /**
+     * Populates storedResponse parameter with stored {@link List<SeatBid>} and returns {@link List<Imp>} for which
+     * request to bidders should be performed.
+     */
+    private List<Imp> populateStoredResponse(StoredResponseResult storedResponseResult, List<SeatBid> storedResponse) {
+        storedResponseResult.getStoredResponse().stream().collect(Collectors.toCollection(() -> storedResponse));
+        return storedResponseResult.getRequiredRequestImps();
     }
 
     /**

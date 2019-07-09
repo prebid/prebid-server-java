@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
@@ -87,7 +88,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("Not supported");
+        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("Not supported");
     }
 
     @Test
@@ -97,7 +98,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("Not supported");
+        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("Not supported");
     }
 
     @Test
@@ -107,7 +108,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("Not supported");
+        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("Not supported");
     }
 
     @Test

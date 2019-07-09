@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -64,9 +65,12 @@ public class StoredResponseProcessorTest extends VertxTest {
 
     private StoredResponseProcessor storedResponseProcessor;
 
+    private Timeout timeout;
+
     @Before
     public void setUp() {
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+        timeout = timeoutFactory.create(500L);
         storedResponseProcessor = new StoredResponseProcessor(applicationSettings, bidderCatalog, timeoutFactory,
                 DEFAULT_TIMEOUT);
     }
@@ -86,7 +90,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(Collections.emptyList(),
@@ -104,27 +108,11 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
                 singletonList(Imp.builder().ext(Json.mapper.createObjectNode().put("rubicon", 1)).build()),
-                Collections.emptyList()));
-        verifyZeroInteractions(applicationSettings);
-    }
-
-    @Test
-    public void getStoredResponseResultShouldSkipImpStoredResponseProcessingWhenExtImpNodeIsNotDefined() {
-        // given
-        final List<Imp> imps = singletonList(Imp.builder().build());
-        given(bidderCatalog.isValidName(any())).willReturn(true);
-
-        // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
-
-        // then
-        assertThat(result.result()).isEqualTo(StoredResponseResult.of(singletonList(Imp.builder().build()),
                 Collections.emptyList()));
         verifyZeroInteractions(applicationSettings);
     }
@@ -139,7 +127,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -164,7 +152,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.failed()).isTrue();
@@ -195,7 +183,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(Collections.emptyList(),
@@ -233,7 +221,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(Collections.emptyList(),
@@ -265,7 +253,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         final ObjectNode impExtResult = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
@@ -304,7 +292,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(Collections.emptyList(),
@@ -337,7 +325,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.singletonMap("appnexusAlias", "appnexus"));
+                timeout, Collections.singletonMap("appnexusAlias", "appnexus"));
 
         // then
         final ObjectNode impExtResult = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
@@ -359,7 +347,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.failed()).isTrue();
@@ -376,7 +364,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.failed()).isTrue();
@@ -394,7 +382,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.failed()).isTrue();
@@ -419,7 +407,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.failed()).isTrue();
@@ -441,7 +429,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                DEFAULT_TIMEOUT, Collections.emptyMap());
+                timeout, Collections.emptyMap());
 
         // then
         assertThat(result.failed()).isTrue();

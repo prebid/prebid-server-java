@@ -314,9 +314,9 @@ public class ServiceConfiguration {
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
-        return new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyConversionService, gdprService, eventsService,
-                storedResponseProcessor, metrics, clock, useGeoLocation, expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
+                cacheService, bidResponsePostProcessor, currencyConversionService, gdprService, eventsService, metrics,
+                clock, useGeoLocation, expectedCacheTimeMs);
     }
 
     @Bean
