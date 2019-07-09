@@ -190,3 +190,4 @@ public class HttpUserAgentUtilTest {
         assertTrue(HttpUserAgentUtil.isAtMinSafariVersion(uaSafari, 1));
     }
 }
+

@@ -270,3 +270,4 @@ public class SharethroughRequestUtilTest {
         assertEquals(expected, SharethroughRequestUtil.getSize(imp, extImpSharethrough));
     }
 }
+

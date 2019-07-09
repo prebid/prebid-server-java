@@ -277,3 +277,4 @@ public class SharethroughBidderTest extends VertxTest {
                 null);
     }
 }
+

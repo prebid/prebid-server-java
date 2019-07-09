@@ -75,3 +75,4 @@ public class SharethroughMarkupUtilTest extends VertxTest {
         assertTrue(result.contains(expectedContains));
     }
 }
+

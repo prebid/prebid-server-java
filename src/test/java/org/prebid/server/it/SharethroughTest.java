@@ -65,5 +65,5 @@ public class SharethroughTest extends IntegrationTest {
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
-
 }
+
