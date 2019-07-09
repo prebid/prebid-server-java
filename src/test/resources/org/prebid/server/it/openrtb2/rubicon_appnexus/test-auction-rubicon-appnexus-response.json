@@ -26,7 +26,7 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=765e116a-5773-49d5-a648-0b97a9907a4e",
+                  "url": "{{ cache.resource_url }}765e116a-5773-49d5-a648-0b97a9907a4e",
                   "cacheId": "765e116a-5773-49d5-a648-0b97a9907a4e"
                 }
               },
@@ -227,7 +227,7 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=734b7948-e41d-4c14-b2c3-c31634b32376",
+                  "url": "{{ cache.resource_url }}734b7948-e41d-4c14-b2c3-c31634b32376",
                   "cacheId": "734b7948-e41d-4c14-b2c3-c31634b32376"
                 }
               },
@@ -254,7 +254,7 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=c75130ed-bcdd-4821-ad91-90cf835615c5",
+                  "url": "{{ cache.resource_url }}c75130ed-bcdd-4821-ad91-90cf835615c5",
                   "cacheId": "c75130ed-bcdd-4821-ad91-90cf835615c5"
                 }
               },

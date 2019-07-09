@@ -214,7 +214,7 @@ public class ExchangeService {
      * request to bidders should be performed.
      */
     private List<Imp> populateStoredResponse(StoredResponseResult storedResponseResult, List<SeatBid> storedResponse) {
-        storedResponseResult.getStoredResponse().stream().collect(Collectors.toCollection(() -> storedResponse));
+        storedResponse.addAll(storedResponseResult.getStoredResponse());
         return storedResponseResult.getRequiredRequestImps();
     }
 
