@@ -8,8 +8,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
+import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     private static final String REQUEST_ID_PLACEHOLDER = "%REQUEST_ID_LIST%";
     private static final String IMP_ID_PLACEHOLDER = "%IMP_ID_LIST%";
+    private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
 
     private final JdbcClient jdbcClient;
 
@@ -60,10 +63,22 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     private final String selectAmpQuery;
 
-    public JdbcApplicationSettings(JdbcClient jdbcClient, String selectQuery, String selectAmpQuery) {
+    /**
+     * Query to select stored responses by ids, for example:
+     * <pre>
+     * SELECT respid, responseData
+     *   FROM stored_responses
+     *   WHERE respid in (%RESPONSE_ID_LIST%)
+     * </pre>
+     */
+    private final String selectResponseQuery;
+
+    public JdbcApplicationSettings(JdbcClient jdbcClient, String selectQuery, String selectAmpQuery,
+                                   String selectResponseQuery) {
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
         this.selectQuery = Objects.requireNonNull(selectQuery);
         this.selectAmpQuery = Objects.requireNonNull(selectAmpQuery);
+        this.selectResponseQuery = Objects.requireNonNull(selectResponseQuery);
     }
 
     /**
@@ -129,6 +144,23 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(selectQuery, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Runs a process to get stored responses by a collection of ids from database
+     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;}.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        final String queryResolvedWithParameters = selectResponseQuery.replaceAll(RESPONSE_ID_PLACEHOLDER,
+                parameterHolders(responseIds.size()));
+
+        final List<Object> idsQueryParameters = new ArrayList<>();
+        IntStream.rangeClosed(1, StringUtils.countMatches(selectResponseQuery, RESPONSE_ID_PLACEHOLDER))
+                .forEach(i -> idsQueryParameters.addAll(responseIds));
+
+        return jdbcClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
+                result -> JdbcStoredResponseResultMapper.map(result, responseIds), timeout);
     }
 
     /**

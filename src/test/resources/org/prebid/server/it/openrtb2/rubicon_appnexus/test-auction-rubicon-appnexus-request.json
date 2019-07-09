@@ -132,6 +132,43 @@
           "placement_id": 10433394
         }
       }
+    },
+    {
+      "id": "impStoredAuctionResponse",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "storedauctionresponse": {
+            "id": "test-stored-auction-response"
+          }
+        }
+      }
+    },
+    {
+      "id": "impStoredBidResponse",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "storedbidresponse": {
+            "bidder": "rubicon",
+            "id": "test-stored-bid-response"
+          }
+        }
+      }
     }
   ],
   "device": {

@@ -15,6 +15,7 @@ settings:
     settings-filename: sample/sample-app-settings.yaml
     stored-requests-dir: /tmp
     stored-imps-dir: /tmp
+    stored-responses-dir: /tmp
 gdpr:
   vendorlist:
     filesystem-cache-dir: /tmp
