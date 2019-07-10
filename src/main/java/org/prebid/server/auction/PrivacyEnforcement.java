@@ -46,7 +46,11 @@ public class PrivacyEnforcement {
         this.useGeoLocation = useGeoLocation;
     }
 
-    public Future<Map<String, UserDeviceRegs>> mask(Map<String, User> bidderToUser, ExtRegs extRegs,
+    /**
+     * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link UserDeviceRegs}&gt;&gt;}, where bidders name
+     * mapped to masked {@link UserDeviceRegs}
+     */
+    Future<Map<String, UserDeviceRegs>> mask(Map<String, User> bidderToUser, ExtRegs extRegs,
                                                     BidRequest bidRequest, List<String> bidders,
                                                     Map<String, String> aliases, String publisherId, ExtUser extUser,
                                                     Timeout timeout) {
@@ -112,6 +116,10 @@ public class PrivacyEnforcement {
         return aliases.getOrDefault(bidder, bidder);
     }
 
+    /**
+     * Returns {@link Map}&lt;{@link String}, {@link UserDeviceRegs}&gt;, where bidder name mapped to masked
+     * {@link UserDeviceRegs}. Masking depends on GDPR and COPPA
+     */
     private Map<String, UserDeviceRegs> getBidderToUserDeviceRegs(Map<String, User> bidderToUser, Regs regs,
                                                                   ExtRegs extRegs, Device device, Integer deviceLmt,
                                                                   Map<String, String> aliases, boolean coppaMasking,
@@ -122,6 +130,9 @@ public class PrivacyEnforcement {
                                 stringUserEntry.getKey(), aliases, deviceLmt, coppaMasking, vendorToGdprPermission)));
     }
 
+    /**
+     * Returns {@link UserDeviceRegs} with GDPR and COPPA masking
+     */
     private UserDeviceRegs createUserDeviceRegs(User user, Device device, Regs regs, ExtRegs extRegs, String bidder,
                                                 Map<String, String> aliases, Integer deviceLmt, boolean coppaMasking,
                                                 Map<Integer, Boolean> vendorToGdprPermission) {
@@ -158,8 +169,11 @@ public class PrivacyEnforcement {
         return maskingRequired;
     }
 
+    /**
+     * Returns masked {@link User}.
+     */
     private static User maskUser(User user, boolean coppaMaskingRequired, boolean gdprMaskingRequired) {
-        if (user != null && coppaMaskingRequired || gdprMaskingRequired) {
+        if (user != null && (coppaMaskingRequired || gdprMaskingRequired)) {
             final User.UserBuilder builder = user.toBuilder();
             if (coppaMaskingRequired) {
                 builder
@@ -231,17 +245,17 @@ public class PrivacyEnforcement {
     }
 
     /**
-     * Masks ip address by replacing bits after last separator with zero.
-     */
-    private static String maskIp(String ip, char delimiter) {
-        return StringUtils.isNotEmpty(ip) ? ip.substring(0, ip.lastIndexOf(delimiter) + 1) + "0" : ip;
-    }
-
-    /**
      * Masks ip v6 address by replacing last group with zero.
      */
     private static String maskIpv6(String ip) {
         return maskIp(ip, ':');
+    }
+
+    /**
+     * Masks ip address by replacing bits after last separator with zero.
+     */
+    private static String maskIp(String ip, char delimiter) {
+        return StringUtils.isNotEmpty(ip) ? ip.substring(0, ip.lastIndexOf(delimiter) + 1) + "0" : ip;
     }
 
     /**

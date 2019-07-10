@@ -108,7 +108,6 @@ import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -163,6 +162,8 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
+    private PrivacyEnforcement privacyEnforcement;
+
     @Before
     public void setUp() {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
@@ -189,17 +190,19 @@ public class ExchangeServiceTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
+        privacyEnforcement = new PrivacyEnforcement(gdprService, bidderCatalog, metrics, false);
+
         exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
-                eventsService, metrics, clock, false, 0);
+                responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcement, currencyService,
+                eventsService, metrics, clock, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                        responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
-                        eventsService, metrics, clock, false, -1));
+                        responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcement,
+                        currencyService, eventsService, metrics, clock, -1));
     }
 
     @Test
@@ -2014,8 +2017,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
-                eventsService, metrics, clock, false, 100);
+                responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcement, currencyService,
+                eventsService, metrics, clock, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
