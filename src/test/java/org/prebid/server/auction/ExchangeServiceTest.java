@@ -32,6 +32,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -49,6 +51,7 @@ import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -151,6 +154,8 @@ public class ExchangeServiceTest extends VertxTest {
     private HttpBidderRequester httpBidderRequester;
     @Mock
     private EventsService eventsService;
+    @Mock
+    private StoredResponseProcessor storedResponseProcessor;
 
     private Clock clock;
 
@@ -177,19 +182,23 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
 
         given(eventsService.isEventsEnabled(any(), any())).willReturn(Future.succeededFuture(false));
+        given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
+                .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList())));
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any())).willAnswer(inv -> inv.getArgument(0));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
+                responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
+                eventsService, metrics, clock, false, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService,
+                () -> new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
+                        responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
                         eventsService, metrics, clock, false, -1));
     }
 
@@ -733,9 +742,12 @@ public class ExchangeServiceTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder
                         .regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))));
 
-        // when and then
-        assertThatThrownBy(() -> exchangeService.holdAuction(givenRequestContext(bidRequest)))
-                .isExactlyInstanceOf(PreBidException.class)
+        // when
+        final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Error decoding bidRequest.regs.ext:");
     }
 
@@ -1385,6 +1397,127 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldCreateRequestsFromImpsReturnedByStoredResponseProcessor() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(doubleMap("prebid", 0, "someBidder1", 1), builder -> builder
+                        .id("impId1")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build())),
+                givenImp(doubleMap("prebid", 0, "someBidder2", 1), builder -> builder
+                        .id("impId2")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))
+                ),
+                builder -> builder.id("requestId").tmax(500L));
+
+        given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
+                .willReturn(Future.succeededFuture(StoredResponseResult
+                        .of(singletonList(givenImp(doubleMap("prebid", 0, "someBidder1", 1), builder -> builder
+                                .id("impId1")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))), emptyList())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+        assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
+                .id("requestId")
+                .cur(singletonList("USD"))
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
+                        .build()))
+                .tmax(500L)
+                .build());
+    }
+
+    @Test
+    public void shouldProcessBidderResponseReturnedFromStoredResponseProcessor() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))),
+                builder -> builder.id("requestId").tmax(500L));
+
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+                .willReturn(singletonList(BidderResponse.of("someBidder",
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bidId1").build(),
+                                BidType.banner, "USD")), null, emptyList()), 100)));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getId)
+                .containsOnly("bidId1");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenStoredResponseProcessorGetStoredResultReturnsFailedFuture() {
+        // given
+        given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Error")));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))),
+                builder -> builder.id("requestId").tmax(500L));
+
+
+        // when
+        final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(InvalidRequestException.class).hasMessage("Error");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenStoredResponseProcessorMergeBidderResponseReturnsFailedFuture() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+                .willThrow(new PreBidException("Error"));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))),
+                builder -> builder.id("requestId").tmax(500L));
+
+        // when
+        final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class).hasMessage("Error");
+    }
+
+    @Test
     public void shouldReturnCreativeForBannerAndNotReturnForVideo() {
         // given
         final Bid bid1 = Bid.builder().id("bidId1").adm("adm1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
@@ -1880,8 +2013,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 100);
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
+                responseBidValidator, cacheService, bidResponsePostProcessor, currencyService, gdprService,
+                eventsService, metrics, clock, false, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));

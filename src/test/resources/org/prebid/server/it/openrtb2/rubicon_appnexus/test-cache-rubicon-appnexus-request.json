@@ -120,6 +120,30 @@
       }
     },
     {
+      "type": "json",
+      "value": {
+        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
+        "impid": "impStoredAuctionResponse",
+        "price": 0.8
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
+        "impid": "impStoredAuctionResponse",
+        "price": 0.8
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
+        "impid": "impStoredBidResponse",
+        "price": 0.8
+      }
+    },
+    {
       "type": "xml",
       "value": "adm1",
       "expiry": 120

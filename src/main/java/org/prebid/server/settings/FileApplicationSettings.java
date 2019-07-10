@@ -14,6 +14,7 @@ import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,9 +44,10 @@ public class FileApplicationSettings implements ApplicationSettings {
     private final Map<String, String> configs;
     private final Map<String, String> storedIdToRequest;
     private final Map<String, String> storedIdToImp;
+    private final Map<String, String> storedIdToSeatBid;
 
     private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedIdToRequest,
-                                    Map<String, String> storedIdToImp) {
+                                    Map<String, String> storedIdToImp, Map<String, String> storedIdToSeatBid) {
         accounts = toMap(settingsFile.getAccounts(),
                 Account::getId,
                 Function.identity());
@@ -56,6 +58,7 @@ public class FileApplicationSettings implements ApplicationSettings {
 
         this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
         this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
+        this.storedIdToSeatBid = Objects.requireNonNull(storedIdToSeatBid);
     }
 
     /**
@@ -63,16 +66,19 @@ public class FileApplicationSettings implements ApplicationSettings {
      * extension and creates {@link Map} file names without .json extension to file content.
      */
     public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
-                                                 String storedRequestsDir, String storedImpsDir) {
+                                                 String storedRequestsDir, String storedImpsDir,
+                                                 String storedResponsesDir) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(settingsFileName);
         Objects.requireNonNull(storedRequestsDir);
         Objects.requireNonNull(storedImpsDir);
+        Objects.requireNonNull(storedResponsesDir);
 
         return new FileApplicationSettings(
                 readSettingsFile(fileSystem, settingsFileName),
                 readStoredData(fileSystem, storedRequestsDir),
-                readStoredData(fileSystem, storedImpsDir));
+                readStoredData(fileSystem, storedImpsDir),
+                readStoredData(fileSystem, storedResponsesDir));
     }
 
     @Override
@@ -92,23 +98,26 @@ public class FileApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        final Future<StoredDataResult> future;
+        return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
+                ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
+                : StoredDataResult.of(storedIdToRequest, storedIdToImp, Stream.of(
+                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
+                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toList())));
+    }
 
-        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
-            future = Future.succeededFuture(
-                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
-        } else {
-            final List<String> requestErrors = errorsForMissedIds(requestIds, storedIdToRequest,
-                    StoredDataType.request);
-            final List<String> impErrors = errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp);
-            final List<String> errors = Stream.of(requestErrors, impErrors)
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-
-            future = Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, errors));
-        }
-
-        return future;
+    /**
+     * Creates {@link StoredResponseDataResult} by checking if any ids are missed in storedResponse map
+     * and adding an error to list for each missed Id
+     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;} with all loaded files and errors list.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
+                ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
+                : StoredResponseDataResult.of(storedIdToSeatBid, errorsForMissedIds(responseIds,
+                storedIdToSeatBid, StoredDataType.seatbid)));
     }
 
     @Override

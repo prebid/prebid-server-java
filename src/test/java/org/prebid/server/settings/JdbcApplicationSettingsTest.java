@@ -17,12 +17,14 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
@@ -70,6 +72,12 @@ public class JdbcApplicationSettingsTest {
     private static final String selectFromOneColumnTableQuery = "SELECT reqid FROM one_column_table WHERE reqid IN " +
             "(%REQUEST_ID_LIST%)";
 
+    private static final String selectResponseQuery = "SELECT responseId, responseData FROM stored_responses" +
+            " WHERE responseId IN (%RESPONSE_ID_LIST%)";
+
+    private static final String selectOneColumnResponseQuery = "SELECT responseId FROM stored_responses" +
+            " WHERE responseId IN (%RESPONSE_ID_LIST%)";
+
     private static Connection connection;
 
     private Vertx vertx;
@@ -98,6 +106,8 @@ public class JdbcApplicationSettingsTest {
                 + "NOT NULL, impData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, impid varchar(40) "
                 + "NOT NULL, impData varchar(512));");
+        connection.createStatement().execute("CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) "
+                + "NOT NULL, responseData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
         connection.createStatement().execute("insert into accounts_account " +
@@ -112,6 +122,8 @@ public class JdbcApplicationSettingsTest {
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('4','value4');");
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('5','value5');");
         connection.createStatement().execute("insert into stored_imps2 (impid, impData) values ('6','value6');");
+        connection.createStatement().execute("insert into stored_responses (responseId, responseData) values ('1','response1');");
+        connection.createStatement().execute("insert into stored_responses (responseId, responseData) values ('2','response2');");
         connection.createStatement().execute("insert into one_column_table (reqid) values ('3');");
     }
 
@@ -125,7 +137,7 @@ public class JdbcApplicationSettingsTest {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery, selectResponseQuery);
     }
 
     @After
@@ -234,7 +246,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery,
+                selectResponseQuery);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -261,7 +274,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery,
+                selectResponseQuery);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -330,7 +344,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectFromOneColumnTableQuery,
-                selectFromOneColumnTableQuery);
+                selectFromOneColumnTableQuery, selectResponseQuery);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -349,7 +363,7 @@ public class JdbcApplicationSettingsTest {
     public void getAmpStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
         jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectFromOneColumnTableQuery,
-                selectFromOneColumnTableQuery);
+                selectFromOneColumnTableQuery, selectResponseQuery);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -406,6 +420,74 @@ public class JdbcApplicationSettingsTest {
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     emptyList()));
+            async.complete();
+        }));
+    }
+
+    @Test
+    public void getStoredResponseShouldReturnExpectedResult(TestContext context) {
+        // when
+        final Future<StoredResponseDataResult> future = jdbcApplicationSettings.getStoredResponses(
+                new HashSet<>(asList("1", "2")), timeout);
+
+        // then
+        final Async async = context.async();
+        final Map<String, String> expectedResponses = new HashMap<>();
+        expectedResponses.put("1", "response1");
+        expectedResponses.put("2", "response2");
+
+        future.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+            assertThat(storedResponseDataResult)
+                    .isEqualTo(StoredResponseDataResult.of(expectedResponses, emptyList()));
+            async.complete();
+        }));
+    }
+
+    @Test
+    public void getStoredResponseShouldReturnResultWithErrorIfNotAllStoredResponsesWereFound(TestContext context) {
+        // when
+        final Future<StoredResponseDataResult> storedResponseDataResultFuture =
+                jdbcApplicationSettings.getStoredResponses(new HashSet<>(asList("1", "3")), timeout);
+
+        // then
+        final Async async = context.async();
+        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+            assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(singletonMap("1", "response1"),
+                    singletonList("No stored response found for id: 3")));
+            async.complete();
+        }));
+    }
+
+    @Test
+    public void getStoredResponseShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
+        // given
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery,
+                selectOneColumnResponseQuery);
+
+        // when
+        final Future<StoredResponseDataResult> storedResponseDataResultFuture =
+                jdbcApplicationSettings.getStoredResponses(new HashSet<>(asList("1", "2", "3")), timeout);
+
+        // then
+        final Async async = context.async();
+        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+            assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(emptyMap(),
+                    singletonList("Result set column number is less than expected")));
+            async.complete();
+        }));
+    }
+
+    @Test
+    public void getStoredResponseShouldReturnErrorAndEmptyResult(TestContext context) {
+        // when
+        final Future<StoredResponseDataResult> storedResponseDataResultFuture =
+                jdbcApplicationSettings.getStoredResponses(new HashSet<>(asList("3", "4")), timeout);
+
+        // then
+        final Async async = context.async();
+        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+            assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(emptyMap(),
+                    singletonList("No stored responses were found for ids: 3,4")));
             async.complete();
         }));
     }
