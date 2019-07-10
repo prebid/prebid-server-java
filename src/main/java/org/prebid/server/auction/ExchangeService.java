@@ -180,7 +180,7 @@ public class ExchangeService {
         final List<SeatBid> storedResponse = new ArrayList<>();
 
         return storedResponseProcessor
-                .getStoredResponseResult(bidRequest.getImp(), timeout, aliases)
+                .getStoredResponseResult(bidRequest.getImp(), aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest -> extractBidderRequests(bidRequest, impsRequiredRequest, requestExt,
                         uidsCookie, aliases, publisherId, timeout))
