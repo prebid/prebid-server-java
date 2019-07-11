@@ -9,6 +9,7 @@ import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
+import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -299,11 +300,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidResponseCreator bidResponseCreator(BidderCatalog bidderCatalog, CacheService cacheService) {
+        return new BidResponseCreator(bidderCatalog, cacheService.getEndpointHost(),
+                cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
+    }
+
+    @Bean
     ExchangeService exchangeService(
             BidderCatalog bidderCatalog,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
+            BidResponseCreator bidResponseCreator,
             CurrencyConversionService currencyConversionService,
             GdprService gdprService,
             EventsService eventsService,
@@ -315,8 +323,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
-                cacheService, bidResponsePostProcessor, currencyConversionService, gdprService, eventsService, metrics,
-                clock, useGeoLocation, expectedCacheTimeMs);
+                cacheService, bidResponseCreator, bidResponsePostProcessor, currencyConversionService, gdprService,
+                eventsService, metrics, clock, useGeoLocation, expectedCacheTimeMs);
     }
 
     @Bean

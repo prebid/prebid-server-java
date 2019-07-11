@@ -131,10 +131,10 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void getCachedAssetURLShouldReturnExpectedValue() {
         // when
-        final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
+        final String cachedAssetURL = cacheService.getCachedAssetURLTemplate();
 
         // then
-        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
+        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
     }
 
     @Test
