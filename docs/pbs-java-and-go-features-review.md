@@ -5,6 +5,7 @@
  Feature | Java | Go 
 | --- | :---: | :---:|
 First Party data |+|-
+Stored Responses |+|-
 Currency Conversion** |+|+
 Geo location (used for GDPR) |+|-
 Circuit Breaker (Http, DB) |+|-
