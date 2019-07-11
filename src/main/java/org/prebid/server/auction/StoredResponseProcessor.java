@@ -18,7 +18,6 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
@@ -55,19 +54,13 @@ public class StoredResponseProcessor {
 
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
-    private final TimeoutFactory timeoutFactory;
-    private final long defaultTimeout;
 
-    public StoredResponseProcessor(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
-                                   TimeoutFactory timeoutFactory, long defaultTimeout) {
+    public StoredResponseProcessor(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.defaultTimeout = defaultTimeout;
     }
 
-    public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Timeout timeout,
-                                                                Map<String, String> aliases) {
+    Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Map<String, String> aliases, Timeout timeout) {
         final List<Imp> requiredRequestImps = new ArrayList<>();
         final Map<String, String> storedResponseIdToImpId = new HashMap<>();
 
@@ -88,8 +81,8 @@ public class StoredResponseProcessor {
                 .map(storedResponse -> StoredResponseResult.of(requiredRequestImps, storedResponse));
     }
 
-    public List<BidderResponse> mergeWithBidderResponses(List<BidderResponse> bidderResponses,
-                                                         List<SeatBid> storedResponses, List<Imp> imps) {
+    List<BidderResponse> mergeWithBidderResponses(List<BidderResponse> bidderResponses, List<SeatBid> storedResponses,
+                                                  List<Imp> imps) {
         if (CollectionUtils.isEmpty(storedResponses)) {
             return bidderResponses;
         }

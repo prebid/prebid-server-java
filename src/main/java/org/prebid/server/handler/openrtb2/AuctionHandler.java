@@ -77,34 +77,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         auctionRequestFactory.fromRequest(routingContext)
-                .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))
-                .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
-
-                .map(bidRequest -> AuctionContext.builder()
-                        .routingContext(routingContext)
-                        .uidsCookie(uidsCookie)
-                        .bidRequest(bidRequest)
-                        .timeout(timeout(bidRequest, startTime))
-                        .requestTypeMetric(requestTypeMetric(bidRequest))
+                .map(context -> context.toBuilder()
+                        .timeout(timeout(context.getBidRequest(), startTime))
+                        .requestTypeMetric(requestTypeMetric(context.getBidRequest()))
                         .build())
+
+                .map(context -> addToEvent(context.getBidRequest(), auctionEventBuilder::bidRequest, context))
+                .map(context -> updateAppAndNoCookieAndImpsRequestedMetrics(context, uidsCookie, isSafari))
 
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
                 .map(result -> addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
                 .setHandler(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
-    }
-
-    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
-        consumer.accept(field);
-        return result;
-    }
-
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
-                                                                   boolean isSafari) {
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                isSafari, bidRequest.getImp().size());
-        return bidRequest;
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
@@ -114,6 +99,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
         return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+    }
+
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
+    }
+
+    private AuctionContext updateAppAndNoCookieAndImpsRequestedMetrics(AuctionContext context, UidsCookie uidsCookie,
+                                                                       boolean isSafari) {
+        final BidRequest bidRequest = context.getBidRequest();
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                isSafari, bidRequest.getImp().size());
+        return context;
     }
 
     private void handleResult(AsyncResult<Tuple2<BidResponse, AuctionContext>> responseResult,

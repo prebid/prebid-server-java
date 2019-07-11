@@ -149,9 +149,11 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(
             TimeoutResolver ampTimeoutResolver,
             StoredRequestProcessor storedRequestProcessor,
+            UidsCookieService uidsCookieService,
             AuctionRequestFactory auctionRequestFactory) {
 
-        return new AmpRequestFactory(ampTimeoutResolver, storedRequestProcessor, auctionRequestFactory);
+        return new AmpRequestFactory(ampTimeoutResolver, storedRequestProcessor, uidsCookieService,
+                auctionRequestFactory);
     }
 
     @Bean
@@ -340,10 +342,9 @@ public class ServiceConfiguration {
     @Bean
     StoredResponseProcessor storedResponseProcessor(
             ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog,
-            TimeoutFactory timeoutFactory,
-            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs) {
-        return new StoredResponseProcessor(applicationSettings, bidderCatalog, timeoutFactory, defaultTimeoutMs);
+            BidderCatalog bidderCatalog) {
+
+        return new StoredResponseProcessor(applicationSettings, bidderCatalog);
     }
 
     @Bean

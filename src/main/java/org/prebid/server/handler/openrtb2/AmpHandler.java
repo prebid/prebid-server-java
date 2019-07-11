@@ -118,30 +118,30 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         ampRequestFactory.fromRequest(routingContext)
-                .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))
-                .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
-
-                .map(bidRequest -> AuctionContext.builder()
-                        .routingContext(routingContext)
-                        .uidsCookie(uidsCookie)
-                        .bidRequest(bidRequest)
-                        .timeout(timeout(bidRequest, startTime))
+                .map(context -> context.toBuilder()
+                        .timeout(timeout(context.getBidRequest(), startTime))
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
 
-                .compose(context ->
-                        exchangeService.holdAuction(context)
-                                .map(bidResponse -> Tuple2.of(bidResponse, context)))
+                .map(context -> addToEvent(context.getBidRequest(), ampEventBuilder::bidRequest, context))
+                .map(context -> updateAppAndNoCookieAndImpsRequestedMetrics(context, uidsCookie, isSafari))
+
+                .compose(context -> exchangeService.holdAuction(context)
+                        .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
                 .map(result -> addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
                 .map(result -> Tuple3.of(result.getLeft(), result.getRight(),
                         toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
-                .compose(result ->
-                        ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(), result.getLeft(),
-                                result.getRight(), routingContext))
+                .compose(result -> ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(),
+                        result.getLeft(), result.getRight(), routingContext))
 
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+    }
+
+    private Timeout timeout(BidRequest bidRequest, long startTime) {
+        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
+        return timeoutFactory.create(startTime, timeout);
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -149,16 +149,12 @@ public class AmpHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
-                                                                   boolean isSafari) {
+    private AuctionContext updateAppAndNoCookieAndImpsRequestedMetrics(AuctionContext context, UidsCookie uidsCookie,
+                                                                       boolean isSafari) {
+        final BidRequest bidRequest = context.getBidRequest();
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
                 isSafari, bidRequest.getImp().size());
-        return bidRequest;
-    }
-
-    private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
-        return timeoutFactory.create(startTime, timeout);
+        return context;
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
