@@ -8,7 +8,7 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.UserDeviceRegs;
+import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class PrivacyEnforcement {
+public class PrivacyEnforcementService {
 
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
@@ -38,8 +38,8 @@ public class PrivacyEnforcement {
     private Metrics metrics;
     private boolean useGeoLocation;
 
-    public PrivacyEnforcement(GdprService gdprService, BidderCatalog bidderCatalog, Metrics metrics,
-                              boolean useGeoLocation) {
+    public PrivacyEnforcementService(GdprService gdprService, BidderCatalog bidderCatalog, Metrics metrics,
+                                     boolean useGeoLocation) {
         this.gdprService = gdprService;
         this.bidderCatalog = bidderCatalog;
         this.metrics = metrics;
@@ -47,13 +47,12 @@ public class PrivacyEnforcement {
     }
 
     /**
-     * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link UserDeviceRegs}&gt;&gt;}, where bidders name
-     * mapped to masked {@link UserDeviceRegs}
+     * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link PrivacyEnforcementResult }&gt;&gt;}, where
+     * bidders name mapped to masked {@link PrivacyEnforcementResult}
      */
-    Future<Map<String, UserDeviceRegs>> mask(Map<String, User> bidderToUser, ExtRegs extRegs,
-                                                    BidRequest bidRequest, List<String> bidders,
-                                                    Map<String, String> aliases, String publisherId, ExtUser extUser,
-                                                    Timeout timeout) {
+    Future<Map<String, PrivacyEnforcementResult>> mask(Map<String, User> bidderToUser, ExtUser extUser, ExtRegs extRegs,
+                                                       List<String> bidders, Map<String, String> aliases,
+                                                       BidRequest bidRequest, String publisherId, Timeout timeout) {
         final Regs regs = bidRequest.getRegs();
         final Device device = bidRequest.getDevice();
 
@@ -61,10 +60,10 @@ public class PrivacyEnforcement {
 
         final Integer deviceLmt = device != null ? device.getLmt() : null;
 
-        return getVendorsToGdprPermission(bidRequest, bidders, aliases, publisherId, extUser, extRegs, timeout)
+        return getVendorsToGdprPermission(device, bidders, aliases, publisherId, extUser, extRegs, timeout)
                 .map(vendorToGdprPermission ->
-                        getBidderToUserDeviceRegs(bidderToUser, regs, extRegs, device, deviceLmt, aliases, coppaMasking,
-                                vendorToGdprPermission));
+                        getBidderToPrivacyEnforcementResult(bidderToUser, regs, extRegs, device, deviceLmt, aliases,
+                                coppaMasking, vendorToGdprPermission));
     }
 
     /**
@@ -79,14 +78,13 @@ public class PrivacyEnforcement {
      * mapped to enabling or disabling GDPR in scope of pbs server. If bidder vendor id is not present in map,
      * it means that pbs not enforced particular bidder to follow pbs GDPR procedure.
      */
-    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
+    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(Device device, List<String> bidders,
                                                                      Map<String, String> aliases,
                                                                      String publisherId, ExtUser extUser,
                                                                      ExtRegs extRegs, Timeout timeout) {
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
-        final Device device = bidRequest.getDevice();
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
         final Set<Integer> vendorIds = extractGdprEnforcedVendors(bidders, aliases);
 
@@ -117,31 +115,36 @@ public class PrivacyEnforcement {
     }
 
     /**
-     * Returns {@link Map}&lt;{@link String}, {@link UserDeviceRegs}&gt;, where bidder name mapped to masked
-     * {@link UserDeviceRegs}. Masking depends on GDPR and COPPA
+     * Returns {@link Map}&lt;{@link String}, {@link PrivacyEnforcementResult}&gt;, where bidder name mapped to masked
+     * {@link PrivacyEnforcementResult}. Masking depends on GDPR and COPPA
      */
-    private Map<String, UserDeviceRegs> getBidderToUserDeviceRegs(Map<String, User> bidderToUser, Regs regs,
-                                                                  ExtRegs extRegs, Device device, Integer deviceLmt,
-                                                                  Map<String, String> aliases, boolean coppaMasking,
-                                                                  Map<Integer, Boolean> vendorToGdprPermission) {
+    private Map<String, PrivacyEnforcementResult> getBidderToPrivacyEnforcementResult(Map<String, User> bidderToUser,
+                                                                                      Regs regs, ExtRegs extRegs,
+                                                                                      Device device, Integer deviceLmt,
+                                                                                      Map<String, String> aliases,
+                                                                                      boolean coppaMasking,
+                                                                                      Map<Integer, Boolean>
+                                                                                              vendorToGdprPermission) {
         return bidderToUser.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
-                        stringUserEntry -> createUserDeviceRegs(stringUserEntry.getValue(), device, regs, extRegs,
-                                stringUserEntry.getKey(), aliases, deviceLmt, coppaMasking, vendorToGdprPermission)));
+                        stringUserEntry -> createPrivacyEnforcementResult(stringUserEntry.getValue(), device, regs,
+                                extRegs, stringUserEntry.getKey(), aliases, deviceLmt, coppaMasking,
+                                vendorToGdprPermission)));
     }
 
     /**
-     * Returns {@link UserDeviceRegs} with GDPR and COPPA masking
+     * Returns {@link PrivacyEnforcementResult} with GDPR and COPPA masking
      */
-    private UserDeviceRegs createUserDeviceRegs(User user, Device device, Regs regs, ExtRegs extRegs, String bidder,
-                                                Map<String, String> aliases, Integer deviceLmt, boolean coppaMasking,
-                                                Map<Integer, Boolean> vendorToGdprPermission) {
+    private PrivacyEnforcementResult createPrivacyEnforcementResult(User user, Device device, Regs regs,
+                                                                    ExtRegs extRegs, String bidder,
+                                                                    Map<String, String> aliases, Integer deviceLmt,
+                                                                    boolean coppaMasking,
+                                                                    Map<Integer, Boolean> vendorToGdprPermission) {
         final boolean gdprMasking = isGdprMaskingRequiredFor(bidder, aliases, deviceLmt, vendorToGdprPermission);
-
         final User maskUser = maskUser(user, coppaMasking, gdprMasking);
         final Device maskDevice = maskDevice(device, coppaMasking, gdprMasking);
         final Regs maskReges = maskRegs(regs, extRegs, gdprMasking);
-        return UserDeviceRegs.of(maskUser, maskDevice, maskReges);
+        return PrivacyEnforcementResult.of(maskUser, maskDevice, maskReges);
     }
 
     /**
@@ -161,7 +164,6 @@ public class PrivacyEnforcement {
             // if bidder was not found in vendorToGdprPermission, it means that it was not enforced for GDPR,
             // so request for this bidder should be sent without changes
             maskingRequired = (gdprAllowsUserData != null && !gdprAllowsUserData) || isLmtEnabled;
-
             if (maskingRequired) {
                 metrics.updateGdprMaskedMetric(resolvedBidderName);
             }

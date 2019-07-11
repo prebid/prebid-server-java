@@ -27,9 +27,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.UserDeviceRegs;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -108,7 +108,7 @@ public class ExchangeService {
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
-    private final PrivacyEnforcement privacyEnforcement;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final CurrencyConversionService currencyService;
     private final EventsService eventsService;
@@ -119,8 +119,9 @@ public class ExchangeService {
     public ExchangeService(BidderCatalog bidderCatalog, StoredResponseProcessor storedResponseProcessor,
                            HttpBidderRequester httpBidderRequester, ResponseBidValidator responseBidValidator,
                            CacheService cacheService, BidResponsePostProcessor bidResponsePostProcessor,
-                           PrivacyEnforcement privacyEnforcement, CurrencyConversionService currencyService,
-                           EventsService eventsService, Metrics metrics, Clock clock, long expectedCacheTime) {
+                           PrivacyEnforcementService privacyEnforcementService,
+                           CurrencyConversionService currencyService, EventsService eventsService, Metrics metrics,
+                           Clock clock, long expectedCacheTime) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
@@ -131,7 +132,7 @@ public class ExchangeService {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.currencyService = currencyService;
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
-        this.privacyEnforcement = Objects.requireNonNull(privacyEnforcement);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.eventsService = eventsService;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -361,10 +362,10 @@ public class ExchangeService {
                         extUser, bidder, aliases, uidsBody, uidsCookie, firstPartyDataBidders.contains(bidder))),
                         HashMap::putAll);
 
-        return privacyEnforcement
-                .mask(bidderToUser, extRegs, bidRequest, bidders, aliases, publisherId, extUser, timeout)
-                .map(bidderToUserDeviceRegs -> getShuffledBidderRequests(bidderToUserDeviceRegs, bidRequest, requestExt,
-                        imps, firstPartyDataBidders));
+        return privacyEnforcementService
+                .mask(bidderToUser, extUser, extRegs, bidders, aliases, bidRequest, publisherId, timeout)
+                .map(bidderToPrivacyEnforcementResult -> getShuffledBidderRequests(bidderToPrivacyEnforcementResult,
+                        bidRequest, requestExt, imps, firstPartyDataBidders));
     }
 
     /**
@@ -506,18 +507,19 @@ public class ExchangeService {
     /**
      * Returns Shuffled List of {@link BidderRequest}
      */
-    private static List<BidderRequest> getShuffledBidderRequests(Map<String, UserDeviceRegs> bidderToUserDeviceRegs,
-                                                                 BidRequest bidRequest, ExtBidRequest requestExt,
-                                                                 List<Imp> imps, List<String> firstPartyDataBidders) {
-        final List<BidderRequest> bidderRequests = bidderToUserDeviceRegs.entrySet().stream()
+    private static List<BidderRequest> getShuffledBidderRequests(
+            Map<String, PrivacyEnforcementResult> bidderToPrivacyEnforcementResult, BidRequest bidRequest,
+            ExtBidRequest requestExt, List<Imp> imps, List<String> firstPartyDataBidders) {
+        final List<BidderRequest> bidderRequests = bidderToPrivacyEnforcementResult.entrySet().stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions and ext.prebid.data.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(entry -> {
                     final String bidder = entry.getKey();
-                    final UserDeviceRegs userDeviceRegs = entry.getValue();
-                    return createBidderRequest(bidder, bidRequest, requestExt, imps, userDeviceRegs.getUser(),
-                            userDeviceRegs.getDevice(), userDeviceRegs.getRegs(), firstPartyDataBidders);
+                    final PrivacyEnforcementResult privacyEnforcementResult = entry.getValue();
+                    return createBidderRequest(bidder, bidRequest, requestExt, imps, privacyEnforcementResult.getUser(),
+                            privacyEnforcementResult.getDevice(), privacyEnforcementResult.getRegs(),
+                            firstPartyDataBidders);
                 })
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);

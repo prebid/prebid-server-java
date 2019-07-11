@@ -162,7 +162,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
-    private PrivacyEnforcement privacyEnforcement;
+    private PrivacyEnforcementService privacyEnforcementService;
 
     @Before
     public void setUp() {
@@ -190,10 +190,10 @@ public class ExchangeServiceTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        privacyEnforcement = new PrivacyEnforcement(gdprService, bidderCatalog, metrics, false);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false);
 
         exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcement, currencyService,
+                responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcementService, currencyService,
                 eventsService, metrics, clock, 0);
     }
 
@@ -201,7 +201,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                        responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcement,
+                        responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcementService,
                         currencyService, eventsService, metrics, clock, -1));
     }
 
@@ -337,6 +337,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .element(0).returns(2, imp -> imp.getExt().get("bidder").asInt());
     }
 
+    //RESOLVED
     @Test
     public void shouldNotChangeRequestIfEnforcedForBidderIsTrueAndGdprServiceRespondThatGdprIsNotEnabled() {
         // given
@@ -364,6 +365,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtUser.builder().build())).build());
     }
 
+    //Included in Tests
     @Test
     public void shouldAskGdprServiceWithNullGdprIfAbsentInRequest() {
         // given
@@ -383,6 +385,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(captor.getValue()).isNull();
     }
 
+    // Resolved
     @Test
     public void shouldNotChangeRequestIfEnforcedForBidderIsFalseAndGdprEqualsToOne() {
         // given
@@ -391,6 +394,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, false));
         given(gdprService.isGdprEnforced(any(), any(), any(), any())).willReturn(Future.succeededFuture(false));
+        // Method is not be called
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(15, false), null)));
 
@@ -431,6 +435,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build());
     }
 
+    //Resolved
     @Test
     public void shouldSupportBidderAliasConversionInGdprLookup() {
         // given
@@ -463,6 +468,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build());
     }
 
+    //Resolved
     @Test
     public void shouldMaskUserAndDevicePropertiesIfGdprIsEnforcedForBidderAndGdprServiceRespondThatGdprIsEnabled() {
         // given
@@ -513,6 +519,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
     }
 
+    //Resolved
     @Test
     public void shouldApplyGdprMaskingRulesForBiddersWithDifferentPbsEnforcesGdprAndGdprServiceResponse() {
         // given
@@ -555,6 +562,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsExactlyInAnyOrder(null, "uid1", "uid2");
     }
 
+    //included into tests
     @Test
     public void shouldPassGdprConsentIfMaskingApplied() {
         // given
@@ -583,6 +591,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(mapper.valueToTree(ExtUser.builder().consent("consent").build()));
     }
 
+    //Included into tests
     @Test
     public void shouldPassGdprConsentIfMaskingIsNotApplied() {
         // given
@@ -611,6 +620,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(mapper.valueToTree(ExtUser.builder().consent("consent").build()));
     }
 
+    //Resolved
     @Test
     public void shouldApplyGdprMaskingIfDeviceLmtIsEnabled() {
         // given
@@ -636,6 +646,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsNull();
     }
 
+    //Resolved
     @Test
     public void shouldNotApplyGdprMaskingIfDeviceLmtIsZero() {
         // given
@@ -661,6 +672,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly("should_not_be_masked");
     }
 
+    //RESOLVED
     @Test
     public void shouldApplyMaskingForUserAndDeviceIfCoppaPassedInRequest() {
         // given
@@ -714,12 +726,14 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(0))));
     }
 
+    //NOT found case with failed Future
     @Test
     public void shouldReturnFailedFutureWithPrebidExceptionAsCauseIfGdprServiceFails() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
+        //TODO Ask where
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("The gdpr param must be either 0 or 1, given: -1"));
 
@@ -735,6 +749,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.cause()).hasMessage("The gdpr param must be either 0 or 1, given: -1");
     }
 
+    //NOT found case with failed Future
     @Test
     public void shouldThrowPrebidExceptionIfExtRegsCannotBeParsed() {
         // given
@@ -2017,7 +2032,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcement, currencyService,
+                responseBidValidator, cacheService, bidResponsePostProcessor, privacyEnforcementService, currencyService,
                 eventsService, metrics, clock, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();

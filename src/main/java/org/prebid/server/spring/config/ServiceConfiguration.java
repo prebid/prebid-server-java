@@ -14,7 +14,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
-import org.prebid.server.auction.PrivacyEnforcement;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -272,7 +272,7 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             EventsService eventsService,
             StoredResponseProcessor storedResponseProcessor,
-            PrivacyEnforcement privacyEnforcement,
+            PrivacyEnforcementService privacyEnforcementService,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
@@ -280,7 +280,7 @@ public class ServiceConfiguration {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
                 cacheService, bidResponsePostProcessor,
-                privacyEnforcement, currencyConversionService, eventsService,
+                privacyEnforcementService, currencyConversionService, eventsService,
                 metrics, clock, expectedCacheTimeMs);
     }
 
@@ -304,12 +304,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PrivacyEnforcement privacyEnforcement(
+    PrivacyEnforcementService privacyEnforcementService(
             GdprService gdprService,
             BidderCatalog bidderCatalog,
             Metrics metrics,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
-        return new PrivacyEnforcement(gdprService, bidderCatalog, metrics, useGeoLocation);
+        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
     }
 
     @Bean
