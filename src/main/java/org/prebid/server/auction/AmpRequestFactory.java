@@ -15,6 +15,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
@@ -50,26 +52,40 @@ public class AmpRequestFactory {
 
     private final TimeoutResolver timeoutResolver;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final UidsCookieService uidsCookieService;
     private final AuctionRequestFactory auctionRequestFactory;
 
     public AmpRequestFactory(TimeoutResolver timeoutResolver, StoredRequestProcessor storedRequestProcessor,
-                             AuctionRequestFactory auctionRequestFactory) {
+                             UidsCookieService uidsCookieService, AuctionRequestFactory auctionRequestFactory) {
 
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
 
     /**
-     * Method determines {@link BidRequest} properties which were not set explicitly by the client, but can be
-     * updated by values derived from headers and other request attributes.
+     * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
-    public Future<BidRequest> fromRequest(RoutingContext context) {
-        final String tagId = context.request().getParam(TAG_ID_REQUEST_PARAM);
+    public Future<AuctionContext> fromRequest(RoutingContext routingContext) {
+        final String tagId = routingContext.request().getParam(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
 
+        return createBidRequest(routingContext, tagId)
+                .map(bidRequest -> AuctionContext.builder()
+                        .routingContext(routingContext)
+                        .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
+                        .bidRequest(bidRequest)
+                        .build());
+    }
+
+    /**
+     * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
+     * updated by values derived from headers and other request attributes.
+     */
+    private Future<BidRequest> createBidRequest(RoutingContext context, String tagId) {
         return storedRequestProcessor.processAmpRequest(tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
@@ -78,6 +94,9 @@ public class AmpRequestFactory {
                 .map(auctionRequestFactory::validateRequest);
     }
 
+    /**
+     * Throws {@link InvalidRequestException} in case invalid {@link BidRequest}.
+     */
     private static BidRequest validateStoredBidRequest(String tagId, BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
         if (CollectionUtils.isEmpty(imps)) {
