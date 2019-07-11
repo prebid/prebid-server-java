@@ -15,6 +15,7 @@ import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
@@ -147,9 +148,11 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(
             TimeoutResolver ampTimeoutResolver,
             StoredRequestProcessor storedRequestProcessor,
+            UidsCookieService uidsCookieService,
             AuctionRequestFactory auctionRequestFactory) {
 
-        return new AmpRequestFactory(ampTimeoutResolver, storedRequestProcessor, auctionRequestFactory);
+        return new AmpRequestFactory(ampTimeoutResolver, storedRequestProcessor, uidsCookieService,
+                auctionRequestFactory);
     }
 
     @Bean
@@ -306,15 +309,16 @@ public class ServiceConfiguration {
             CurrencyConversionService currencyConversionService,
             GdprService gdprService,
             EventsService eventsService,
+            StoredResponseProcessor storedResponseProcessor,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
-        return new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyConversionService, gdprService, eventsService, metrics, clock,
-                useGeoLocation, expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
+                cacheService, bidResponsePostProcessor, currencyConversionService, gdprService, eventsService, metrics,
+                clock, useGeoLocation, expectedCacheTimeMs);
     }
 
     @Bean
@@ -325,6 +329,14 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory) {
 
         return new StoredRequestProcessor(applicationSettings, metrics, timeoutFactory, defaultTimeoutMs);
+    }
+
+    @Bean
+    StoredResponseProcessor storedResponseProcessor(
+            ApplicationSettings applicationSettings,
+            BidderCatalog bidderCatalog) {
+
+        return new StoredResponseProcessor(applicationSettings, bidderCatalog);
     }
 
     @Bean

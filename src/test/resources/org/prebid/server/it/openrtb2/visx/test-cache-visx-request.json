@@ -1,0 +1,19 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "1",
+        "impid": "1",
+        "price": 0.5,
+        "adm": "some-test-ad",
+        "adomain": [
+          "goodadvertiser.com"
+        ],
+        "crid": "11_222222",
+        "w": 300,
+        "h": 250
+      }
+    }
+  ]
+}

@@ -8,9 +8,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -385,6 +387,112 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getErrors()).isEmpty();
         assertThat(future.result().getStoredIdToRequest()).hasSize(2)
+                .containsOnly(
+                        entry("key1", "value1"),
+                        entry("key2", "value2"));
+    }
+
+    @Test
+    public void getStoredResponsesShouldReturnResultFromFirstDelegateIfPresent() {
+        // given
+        given(delegate1.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(singletonMap("key1", "value1"), emptyList())));
+
+        // when
+        final Future<StoredResponseDataResult> future =
+                compositeApplicationSettings.getStoredResponses(singleton("key1"), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isNotNull();
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredSeatBid()).hasSize(1)
+                .containsOnly(entry("key1", "value1"));
+        verifyZeroInteractions(delegate2);
+    }
+
+    @Test
+    public void getStoredResponsesShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
+        // given
+        given(delegate1.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredResponseDataResult.of(emptyMap(), singletonList("error1"))));
+
+        given(delegate2.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(singletonMap("key1", "value1"), emptyList())));
+
+        // when
+        final Future<StoredResponseDataResult> future =
+                compositeApplicationSettings.getStoredResponses(singleton("key1"), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isNotNull();
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredSeatBid()).hasSize(1)
+                .containsOnly(entry("key1", "value1"));
+    }
+
+    @Test
+    public void getStoredResponsesShouldReturnEmptyResultIfAllDelegatesFail() {
+        // given
+        given(delegate1.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(emptyMap(), singletonList("error1"))));
+
+        given(delegate2.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(emptyMap(), singletonList("error2"))));
+
+        // when
+        final Future<StoredResponseDataResult> future =
+                compositeApplicationSettings.getStoredResponses(singleton("key1"), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getStoredSeatBid()).isEmpty();
+        assertThat(future.result().getErrors()).hasSize(1)
+                .containsOnly("error2");
+    }
+
+    @Test
+    public void getStoredResponsesShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
+        // given
+        given(delegate1.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(singletonMap("key1", "value1"), singletonList("error1"))));
+
+        // when
+        compositeApplicationSettings.getStoredResponses(new HashSet<>(asList("key1", "key2")), null);
+
+        // then
+        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> responseCaptor = ArgumentCaptor.forClass(
+                Set.class);
+        verify(delegate2).getStoredResponses(responseCaptor.capture(), any());
+
+        assertThat(responseCaptor.getValue()).hasSize(1).containsOnly("key2");
+    }
+
+    @Test
+    public void getStoredResponsesShouldReturnResultConsequentlyFromAllDelegates() {
+        // given
+        given(delegate1.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(singletonMap("key1", "value1"), singletonList("key2 not found"))));
+
+        given(delegate2.getStoredResponses(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredResponseDataResult.of(singletonMap("key2", "value2"), emptyList())));
+
+        // when
+        final Future<StoredResponseDataResult> future =
+                compositeApplicationSettings.getStoredResponses(new HashSet<>(asList("key1", "key2")), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredSeatBid()).hasSize(2)
                 .containsOnly(
                         entry("key1", "value1"),
                         entry("key2", "value2"));

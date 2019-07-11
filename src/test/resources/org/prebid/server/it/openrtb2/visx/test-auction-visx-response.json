@@ -1,0 +1,185 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "1",
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adomain": [
+            "goodadvertiser.com"
+          ],
+          "crid": "11_222222",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_cache_path_visx": "{{ cache.path }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size_visx": "300x250",
+                "hb_bidder_visx": "visx",
+                "hb_size": "300x250",
+                "hb_bidder": "visx",
+                "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_visx": "0.50",
+                "hb_cache_id_visx": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                "hb_cache_host_visx": "{{ cache.host }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}a5d3a873-d06e-4f2f-8556-120e05d62b28",
+                  "cacheId": "a5d3a873-d06e-4f2f-8556-120e05d62b28"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "visx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"1\",\"impid\":\"1\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adomain\":[\"goodadvertiser.com\"],\"crid\":\"11_222222\",\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"a5d3a873-d06e-4f2f-8556-120e05d62b28\"}]}",
+            "status": 200
+          }
+        ],
+        "visx": [
+          {
+            "uri": "{{ visx.exchange_uri }}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"test-imp-id\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"secure\":1,\"ext\":{\"bidder\":{\"ga_parms\":{\"place_on_page\":\"ATF\"},\"size\":[300,250],\"uid\":7}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"VISX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"price\":0.5,\"adm\":\"some-test-ad\",\"impid\":\"1\",\"auid\":46,\"id\":\"1\",\"h\":250,\"adomain\":[\"goodadvertiser.com\"],\"crid\":\"11_222222\",\"w\":300}],\"seat\":\"51\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "test-imp-id",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "secure": 1,
+            "ext": {
+              "visx": {
+                "ga_parms": {
+                  "place_on_page": "ATF"
+                },
+                "size": [
+                  300,
+                  250
+                ],
+                "uid": 7
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "consent": "consentValue",
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            }
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "cache": "{{ cache.response_time_ms }}",
+      "visx": "{{ visx.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}

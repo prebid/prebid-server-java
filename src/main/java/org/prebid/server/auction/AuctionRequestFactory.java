@@ -19,6 +19,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -97,41 +98,56 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Method determines {@link BidRequest} properties which were not set explicitly by the client, but can be
-     * updated by values derived from headers and other request attributes.
+     * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
-    public Future<BidRequest> fromRequest(RoutingContext context) {
-        final BidRequest bidRequest;
+    public Future<AuctionContext> fromRequest(RoutingContext routingContext) {
+        final BidRequest incomingBidRequest;
         try {
-            bidRequest = parseRequest(context);
+            incomingBidRequest = parseRequest(routingContext);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
 
-        return storedRequestProcessor.processStoredRequests(bidRequest)
-                .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
-                .map(this::validateRequest)
-                .map(interstitialProcessor::process);
+        return updateBidRequest(routingContext, incomingBidRequest)
+                .map(bidRequest -> AuctionContext.builder()
+                        .routingContext(routingContext)
+                        .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
+                        .bidRequest(bidRequest)
+                        .build());
     }
 
     /**
-     * Parses request body to bid request. Throws {@link InvalidRequestException} if body is empty, exceeds max
-     * request size or couldn't be deserialized to {@link BidRequest}.
+     * Parses request body to {@link BidRequest}.
+     * <p>
+     * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
      */
     private BidRequest parseRequest(RoutingContext context) {
         final Buffer body = context.getBody();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
-        } else if (body.length() > maxRequestSize) {
+        }
+
+        if (body.length() > maxRequestSize) {
             throw new InvalidRequestException(
                     String.format("Request size exceeded max size of %d bytes.", maxRequestSize));
-        } else {
-            try {
-                return Json.decodeValue(body, BidRequest.class);
-            } catch (DecodeException e) {
-                throw new InvalidRequestException(e.getMessage());
-            }
         }
+
+        try {
+            return Json.decodeValue(body, BidRequest.class);
+        } catch (DecodeException e) {
+            throw new InvalidRequestException(e.getMessage());
+        }
+    }
+
+    /**
+     * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
+     * updated by values derived from headers and other request attributes.
+     */
+    private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
+        return storedRequestProcessor.processStoredRequests(bidRequest)
+                .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
+                .map(this::validateRequest)
+                .map(interstitialProcessor::process);
     }
 
     /**

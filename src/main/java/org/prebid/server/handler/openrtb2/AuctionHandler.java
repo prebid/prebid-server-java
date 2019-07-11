@@ -16,6 +16,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -24,7 +25,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -61,48 +61,35 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
         // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
         // more accurately if we note the real start time, and use it to compute the auction timeout.
         final long startTime = clock.millis();
 
-        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpUtil.USER_AGENT_HEADER));
+        final boolean isSafari = HttpUtil.isSafari(routingContext.request().headers().get(HttpUtil.USER_AGENT_HEADER));
         metrics.updateSafariRequestsMetric(isSafari);
 
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
+        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
 
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
-                .httpContext(HttpContext.from(context));
+                .httpContext(HttpContext.from(routingContext));
 
-        auctionRequestFactory.fromRequest(context)
-                .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))
-                .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
-                .map(bidRequest -> Tuple2.of(bidRequest, toMetricsContext(bidRequest)))
-                .compose((Tuple2<BidRequest, MetricsContext> result) ->
-                        exchangeService.holdAuction(result.getLeft(), uidsCookie, timeout(result.getLeft(), startTime),
-                                result.getRight(), context)
-                                .map(bidResponse -> Tuple2.of(bidResponse, result.getRight())))
-                .map((Tuple2<BidResponse, MetricsContext> result) ->
-                        addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
-                .setHandler(responseResult -> handleResult(responseResult, auctionEventBuilder, context, startTime));
-    }
+        auctionRequestFactory.fromRequest(routingContext)
+                .map(context -> context.toBuilder()
+                        .timeout(timeout(context.getBidRequest(), startTime))
+                        .requestTypeMetric(requestTypeMetric(context.getBidRequest()))
+                        .build())
 
-    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
-        consumer.accept(field);
-        return result;
-    }
+                .map(context -> addToEvent(context.getBidRequest(), auctionEventBuilder::bidRequest, context))
+                .map(context -> updateAppAndNoCookieAndImpsRequestedMetrics(context, uidsCookie, isSafari))
 
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
-                                                                   boolean isSafari) {
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                isSafari, bidRequest.getImp().size());
-        return bidRequest;
-    }
+                .compose(context -> exchangeService.holdAuction(context)
+                        .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
-    private static MetricsContext toMetricsContext(BidRequest bidRequest) {
-        return MetricsContext.of(bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web);
+                .map(result -> addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
+                .setHandler(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
@@ -110,13 +97,30 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return timeoutFactory.create(startTime, timeout);
     }
 
-    private void handleResult(AsyncResult<Tuple2<BidResponse, MetricsContext>> responseResult,
+    private static MetricName requestTypeMetric(BidRequest bidRequest) {
+        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+    }
+
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
+    }
+
+    private AuctionContext updateAppAndNoCookieAndImpsRequestedMetrics(AuctionContext context, UidsCookie uidsCookie,
+                                                                       boolean isSafari) {
+        final BidRequest bidRequest = context.getBidRequest();
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                isSafari, bidRequest.getImp().size());
+        return context;
+    }
+
+    private void handleResult(AsyncResult<Tuple2<BidResponse, AuctionContext>> responseResult,
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder, RoutingContext context,
                               long startTime) {
         final boolean responseSucceeded = responseResult.succeeded();
 
         final MetricName requestType = responseSucceeded
-                ? responseResult.result().getRight().getRequestType()
+                ? responseResult.result().getRight().getRequestTypeMetric()
                 : MetricName.openrtb2web;
 
         // don't send the response if client has gone

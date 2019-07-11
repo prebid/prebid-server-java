@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
@@ -60,6 +61,14 @@ public class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return getFromCacheOrDelegate(cache, requestIds, impIds, timeout, delegate::getStoredData);
+    }
+
+    /**
+     * Delegates stored response retrieve to original fetcher, as caching is not supported fot stored response.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return delegate.getStoredResponses(responseIds, timeout);
     }
 
     /**

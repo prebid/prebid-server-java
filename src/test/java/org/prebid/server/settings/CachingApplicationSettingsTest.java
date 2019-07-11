@@ -13,6 +13,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -175,5 +176,22 @@ public class CachingApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result())
                 .isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error")));
+    }
+
+    @Test
+    public void getStoredResponseShouldPropagateFailure() {
+        // given
+        given(applicationSettings.getStoredResponses(anySet(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("error")));
+
+        // when
+        final Future<StoredResponseDataResult> future = cachingApplicationSettings
+                .getStoredResponses(singleton("id"), timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("error");
     }
 }

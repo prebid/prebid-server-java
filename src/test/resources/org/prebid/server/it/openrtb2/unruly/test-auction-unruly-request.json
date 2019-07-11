@@ -1,0 +1,108 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId001",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 800,
+        "h": 600
+      },
+      "ext": {
+        "unruly": {
+          "uuid": "uu_id_1",
+          "siteid": "site_id_1"
+        }
+      }
+    },
+    {
+      "id": "impId002",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
+      },
+      "ext": {
+        "unruly": {
+          "uuid": "uu_id_2",
+          "siteid": "site_id_2"
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "site": {
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

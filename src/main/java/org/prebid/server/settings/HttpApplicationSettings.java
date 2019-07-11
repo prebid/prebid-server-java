@@ -13,6 +13,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
+import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -93,6 +94,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return Future.failedFuture(new PreBidException("Not supported"));
     }
 
     /**

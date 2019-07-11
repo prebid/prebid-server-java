@@ -79,6 +79,8 @@ public class AdformBidder implements Bidder<Void> {
         final String url = AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterTagIds(extImpAdforms))
+                        .keyValues(getKeyValues(extImpAdforms))
+                        .keyWords(getKeyWords(extImpAdforms))
                         .priceTypes(getPriceType(extImpAdforms))
                         .endpointUrl(endpointUrl)
                         .tid(getTid(request.getSource()))
@@ -107,6 +109,14 @@ public class AdformBidder implements Bidder<Void> {
                         .payload(null)
                         .build()),
                 errors);
+    }
+
+    private List<String> getKeyValues(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getKeyValues).collect(Collectors.toList());
+    }
+
+    private List<String> getKeyWords(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getKeyWords).collect(Collectors.toList());
     }
 
     /**
