@@ -48,6 +48,7 @@ import java.util.stream.StreamSupport;
 public class StoredResponseProcessor {
 
     private static final String PREBID_EXT = "prebid";
+    private static final String CONTEXT_EXT = "context";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPEREFERENCE = new TypeReference<List<SeatBid>>() {
     };
@@ -189,7 +190,8 @@ public class StoredResponseProcessor {
 
     private boolean hasValidBidder(Map<String, String> aliases, Imp resolvedBiddersImp) {
         return asStream(resolvedBiddersImp.getExt().fieldNames())
-                .anyMatch(bidder -> !Objects.equals(bidder, PREBID_EXT) && isValidBidder(bidder, aliases));
+                .anyMatch(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)
+                        && isValidBidder(bidder, aliases));
     }
 
     private <T> Stream<T> asStream(Iterator<T> iterator) {

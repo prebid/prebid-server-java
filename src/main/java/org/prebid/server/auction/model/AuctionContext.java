@@ -7,6 +7,7 @@ import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.settings.model.Account;
 
 @Builder(toBuilder = true)
 @Value
@@ -19,6 +20,8 @@ public class AuctionContext {
     BidRequest bidRequest;
 
     Timeout timeout;
+
+    Account account;
 
     MetricName requestTypeMetric;
 }

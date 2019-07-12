@@ -130,29 +130,29 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
-            TimeoutResolver auctionTimeoutResolver,
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
-            RequestValidator requestValidator) {
+            RequestValidator requestValidator,
+            TimeoutResolver timeoutResolver,
+            TimeoutFactory timeoutFactory,
+            ApplicationSettings applicationSettings) {
 
-        return new AuctionRequestFactory(auctionTimeoutResolver, maxRequestSize, adServerCurrency,
+        return new AuctionRequestFactory(maxRequestSize, adServerCurrency,
                 storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
-                new InterstitialProcessor());
+                new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
     }
 
     @Bean
     AmpRequestFactory ampRequestFactory(
-            TimeoutResolver ampTimeoutResolver,
             StoredRequestProcessor storedRequestProcessor,
-            UidsCookieService uidsCookieService,
-            AuctionRequestFactory auctionRequestFactory) {
+            AuctionRequestFactory auctionRequestFactory,
+            TimeoutResolver timeoutResolver) {
 
-        return new AmpRequestFactory(ampTimeoutResolver, storedRequestProcessor, uidsCookieService,
-                auctionRequestFactory);
+        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver);
     }
 
     @Bean

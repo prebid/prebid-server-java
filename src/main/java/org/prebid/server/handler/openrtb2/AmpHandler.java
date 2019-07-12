@@ -26,17 +26,13 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -73,32 +69,24 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
-    private final UidsCookieService uidsCookieService;
-    private final Set<String> biddersSupportingCustomTargeting;
-    private final BidderCatalog bidderCatalog;
     private final AnalyticsReporter analyticsReporter;
-    private final AmpResponsePostProcessor ampResponsePostProcessor;
     private final Metrics metrics;
     private final Clock clock;
-    private final TimeoutFactory timeoutFactory;
-    private final TimeoutResolver timeoutResolver;
+    private final BidderCatalog bidderCatalog;
+    private final Set<String> biddersSupportingCustomTargeting;
+    private final AmpResponsePostProcessor ampResponsePostProcessor;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
-                      UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
-                      BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter,
-                      AmpResponsePostProcessor ampResponsePostProcessor, Metrics metrics, Clock clock,
-                      TimeoutFactory timeoutFactory, TimeoutResolver timeoutResolver) {
+                      AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, BidderCatalog bidderCatalog,
+                      Set<String> biddersSupportingCustomTargeting, AmpResponsePostProcessor ampResponsePostProcessor) {
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
-        this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
-        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
+        this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
     }
 
     @Override
@@ -112,19 +100,16 @@ public class AmpHandler implements Handler<RoutingContext> {
         final boolean isSafari = HttpUtil.isSafari(routingContext.request().headers().get(HttpUtil.USER_AGENT_HEADER));
         metrics.updateSafariRequestsMetric(isSafari);
 
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
-
         final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
                 .httpContext(HttpContext.from(routingContext));
 
-        ampRequestFactory.fromRequest(routingContext)
+        ampRequestFactory.fromRequest(routingContext, startTime)
                 .map(context -> context.toBuilder()
-                        .timeout(timeout(context.getBidRequest(), startTime))
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
 
                 .map(context -> addToEvent(context.getBidRequest(), ampEventBuilder::bidRequest, context))
-                .map(context -> updateAppAndNoCookieAndImpsRequestedMetrics(context, uidsCookie, isSafari))
+                .map(context -> updateAppAndNoCookieAndImpsRequestedMetrics(context, isSafari))
 
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
@@ -132,6 +117,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(result -> addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
                 .map(result -> Tuple3.of(result.getLeft(), result.getRight(),
                         toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
+
                 .compose(result -> ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(),
                         result.getLeft(), result.getRight(), routingContext))
 
@@ -139,21 +125,18 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
-    private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
-        return timeoutFactory.create(startTime, timeout);
-    }
-
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
         consumer.accept(field);
         return result;
     }
 
-    private AuctionContext updateAppAndNoCookieAndImpsRequestedMetrics(AuctionContext context, UidsCookie uidsCookie,
-                                                                       boolean isSafari) {
+    private AuctionContext updateAppAndNoCookieAndImpsRequestedMetrics(AuctionContext context, boolean isSafari) {
         final BidRequest bidRequest = context.getBidRequest();
+        final UidsCookie uidsCookie = context.getUidsCookie();
+
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
                 isSafari, bidRequest.getImp().size());
+
         return context;
     }
 

@@ -8,17 +8,17 @@ import org.prebid.server.proto.response.AmpResponse;
 
 /**
  * A hook that is pulled prior sending the AMP RTC response back to the client.
- * It allows companies that host Prebid Server to add custom key values in the AMP RTC response
+ * It allows companies that host Prebid Server to add custom key values in the AMP RTC response.
  */
 public interface AmpResponsePostProcessor {
 
     /**
-     * This method is called prior sending the response back to the client
+     * This method is called prior sending the response back to the client.
      *
      * @param bidRequest  original auction request
      * @param bidResponse auction result
      * @param ampResponse AMP RTC response
-     * @param context request's context
+     * @param context     request's context
      * @return a {@link Future} with (possibly modified) amp response result
      */
     Future<AmpResponse> postProcess(BidRequest bidRequest, BidResponse bidResponse, AmpResponse ampResponse,
