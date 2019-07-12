@@ -28,15 +28,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Service provides masking for User, Device, Regs.
+ */
 public class PrivacyEnforcementService {
 
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
-    private GdprService gdprService;
-    private BidderCatalog bidderCatalog;
-    private Metrics metrics;
-    private boolean useGeoLocation;
+    private final GdprService gdprService;
+    private final BidderCatalog bidderCatalog;
+    private final Metrics metrics;
+    private final boolean useGeoLocation;
 
     public PrivacyEnforcementService(GdprService gdprService, BidderCatalog bidderCatalog, Metrics metrics,
                                      boolean useGeoLocation) {
@@ -54,16 +57,13 @@ public class PrivacyEnforcementService {
                                                        List<String> bidders, Map<String, String> aliases,
                                                        BidRequest bidRequest, String publisherId, Timeout timeout) {
         final Regs regs = bidRequest.getRegs();
-        final Device device = bidRequest.getDevice();
-
         final boolean coppaMasking = isCoppaMaskingRequired(regs);
 
-        final Integer deviceLmt = device != null ? device.getLmt() : null;
-
+        final Device device = bidRequest.getDevice();
         return getVendorsToGdprPermission(device, bidders, aliases, publisherId, extUser, extRegs, timeout)
                 .map(vendorToGdprPermission ->
-                        getBidderToPrivacyEnforcementResult(bidderToUser, regs, extRegs, device, deviceLmt, aliases,
-                                coppaMasking, vendorToGdprPermission));
+                        getBidderToPrivacyEnforcementResult(bidderToUser, regs, extRegs, device, aliases, coppaMasking,
+                                vendorToGdprPermission));
     }
 
     /**
@@ -118,17 +118,15 @@ public class PrivacyEnforcementService {
      * Returns {@link Map}&lt;{@link String}, {@link PrivacyEnforcementResult}&gt;, where bidder name mapped to masked
      * {@link PrivacyEnforcementResult}. Masking depends on GDPR and COPPA
      */
-    private Map<String, PrivacyEnforcementResult> getBidderToPrivacyEnforcementResult(Map<String, User> bidderToUser,
-                                                                                      Regs regs, ExtRegs extRegs,
-                                                                                      Device device, Integer deviceLmt,
-                                                                                      Map<String, String> aliases,
-                                                                                      boolean coppaMasking,
-                                                                                      Map<Integer, Boolean>
-                                                                                              vendorToGdprPermission) {
+    private Map<String, PrivacyEnforcementResult> getBidderToPrivacyEnforcementResult(
+            Map<String, User> bidderToUser, Regs regs, ExtRegs extRegs, Device device, Map<String, String> aliases,
+            boolean coppaMasking, Map<Integer, Boolean> vendorToGdprPermission) {
+        final Integer deviceLmt = device != null ? device.getLmt() : null;
+
         return bidderToUser.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
-                        stringUserEntry -> createPrivacyEnforcementResult(stringUserEntry.getValue(), device, regs,
-                                extRegs, stringUserEntry.getKey(), aliases, deviceLmt, coppaMasking,
+                        bidderUserEntry -> createPrivacyEnforcementResult(bidderUserEntry.getValue(), device, regs,
+                                extRegs, bidderUserEntry.getKey(), aliases, deviceLmt, coppaMasking,
                                 vendorToGdprPermission)));
     }
 

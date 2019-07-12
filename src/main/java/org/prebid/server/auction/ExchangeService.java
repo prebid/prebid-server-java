@@ -357,10 +357,11 @@ public class ExchangeService {
         final List<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
 
         //Avoiding NPE with toMap
-        final Map<String, User> bidderToUser = bidders.stream()
-                .collect(HashMap::new, (map, bidder) -> map.put(bidder, prepareUser(bidRequest.getUser(),
-                        extUser, bidder, aliases, uidsBody, uidsCookie, firstPartyDataBidders.contains(bidder))),
-                        HashMap::putAll);
+        final Map<String, User> bidderToUser = new HashMap<>();
+        for (String bidder : bidders) {
+            bidderToUser.put(bidder, prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
+                    uidsCookie, firstPartyDataBidders.contains(bidder)));
+        }
 
         return privacyEnforcementService
                 .mask(bidderToUser, extUser, extRegs, bidders, aliases, bidRequest, publisherId, timeout)
@@ -515,11 +516,10 @@ public class ExchangeService {
                 // extensions and ext.prebid.data.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(entry -> {
-                    final String bidder = entry.getKey();
                     final PrivacyEnforcementResult privacyEnforcementResult = entry.getValue();
-                    return createBidderRequest(bidder, bidRequest, requestExt, imps, privacyEnforcementResult.getUser(),
-                            privacyEnforcementResult.getDevice(), privacyEnforcementResult.getRegs(),
-                            firstPartyDataBidders);
+                    return createBidderRequest(entry.getKey(), bidRequest, requestExt, imps,
+                            privacyEnforcementResult.getUser(), privacyEnforcementResult.getDevice(),
+                            privacyEnforcementResult.getRegs(), firstPartyDataBidders);
                 })
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);

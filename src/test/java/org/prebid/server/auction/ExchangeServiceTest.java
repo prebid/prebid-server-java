@@ -20,6 +20,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,6 +63,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -158,26 +160,22 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
+    @SuppressWarnings("unchecked")
     @Before
     public void setUp() {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
-        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any(), any()))
-                .willAnswer(inv -> {
-                    final Map<String, User> bidderToUser = inv.getArgument(0);
-                    if (bidderToUser != null) {
-                        final HashMap<String, PrivacyEnforcementResult> collect = bidderToUser.entrySet().stream()
-                                .collect(HashMap::new, (map, bidderToUserEntry) ->
-                                                map.put(bidderToUserEntry.getKey(),
-                                                        PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null, null)),
-                                        HashMap::putAll);
-                        return Future.succeededFuture(collect);
-                    } else {
-                        return Future.failedFuture(new RuntimeException());
-                    }
-                });
+        given(privacyEnforcementService.mask(argThat(MapUtils::isNotEmpty), any(), any(), any(), any(), any(), any(), any()))
+                .willAnswer(inv ->
+                        Future.succeededFuture(((Map<String, User>) inv.getArgument(0)).entrySet().stream()
+                                .collect(HashMap::new, (map, bidderToUserEntry) -> map.put(bidderToUserEntry.getKey(),
+                                        PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null, null)),
+                                        HashMap::putAll)));
+
+        given(privacyEnforcementService.mask(argThat(MapUtils::isEmpty), any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(emptyMap()));
 
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, true));
 
@@ -357,6 +355,27 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Error decoding bidRequest.regs.ext:");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWithNotChangedMessageWhenPrivacyEnforcementServiceRespondMaskWithFailedFuture() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("Error when retrieving allowed purpose ids"));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).hasMessage("Error when retrieving allowed purpose ids");
     }
 
     @Test
