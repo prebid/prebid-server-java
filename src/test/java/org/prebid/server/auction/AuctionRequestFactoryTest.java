@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -58,6 +59,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
@@ -681,7 +683,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAuctionContextWithAccount() {
         // given
-        givenValidBidRequest();
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build());
 
         final Account givenAccount = Account.builder().id("accountId").build();
         given(applicationSettings.getAccountById(any(), any()))
@@ -692,6 +698,38 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(account).isSameAs(givenAccount);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithEmptyAccountIfNotFound() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build());
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("not found")));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        assertThat(account).isEqualTo(Account.builder().id("accountId").build());
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithEmptyAccountIfItIsMissingInRequest() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        assertThat(account).isEqualTo(Account.builder().id("").build());
+        verifyZeroInteractions(applicationSettings);
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, String ua) {

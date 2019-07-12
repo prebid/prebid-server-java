@@ -124,6 +124,25 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Returns filled out {@link AuctionContext} based on given arguments.
+     * <p>
+     * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
+     */
+    Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+                                            long startTime, TimeoutResolver timeoutResolver) {
+        final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
+
+        return accountFrom(bidRequest, timeout)
+                .map(account -> AuctionContext.builder()
+                        .routingContext(routingContext)
+                        .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
+                        .bidRequest(bidRequest)
+                        .timeout(timeout)
+                        .account(account)
+                        .build());
+    }
+
+    /**
      * Parses request body to {@link BidRequest}.
      * <p>
      * Throws {@link InvalidRequestException} if body is empty, exceeds max request size or couldn't be deserialized.
@@ -501,25 +520,6 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns filled out {@link AuctionContext} based on given arguments.
-     * <p>
-     * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
-     */
-    Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
-                                            long startTime, TimeoutResolver timeoutResolver) {
-        final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
-
-        return accountFrom(bidRequest, timeout)
-                .map(account -> AuctionContext.builder()
-                        .routingContext(routingContext)
-                        .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
-                        .bidRequest(bidRequest)
-                        .timeout(timeout)
-                        .account(account)
-                        .build());
-    }
-
-    /**
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
     private Timeout timeout(BidRequest bidRequest, long startTime, TimeoutResolver timeoutResolver) {
@@ -533,7 +533,9 @@ public class AuctionRequestFactory {
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
 
-        return applicationSettings.getAccountById(accountId, timeout)
+        return StringUtils.isEmpty(accountId)
+                ? Future.succeededFuture(emptyAccount(accountId))
+                : applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> accountFallback(exception, accountId));
     }
 
@@ -558,9 +560,16 @@ public class AuctionRequestFactory {
      */
     private static Future<Account> accountFallback(Throwable exception, String accountId) {
         if (exception instanceof PreBidException) {
-            return Future.succeededFuture(Account.builder().id(accountId).build()); // no worry, account not found
+            return Future.succeededFuture(emptyAccount(accountId)); // no worry, account not found
         }
         logger.warn("Error occurred while fetching account", exception);
         return Future.failedFuture(exception);
+    }
+
+    /**
+     * Creates {@link Account} instance with filled out ID field only.
+     */
+    private static Account emptyAccount(String accountId) {
+        return Account.builder().id(accountId).build();
     }
 }
