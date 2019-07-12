@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -25,6 +26,8 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -33,10 +36,15 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -45,16 +53,19 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private TimeoutResolver timeoutResolver;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
@@ -67,20 +78,30 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private RequestValidator requestValidator;
     @Mock
     private InterstitialProcessor interstitialProcessor;
+    @Mock
+    private ApplicationSettings applicationSettings;
 
     private AuctionRequestFactory factory;
-
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private TimeoutResolver timeoutResolver;
+    @Mock
+    private TimeoutFactory timeoutFactory;
 
     @Before
     public void setUp() {
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-
         given(interstitialProcessor.process(any())).will(invocationOnMock -> invocationOnMock.getArgument(0));
 
-        factory = new AuctionRequestFactory(timeoutResolver, Integer.MAX_VALUE, "USD", storedRequestProcessor,
-                paramsExtractor, uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
+        given(timeoutResolver.resolve(any())).willReturn(2000L);
+        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
+
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
+                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
+                timeoutFactory, applicationSettings);
     }
 
     @Test
@@ -89,7 +110,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(null);
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -101,13 +122,14 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(timeoutResolver, 1, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
+        factory = new AuctionRequestFactory(1, "USD", storedRequestProcessor, paramsExtractor,
+                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
+                timeoutFactory, applicationSettings);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -122,7 +144,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -140,7 +162,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite()).isEqualTo(Site.builder()
@@ -160,7 +182,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getImp()).extracting(Imp::getSecure).containsOnly(1);
@@ -173,10 +195,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(0);
+        assertThat(request.getImp()).extracting(Imp::getSecure).containsOnly(0);
     }
 
     @Test
@@ -187,7 +209,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
@@ -200,7 +222,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getImp()).extracting(Imp::getSecure).containsNull();
@@ -225,7 +247,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request).isSameAs(bidRequest);
@@ -237,7 +259,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite())
@@ -253,7 +275,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite()).isEqualTo(
@@ -270,7 +292,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite()).isEqualTo(
@@ -286,7 +308,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite()).isEqualTo(
@@ -304,7 +326,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite()).isEqualTo(
@@ -320,7 +342,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getSite()).isEqualTo(
@@ -336,7 +358,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(uidsCookieService.parseHostCookie(any())).willReturn(null);
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getUser()).isNull();
@@ -356,7 +378,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(uidsCookieService.parseHostCookie(any())).willReturn(null);
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getUser().getExt())
@@ -371,7 +393,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder().at(0).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getAt()).isEqualTo(1);
@@ -383,7 +405,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder().at(null).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getAt()).isEqualTo(1);
@@ -395,7 +417,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder().cur(null).build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getCur()).isEqualTo(singletonList("USD"));
@@ -407,7 +429,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder().build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(request.getTmax()).isEqualTo(2000L);
@@ -424,7 +446,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         // request was wrapped to list because extracting method works different on iterable and not iterable objects,
@@ -450,7 +472,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -471,7 +493,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -496,7 +518,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -520,7 +542,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -557,7 +579,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(bidderCatalog.nameByAlias("configScopedBidderAlias")).willReturn("bidder2");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -582,7 +604,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext).result().getBidRequest();
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -604,7 +626,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
 
         // when
-        final Future<?> future = factory.fromRequest(routingContext);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -613,19 +635,19 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetRoutingContext() {
+    public void shouldReturnAuctionContextWithRoutingContext() {
         // given
         givenValidBidRequest();
 
         // when
-        final RoutingContext context = factory.fromRequest(routingContext).result().getRoutingContext();
+        final RoutingContext context = factory.fromRequest(routingContext, 0L).result().getRoutingContext();
 
         // then
-        assertThat(context).isSameAs(context);
+        assertThat(context).isSameAs(routingContext);
     }
 
     @Test
-    public void shouldSetUidsCookie() {
+    public void shouldReturnAuctionContextWithUidsCookie() {
         // given
         givenValidBidRequest();
 
@@ -635,10 +657,79 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(givenUidsCookie);
 
         // when
-        final UidsCookie uidsCookie = factory.fromRequest(routingContext).result().getUidsCookie();
+        final UidsCookie uidsCookie = factory.fromRequest(routingContext, 0L).result().getUidsCookie();
 
         // then
         assertThat(uidsCookie).isSameAs(givenUidsCookie);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithTimeout() {
+        // given
+        givenValidBidRequest();
+
+        given(timeoutFactory.create(anyLong(), anyLong())).willReturn(mock(Timeout.class));
+
+        final long startTime = Clock.fixed(Instant.now(), ZoneId.systemDefault()).millis();
+
+        // when
+        final Timeout timeout = factory.fromRequest(routingContext, startTime).result().getTimeout();
+
+        // then
+        verify(timeoutFactory).create(eq(startTime), anyLong());
+        assertThat(timeout).isNotNull();
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithAccount() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build());
+
+        final Account givenAccount = Account.builder().id("accountId").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        assertThat(account).isSameAs(givenAccount);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithEmptyAccountIfNotFound() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build());
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("not found")));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        assertThat(account).isEqualTo(Account.builder().id("accountId").build());
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithEmptyAccountIfItIsMissingInRequest() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        assertThat(account).isEqualTo(Account.builder().id("").build());
+        verifyZeroInteractions(applicationSettings);
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, String ua) {
