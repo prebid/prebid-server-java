@@ -37,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,10 +71,17 @@ public class BidResponseCreator {
      * including processing of winning bids with cache IDs.
      */
     BidResponse createBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                               ExtRequestTargeting targeting,
-                                               Set<Bid> winningBids, Set<Bid> winningBidsByBidder,
-                                               CacheServiceResult cacheResult, BidRequestCacheInfo cacheInfo,
-                                               Map<Bid, Events> eventsByBids, boolean debugEnabled) {
+                                               ExtRequestTargeting targeting, CacheServiceResult cacheResult,
+                                               BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids,
+                                               boolean debugEnabled) {
+        final Set<Bid> winningBids = newOrEmptySet(targeting);
+        final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
+
+        // determine winning bids only if targeting is present
+        if (targeting != null) {
+            populateWinningBids(bidderResponses, winningBids, winningBidsByBidder);
+        }
+
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest.getApp() != null,
@@ -89,6 +97,80 @@ public class BidResponseCreator {
                 .seatbid(seatBids)
                 .ext(Json.mapper.valueToTree(bidResponseExt))
                 .build();
+    }
+
+    /**
+     * Returns new {@link HashSet} in case of existing keywordsCreator or empty collection if null.
+     */
+    private static Set<Bid> newOrEmptySet(ExtRequestTargeting targeting) {
+        return targeting != null ? new HashSet<>() : Collections.emptySet();
+    }
+
+    /**
+     * Populates 2 input sets:
+     * <p>
+     * - winning bids for each impId (ad unit code) through all bidder responses.
+     * <br>
+     * - winning bids for each impId but for separate bidder.
+     * <p>
+     * Winning bid is the one with the highest price.
+     */
+    private static void populateWinningBids(List<BidderResponse> bidderResponses, Set<Bid> winningBids,
+                                            Set<Bid> winningBidsByBidder) {
+        final Map<String, Bid> winningBidsMap = new HashMap<>(); // impId -> Bid
+        final Map<String, Map<String, Bid>> winningBidsByBidderMap = new HashMap<>(); // impId -> [bidder -> Bid]
+
+        for (BidderResponse bidderResponse : bidderResponses) {
+            final String bidder = bidderResponse.getBidder();
+
+            for (BidderBid bidderBid : bidderResponse.getSeatBid().getBids()) {
+                final Bid bid = bidderBid.getBid();
+
+                tryAddWinningBid(bid, winningBidsMap);
+                tryAddWinningBidByBidder(bid, bidder, winningBidsByBidderMap);
+            }
+        }
+
+        winningBids.addAll(winningBidsMap.values());
+
+        final List<Bid> bidsByBidder = winningBidsByBidderMap.values().stream()
+                .flatMap(bidsByBidderMap -> bidsByBidderMap.values().stream())
+                .collect(Collectors.toList());
+        winningBidsByBidder.addAll(bidsByBidder);
+    }
+
+
+    /**
+     * Tries to add a winning bid for each impId.
+     */
+    private static void tryAddWinningBid(Bid bid, Map<String, Bid> winningBids) {
+        final String impId = bid.getImpid();
+
+        if (!winningBids.containsKey(impId) || bid.getPrice().compareTo(winningBids.get(impId).getPrice()) > 0) {
+            winningBids.put(impId, bid);
+        }
+    }
+
+    /**
+     * Tries to add a winning bid for each impId for separate bidder.
+     */
+    private static void tryAddWinningBidByBidder(Bid bid, String bidder,
+                                                 Map<String, Map<String, Bid>> winningBidsByBidder) {
+        final String impId = bid.getImpid();
+
+        if (!winningBidsByBidder.containsKey(impId)) {
+            final Map<String, Bid> bidsByBidder = new HashMap<>();
+            bidsByBidder.put(bidder, bid);
+
+            winningBidsByBidder.put(impId, bidsByBidder);
+        } else {
+            final Map<String, Bid> bidsByBidder = winningBidsByBidder.get(impId);
+
+            if (!bidsByBidder.containsKey(bidder)
+                    || bid.getPrice().compareTo(bidsByBidder.get(bidder).getPrice()) > 0) {
+                bidsByBidder.put(bidder, bid);
+            }
+        }
     }
 
     /**
@@ -229,7 +311,7 @@ public class BidResponseCreator {
      * Creates {@link CacheAsset} for the given cache ID.
      */
     private static CacheAsset toCacheAsset(String assetUrl, String cacheId) {
-        return CacheAsset.of(assetUrl.replaceFirst("%PBS_CACHE_UUID%", cacheId), cacheId);
+        return CacheAsset.of(assetUrl.concat(cacheId), cacheId);
     }
 
     /**

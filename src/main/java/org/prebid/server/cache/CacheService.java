@@ -389,7 +389,7 @@ public class CacheService {
      */
     private BidCacheResult createBidCacheResult(CacheObject cacheObject) {
         final String uuid = cacheObject.getUuid();
-        return BidCacheResult.of(uuid, cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid));
+        return BidCacheResult.of(uuid, cachedAssetUrlTemplate.concat(uuid));
     }
 
     /**

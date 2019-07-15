@@ -94,7 +94,6 @@ import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
@@ -105,7 +104,6 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -160,12 +158,10 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
-
     @Before
     public void setUp() {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), anySet(), anySet(), any(),
-                any(), anyMap(), anyBoolean())).willReturn(givenBidResponseWithBids(
-                        singletonList(givenBid(identity())), null));
+        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+                anyBoolean())).willReturn(givenBidResponseWithBids(singletonList(givenBid(identity())), null));
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
@@ -813,9 +809,9 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder")).build()))));
 
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), anySet(), anySet(), any(),
-                any(), anyMap(), anyBoolean())).willReturn(
-                BidResponse.builder()
+        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+                anyBoolean()))
+                .willReturn(BidResponse.builder()
                         .seatbid(asList(
                                 givenSeatBid(singletonList(givenBid(identity())), identity()),
                                 givenSeatBid(singletonList(givenBid(identity())), identity())))
@@ -903,7 +899,7 @@ public class ExchangeServiceTest extends VertxTest {
                 captor.capture(),
                 eq(bidRequest),
                 eq(givenTargeting()),
-                anySet(), anySet(), any(), any(), anyMap(), eq(false));
+                any(), any(), anyMap(), eq(false));
 
         assertThat(captor.getValue()).containsOnly(
                 BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
@@ -932,8 +928,8 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), any(), anySet(), anySet(), any(),
-                any(), anyMap(), eq(true));
+        verify(bidResponseCreator)
+                .createBidResponseWithCacheInfo(anyList(), eq(bidRequest), any(), any(), any(), anyMap(), eq(true));
     }
 
     @Test
@@ -958,8 +954,8 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), any(), anySet(), anySet(), any(),
-                any(), anyMap(), eq(true));
+        verify(bidResponseCreator)
+                .createBidResponseWithCacheInfo(anyList(), eq(bidRequest), any(), any(), any(), anyMap(), eq(true));
     }
 
     @Test
@@ -1699,8 +1695,8 @@ public class ExchangeServiceTest extends VertxTest {
         final Map<Bid, Events> expectedEventsByBids = singletonMap(bid,
                 events);
 
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), isNull(), eq(emptySet()),
-                eq(emptySet()), any(), any(), eq(expectedEventsByBids), eq(false));
+        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), isNull(), any(), any(),
+                eq(expectedEventsByBids), eq(false));
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
@@ -1737,8 +1733,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(eventsService).isEventsEnabled(eq("1001"), any());
 
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), isNull(), eq(emptySet()),
-                eq(emptySet()), any(), any(), eq(singletonMap(bid, events)), eq(false));
+        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), isNull(), any(), any(),
+                eq(singletonMap(bid, events)), eq(false));
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
@@ -2039,18 +2035,18 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private void givenBidResponseCreator(List<Bid> bids) {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), anySet(), anySet(), any(),
-                any(), anyMap(), anyBoolean())).willReturn(givenBidResponseWithBids(bids, null));
+        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+                anyBoolean())).willReturn(givenBidResponseWithBids(bids, null));
     }
 
     private void givenBidResponseCreator(List<Bid> bids, ExtBidResponse extBidResponse) {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), anySet(), anySet(), any(),
-                any(), anyMap(), anyBoolean())).willReturn(givenBidResponseWithBids(bids, extBidResponse));
+        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+                anyBoolean())).willReturn(givenBidResponseWithBids(bids, extBidResponse));
     }
 
     private void givenBidResponseCreator(Map<String, List<ExtBidderError>> errors) {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), anySet(), anySet(), any(),
-                any(), anyMap(), anyBoolean())).willReturn(givenBidResponseWithError(errors));
+        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+                anyBoolean())).willReturn(givenBidResponseWithError(errors));
     }
 
     private static BidResponse givenBidResponseWithBids(List<Bid> bids, ExtBidResponse extBidResponse) {
