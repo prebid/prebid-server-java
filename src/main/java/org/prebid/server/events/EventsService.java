@@ -34,3 +34,4 @@ public class EventsService {
         return BooleanUtils.toBoolean(account.getEventsEnabled());
     }
 }
+
