@@ -65,7 +65,6 @@ public class ServiceConfiguration {
 
     @Bean
     CacheService cacheService(
-            ApplicationSettings applicationSettings,
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.path}") String path,
@@ -76,7 +75,6 @@ public class ServiceConfiguration {
             Clock clock) {
 
         return new CacheService(
-                applicationSettings,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),

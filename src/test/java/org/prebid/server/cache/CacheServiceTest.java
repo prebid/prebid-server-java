@@ -32,7 +32,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -69,8 +68,6 @@ public class CacheServiceTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private ApplicationSettings applicationSettings;
-    @Mock
     private HttpClient httpClient;
 
     private final CacheTtl mediaTypeCacheTtl = CacheTtl.of(null, null);
@@ -80,17 +77,29 @@ public class CacheServiceTest extends VertxTest {
     private CacheService cacheService;
 
     private Timeout timeout;
+
     private Timeout expiredTimeout;
 
+    private Account account;
+
     @Before
-    public void setUp() throws MalformedURLException {
+    public void setUp() throws MalformedURLException, JsonProcessingException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        cacheService = new CacheService(applicationSettings, mediaTypeCacheTtl, httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+
+        cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
+
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
+
+        account = Account.builder().build();
+
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(200, null, mapper.writeValueAsString(
+                        BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))))));
     }
 
     @Test
@@ -149,9 +158,6 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedTimeout() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-
         // when
         cacheService.cacheBids(singleBidList(), timeout);
 
@@ -228,9 +234,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() throws MalformedURLException {
         // given
-        givenHttpClientReturnsResponse(200, null);
-
-        cacheService = new CacheService(applicationSettings, mediaTypeCacheTtl, httpClient,
+        cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
                 "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%", clock);
 
@@ -244,8 +248,6 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedBody() throws Exception {
         // given
-        givenHttpClientReturnsResponse(200, null);
-
         final String adm3 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
                 + "f3919239&pp=${AUCTION_PRICE}&\"></script>";
         final String adm4 = "<img src=\"https://tpp.hpppf.com/simgad/11261207092432736464\" border=\"0\" "
@@ -271,12 +273,8 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsShouldReturnExpectedResult() throws JsonProcessingException {
-        // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
-
-        // when
+    public void cacheBidsShouldReturnExpectedResult() {
+        // given and when
         final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
@@ -287,9 +285,6 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsVideoOnlyShouldPerformHttpRequestWithExpectedBody() throws IOException {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-
         // when
         cacheService.cacheBidsVideoOnly(asList(
                 givenBid(builder -> builder.mediaType(MediaType.banner).adm("adm1")),
@@ -303,12 +298,8 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsVideoOnlyShouldReturnExpectedResult() throws JsonProcessingException {
-        // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
-
-        // when
+    public void cacheBidsVideoOnlyShouldReturnExpectedResult() {
+        // given and when
         final Future<List<BidCacheResult>> future = cacheService.cacheBidsVideoOnly(
                 singletonList(givenBid(builder -> builder.mediaType(MediaType.video))), timeout);
 
@@ -329,12 +320,9 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedTimeout() {
-        // given
-        givenHttpClientReturnsResponse(200, null);
-
         // when
         cacheService.cacheBidsOpenrtb(singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         verify(httpClient).post(anyString(), any(), any(), eq(500L));
@@ -345,7 +333,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), null, expiredTimeout);
+                CacheContext.of(true, null, false, null), account, expiredTimeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -359,11 +347,12 @@ public class CacheServiceTest extends VertxTest {
         // given
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
-        // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
+
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -378,11 +367,12 @@ public class CacheServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(503, "response");
 
-        // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
+
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -398,11 +388,12 @@ public class CacheServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, "response");
 
-        // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
+
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -418,11 +409,12 @@ public class CacheServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, "{}");
 
-        // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
+
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -435,16 +427,14 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldReturnExpectedDebugInfo() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldReturnExpectedDebugInfo() {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
 
         // when
-        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -454,16 +444,14 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldReturnExpectedCacheBids() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldReturnExpectedCacheBids() {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
 
         // when
-        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final CacheServiceResult result = future.result();
@@ -473,14 +461,16 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedBody() throws IOException {
-        // when
+        // given
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId2").adm("adm2"));
         final Imp imp1 = givenImp(identity());
         final Imp imp2 = givenImp(builder -> builder.id("impId2").video(Video.builder().build()));
+
+        // when
         cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), asList(imp1, imp2),
-                CacheContext.of(true, null, true, null), null, timeout);
+                CacheContext.of(true, null, true, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -497,7 +487,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(builder -> builder.impid("impId1").exp(10))),
                 singletonList(givenImp(buider -> buider.id("impId1").exp(20))),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -511,7 +501,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(buider -> buider.exp(10))),
-                CacheContext.of(true, 20, false, null), null, timeout);
+                CacheContext.of(true, 20, false, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -525,10 +515,9 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, 10, false, null), null, timeout);
+                CacheContext.of(true, 10, false, null), account, timeout);
 
         // then
-        verifyZeroInteractions(applicationSettings);
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getExpiry)
@@ -538,16 +527,14 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
-        cacheService = new CacheService(applicationSettings, CacheTtl.of(20, null), httpClient,
+        cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
                 new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
-
-        given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().bannerCacheTtl(10).build()));
 
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), "publisher", timeout);
+                CacheContext.of(true, null, false, null),
+                Account.builder().bannerCacheTtl(10).build(), timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -559,13 +546,13 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
-        cacheService = new CacheService(applicationSettings, CacheTtl.of(10, null), httpClient,
+        cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
                 new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -575,38 +562,15 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenSettingsReturnsEmptyResult()
-            throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
-        cacheService = new CacheService(applicationSettings, CacheTtl.of(10, null), httpClient,
+        cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
                 new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
-        given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("Not Found")));
 
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), "accountId", timeout);
-
-        // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getExpiry)
-                .containsOnly(10);
-    }
-
-    @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenSettingsFailed() throws IOException {
-        // given
-        cacheService = new CacheService(applicationSettings, CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
-        given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.failedFuture(new RuntimeException("exception")));
-
-        // when
-        cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), "accountId", timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -620,7 +584,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.of(true, null, false, null), null, timeout);
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -630,17 +594,14 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldReturnExpectedResultForBids() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldReturnExpectedResultForBids() {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(identity());
 
         // when
-        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(identity());
-        final Imp imp = givenImp(identity());
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(bid), singletonList(imp),
-                CacheContext.of(true, null, false, null), null, timeout);
+                singletonList(bid), singletonList(givenImp(identity())),
+                CacheContext.of(true, null, false, null), account, timeout);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
@@ -648,17 +609,15 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldReturnExpectedResultForVideoBids() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldReturnExpectedResultForVideoBids() {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
-
-        // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final Imp imp = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(imp),
-                CacheContext.of(false, null, true, null), null, timeout);
+                CacheContext.of(false, null, true, null), account, timeout);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
@@ -672,15 +631,15 @@ public class CacheServiceTest extends VertxTest {
                 BidCacheResponse.of(asList(CacheObject.of("uuid1"), CacheObject.of("uuid2"),
                         CacheObject.of("videoUuid1"), CacheObject.of("videoUuid2")))));
 
-        // when
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId2"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         final Imp imp2 = givenImp(builder -> builder.id("impId2").video(Video.builder().build()));
 
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), asList(imp1, imp2),
-                CacheContext.of(true, null, true, null), null, timeout);
+                CacheContext.of(true, null, true, null), account, timeout);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(2)
@@ -690,19 +649,17 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldNotCacheVideoBidWithMissingImpId() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldNotCacheVideoBidWithMissingImpId() {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
-                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
-
-        // when
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId2"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         final Imp imp2 = givenImp(builder -> builder.id(null).video(Video.builder().build()));
+
+        // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), asList(imp1, imp2),
-                CacheContext.of(false, null, true, null), null, timeout);
+                CacheContext.of(false, null, true, null), account, timeout);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
@@ -710,17 +667,16 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldWrapEmtpyAdMFieldUsingNurlFieldValue() throws IOException {
+    public void cacheBidsOpenrtbShouldWrapEmptyAdMFieldUsingNurlFieldValue() throws IOException {
         // given
-        givenHttpClientReturnsResponse(200, null);
-
-        // when
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1").adm("adm1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId1").nurl("adm2"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+
+        // when
         cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), singletonList(imp1),
-                CacheContext.of(true, null, true, null), null, timeout);
+                CacheContext.of(true, null, true, null), account, timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();

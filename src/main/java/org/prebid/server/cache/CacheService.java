@@ -2,7 +2,6 @@ package org.prebid.server.cache;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -10,7 +9,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpCall;
@@ -29,7 +27,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -58,16 +55,14 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private final ApplicationSettings applicationSettings;
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
     private final Clock clock;
 
-    public CacheService(ApplicationSettings applicationSettings, CacheTtl mediaTypeCacheTtl, HttpClient httpClient,
-                        URL endpointUrl, String cachedAssetUrlTemplate, Clock clock) {
-        this.applicationSettings = Objects.requireNonNull(applicationSettings);
+    public CacheService(CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
+                        String cachedAssetUrlTemplate, Clock clock) {
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
@@ -143,9 +138,8 @@ public class CacheService {
     /**
      * Makes cache for OpenRTB {@link com.iab.openrtb.response.Bid}s.
      */
-    public Future<CacheServiceResult> cacheBidsOpenrtb(
-            List<com.iab.openrtb.response.Bid> bids, List<Imp> imps, CacheContext cacheContext, String publisherId,
-            Timeout timeout) {
+    public Future<CacheServiceResult> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, List<Imp> imps,
+                                                       CacheContext cacheContext, Account account, Timeout timeout) {
         final Future<CacheServiceResult> result;
 
         if (CollectionUtils.isEmpty(bids)) {
@@ -162,13 +156,12 @@ public class CacheService {
                 }
             }
 
-            result = CompositeFuture.all(
+            result = doCacheOpenrtb(
                     getCacheBids(cacheContext.isShouldCacheBids(), bids, impIdToTtl, impWithNoExpExists,
-                            cacheContext.getCacheBidsTtl(), publisherId, timeout),
+                            cacheContext.getCacheBidsTtl(), account),
                     getVideoCacheBids(cacheContext.isShouldCacheVideoBids(), bids, impIdToTtl, videoImpIds,
-                            impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), publisherId, timeout))
-                    .compose(composite -> doCacheOpenrtb(composite.<List<CacheBid>>list().get(0),
-                            composite.<List<CacheBid>>list().get(1), timeout));
+                            impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account),
+                    timeout);
         }
 
         return result;
@@ -177,72 +170,43 @@ public class CacheService {
     /**
      * Creates list of {@link CacheBid}s from the list of {@link com.iab.openrtb.response.Bid}s.
      */
-    private Future<List<CacheBid>> getCacheBids(
+    private List<CacheBid> getCacheBids(
             boolean shouldCacheBids, List<com.iab.openrtb.response.Bid> bids, Map<String, Integer> impIdToTtl,
-            boolean impWithNoExpExists, Integer cacheBidsTtl, String publisherId, Timeout timeout) {
+            boolean impWithNoExpExists, Integer cacheBidsTtl, Account account) {
 
         return shouldCacheBids
-                ? accountCacheTtlFrom(impWithNoExpExists, publisherId, timeout)
-                .map(accountCacheTtl -> bids.stream()
-                        .map(bid -> toCacheBid(bid, impIdToTtl, cacheBidsTtl, accountCacheTtl, false))
-                        .collect(Collectors.toList()))
-                : Future.succeededFuture(Collections.emptyList());
+                ? bids.stream()
+                .map(bid -> toCacheBid(bid, impIdToTtl, cacheBidsTtl,
+                        accountCacheTtlFrom(impWithNoExpExists, account), false))
+                .collect(Collectors.toList())
+                : Collections.emptyList();
     }
 
     /**
      * Creates list of video {@link CacheBid}s from the list of {@link com.iab.openrtb.response.Bid}s.
      */
-    private Future<List<CacheBid>> getVideoCacheBids(
+    private List<CacheBid> getVideoCacheBids(
             boolean shouldCacheVideoBids, List<com.iab.openrtb.response.Bid> bids, Map<String, Integer> impIdToTtl,
-            List<String> videoImpIds, boolean impWithNoExpExists, Integer cacheVideoBidsTtl, String publisherId,
-            Timeout timeout) {
+            List<String> videoImpIds, boolean impWithNoExpExists, Integer cacheVideoBidsTtl, Account account) {
 
         return shouldCacheVideoBids
-                ? accountCacheTtlFrom(impWithNoExpExists, publisherId, timeout)
-                .map(accountCacheTtl -> bids.stream()
-                        .filter(bid -> videoImpIds.contains(bid.getImpid())) // bid is video
-                        .map(bid -> toCacheBid(bid, impIdToTtl, cacheVideoBidsTtl, accountCacheTtl, true))
-                        .collect(Collectors.toList()))
-                : Future.succeededFuture(Collections.emptyList());
+                ? bids.stream()
+                .filter(bid -> videoImpIds.contains(bid.getImpid())) // bid is video
+                .map(bid -> toCacheBid(bid, impIdToTtl, cacheVideoBidsTtl,
+                        accountCacheTtlFrom(impWithNoExpExists, account), true))
+                .collect(Collectors.toList())
+                : Collections.emptyList();
     }
 
     /**
-     * Fetches {@link CacheTtl} for the given account.
+     * Fetches {@link CacheTtl} from {@link Account}.
      * <p>
      * This data is not critical, so returns empty {@link CacheTtl} if any error occurred.
      */
-    private Future<CacheTtl> accountCacheTtlFrom(boolean impWithNoExpExists, String publisherId, Timeout timeout) {
-        return impWithNoExpExists && StringUtils.isNotEmpty(publisherId)
-                ? makeCacheTtl(publisherId, timeout)
-                : Future.succeededFuture(CacheTtl.empty());
-    }
-
-    /**
-     * Makes {@link CacheTtl} from {@link Account} fetched by {@link ApplicationSettings}.
-     */
-    private Future<CacheTtl> makeCacheTtl(String publisherId, Timeout timeout) {
-        return applicationSettings.getAccountById(publisherId, timeout)
-                .map(CacheService::cacheTtlFrom)
-                .otherwise(CacheService::accountFallback);
-    }
-
-    /**
-     * Verifies if configs for {@link CacheTtl} are present in {@link Account}.
-     */
-    private static CacheTtl cacheTtlFrom(Account account) {
-        return account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null
+    private CacheTtl accountCacheTtlFrom(boolean impWithNoExpExists, Account account) {
+        return impWithNoExpExists && (account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null)
                 ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
                 : CacheTtl.empty();
-    }
-
-    /**
-     * Returns empty {@link CacheTtl} if account is not found or any exception occurred.
-     */
-    private static CacheTtl accountFallback(Throwable exception) {
-        if (!(exception instanceof PreBidException)) {
-            logger.warn("Error occurred while fetching account", exception);
-        }
-        return CacheTtl.empty();
     }
 
     /**

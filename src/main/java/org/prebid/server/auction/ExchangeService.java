@@ -25,9 +25,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
@@ -74,6 +74,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -159,6 +160,7 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
         final MetricName requestTypeMetric = context.getRequestTypeMetric();
+        final Account account = context.getAccount();
 
         final ExtBidRequest requestExt;
         try {
@@ -201,9 +203,8 @@ public class ExchangeService {
                 .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
                         .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
                 .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
-                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator,
-                                keywordsCreatorByBidType, cacheInfo, publisherId, timeout,
-                                result.getRight(), debugEnabled))
+                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorByBidType,
+                                cacheInfo, account, timeout, result.getRight(), debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest,
                                 bidResponse));
@@ -1162,14 +1163,14 @@ public class ExchangeService {
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator,
                                               Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType,
-                                              BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout,
+                                              BidRequestCacheInfo cacheInfo, Account account, Timeout timeout,
                                               boolean eventsEnabled, boolean debugEnabled) {
         final Set<Bid> bids = newOrEmptyOrderedSet(keywordsCreator);
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
 
-        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
+        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, account, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                         keywordsCreatorByBidType, cacheResult, winningBids, winningBidsByBidder, cacheInfo,
                         eventsEnabled, debugEnabled));
@@ -1264,7 +1265,7 @@ public class ExchangeService {
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
     private Future<CacheServiceResult> toBidsWithCacheIds(Set<Bid> bids, List<Imp> imps, BidRequestCacheInfo cacheInfo,
-                                                          String publisherId, Timeout timeout) {
+                                                          Account account, Timeout timeout) {
         final Future<CacheServiceResult> result;
 
         if (!cacheInfo.doCaching) {
@@ -1278,7 +1279,7 @@ public class ExchangeService {
             final CacheContext cacheContext = CacheContext.of(cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl,
                     cacheInfo.shouldCacheVideoBids, cacheInfo.cacheVideoBidsTtl);
 
-            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, publisherId, timeout)
+            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, timeout)
                     .map(cacheResult -> addNotCachedBids(cacheResult, bids));
         }
 

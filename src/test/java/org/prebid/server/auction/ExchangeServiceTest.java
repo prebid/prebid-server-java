@@ -114,6 +114,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
@@ -2064,7 +2065,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
                 eq(CacheContext.of(true, null, false, null)),
-                eq(""), eq(timeout));
+                isNull(), eq(timeout));
     }
 
     @Test
@@ -2086,7 +2087,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(argThat(bids -> bids.contains(bid1)), eq(singletonList(imp1)),
-                eq(CacheContext.of(true, null, false, null)), eq(""), eq(timeout));
+                eq(CacheContext.of(true, null, false, null)), isNull(), eq(timeout));
     }
 
     @Test
