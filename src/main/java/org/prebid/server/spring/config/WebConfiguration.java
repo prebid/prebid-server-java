@@ -20,7 +20,6 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
-import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
@@ -223,34 +222,27 @@ public class WebConfiguration {
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
-            UidsCookieService uidsCookieService,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
-            Clock clock,
-            TimeoutFactory timeoutFactory,
-            TimeoutResolver auctionTimeoutResolver) {
+            Clock clock) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(exchangeService, auctionRequestFactory,
-                uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory, auctionTimeoutResolver);
+        return new org.prebid.server.handler.openrtb2.AuctionHandler(auctionRequestFactory, exchangeService,
+                analyticsReporter, metrics, clock);
     }
 
     @Bean
     AmpHandler openrtbAmpHandler(
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
-            UidsCookieService uidsCookieService,
-            AmpProperties ampProperties,
-            BidderCatalog bidderCatalog,
             CompositeAnalyticsReporter analyticsReporter,
-            AmpResponsePostProcessor ampResponsePostProcessor,
             Metrics metrics,
             Clock clock,
-            TimeoutFactory timeoutFactory,
-            TimeoutResolver ampTimeoutResolver) {
+            BidderCatalog bidderCatalog,
+            AmpProperties ampProperties,
+            AmpResponsePostProcessor ampResponsePostProcessor) {
 
-        return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService,
-                ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
-                metrics, clock, timeoutFactory, ampTimeoutResolver);
+        return new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock, bidderCatalog,
+                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor);
     }
 
     @Bean
