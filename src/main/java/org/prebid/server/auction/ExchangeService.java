@@ -74,6 +74,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -159,6 +160,7 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
         final MetricName requestTypeMetric = context.getRequestTypeMetric();
+        final Account account = context.getAccount();
 
         final ExtBidRequest requestExt;
         try {
@@ -198,8 +200,7 @@ public class ExchangeService {
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
                         storedResponse, bidRequest.getImp()))
-                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
-                        .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
+                .map(bidderResponses -> Tuple2.of(bidderResponses, eventsService.isEventsEnabled(account)))
                 .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
                         toBidResponse(result.getLeft(), bidRequest, keywordsCreator,
                                 keywordsCreatorByBidType, cacheInfo, publisherId, timeout,

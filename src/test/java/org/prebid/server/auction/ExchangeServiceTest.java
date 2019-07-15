@@ -180,7 +180,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
 
-        given(eventsService.isEventsEnabled(any(), any())).willReturn(Future.succeededFuture(false));
+        given(eventsService.isEventsEnabled(any())).willReturn(false);
         given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList())));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any())).willAnswer(inv -> inv.getArgument(0));
@@ -2262,7 +2262,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
-        given(eventsService.isEventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
+        given(eventsService.isEventsEnabled(any())).willReturn(true);
         given(eventsService.createEvent(anyString(), anyString()))
                 .willReturn(Events.of(
                         "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
@@ -2301,7 +2301,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
-        given(eventsService.isEventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
+        given(eventsService.isEventsEnabled(any())).willReturn(true);
         given(eventsService.createEvent(anyString(), anyString()))
                 .willReturn(Events.of(
                         "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",

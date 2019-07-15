@@ -286,8 +286,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    EventsService eventsService(ApplicationSettings applicationSettings, @Value("${external-url}") String externalUrl) {
-        return new EventsService(applicationSettings, externalUrl);
+    EventsService eventsService(@Value("${external-url}") String externalUrl) {
+        return new EventsService(externalUrl);
     }
 
     @Bean
