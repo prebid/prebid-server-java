@@ -167,14 +167,14 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
-        given(privacyEnforcementService.mask(argThat(MapUtils::isNotEmpty), any(), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(argThat(MapUtils::isNotEmpty), any(), any(), any(), any(), any(), any()))
                 .willAnswer(inv ->
                         Future.succeededFuture(((Map<String, User>) inv.getArgument(0)).entrySet().stream()
                                 .collect(HashMap::new, (map, bidderToUserEntry) -> map.put(bidderToUserEntry.getKey(),
                                         PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null, null)),
                                         HashMap::putAll)));
 
-        given(privacyEnforcementService.mask(argThat(MapUtils::isEmpty), any(), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(argThat(MapUtils::isEmpty), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyMap()));
 
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, true));
@@ -339,31 +339,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldThrowPrebidExceptionIfExtRegsCannotBeParsed() {
-        // given
-        final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("someBidder", bidder, givenEmptySeatBid());
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))));
-
-        // when
-        final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).isInstanceOf(PreBidException.class)
-                .hasMessageStartingWith("Error decoding bidRequest.regs.ext:");
-    }
-
-    @Test
     public void shouldReturnFailedFutureWithNotChangedMessageWhenPrivacyEnforcementServiceRespondMaskWithFailedFuture() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
-        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("Error when retrieving allowed purpose ids"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),

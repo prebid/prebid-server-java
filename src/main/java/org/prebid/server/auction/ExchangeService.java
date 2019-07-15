@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -55,7 +53,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -350,13 +347,10 @@ public class ExchangeService {
                                                            UidsCookie uidsCookie, List<Imp> imps, String publisherId,
                                                            Timeout timeout) {
         final ExtUser extUser = extUser(bidRequest.getUser());
-        final ExtRegs extRegs = extRegs(bidRequest.getRegs());
-
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
         final List<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
 
-        //Avoiding NPE with toMap
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
             bidderToUser.put(bidder, prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
@@ -364,7 +358,7 @@ public class ExchangeService {
         }
 
         return privacyEnforcementService
-                .mask(bidderToUser, extUser, extRegs, bidders, aliases, bidRequest, publisherId, timeout)
+                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, publisherId, timeout)
                 .map(bidderToPrivacyEnforcementResult -> getShuffledBidderRequests(bidderToPrivacyEnforcementResult,
                         bidRequest, requestExt, imps, firstPartyDataBidders));
     }
@@ -379,21 +373,6 @@ public class ExchangeService {
                 return Json.mapper.treeToValue(userExt, ExtUser.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Extracts {@link ExtRegs} from {@link Regs}.
-     */
-    private static ExtRegs extRegs(Regs regs) {
-        final ObjectNode regsExt = regs != null ? regs.getExt() : null;
-        if (regsExt != null) {
-            try {
-                return Json.mapper.treeToValue(regsExt, ExtRegs.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
             }
         }
         return null;
@@ -422,8 +401,6 @@ public class ExchangeService {
     /**
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
-     * <p>
-     * Also, applies COPPA, GDPR and First Data Party processing.
      */
     private User prepareUser(User user, ExtUser extUser, String bidder, Map<String, String> aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData) {
@@ -515,12 +492,8 @@ public class ExchangeService {
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions and ext.prebid.data.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
-                .map(entry -> {
-                    final PrivacyEnforcementResult privacyEnforcementResult = entry.getValue();
-                    return createBidderRequest(entry.getKey(), bidRequest, requestExt, imps,
-                            privacyEnforcementResult.getUser(), privacyEnforcementResult.getDevice(),
-                            privacyEnforcementResult.getRegs(), firstPartyDataBidders);
-                })
+                .map(entry -> createBidderRequest(entry.getKey(), bidRequest, requestExt, imps, entry.getValue(),
+                            firstPartyDataBidders))
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);
         return bidderRequests;
@@ -530,7 +503,7 @@ public class ExchangeService {
      * Returns created {@link BidderRequest}
      */
     private static BidderRequest createBidderRequest(String bidder, BidRequest bidRequest, ExtBidRequest requestExt,
-                                                     List<Imp> imps, User user, Device device, Regs regs,
+                                                     List<Imp> imps, PrivacyEnforcementResult privacyEnforcementResult,
                                                      List<String> firstPartyDataBidders) {
         final App app = bidRequest.getApp();
         final ExtApp extApp = extApp(app);
@@ -538,9 +511,9 @@ public class ExchangeService {
         final ExtSite extSite = extSite(site);
 
         return BidderRequest.of(bidder, bidRequest.toBuilder()
-                .user(user)
-                .device(device)
-                .regs(regs)
+                .user(privacyEnforcementResult.getUser())
+                .device(privacyEnforcementResult.getDevice())
+                .regs(privacyEnforcementResult.getRegs())
                 .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                 .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
                 .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
