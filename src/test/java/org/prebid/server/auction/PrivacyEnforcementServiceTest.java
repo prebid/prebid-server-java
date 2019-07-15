@@ -421,16 +421,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldReturnFailedFutureWhenGdprServiceIsReturnFailedFuture() {
         // given
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(
-                        Future.failedFuture(new InvalidRequestException(
-                                "Error when retrieving allowed purpose ids in a reason of invalid consent string")),
-                        Future.failedFuture(new InvalidRequestException(
-                                "Error when checking if vendor is allowed in a reason of invalid consent string")));
+                .willReturn(Future.failedFuture(new InvalidRequestException(
+                                "Error when retrieving allowed purpose ids in a reason of invalid consent string")));
 
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
@@ -448,21 +444,16 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // when
         final Future<Map<String, PrivacyEnforcementResult>> firstFuture = privacyEnforcementService
                 .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, PUBLISHER_ID, timeout);
-        final Future<Map<String, PrivacyEnforcementResult>> secondFuture = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, PUBLISHER_ID, timeout);
 
         // then
-        verify(gdprService, times(2)).isGdprEnforced(isNull(), eq(PUBLISHER_ID), eq(singleton(15)), eq(timeout));
-        verify(gdprService, times(2)).resultByVendor(eq(singleton(15)), isNull(), any(), any(), eq(timeout));
+        verify(gdprService).isGdprEnforced(isNull(), eq(PUBLISHER_ID), eq(singleton(15)), eq(timeout));
+        verify(gdprService).resultByVendor(eq(singleton(15)), isNull(), any(), any(), eq(timeout));
         verifyNoMoreInteractions(gdprService);
         verifyZeroInteractions(metrics);
 
         assertThat(firstFuture.failed()).isTrue();
         assertThat(firstFuture.cause().getMessage())
                 .isEqualTo("Error when retrieving allowed purpose ids in a reason of invalid consent string");
-        assertThat(secondFuture.failed()).isTrue();
-        assertThat(secondFuture.cause().getMessage())
-                .isEqualTo("Error when checking if vendor is allowed in a reason of invalid consent string");
     }
 
     @Test
