@@ -360,6 +360,28 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnFailedFutureWhenGPrebidExceptionIfExtRegsCannotBeParsed() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any()))
+                .willThrow(new PreBidException("Error decoding bidRequest.regs.ext:invalid"));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))));
+
+        // when
+        final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessageStartingWith("Error decoding bidRequest.regs.ext:invalid");
+    }
+
+    @Test
     public void shouldExtractRequestByAliasForCorrectBidder() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
