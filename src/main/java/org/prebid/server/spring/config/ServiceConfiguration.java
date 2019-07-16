@@ -14,6 +14,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -237,42 +238,6 @@ public class ServiceConfiguration {
                 hostVendorId, bidderCatalog);
     }
 
-    @Configuration
-    @ConditionalOnProperty(prefix = "gdpr.geolocation", name = "enabled", havingValue = "true")
-    static class GeoLocationConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "false",
-                matchIfMissing = true)
-        GeoLocationService basicGeoLocationService() {
-
-            return createGeoLocationService();
-        }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
-                Vertx vertx,
-                Metrics metrics,
-                @Value("${gdpr.geolocation.circuit-breaker.opening-threshold}") int openingThreshold,
-                @Value("${gdpr.geolocation.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
-                @Value("${gdpr.geolocation.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
-
-            return new CircuitBreakerSecuredGeoLocationService(vertx, createGeoLocationService(), metrics,
-                    openingThreshold, openingIntervalMs, closingIntervalMs);
-        }
-
-        /**
-         * Default geolocation service implementation.
-         */
-        @Value("${gdpr.geolocation.maxmind.db-archive-path}")
-        String maxMindDatabaseArchive;
-
-        private GeoLocationService createGeoLocationService() {
-            return MaxMindGeoLocationService.create(maxMindDatabaseArchive, "GeoLite2-Country.mmdb");
-        }
-    }
-
     @Bean
     GdprService gdprService(
             ApplicationSettings applicationSettings,
@@ -307,18 +272,18 @@ public class ServiceConfiguration {
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
             CurrencyConversionService currencyConversionService,
-            GdprService gdprService,
             EventsService eventsService,
             StoredResponseProcessor storedResponseProcessor,
+            PrivacyEnforcementService privacyEnforcementService,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
-                cacheService, bidResponsePostProcessor, currencyConversionService, gdprService, eventsService, metrics,
-                clock, useGeoLocation, expectedCacheTimeMs);
+                cacheService, bidResponsePostProcessor,
+                privacyEnforcementService, currencyConversionService, eventsService,
+                metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -337,6 +302,15 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog) {
 
         return new StoredResponseProcessor(applicationSettings, bidderCatalog);
+    }
+
+    @Bean
+    PrivacyEnforcementService privacyEnforcementService(
+            GdprService gdprService,
+            BidderCatalog bidderCatalog,
+            Metrics metrics,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
+        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
     }
 
     @Bean
@@ -403,6 +377,42 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "gdpr.geolocation", name = "enabled", havingValue = "true")
+    static class GeoLocationConfiguration {
+
+        /**
+         * Default geolocation service implementation.
+         */
+        @Value("${gdpr.geolocation.maxmind.db-archive-path}")
+        String maxMindDatabaseArchive;
+
+        @Bean
+        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "false",
+                matchIfMissing = true)
+        GeoLocationService basicGeoLocationService() {
+
+            return createGeoLocationService();
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
+        CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
+                Vertx vertx,
+                Metrics metrics,
+                @Value("${gdpr.geolocation.circuit-breaker.opening-threshold}") int openingThreshold,
+                @Value("${gdpr.geolocation.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
+                @Value("${gdpr.geolocation.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
+
+            return new CircuitBreakerSecuredGeoLocationService(vertx, createGeoLocationService(), metrics,
+                    openingThreshold, openingIntervalMs, closingIntervalMs);
+        }
+
+        private GeoLocationService createGeoLocationService() {
+            return MaxMindGeoLocationService.create(maxMindDatabaseArchive, "GeoLite2-Country.mmdb");
+        }
     }
 
     @Configuration
