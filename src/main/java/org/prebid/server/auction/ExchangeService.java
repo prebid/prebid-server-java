@@ -66,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -84,37 +83,37 @@ public class ExchangeService {
 
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
-    private final CacheService cacheService;
-    private final BidResponseCreator bidResponseCreator;
-    private final PrivacyEnforcementService privacyEnforcementService;
-    private final BidResponsePostProcessor bidResponsePostProcessor;
     private final CurrencyConversionService currencyService;
     private final EventsService eventsService;
+    private final CacheService cacheService;
+    private final BidResponseCreator bidResponseCreator;
+    private final BidResponsePostProcessor bidResponsePostProcessor;
     private final Metrics metrics;
     private final Clock clock;
     private final long expectedCacheTime;
 
     public ExchangeService(BidderCatalog bidderCatalog, StoredResponseProcessor storedResponseProcessor,
-                           HttpBidderRequester httpBidderRequester, ResponseBidValidator responseBidValidator,
-                           CacheService cacheService, BidResponseCreator bidResponseCreator,
-                           BidResponsePostProcessor bidResponsePostProcessor,PrivacyEnforcementService privacyEnforcementService, CurrencyConversionService currencyService,
-                            EventsService eventsService, Metrics metrics, Clock clock,
-                            long expectedCacheTime) {
+                           PrivacyEnforcementService privacyEnforcementService, HttpBidderRequester httpBidderRequester,
+                           ResponseBidValidator responseBidValidator, CurrencyConversionService currencyService,
+                           EventsService eventsService, CacheService cacheService,
+                           BidResponseCreator bidResponseCreator, BidResponsePostProcessor bidResponsePostProcessor,
+                           Metrics metrics, Clock clock, long expectedCacheTime) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
+        this.currencyService = currencyService;
+        this.eventsService = eventsService;
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
-        this.currencyService = currencyService;
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.eventsService = eventsService;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.expectedCacheTime = expectedCacheTime;
@@ -472,7 +471,7 @@ public class ExchangeService {
                 // extensions and ext.prebid.data.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(entry -> createBidderRequest(entry.getKey(), bidRequest, requestExt, imps, entry.getValue(),
-                            firstPartyDataBidders))
+                        firstPartyDataBidders))
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);
         return bidderRequests;

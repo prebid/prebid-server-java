@@ -275,22 +275,22 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             BidderCatalog bidderCatalog,
-            HttpBidderRequester httpBidderRequester,
-            ResponseBidValidator responseBidValidator,
-            CacheService cacheService,
-            BidResponseCreator bidResponseCreator,
-            CurrencyConversionService currencyConversionService,
-            EventsService eventsService,
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
+            HttpBidderRequester httpBidderRequester,
+            ResponseBidValidator responseBidValidator,
+            CurrencyConversionService currencyConversionService,
+            EventsService eventsService,
+            CacheService cacheService,
+            BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
-        return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
-                cacheService, bidResponseCreator, bidResponsePostProcessor,privacyEnforcementService, currencyConversionService,
-                eventsService, metrics, clock, expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
+                httpBidderRequester, responseBidValidator, currencyConversionService, eventsService, cacheService,
+                bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean

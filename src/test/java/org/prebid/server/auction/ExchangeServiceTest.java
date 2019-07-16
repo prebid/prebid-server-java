@@ -126,29 +126,29 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private ResponseBidValidator responseBidValidator;
-    @Mock
-    private CacheService cacheService;
-    @Mock
-    private BidResponseCreator bidResponseCreator;
-    @Mock
-    private CurrencyConversionService currencyService;
-    @Spy
-    private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
-    @Mock
     private Usersyncer usersyncer;
-    @Mock
-    private Metrics metrics;
-    @Mock
-    private UidsCookie uidsCookie;
-    @Mock
-    private HttpBidderRequester httpBidderRequester;
-    @Mock
-    private EventsService eventsService;
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
+    @Mock
+    private HttpBidderRequester httpBidderRequester;
+    @Mock
+    private ResponseBidValidator responseBidValidator;
+    @Mock
+    private CurrencyConversionService currencyService;
+    @Mock
+    private EventsService eventsService;
+    @Mock
+    private CacheService cacheService;
+    @Mock
+    private BidResponseCreator bidResponseCreator;
+    @Spy
+    private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
+    @Mock
+    private Metrics metrics;
+    @Mock
+    private UidsCookie uidsCookie;
 
     private Clock clock;
 
@@ -192,17 +192,17 @@ public class ExchangeServiceTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                responseBidValidator, cacheService, bidResponseCreator, bidResponsePostProcessor, privacyEnforcementService, currencyService,
-                eventsService, metrics, clock, 0);
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
+                httpBidderRequester, responseBidValidator, currencyService, eventsService, cacheService,
+                bidResponseCreator, bidResponsePostProcessor, metrics, clock, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                        responseBidValidator, cacheService, bidResponseCreator, bidResponsePostProcessor, privacyEnforcementService,currencyService, eventsService,
-                        metrics, clock, -1));
+                () -> new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
+                        httpBidderRequester, responseBidValidator, currencyService, eventsService, cacheService,
+                        bidResponseCreator, bidResponsePostProcessor, metrics, clock, -1));
     }
 
     @Test
@@ -1027,9 +1027,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester,
-                responseBidValidator, cacheService, bidResponseCreator, bidResponsePostProcessor, privacyEnforcementService, currencyService,
-                eventsService, metrics, clock, 100);
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
+                httpBidderRequester, responseBidValidator, currencyService, eventsService, cacheService,
+                bidResponseCreator, bidResponsePostProcessor, metrics, clock, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
@@ -1282,7 +1282,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
                 "Bid currencies mismatch found. Expected all bids to have the same currencies."));
-        givenBidResponseCreator(singletonMap("somebidder", bidderErrors));
+        givenBidResponseCreator(singletonMap("someBidder", bidderErrors));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -1290,8 +1290,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         assertThat(bidResponse.getSeatbid()).isEmpty();
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("someBidder", bidderErrors));
+        assertThat(ext.getErrors()).hasSize(1)
+                .containsOnly(entry("someBidder", bidderErrors));
     }
 
     @Test
