@@ -85,7 +85,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 singletonList(BidderResponse.of("bidder1", givenSeatBid(), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -106,7 +106,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final CacheServiceResult cacheServiceResult = givenEmptyCacheServiceResult();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(emptyList(), bidRequest, null,
+        final BidResponse bidResponse = bidResponseCreator.create(emptyList(), bidRequest, null,
                 cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -125,7 +125,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         givenSeatBid(BidderBid.of(Bid.builder().build(), banner, "USD")), 0));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -143,7 +143,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -176,7 +176,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -202,7 +202,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -223,7 +223,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         Bid.builder().id("bidId").price(BigDecimal.ONE).build(), banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -248,7 +248,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(firstBid, banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -281,7 +281,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(thirdBid, banner, null)), 111));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -316,7 +316,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(winnerBid, banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -348,7 +348,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -388,7 +388,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().shouldCacheBids(true).shouldCacheVideoBids(true).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -419,7 +419,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().shouldCacheBids(true).shouldCacheVideoBids(true).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -450,7 +450,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().shouldCacheBids(true).shouldCacheVideoBids(true).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -481,7 +481,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 targeting, cacheServiceResult, cacheInfo, emptyMap(), false);
 
         // then
@@ -506,7 +506,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderSeatBid.of(emptyList(), null, singletonList(BidderError.badInput("bad_input"))), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -542,7 +542,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 "invalid has been deprecated and is no longer available. Use valid instead.");
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
@@ -567,7 +567,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         emptyList(), singletonList(ExtHttpCall.builder().status(200).build()), null), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, cacheServiceResult, null, emptyMap(), true);
 
         // then

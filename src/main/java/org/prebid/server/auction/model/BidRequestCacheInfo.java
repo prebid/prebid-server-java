@@ -10,6 +10,16 @@ import lombok.Value;
 @Value
 public class BidRequestCacheInfo {
 
+    private static final BidRequestCacheInfo NO_CACHE = BidRequestCacheInfo.builder()
+            .doCaching(false)
+            .shouldCacheBids(false)
+            .cacheBidsTtl(null)
+            .shouldCacheVideoBids(false)
+            .cacheVideoBidsTtl(null)
+            .returnCreativeBids(false)
+            .returnCreativeVideoBids(false)
+            .build();
+
     boolean doCaching;
 
     boolean shouldCacheBids;
@@ -25,14 +35,6 @@ public class BidRequestCacheInfo {
     boolean returnCreativeVideoBids;
 
     public static BidRequestCacheInfo noCache() {
-        return BidRequestCacheInfo.builder()
-                .doCaching(false)
-                .shouldCacheBids(false)
-                .cacheBidsTtl(null)
-                .shouldCacheVideoBids(false)
-                .cacheVideoBidsTtl(null)
-                .returnCreativeBids(false)
-                .returnCreativeVideoBids(false)
-                .build();
+        return NO_CACHE;
     }
 }

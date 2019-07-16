@@ -160,7 +160,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), anyMap(),
                 anyBoolean())).willReturn(givenBidResponseWithBids(singletonList(givenBid(identity())), null));
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
@@ -809,7 +809,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder")).build()))));
 
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), anyMap(),
                 anyBoolean()))
                 .willReturn(BidResponse.builder()
                         .seatbid(asList(
@@ -895,7 +895,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidderResponse>> captor = ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(
+        verify(bidResponseCreator).create(
                 captor.capture(),
                 eq(bidRequest),
                 eq(givenTargeting()),
@@ -929,7 +929,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidResponseCreator)
-                .createBidResponseWithCacheInfo(anyList(), eq(bidRequest), any(), any(), any(), anyMap(), eq(true));
+                .create(anyList(), eq(bidRequest), any(), any(), any(), anyMap(), eq(true));
     }
 
     @Test
@@ -955,7 +955,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidResponseCreator)
-                .createBidResponseWithCacheInfo(anyList(), eq(bidRequest), any(), any(), any(), anyMap(), eq(true));
+                .create(anyList(), eq(bidRequest), any(), any(), any(), anyMap(), eq(true));
     }
 
     @Test
@@ -1695,7 +1695,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Map<Bid, Events> expectedEventsByBids = singletonMap(bid,
                 events);
 
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), isNull(), any(), any(),
+        verify(bidResponseCreator).create(anyList(), eq(bidRequest), isNull(), any(), any(),
                 eq(expectedEventsByBids), eq(false));
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -1733,7 +1733,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(eventsService).isEventsEnabled(eq("1001"), any());
 
-        verify(bidResponseCreator).createBidResponseWithCacheInfo(anyList(), eq(bidRequest), isNull(), any(), any(),
+        verify(bidResponseCreator).create(anyList(), eq(bidRequest), isNull(), any(), any(),
                 eq(singletonMap(bid, events)), eq(false));
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -2035,17 +2035,17 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private void givenBidResponseCreator(List<Bid> bids) {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), anyMap(),
                 anyBoolean())).willReturn(givenBidResponseWithBids(bids, null));
     }
 
     private void givenBidResponseCreator(List<Bid> bids, ExtBidResponse extBidResponse) {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), anyMap(),
                 anyBoolean())).willReturn(givenBidResponseWithBids(bids, extBidResponse));
     }
 
     private void givenBidResponseCreator(Map<String, List<ExtBidderError>> errors) {
-        given(bidResponseCreator.createBidResponseWithCacheInfo(anyList(), any(), any(), any(), any(), anyMap(),
+        given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), anyMap(),
                 anyBoolean())).willReturn(givenBidResponseWithError(errors));
     }
 

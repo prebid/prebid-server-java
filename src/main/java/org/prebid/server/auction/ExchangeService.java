@@ -1068,7 +1068,7 @@ public class ExchangeService {
         return errorMetric;
     }
 
-    private Map<Bid, Events> createEventsByBids(List<BidderResponse> responses, Boolean eventsEnabled) {
+    private Map<Bid, Events> createEventsByBids(List<BidderResponse> responses, boolean eventsEnabled) {
         if (!eventsEnabled) {
             return Collections.emptyMap();
         }
@@ -1106,7 +1106,7 @@ public class ExchangeService {
                 .collect(Collectors.toSet());
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
-                .map(cacheResult -> bidResponseCreator.createBidResponseWithCacheInfo(bidderResponses, bidRequest,
+                .map(cacheResult -> bidResponseCreator.create(bidderResponses, bidRequest,
                         targeting, cacheResult, cacheInfo, eventsByBids, debugEnabled));
     }
 

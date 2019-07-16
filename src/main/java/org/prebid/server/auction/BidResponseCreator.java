@@ -56,24 +56,24 @@ public class BidResponseCreator {
     private final BidderCatalog bidderCatalog;
     private final String cacheEndpointHost;
     private final String cacheEndpointPath;
-    private final String cacheAssetUrl;
+    private final String cacheAssetUrlTemplate;
 
     public BidResponseCreator(BidderCatalog bidderCatalog, String cacheEndpointHost, String cacheEndpointPath,
-                              String cacheAssetUrl) {
+                              String cacheAssetUrlTemplate) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.cacheEndpointHost = cacheEndpointHost;
-        this.cacheEndpointPath = cacheEndpointPath;
-        this.cacheAssetUrl = cacheAssetUrl;
+        this.cacheEndpointHost = Objects.requireNonNull(cacheEndpointHost);
+        this.cacheEndpointPath = Objects.requireNonNull(cacheEndpointPath);
+        this.cacheAssetUrlTemplate = Objects.requireNonNull(cacheAssetUrlTemplate);
     }
 
     /**
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    BidResponse createBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                               ExtRequestTargeting targeting, CacheServiceResult cacheResult,
-                                               BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids,
-                                               boolean debugEnabled) {
+    BidResponse create(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                       ExtRequestTargeting targeting, CacheServiceResult cacheResult,
+                       BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids,
+                       boolean debugEnabled) {
         final Set<Bid> winningBids = newOrEmptySet(targeting);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
@@ -85,7 +85,7 @@ public class BidResponseCreator {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest.getApp() != null,
-                        winningBids, winningBidsByBidder, cacheResult.getCacheBids(), cacheInfo, eventsByBids))
+                        winningBids, winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), eventsByBids))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
@@ -178,14 +178,13 @@ public class BidResponseCreator {
      * extension field populated.
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, ExtRequestTargeting targeting, boolean isApp,
-                              Set<Bid> winningBid, Set<Bid> winningBidsByBidder,
-                              Map<Bid, CacheIdInfo> cachedBids, BidRequestCacheInfo cacheInfo,
-                              Map<Bid, Events> eventsByBids) {
+                              Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+                              Map<Bid, CacheIdInfo> cachedBids, Map<Bid, Events> eventsByBids) {
         final String bidder = bidderResponse.getBidder();
 
         final List<Bid> bids = bidderResponse.getSeatBid().getBids().stream()
-                .map(bidderBid -> toBid(bidderBid, bidder, targeting, isApp, cachedBids, winningBid,
-                        winningBidsByBidder, cacheInfo, eventsByBids))
+                .map(bidderBid -> toBid(bidderBid, bidder, targeting, isApp, winningBids, winningBidsByBidder,
+                        cacheInfo, cachedBids, eventsByBids))
                 .collect(Collectors.toList());
 
         return SeatBid.builder()
@@ -199,21 +198,17 @@ public class BidResponseCreator {
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
     private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting, boolean isApp,
-                      Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid, Set<Bid> winningBidsByBidder,
-                      BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids) {
+                      Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+                      Map<Bid, CacheIdInfo> bidsWithCacheIds, Map<Bid, Events> eventsByBids) {
 
         final Bid bid = bidderBid.getBid();
         final BidType bidType = bidderBid.getType();
         final Events events = eventsByBids.get(bid);
-        final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp);
-        final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
-                keywordsCreatorByBidType(targeting, isApp);
 
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
 
-        if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
-            final boolean isWinningBid = winningBid.contains(bid);
+        if (targeting != null && winningBidsByBidder.contains(bid)) {
             final CacheIdInfo cacheIdInfo = bidsWithCacheIds.get(bid);
             final String cacheId = cacheIdInfo != null ? cacheIdInfo.getCacheId() : null;
             final String videoCacheId = cacheIdInfo != null ? cacheIdInfo.getVideoCacheId() : null;
@@ -223,11 +218,16 @@ public class BidResponseCreator {
                 bid.setAdm(null);
             }
 
+            final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp);
+            final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
+                    keywordsCreatorByBidType(targeting, isApp);
+            final boolean isWinningBid = winningBids.contains(bid);
+
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
                     .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheEndpointHost, cacheEndpointPath,
                             events != null ? events.getWin() : null);
-            final CacheAsset bids = cacheId != null ? toCacheAsset(cacheAssetUrl, cacheId) : null;
-            final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(cacheAssetUrl, videoCacheId) : null;
+            final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
+            final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
             cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
         } else {
             targetingKeywords = null;
@@ -245,14 +245,10 @@ public class BidResponseCreator {
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
      * instance if they are present.
      * <p>
-     * Returns null if bidrequest.ext.prebid.targeting is missing - it means that no targeting keywords
-     * should be included in bid response.
      */
     private static TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
-        return targeting != null
-                ? TargetingKeywordsCreator.create(parsePriceGranularity(targeting.getPricegranularity()),
-                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp)
-                : null;
+        return TargetingKeywordsCreator.create(parsePriceGranularity(targeting.getPricegranularity()),
+                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp);
     }
 
     /**
@@ -261,8 +257,7 @@ public class BidResponseCreator {
      */
     private static Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
                                                                                    boolean isApp) {
-        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting != null
-                ? targeting.getMediatypepricegranularity() : null;
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
 
         if (mediaTypePriceGranularity == null) {
             return Collections.emptyMap();
@@ -310,8 +305,8 @@ public class BidResponseCreator {
     /**
      * Creates {@link CacheAsset} for the given cache ID.
      */
-    private static CacheAsset toCacheAsset(String assetUrl, String cacheId) {
-        return CacheAsset.of(assetUrl.concat(cacheId), cacheId);
+    private CacheAsset toCacheAsset(String cacheId) {
+        return CacheAsset.of(cacheAssetUrlTemplate.concat(cacheId), cacheId);
     }
 
     /**
@@ -338,7 +333,8 @@ public class BidResponseCreator {
                 .collect(Collectors.toMap(BidderResponse::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
 
-        final ExtHttpCall cacheExtHttpCall = toExtHttpCall(cacheResult.getHttpCall());
+        final CacheHttpCall httpCall = cacheResult.getHttpCall();
+        final ExtHttpCall cacheExtHttpCall = httpCall != null ? toExtHttpCall(httpCall) : null;
         final Map<String, List<ExtHttpCall>> cacheHttpCalls = cacheExtHttpCall != null
                 ? Collections.singletonMap(CACHE, Collections.singletonList(cacheExtHttpCall))
                 : Collections.emptyMap();
@@ -350,34 +346,36 @@ public class BidResponseCreator {
     }
 
     private static ExtHttpCall toExtHttpCall(CacheHttpCall cacheHttpCall) {
-        if (cacheHttpCall != null) {
-            final CacheHttpRequest request = cacheHttpCall.getRequest();
-            final CacheHttpResponse response = cacheHttpCall.getResponse();
+        final CacheHttpRequest request = cacheHttpCall.getRequest();
+        final CacheHttpResponse response = cacheHttpCall.getResponse();
 
-            return ExtHttpCall.builder()
-                    .uri(request.getUri())
-                    .requestbody(request.getBody())
-                    .status(response != null ? response.getStatusCode() : null)
-                    .responsebody(response != null ? response.getBody() : null)
-                    .build();
-        }
-        return null;
+        return ExtHttpCall.builder()
+                .uri(request.getUri())
+                .requestbody(request.getBody())
+                .status(response != null ? response.getStatusCode() : null)
+                .responsebody(response != null ? response.getBody() : null)
+                .build();
     }
 
     private Map<String, List<ExtBidderError>> toExtBidderErrors(List<BidderResponse> bidderResponses,
                                                                 BidRequest bidRequest, CacheServiceResult cacheResult) {
         final Map<String, List<ExtBidderError>> errors = new HashMap<>();
 
-        for (BidderResponse bidderResponse : bidderResponses) {
-            final List<BidderError> bidderErrors = bidderResponse.getSeatBid().getErrors();
-            if (CollectionUtils.isNotEmpty(bidderErrors)) {
-                errors.put(bidderResponse.getBidder(), errorsDetails(bidderErrors));
-            }
-        }
+        errors.putAll(extractBidderErrors(bidderResponses));
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
         errors.putAll(extractCacheErrors(cacheResult));
 
         return errors.isEmpty() ? null : errors;
+    }
+
+    /**
+     * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
+     */
+    private Map<String, List<ExtBidderError>> extractBidderErrors(List<BidderResponse> bidderResponses) {
+        return bidderResponses.stream()
+                .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
+                .collect(Collectors.toMap(BidderResponse::getBidder,
+                        bidderResponse -> errorsDetails(bidderResponse.getSeatBid().getErrors())));
     }
 
     /**
