@@ -494,7 +494,7 @@ public class ExchangeService {
                 // extensions and ext.prebid.data.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(entry -> createBidderRequest(entry.getKey(), bidRequest, requestExt, imps, entry.getValue(),
-                            firstPartyDataBidders))
+                        firstPartyDataBidders))
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);
         return bidderRequests;
