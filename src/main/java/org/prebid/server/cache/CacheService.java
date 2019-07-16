@@ -156,12 +156,12 @@ public class CacheService {
                 }
             }
 
-            result = doCacheOpenrtb(
-                    getCacheBids(cacheContext.isShouldCacheBids(), bids, impIdToTtl, impWithNoExpExists,
-                            cacheContext.getCacheBidsTtl(), account),
-                    getVideoCacheBids(cacheContext.isShouldCacheVideoBids(), bids, impIdToTtl, videoImpIds,
-                            impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account),
-                    timeout);
+            final List<CacheBid> cacheBids = getCacheBids(cacheContext.isShouldCacheBids(), bids, impIdToTtl,
+                    impWithNoExpExists, cacheContext.getCacheBidsTtl(), account);
+            final List<CacheBid> videoCacheBids = getVideoCacheBids(cacheContext.isShouldCacheVideoBids(), bids,
+                    impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
+
+            result = doCacheOpenrtb(cacheBids, videoCacheBids, timeout);
         }
 
         return result;
@@ -201,7 +201,8 @@ public class CacheService {
     /**
      * Fetches {@link CacheTtl} from {@link Account}.
      * <p>
-     * This data is not critical, so returns empty {@link CacheTtl} if any error occurred.
+     * Returns empty {@link CacheTtl} when there are no impressions without expiration or
+     * if{@link Account} has neither of banner or video cache ttl.
      */
     private CacheTtl accountCacheTtlFrom(boolean impWithNoExpExists, Account account) {
         return impWithNoExpExists && (account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null)
