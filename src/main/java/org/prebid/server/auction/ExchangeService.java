@@ -20,6 +20,7 @@ import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -27,7 +28,6 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.auction.model.StoredResponseResult;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -131,7 +131,7 @@ public class ExchangeService {
         this.currencyService = currencyService;
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.eventsService = eventsService;
+        this.eventsService = Objects.requireNonNull(eventsService);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.expectedCacheTime = expectedCacheTime;
@@ -165,6 +165,7 @@ public class ExchangeService {
         final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
                 keywordsCreatorByBidType(targeting, isApp);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
+        final boolean eventsEnabled = isEventsEnabled(account);
         final long startTime = clock.millis();
         final List<SeatBid> storedResponse = new ArrayList<>();
 
@@ -187,11 +188,9 @@ public class ExchangeService {
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
                         storedResponse, bidRequest.getImp()))
-                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
-                        .map(eventsEnabled -> Tuple2.of(bidderResponses, eventsEnabled)))
-                .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
-                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator, keywordsCreatorByBidType,
-                                cacheInfo, account, timeout, result.getRight(), debugEnabled))
+                .compose(bidderResponses ->
+                        toBidResponse(bidderResponses, bidRequest, keywordsCreator, keywordsCreatorByBidType,
+                                cacheInfo, account, timeout, eventsEnabled, debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest,
                                 bidResponse));
@@ -252,6 +251,15 @@ public class ExchangeService {
         }
         final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
         return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
+    }
+
+    /**
+     * Returns events enabled flag for the given account.
+     * <p>
+     * This data is not critical, so returns false if null.
+     */
+    private static Boolean isEventsEnabled(Account account) {
+        return BooleanUtils.toBoolean(account.getEventsEnabled());
     }
 
     /**
