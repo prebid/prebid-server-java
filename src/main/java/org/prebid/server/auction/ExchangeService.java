@@ -904,7 +904,7 @@ public class ExchangeService {
                 .map(BidderBid::getBid)
                 .collect(Collectors.toSet());
 
-        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
+        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, account, timeout)
                 .map(cacheResult -> bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheResult,
                         cacheInfo, createEventsByBids(bidderResponses, eventsEnabled), debugEnabled));
     }
