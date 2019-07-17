@@ -70,9 +70,8 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    BidResponse create(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                       ExtRequestTargeting targeting, CacheServiceResult cacheResult,
-                       BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids,
+    BidResponse create(List<BidderResponse> bidderResponses, BidRequest bidRequest, ExtRequestTargeting targeting,
+                       CacheServiceResult cacheResult, BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids,
                        boolean debugEnabled) {
         final Set<Bid> winningBids = newOrEmptySet(targeting);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);

@@ -146,10 +146,11 @@ public class ExchangeService {
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
         final boolean eventsEnabled = isEventsEnabled(account);
         final long startTime = clock.millis();
+        final List<Imp> imps = bidRequest.getImp();
         final List<SeatBid> storedResponse = new ArrayList<>();
 
         return storedResponseProcessor
-                .getStoredResponseResult(bidRequest.getImp(), aliases, timeout)
+                .getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest -> extractBidderRequests(bidRequest, impsRequiredRequest, requestExt,
                         uidsCookie, aliases, publisherId, timeout))
@@ -165,11 +166,11 @@ public class ExchangeService {
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
-                .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
-                        storedResponse, bidRequest.getImp()))
-                .compose(bidderResponses -> createEventsByBids(bidderResponses, eventsEnabled)
-                        .map(eventsByBids -> toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, publisherId, timeout,
-                                eventsByBids, debugEnabled)))
+                .map(bidderResponses ->
+                        storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
+                .compose(bidderResponses ->
+                        toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, publisherId, timeout,
+                                eventsEnabled, debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
     }
@@ -886,34 +887,14 @@ public class ExchangeService {
         return errorMetric;
     }
 
-    private Map<Bid, Events> createEventsByBids(List<BidderResponse> responses, boolean eventsEnabled) {
-        if (!eventsEnabled) {
-            return Collections.emptyMap();
-        }
-
-        final Map<Bid, Events> eventsByBids = new HashMap<>();
-        for (BidderResponse bidderResponse : responses) {
-            if (bidderResponse.getSeatBid().getBids().isEmpty()) {
-                continue;
-            }
-
-            final String bidder = bidderResponse.getBidder();
-            bidderResponse.getSeatBid().getBids().stream()
-                    .map(BidderBid::getBid)
-                    .forEach(bid -> eventsByBids.put(bid, eventsService.createEvent(bid.getId(), bidder)));
-        }
-
-        return eventsByBids;
-    }
-
     /**
      * Takes all the bids supplied by the bidder and crafts an OpenRTB {@link BidResponse} to send back to the
      * requester.
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo,
-                                              String publisherId, Timeout timeout,
-                                              Map<Bid, Events> eventsByBids, boolean debugEnabled) {
+                                              String publisherId, Timeout timeout, boolean eventsEnabled,
+                                              boolean debugEnabled) {
         final Set<Bid> bids = bidderResponses.stream()
                 .map(BidderResponse::getSeatBid)
                 .filter(Objects::nonNull)
@@ -924,8 +905,8 @@ public class ExchangeService {
                 .collect(Collectors.toSet());
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
-                .map(cacheResult -> bidResponseCreator.create(bidderResponses, bidRequest,
-                        targeting, cacheResult, cacheInfo, eventsByBids, debugEnabled));
+                .map(cacheResult -> bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheResult,
+                        cacheInfo, createEventsByBids(bidderResponses, eventsEnabled), debugEnabled));
     }
 
     /**
@@ -978,5 +959,25 @@ public class ExchangeService {
             return CacheServiceResult.of(cacheResult.getHttpCall(), cacheResult.getError(), updatedBidToCacheIdInfo);
         }
         return cacheResult;
+    }
+
+    private Map<Bid, Events> createEventsByBids(List<BidderResponse> responses, boolean eventsEnabled) {
+        if (!eventsEnabled) {
+            return Collections.emptyMap();
+        }
+
+        final Map<Bid, Events> eventsByBids = new HashMap<>();
+        for (BidderResponse bidderResponse : responses) {
+            if (bidderResponse.getSeatBid().getBids().isEmpty()) {
+                continue;
+            }
+
+            final String bidder = bidderResponse.getBidder();
+            bidderResponse.getSeatBid().getBids().stream()
+                    .map(BidderBid::getBid)
+                    .forEach(bid -> eventsByBids.put(bid, eventsService.createEvent(bid.getId(), bidder)));
+        }
+
+        return eventsByBids;
     }
 }

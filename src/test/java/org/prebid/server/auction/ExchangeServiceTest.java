@@ -1297,10 +1297,11 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
-        given(eventsService.createEvent(anyString(), anyString()))
-                .willReturn(Events.of(
-                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
+        final Events events = Events.of(
+                "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                "http://external.org/event?type=view&bidid=bidId&bidder=someBidder");
+
+        given(eventsService.createEvent(anyString(), anyString())).willReturn(events);
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE)
                 .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
@@ -1323,8 +1324,6 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest, account)).result();
 
         // then
-        verify(eventsService).isEventsEnabled(eq("1001"), any());
-
         final Map<Bid, Events> expectedEventsByBids = singletonMap(bid,
                 events);
 
@@ -1340,14 +1339,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
-        given(eventsService.createEvent(anyString(), anyString()))
-                .willReturn(Events.of(
-                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
         final Events events = Events.of(
                 "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
                 "http://external.org/event?type=view&bidid=bidId&bidder=someBidder");
-        given(eventsService.isEventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
         given(eventsService.createEvent(anyString(), anyString())).willReturn(events);
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).build();
@@ -1370,8 +1364,6 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest, account)).result();
 
         // then
-        verify(eventsService).isEventsEnabled(eq("1001"), any());
-
         verify(bidResponseCreator).create(anyList(), eq(bidRequest), isNull(), any(), any(),
                 eq(singletonMap(bid, events)), eq(false));
 
