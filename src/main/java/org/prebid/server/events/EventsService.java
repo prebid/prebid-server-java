@@ -1,8 +1,6 @@
 package org.prebid.server.events;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.proto.openrtb.ext.response.Events;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
@@ -23,15 +21,6 @@ public class EventsService {
         return Events.of(
                 String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, WIN_EVENT_TYPE, bidId, bidder),
                 String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, VIEW_EVENT_TYPE, bidId, bidder));
-    }
-
-    /**
-     * Returns events enabled flag for the given account.
-     * <p>
-     * This data is not critical, so returns false if null.
-     */
-    public Boolean isEventsEnabled(Account account) {
-        return BooleanUtils.toBoolean(account.getEventsEnabled());
     }
 }
 
