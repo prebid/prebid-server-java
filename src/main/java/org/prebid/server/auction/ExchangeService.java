@@ -169,7 +169,7 @@ public class ExchangeService {
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
-                        toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, publisherId, timeout,
+                        toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
                                 eventsEnabled, debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
@@ -893,7 +893,7 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo,
-                                              String publisherId, Timeout timeout, boolean eventsEnabled,
+                                              Account account, Timeout timeout, boolean eventsEnabled,
                                               boolean debugEnabled) {
         final Set<Bid> bids = bidderResponses.stream()
                 .map(BidderResponse::getSeatBid)
@@ -904,7 +904,7 @@ public class ExchangeService {
                 .map(BidderBid::getBid)
                 .collect(Collectors.toSet());
 
-        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
+        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, account, timeout)
                 .map(cacheResult -> bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheResult,
                         cacheInfo, createEventsByBids(bidderResponses, eventsEnabled), debugEnabled));
     }
@@ -913,7 +913,7 @@ public class ExchangeService {
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
     private Future<CacheServiceResult> toBidsWithCacheIds(Set<Bid> bids, List<Imp> imps, BidRequestCacheInfo cacheInfo,
-                                                          String publisherId, Timeout timeout) {
+                                                          Account account, Timeout timeout) {
         final Future<CacheServiceResult> result;
 
         if (!cacheInfo.isDoCaching()) {
@@ -927,7 +927,7 @@ public class ExchangeService {
             final CacheContext cacheContext = CacheContext.of(cacheInfo.isShouldCacheBids(),
                     cacheInfo.getCacheBidsTtl(), cacheInfo.isShouldCacheVideoBids(), cacheInfo.getCacheVideoBidsTtl());
 
-            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, publisherId, timeout)
+            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, timeout)
                     .map(cacheResult -> addNotCachedBids(cacheResult, bids));
         }
 

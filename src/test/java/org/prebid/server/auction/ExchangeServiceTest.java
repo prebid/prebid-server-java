@@ -1079,7 +1079,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
                 eq(CacheContext.of(true, null, false, null)),
-                eq(""), eq(timeout));
+                eq(Account.builder().eventsEnabled(false).build()), eq(timeout));
     }
 
     @Test
@@ -1101,7 +1101,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(argThat(bids -> bids.contains(bid1)), eq(singletonList(imp1)),
-                eq(CacheContext.of(true, null, false, null)), eq(""), eq(timeout));
+                eq(CacheContext.of(true, null, false, null)),
+                eq(Account.builder().eventsEnabled(false).build()), eq(timeout));
     }
 
     @Test
