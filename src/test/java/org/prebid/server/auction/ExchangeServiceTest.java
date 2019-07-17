@@ -74,6 +74,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -184,7 +185,6 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
-        given(eventsService.isEventsEnabled(any(), any())).willReturn(Future.succeededFuture(false));
         given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList())));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any())).willAnswer(inv -> inv.getArgument(0));
@@ -1297,10 +1297,10 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
-        final Events events = Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                "http://external.org/event?type=view&bidid=bidId&bidder=someBidder");
-        given(eventsService.isEventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
-        given(eventsService.createEvent(anyString(), anyString())).willReturn(events);
+        given(eventsService.createEvent(anyString(), anyString()))
+                .willReturn(Events.of(
+                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE)
                 .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
@@ -1317,8 +1317,10 @@ public class ExchangeServiceTest extends VertxTest {
                 bidBuilder -> bidBuilder.ext(mapper.valueToTree(ExtPrebid.of(
                         ExtBidPrebid.of(null, null, null, events), null))))));
 
+        final Account account = Account.builder().eventsEnabled(true).build();
+
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest, account)).result();
 
         // then
         verify(eventsService).isEventsEnabled(eq("1001"), any());
@@ -1338,6 +1340,10 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
+        given(eventsService.createEvent(anyString(), anyString()))
+                .willReturn(Events.of(
+                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
         final Events events = Events.of(
                 "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
                 "http://external.org/event?type=view&bidid=bidId&bidder=someBidder");
@@ -1358,8 +1364,10 @@ public class ExchangeServiceTest extends VertxTest {
                 bidBuilder -> bidBuilder.ext(mapper.valueToTree(ExtPrebid.of(
                         ExtBidPrebid.of(null, null, null, events), null))))));
 
+        final Account account = Account.builder().eventsEnabled(true).build();
+
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest, account)).result();
 
         // then
         verify(eventsService).isEventsEnabled(eq("1001"), any());
@@ -1562,9 +1570,14 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
+        return givenRequestContext(bidRequest, Account.builder().eventsEnabled(false).build());
+    }
+
+    private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
+                .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeout(timeout)
                 .build();

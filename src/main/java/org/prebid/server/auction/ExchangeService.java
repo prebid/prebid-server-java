@@ -16,6 +16,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -24,7 +25,6 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.auction.model.StoredResponseResult;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -52,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.Events;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -110,7 +111,7 @@ public class ExchangeService {
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = currencyService;
-        this.eventsService = eventsService;
+        this.eventsService = Objects.requireNonNull(eventsService);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
@@ -129,6 +130,7 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final Timeout timeout = context.getTimeout();
         final MetricName requestTypeMetric = context.getRequestTypeMetric();
+        final Account account = context.getAccount();
 
         final ExtBidRequest requestExt;
         try {
@@ -142,6 +144,7 @@ public class ExchangeService {
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
+        final boolean eventsEnabled = isEventsEnabled(account);
         final long startTime = clock.millis();
         final List<SeatBid> storedResponse = new ArrayList<>();
 
@@ -164,12 +167,9 @@ public class ExchangeService {
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(bidderResponses,
                         storedResponse, bidRequest.getImp()))
-                .compose(bidderResponses -> eventsService.isEventsEnabled(publisherId, timeout)
-                        .map(eventsEnabled -> createEventsByBids(bidderResponses, eventsEnabled))
-                        .map(eventsByBids -> Tuple2.of(bidderResponses, eventsByBids)))
-                .compose((Tuple2<List<BidderResponse>, Map<Bid, Events>> result) ->
-                        toBidResponse(result.getLeft(), bidRequest, targeting, cacheInfo, publisherId, timeout,
-                                result.getRight(), debugEnabled))
+                .compose(bidderResponses -> createEventsByBids(bidderResponses, eventsEnabled)
+                        .map(eventsByBids -> toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, publisherId, timeout,
+                                eventsByBids, debugEnabled)))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
     }
@@ -229,6 +229,15 @@ public class ExchangeService {
         }
         final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
         return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
+    }
+
+    /**
+     * Returns events enabled flag for the given account.
+     * <p>
+     * This data is not critical, so returns false if null.
+     */
+    private static Boolean isEventsEnabled(Account account) {
+        return BooleanUtils.toBoolean(account.getEventsEnabled());
     }
 
     /**
