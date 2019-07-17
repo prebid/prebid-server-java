@@ -86,7 +86,7 @@ public class CacheServiceTest extends VertxTest {
     public void setUp() throws MalformedURLException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         cacheService = new CacheService(applicationSettings, mediaTypeCacheTtl, httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -131,10 +131,10 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void getCachedAssetURLShouldReturnExpectedValue() {
         // when
-        final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
+        final String cachedAssetURL = cacheService.getCachedAssetURLTemplate();
 
         // then
-        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
+        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=");
     }
 
     @Test
@@ -232,7 +232,7 @@ public class CacheServiceTest extends VertxTest {
 
         cacheService = new CacheService(applicationSettings, mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%", clock);
+                "https://cache-service-host:8080/cache?uuid=", clock);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -539,7 +539,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
         cacheService = new CacheService(applicationSettings, CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().bannerCacheTtl(10).build()));
@@ -560,7 +560,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(applicationSettings, CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -579,7 +579,7 @@ public class CacheServiceTest extends VertxTest {
             throws IOException {
         // given
         cacheService = new CacheService(applicationSettings, CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
 
@@ -599,7 +599,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenSettingsFailed() throws IOException {
         // given
         cacheService = new CacheService(applicationSettings, CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new RuntimeException("exception")));
 
