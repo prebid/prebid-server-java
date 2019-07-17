@@ -79,7 +79,6 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
@@ -245,7 +244,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(cacheService.cacheBids(anyList(), any())).willReturn(Future.succeededFuture(singletonList(
                 BidCacheResult.of("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315", "cached_asset_url"))));
-        given(cacheService.getCachedAssetURL(anyString())).willReturn("cached_asset_url");
+        given(cacheService.getCachedAssetURLTemplate()).willReturn("cached_asset_url");
 
         // when
         auctionHandler.handle(routingContext);

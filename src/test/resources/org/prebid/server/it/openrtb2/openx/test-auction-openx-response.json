@@ -16,20 +16,20 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
                 "hb_bidder_openx": "openx",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
                 "hb_cache_id": "6f10452f-dbf8-4d5c-9f40-760080e08612",
                 "hb_deal_openx": "dealId00",
                 "hb_cache_id_openx": "6f10452f-dbf8-4d5c-9f40-760080e08612",
-                "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_pb": "5.70",
+                "hb_cache_path_openx": "{{ cache.path }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}"
+                "hb_size": "300x250",
+                "hb_pb_openx": "5.70",
+                "hb_bidder": "openx",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId00"
               },
               "cache": {
                 "bids": {
@@ -53,20 +53,20 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
                 "hb_bidder_openx": "openx",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
                 "hb_cache_id": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
                 "hb_deal_openx": "dealId00",
                 "hb_cache_id_openx": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
-                "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_pb": "5.70",
+                "hb_cache_path_openx": "{{ cache.path }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}"
+                "hb_size": "300x250",
+                "hb_pb_openx": "5.70",
+                "hb_bidder": "openx",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId00"
               },
               "cache": {
                 "bids": {
@@ -90,31 +90,31 @@
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
                 "hb_bidder_openx": "openx",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
+                "hb_uuid_openx": "857b3394-c5ac-402c-9cca-54ae52b927fc",
                 "hb_cache_id": "827f68ed-03d5-4dad-8794-4518f01fbfb8",
                 "hb_deal_openx": "dealId00",
                 "hb_cache_id_openx": "827f68ed-03d5-4dad-8794-4518f01fbfb8",
-                "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
-                "hb_uuid_openx": "857b3394-c5ac-402c-9cca-54ae52b927fc",
-                "hb_uuid": "857b3394-c5ac-402c-9cca-54ae52b927fc",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_pb": "5.70",
+                "hb_cache_path_openx": "{{ cache.path }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}"
+                "hb_uuid": "857b3394-c5ac-402c-9cca-54ae52b927fc",
+                "hb_size": "300x250",
+                "hb_pb_openx": "5.70",
+                "hb_bidder": "openx",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId00"
               },
               "cache": {
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}857b3394-c5ac-402c-9cca-54ae52b927fc",
-                  "cacheId": "857b3394-c5ac-402c-9cca-54ae52b927fc"
-                },
                 "bids": {
                   "url": "{{ cache.resource_url }}827f68ed-03d5-4dad-8794-4518f01fbfb8",
                   "cacheId": "827f68ed-03d5-4dad-8794-4518f01fbfb8"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}857b3394-c5ac-402c-9cca-54ae52b927fc",
+                  "cacheId": "857b3394-c5ac-402c-9cca-54ae52b927fc"
                 }
               }
             }
@@ -133,31 +133,31 @@
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
                 "hb_bidder_openx": "openx",
-                "hb_pb_openx": "5.70",
-                "hb_bidder": "openx",
+                "hb_uuid_openx": "18b7676c-f024-4a06-aa1a-5d222a643603",
                 "hb_cache_id": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
                 "hb_deal_openx": "dealId00",
                 "hb_cache_id_openx": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
-                "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
-                "hb_uuid_openx": "18b7676c-f024-4a06-aa1a-5d222a643603",
-                "hb_uuid": "18b7676c-f024-4a06-aa1a-5d222a643603",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_pb": "5.70",
+                "hb_cache_path_openx": "{{ cache.path }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}"
+                "hb_uuid": "18b7676c-f024-4a06-aa1a-5d222a643603",
+                "hb_size": "300x250",
+                "hb_pb_openx": "5.70",
+                "hb_bidder": "openx",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId00"
               },
               "cache": {
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}18b7676c-f024-4a06-aa1a-5d222a643603",
-                  "cacheId": "18b7676c-f024-4a06-aa1a-5d222a643603"
-                },
                 "bids": {
                   "url": "{{ cache.resource_url }}bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
                   "cacheId": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}18b7676c-f024-4a06-aa1a-5d222a643603",
+                  "cacheId": "18b7676c-f024-4a06-aa1a-5d222a643603"
                 }
               }
             }
@@ -195,8 +195,8 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"600527793\",\"impid\":\"impId011\",\"price\":5.78,\"adm\":\"adm00\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"600527794\",\"impid\":\"impId02\",\"price\":5.78,\"adm\":\"adm001\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"600527795\",\"impid\":\"impId03\",\"price\":5.78,\"adm\":\"adm002\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"600527796\",\"impid\":\"impId04\",\"price\":5.78,\"adm\":\"adm003\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"xml\",\"value\":\"adm002\",\"expiry\":120},{\"type\":\"xml\",\"value\":\"adm003\",\"expiry\":120}]}",
-            "responsebody": "{\"responses\":[{\"uuid\":\"6f10452f-dbf8-4d5c-9f40-760080e08612\"},{\"uuid\":\"16649e72-5dd5-4ab9-ab83-df9a5f06d9d1\"},{\"uuid\":\"827f68ed-03d5-4dad-8794-4518f01fbfb8\"},{\"uuid\":\"bdf4b96c-3d1a-4c92-b8da-aece5d514e0b\"},{\"uuid\":\"857b3394-c5ac-402c-9cca-54ae52b927fc\"},{\"uuid\":\"18b7676c-f024-4a06-aa1a-5d222a643603\"}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"600527796\",\"impid\":\"impId04\",\"price\":5.78,\"adm\":\"adm003\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"600527794\",\"impid\":\"impId02\",\"price\":5.78,\"adm\":\"adm001\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"600527795\",\"impid\":\"impId03\",\"price\":5.78,\"adm\":\"adm002\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"json\",\"value\":{\"id\":\"600527793\",\"impid\":\"impId011\",\"price\":5.78,\"adm\":\"adm00\",\"crid\":\"crid00\",\"dealid\":\"dealId00\",\"w\":300,\"h\":250}},{\"type\":\"xml\",\"value\":\"adm003\",\"expiry\":120},{\"type\":\"xml\",\"value\":\"adm002\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"bdf4b96c-3d1a-4c92-b8da-aece5d514e0b\"},{\"uuid\":\"16649e72-5dd5-4ab9-ab83-df9a5f06d9d1\"},{\"uuid\":\"827f68ed-03d5-4dad-8794-4518f01fbfb8\"},{\"uuid\":\"6f10452f-dbf8-4d5c-9f40-760080e08612\"},{\"uuid\":\"18b7676c-f024-4a06-aa1a-5d222a643603\"},{\"uuid\":\"857b3394-c5ac-402c-9cca-54ae52b927fc\"}]}",
             "status": 200
           }
         ]
@@ -317,12 +317,12 @@
         },
         "user": {
           "ext": {
+            "consent": "consentValue",
             "digitrust": {
               "id": "id",
               "keyv": 123,
               "pref": 0
-            },
-            "consent": "consentValue"
+            }
           }
         },
         "test": 1,

@@ -9,6 +9,7 @@ import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
+import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -264,24 +265,30 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidResponseCreator bidResponseCreator(BidderCatalog bidderCatalog, CacheService cacheService) {
+        return new BidResponseCreator(bidderCatalog, cacheService.getEndpointHost(),
+                cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
+    }
+
+    @Bean
     ExchangeService exchangeService(
             BidderCatalog bidderCatalog,
-            HttpBidderRequester httpBidderRequester,
-            ResponseBidValidator responseBidValidator,
-            CacheService cacheService,
-            CurrencyConversionService currencyConversionService,
-            EventsService eventsService,
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
+            HttpBidderRequester httpBidderRequester,
+            ResponseBidValidator responseBidValidator,
+            CurrencyConversionService currencyConversionService,
+            EventsService eventsService,
+            CacheService cacheService,
+            BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
-        return new ExchangeService(bidderCatalog, storedResponseProcessor, httpBidderRequester, responseBidValidator,
-                cacheService, bidResponsePostProcessor,
-                privacyEnforcementService, currencyConversionService, eventsService,
-                metrics, clock, expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
+                httpBidderRequester, responseBidValidator, currencyConversionService, eventsService, cacheService,
+                bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean

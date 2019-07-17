@@ -88,7 +88,7 @@ public class CacheServiceTest extends VertxTest {
 
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                "http://cache-service-host/cache?uuid=", clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -140,10 +140,10 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void getCachedAssetURLShouldReturnExpectedValue() {
         // when
-        final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
+        final String cachedAssetURL = cacheService.getCachedAssetURLTemplate();
 
         // then
-        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
+        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=");
     }
 
     @Test
@@ -236,7 +236,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%", clock);
+                "https://cache-service-host:8080/cache?uuid=", clock);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -528,7 +528,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -547,7 +547,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -565,7 +565,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
 
         // when
         cacheService.cacheBidsOpenrtb(

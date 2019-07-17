@@ -80,6 +80,10 @@ public class CacheService {
         return endpointUrl.getPath();
     }
 
+    public String getCachedAssetURLTemplate() {
+        return cachedAssetUrlTemplate;
+    }
+
     /**
      * Makes cache for {@link Bid}s (legacy).
      * <p>
@@ -350,7 +354,7 @@ public class CacheService {
      */
     private BidCacheResult createBidCacheResult(CacheObject cacheObject) {
         final String uuid = cacheObject.getUuid();
-        return BidCacheResult.of(uuid, getCachedAssetURL(uuid));
+        return BidCacheResult.of(uuid, cachedAssetUrlTemplate.concat(uuid));
     }
 
     /**
@@ -419,13 +423,6 @@ public class CacheService {
         }
 
         return result;
-    }
-
-    /**
-     * Composes cached asset URL for the given UUID cache value.
-     */
-    public String getCachedAssetURL(String uuid) {
-        return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 
     /**
