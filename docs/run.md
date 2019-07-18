@@ -33,5 +33,5 @@ Vert.x caches files that are served from the classpath into a file on disk in a 
 called ```.vertx``` in the current working directory by default.
 You can set another location with ```vertx.cacheDirBase``` key, for example:
 ```
--Dvertx.cacheDirBase=/tmp/prebid-server
+-Dvertx.cacheDirBase=/var/tmp/prebid-server
 ```

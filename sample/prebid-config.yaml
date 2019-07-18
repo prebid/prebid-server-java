@@ -13,12 +13,12 @@ cache:
 settings:
   filesystem:
     settings-filename: sample/sample-app-settings.yaml
-    stored-requests-dir: /tmp
-    stored-imps-dir: /tmp
-    stored-responses-dir: /tmp
+    stored-requests-dir: /var/tmp
+    stored-imps-dir: /var/tmp
+    stored-responses-dir: /var/tmp
 gdpr:
   vendorlist:
-    filesystem-cache-dir: /tmp
+    filesystem-cache-dir: /var/tmp
   geolocation:
     enabled: false
 status-response: "ok"
