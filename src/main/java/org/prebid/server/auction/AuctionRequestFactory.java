@@ -536,7 +536,7 @@ public class AuctionRequestFactory {
         return StringUtils.isEmpty(accountId)
                 ? Future.succeededFuture(emptyAccount(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .recover(exception -> accountFallback(exception, accountId));
+                .otherwise(exception -> accountFallback(exception, accountId));
     }
 
     /**
@@ -556,14 +556,15 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns empty account if it is not found or propagate exception if any except {@link PreBidException} occurred.
+     * Returns empty account if it is not found or any exception occurred.
+     * <p>
+     * Note: account data is not critical, so we don't want to fail whole request in case of error.
      */
-    private static Future<Account> accountFallback(Throwable exception, String accountId) {
-        if (exception instanceof PreBidException) {
-            return Future.succeededFuture(emptyAccount(accountId)); // no worry, account not found
+    private static Account accountFallback(Throwable exception, String accountId) {
+        if (!(exception instanceof PreBidException)) {
+            logger.warn("Error occurred while fetching account", exception);
         }
-        logger.warn("Error occurred while fetching account", exception);
-        return Future.failedFuture(exception);
+        return emptyAccount(accountId);
     }
 
     /**
