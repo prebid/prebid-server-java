@@ -57,14 +57,15 @@ public class PrivacyEnforcementService {
      * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link PrivacyEnforcementResult }&gt;&gt;}, where
      * bidders name mapped to masked {@link PrivacyEnforcementResult}.
      */
-    Future<Map<String, PrivacyEnforcementResult>> mask(Map<String, User> bidderToUser, ExtUser extUser,
-                                                       List<String> bidders, Map<String, String> aliases,
-                                                       BidRequest bidRequest, Boolean isGdprEnforced, Timeout timeout) {
+    Future<Map<String, PrivacyEnforcementResult>> mask(
+            Map<String, User> bidderToUser, ExtUser extUser, List<String> bidders, Map<String, String> aliases,
+            BidRequest bidRequest, Boolean isGdprEnforcedByAccount, Timeout timeout) {
+
         final Regs regs = bidRequest.getRegs();
         final ExtRegs extRegs = extRegs(regs);
         final Device device = bidRequest.getDevice();
 
-        return getVendorsToGdprPermission(device, bidders, aliases, extUser, extRegs, timeout, isGdprEnforced)
+        return getVendorsToGdprPermission(device, bidders, aliases, extUser, extRegs, isGdprEnforcedByAccount, timeout)
                 .map(vendorToGdprPermission -> getBidderToPrivacyEnforcementResult(bidderToUser, regs, extRegs, device,
                         aliases, vendorToGdprPermission));
     }
@@ -98,7 +99,7 @@ public class PrivacyEnforcementService {
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(
             Device device, List<String> bidders, Map<String, String> aliases, ExtUser extUser, ExtRegs extRegs,
-            Timeout timeout, Boolean isGdprEnforced) {
+            Boolean isGdprEnforcedByAccount, Timeout timeout) {
 
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
@@ -106,7 +107,7 @@ public class PrivacyEnforcementService {
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
         final Set<Integer> vendorIds = extractGdprEnforcedVendors(bidders, aliases);
 
-        return gdprService.isGdprEnforced(gdprAsString, isGdprEnforced, vendorIds)
+        return gdprService.isGdprEnforced(gdprAsString, isGdprEnforcedByAccount, vendorIds)
                 ? gdprService.resultByVendor(vendorIds, gdprAsString, gdprConsent, ipAddress, timeout)
                 .map(GdprResponse::getVendorsToGdpr)
                 : Future.succeededFuture(Collections.emptyMap());

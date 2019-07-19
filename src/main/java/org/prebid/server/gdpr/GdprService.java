@@ -59,10 +59,10 @@ public class GdprService {
      * - If GDPR doesn't enforced by account - returns FALSE.
      * - If there are no GDPR enforced vendors - returns FALSE.
      */
-    public boolean isGdprEnforced(String gdpr, Boolean isGdprEnforced, Set<Integer> vendorIds) {
+    public boolean isGdprEnforced(String gdpr, Boolean isGdprEnforcedByAccount, Set<Integer> vendorIds) {
         return isValidGdpr(gdpr)
                 ? gdpr.equals(GDPR_ONE)
-                : ObjectUtils.defaultIfNull(isGdprEnforced, !vendorIds.isEmpty());
+                : ObjectUtils.defaultIfNull(isGdprEnforcedByAccount, !vendorIds.isEmpty());
     }
 
     /**
