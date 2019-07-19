@@ -720,6 +720,25 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccured() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId").build())
+                        .build())
+                .build());
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException("error")));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        assertThat(account).isEqualTo(Account.builder().id("accountId").build());
+    }
+
+    @Test
     public void shouldReturnAuctionContextWithEmptyAccountIfItIsMissingInRequest() {
         // given
         givenValidBidRequest();
