@@ -239,14 +239,13 @@ public class ServiceConfiguration {
 
     @Bean
     GdprService gdprService(
-            ApplicationSettings applicationSettings,
             @Autowired(required = false) GeoLocationService geoLocationService,
             VendorListService vendorListService,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(applicationSettings, geoLocationService, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(geoLocationService, vendorListService, eeaCountries, defaultValue);
     }
 
     @Bean

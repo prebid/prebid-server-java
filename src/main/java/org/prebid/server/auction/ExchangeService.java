@@ -145,6 +145,7 @@ public class ExchangeService {
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
         final boolean eventsEnabled = isEventsEnabled(account);
+        final Boolean isGdprEnforced = account.getEnforceGdpr();
         final long startTime = clock.millis();
         final List<Imp> imps = bidRequest.getImp();
         final List<SeatBid> storedResponse = new ArrayList<>();
@@ -153,7 +154,7 @@ public class ExchangeService {
                 .getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest -> extractBidderRequests(bidRequest, impsRequiredRequest, requestExt,
-                        uidsCookie, aliases, publisherId, timeout))
+                        uidsCookie, aliases, isGdprEnforced, timeout))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
                                 requestTypeMetric))
@@ -237,7 +238,7 @@ public class ExchangeService {
      * <p>
      * This data is not critical, so returns false if null.
      */
-    private static Boolean isEventsEnabled(Account account) {
+    private static boolean isEventsEnabled(Account account) {
         return BooleanUtils.toBoolean(account.getEventsEnabled());
     }
 
@@ -287,7 +288,7 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, List<Imp> requestedImps,
                                                               ExtBidRequest requestExt, UidsCookie uidsCookie,
-                                                              Map<String, String> aliases, String publisherId,
+                                                              Map<String, String> aliases, Boolean isGdprEnforced,
                                                               Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
@@ -302,7 +303,7 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return makeBidderRequests(bidders, aliases, bidRequest, requestExt, uidsCookie, imps, publisherId, timeout);
+        return makeBidderRequests(bidders, aliases, bidRequest, requestExt, uidsCookie, imps, isGdprEnforced, timeout);
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -330,10 +331,10 @@ public class ExchangeService {
      * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
      * that don't have first party data allowed.
      */
-    private Future<List<BidderRequest>> makeBidderRequests(List<String> bidders, Map<String, String> aliases,
-                                                           BidRequest bidRequest, ExtBidRequest requestExt,
-                                                           UidsCookie uidsCookie, List<Imp> imps, String publisherId,
-                                                           Timeout timeout) {
+    private Future<List<BidderRequest>> makeBidderRequests(
+            List<String> bidders, Map<String, String> aliases, BidRequest bidRequest, ExtBidRequest requestExt,
+            UidsCookie uidsCookie, List<Imp> imps, Boolean isGdprEnforced, Timeout timeout) {
+
         final ExtUser extUser = extUser(bidRequest.getUser());
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
@@ -346,7 +347,7 @@ public class ExchangeService {
         }
 
         return privacyEnforcementService
-                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, publisherId, timeout)
+                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, isGdprEnforced, timeout)
                 .map(bidderToPrivacyEnforcementResult -> getBidderRequests(bidderToPrivacyEnforcementResult,
                         bidRequest, requestExt, imps, firstPartyDataBidders));
     }

@@ -57,14 +57,15 @@ public class PrivacyEnforcementService {
      * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link PrivacyEnforcementResult }&gt;&gt;}, where
      * bidders name mapped to masked {@link PrivacyEnforcementResult}.
      */
-    Future<Map<String, PrivacyEnforcementResult>> mask(Map<String, User> bidderToUser, ExtUser extUser,
-                                                       List<String> bidders, Map<String, String> aliases,
-                                                       BidRequest bidRequest, String publisherId, Timeout timeout) {
+    Future<Map<String, PrivacyEnforcementResult>> mask(
+            Map<String, User> bidderToUser, ExtUser extUser, List<String> bidders, Map<String, String> aliases,
+            BidRequest bidRequest, Boolean isGdprEnforcedByAccount, Timeout timeout) {
+
         final Regs regs = bidRequest.getRegs();
         final ExtRegs extRegs = extRegs(regs);
         final Device device = bidRequest.getDevice();
 
-        return getVendorsToGdprPermission(device, bidders, aliases, publisherId, extUser, extRegs, timeout)
+        return getVendorsToGdprPermission(device, bidders, aliases, extUser, extRegs, isGdprEnforcedByAccount, timeout)
                 .map(vendorToGdprPermission -> getBidderToPrivacyEnforcementResult(bidderToUser, regs, extRegs, device,
                         aliases, vendorToGdprPermission));
     }
@@ -97,8 +98,8 @@ public class PrivacyEnforcementService {
      * it means that pbs not enforced particular bidder to follow pbs GDPR procedure.
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(
-            Device device, List<String> bidders, Map<String, String> aliases, String publisherId, ExtUser extUser,
-            ExtRegs extRegs, Timeout timeout) {
+            Device device, List<String> bidders, Map<String, String> aliases, ExtUser extUser, ExtRegs extRegs,
+            Boolean isGdprEnforcedByAccount, Timeout timeout) {
 
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
@@ -106,11 +107,10 @@ public class PrivacyEnforcementService {
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
         final Set<Integer> vendorIds = extractGdprEnforcedVendors(bidders, aliases);
 
-        return gdprService.isGdprEnforced(gdprAsString, publisherId, vendorIds, timeout)
-                .compose(gdprEnforced -> !gdprEnforced
-                        ? Future.succeededFuture(Collections.emptyMap())
-                        : gdprService.resultByVendor(vendorIds, gdprAsString, gdprConsent, ipAddress, timeout)
-                        .map(GdprResponse::getVendorsToGdpr));
+        return gdprService.isGdprEnforced(gdprAsString, isGdprEnforcedByAccount, vendorIds)
+                ? gdprService.resultByVendor(vendorIds, gdprAsString, gdprConsent, ipAddress, timeout)
+                .map(GdprResponse::getVendorsToGdpr)
+                : Future.succeededFuture(Collections.emptyMap());
     }
 
     /**
