@@ -104,8 +104,7 @@
   },
   "regs": {
     "ext": {
-      "gdpr": 1
-    }
+  }
   },
   "ext": {
     "prebid": {

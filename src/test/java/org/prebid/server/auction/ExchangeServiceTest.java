@@ -7,6 +7,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
@@ -171,7 +172,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(inv ->
                         Future.succeededFuture(((Map<String, User>) inv.getArgument(0)).entrySet().stream()
                                 .collect(HashMap::new, (map, bidderToUserEntry) -> map.put(bidderToUserEntry.getKey(),
-                                        PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null, null)),
+                                        PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null)),
                                         HashMap::putAll)));
 
         given(privacyEnforcementService.mask(argThat(MapUtils::isEmpty), any(), any(), any(), any(), any(), any()))
@@ -835,6 +836,27 @@ public class ExchangeServiceTest extends VertxTest {
                 .buyeruid("buyeridFromRequest")
                 .ext(mapper.valueToTree(ExtUser.builder().build()))
                 .build());
+    }
+
+    @Test
+    public void shouldNotChangeGdprFromRequestWhenDeviceLmtIsOne() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
+
+        final Regs regs = Regs.of(null, null);
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.user(User.builder().build())
+                                .device(Device.builder().lmt(1).build())
+                                .regs(regs));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final Regs capturedRegs = captureBidRequest().getRegs();
+        assertThat(capturedRegs).isEqualTo(regs);
     }
 
     @Test

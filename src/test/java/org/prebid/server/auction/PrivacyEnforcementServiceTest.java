@@ -41,7 +41,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
@@ -60,7 +59,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private final static String BIDDER_NAME = "someBidder";
     private final static String BUYER_UID = "uidval";
-    private final static String PUBLISHER_ID = "pubId";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -138,7 +136,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(gdprService).resultByVendor(eq(singleton(15)), eq("1"), any(), any(), eq(timeout));
         verifyNoMoreInteractions(gdprService);
 
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device, regs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -167,7 +165,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(gdprService).isGdprEnforced(isNull(), eq(false), eq(singleton(15)));
         verifyNoMoreInteractions(gdprService);
 
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device, null);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -198,7 +196,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(gdprService).isGdprEnforced(eq("1"), eq(false), eq(singleton(15)));
         verifyNoMoreInteractions(gdprService);
 
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device, regs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -229,7 +227,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(gdprService).isGdprEnforced(eq("0"), eq(false), eq(singleton(15)));
         verifyNoMoreInteractions(gdprService);
 
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device, regs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(user, device);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -265,9 +263,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(metrics).updateGdprMaskedMetric(BIDDER_NAME);
         verifyNoMoreInteractions(metrics);
 
-        final Regs expectedRegs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked(),
-                expectedRegs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked());
         assertThat(result).hasSize(1)
                 .containsOnly(entry(alias, expected));
     }
@@ -298,8 +294,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(gdprService).isGdprEnforced(isNull(), eq(false), eq(singleton(15)));
         verifyNoMoreInteractions(gdprService);
 
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), deviceCoppaMasked(),
-                regs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), deviceCoppaMasked());
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -331,9 +326,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(metrics).updateGdprMaskedMetric(eq(BIDDER_NAME));
         verifyNoMoreInteractions(metrics);
 
-        final Regs expectedRegs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked(),
-                expectedRegs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked());
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -367,10 +360,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(metrics).updateGdprMaskedMetric(eq(BIDDER_NAME));
         verifyNoMoreInteractions(metrics);
 
-        final Regs expectedRegs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1)));
         final Device expectedDevice = givenGdprMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), expectedDevice,
-                expectedRegs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), expectedDevice);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -404,11 +395,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(metrics).updateGdprMaskedMetric(eq(BIDDER_NAME));
         verifyNoMoreInteractions(metrics);
 
-        final Regs expectedRegs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1)));
         //Coppa includes all masked fields for Gdpr
         final Device expectedDevice = givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), expectedDevice,
-                expectedRegs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), expectedDevice);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -516,11 +505,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(metrics).updateGdprMaskedMetric(eq(BIDDER_NAME));
         verifyNoMoreInteractions(metrics);
 
-        final Regs expectedRegs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1)));
         //Coppa includes all masked fields for Gdpr
         final Device expectedDevice = givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), expectedDevice,
-                expectedRegs);
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), expectedDevice);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -566,11 +553,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .result();
 
         // then
-        final Regs expectedRegs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1)));
-
         final PrivacyEnforcementResult expectedMasked = PrivacyEnforcementResult.of(
-                userGdprMasked(), deviceGdprMasked(), expectedRegs);
-        final PrivacyEnforcementResult expectedNotMasked = PrivacyEnforcementResult.of(user, device, regs);
+                userGdprMasked(), deviceGdprMasked());
+        final PrivacyEnforcementResult expectedNotMasked = PrivacyEnforcementResult.of(user, device);
 
         verify(gdprService).isGdprEnforced(eq("1"), eq(true), anySet());
         verify(gdprService).resultByVendor(anySet(), eq("1"), isNull(), isNull(), eq(timeout));
@@ -664,7 +649,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static <T> List<Imp> givenSingleImp(T ext) {
-        return singletonList(givenImp(ext, identity()));
+        return singletonList(givenImp(ext, Function.identity()));
     }
 
     private static <T> Imp givenImp(T ext, Function<Imp.ImpBuilder, Imp.ImpBuilder> impBuilderCustomizer) {
