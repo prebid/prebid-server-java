@@ -1,0 +1,21 @@
+adapters:
+  tappx:
+    enabled: false
+    endpoint: https://
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: tappx@tappx.com
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: tappx
+      type: redirect
+      support-cors: false

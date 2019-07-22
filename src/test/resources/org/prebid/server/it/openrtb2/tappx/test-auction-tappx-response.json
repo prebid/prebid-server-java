@@ -1,0 +1,180 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "wehM-93KGr0_0_0",
+          "impid": "adunit-1",
+          "price": 0.5,
+          "cid": "3706",
+          "crid": "19005",
+          "adid": "19005",
+          "adm": "<!-- admarkup -->",
+          "cat": ["IAB2"],
+          "adomain": ["test.com"],
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_size_tappx": "300x250",
+                "hb_size": "300x250",
+                "hb_bidder": "tappx",
+                "hb_cache_id_tappx": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                "hb_cache_id": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                "hb_bidder_tappx": "tappx",
+                "hb_pb_tappx": "0.50",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_tappx": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_tappx": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                  "cacheId": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "tappx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "tappx": [
+          {
+            "uri": "{{ tappx.exchange_uri }}/test.tappx.com/PREBIDTEMPLATE?tappxkey=pub-12345-android-9876&v=1.0",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId12\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"ext\":{\"bidder\":{\"tappxkey\":\"pub-12345-android-9876\",\"endpoint\":\"PREBIDTEMPLATE\",\"host\":\"test.tappx.com/\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"TX-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"seat\":\"rtbhouse\",\"bid\":[{\"id\":\"wehM-93KGr0_0_0\",\"impid\":\"adunit-1\",\"price\":0.5,\"cid\":\"3706\",\"crid\":\"19005\",\"adid\":\"19005\",\"adm\":\"<!-- admarkup -->\",\"cat\":[\"IAB2\"],\"adomain\":[\"test.com\"],\"h\":250,\"w\":300}]}],\"bidid\":\"bid01\"}",
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"wehM-93KGr0_0_0\",\"impid\":\"adunit-1\",\"price\":0.5,\"adm\":\"<!-- admarkup -->\",\"adid\":\"19005\",\"adomain\":[\"test.com\"],\"cid\":\"3706\",\"crid\":\"19005\",\"cat\":[\"IAB2\"],\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"9c0c4f2f-686f-4673-a00a-d8cae7e7a05d\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId12",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "tappx": {
+                "tappxkey": "pub-12345-android-9876",
+                "endpoint": "PREBIDTEMPLATE",
+                "host": "test.tappx.com/"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "tappx": "{{ tappx.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}
