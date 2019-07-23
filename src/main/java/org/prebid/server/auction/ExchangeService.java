@@ -504,7 +504,6 @@ public class ExchangeService {
         return BidderRequest.of(bidder, bidRequest.toBuilder()
                 .user(privacyEnforcementResult.getUser())
                 .device(privacyEnforcementResult.getDevice())
-                .regs(regs)
                 .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                 .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
                 .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
