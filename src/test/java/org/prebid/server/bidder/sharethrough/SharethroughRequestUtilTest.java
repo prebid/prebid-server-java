@@ -39,22 +39,6 @@ public class SharethroughRequestUtilTest {
     }
 
     @Test
-    public void getUaShouldReturnNullWhenDeviceIsNull() {
-        // given when and then
-        assertThat(SharethroughRequestUtil.getUa(null)).isNull();
-    }
-
-    @Test
-    public void getUaShouldReturnUaWhenDevicePresent() {
-        // given
-        final String ua = "ua";
-        final Device device = Device.builder().ua(ua).build();
-
-        // when and then
-        assertThat(SharethroughRequestUtil.getUa(device)).isEqualTo(ua);
-    }
-
-    @Test
     public void getHostShouldReturnEmptyStringWhenStringIsNotUri() {
         // given when and then
         assertThat(SharethroughRequestUtil.getHost(null)).isEmpty();
@@ -71,9 +55,9 @@ public class SharethroughRequestUtilTest {
         final String thirdUri = "http://a.domain.com:8000/page?param=value/";
 
         // when and then
-        assertThat(SharethroughRequestUtil.getHost(firstUri)).isEqualTo("rubiconproject.com");
-        assertThat(SharethroughRequestUtil.getHost(secondUri)).isEqualTo("a.domain.com");
-        assertThat(SharethroughRequestUtil.getHost(thirdUri)).isEqualTo("a.domain.com");
+        assertThat(SharethroughRequestUtil.getHost(firstUri)).isEqualTo("https://rubiconproject.com");
+        assertThat(SharethroughRequestUtil.getHost(secondUri)).isEqualTo("http://a.domain.com");
+        assertThat(SharethroughRequestUtil.getHost(thirdUri)).isEqualTo("http://a.domain.com");
     }
 
 

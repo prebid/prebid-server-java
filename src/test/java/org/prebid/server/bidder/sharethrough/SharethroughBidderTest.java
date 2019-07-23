@@ -82,6 +82,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .id("request_id")
                 .site(Site.builder().page("http://page.com").build())
+                .device(Device.builder().build())
                 .build();
 
         // when
@@ -102,7 +103,8 @@ public class SharethroughBidderTest extends VertxTest {
                                 ExtImpSharethrough.of("pkey", false, Arrays.asList(100, 200)))))
                         .build()))
                 .id("request_id")
-                .site(Site.builder().page("http://page.com").build())
+                .site(Site.builder().page("https://page.com").build())
+                .device(Device.builder().build())
                 .build();
 
         // when
@@ -116,7 +118,7 @@ public class SharethroughBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
-                        tuple(HttpUtil.ORIGIN_HEADER.toString(), "page.com"),
+                        tuple(HttpUtil.ORIGIN_HEADER.toString(), "https://page.com"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
     }
 
@@ -132,14 +134,14 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .app(App.builder().ext(Json.mapper.createObjectNode()).build())
                 .site(Site.builder().page("http://page.com").build())
-                .device(Device.builder().ua("Android Chrome/60.0.3112").build())
+                .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
                 .build();
 
         // when
         final Result<List<HttpRequest<Void>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=&instant_play_capable=true&stayInIframe=false&height=10&width=20&supplyId=FGMrCMMc&strVersion=1.0.0";
+        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=&instant_play_capable=true&stayInIframe=false&height=10&width=20&supplyId=FGMrCMMc&strVersion=1.0.1";
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -148,6 +150,14 @@ public class SharethroughBidderTest extends VertxTest {
                 .returns(null, HttpRequest::getBody)
                 .returns(null, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
+        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ORIGIN_HEADER.toString(), "http://page.com"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "127.0.0.1"),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "Android Chrome/60.0.3112"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
     }
 
     @Test
@@ -159,13 +169,14 @@ public class SharethroughBidderTest extends VertxTest {
                                 ExtImpSharethrough.of("pkey", false, null))))
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
+                .device(Device.builder().build())
                 .build();
 
         // when
         final Result<List<HttpRequest<Void>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=&instant_play_capable=false&stayInIframe=false&height=1&width=1&supplyId=FGMrCMMc&strVersion=1.0.0";
+        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=&instant_play_capable=false&stayInIframe=false&height=1&width=1&supplyId=FGMrCMMc&strVersion=1.0.1";
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()

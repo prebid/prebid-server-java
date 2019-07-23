@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class SharethroughBidder implements Bidder<Void> {
 
-    private static final String VERSION = "1.0.0";
+    private static final String VERSION = "1.0.1";
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.xNative;
@@ -72,9 +73,7 @@ public class SharethroughBidder implements Bidder<Void> {
                     String.format("Error occurred parsing sharethrough parameters %s", e.getMessage())));
         }
 
-        final MultiMap headers = HttpUtil.headers()
-                .add("Origin", SharethroughRequestUtil.getHost(page));
-
+        final MultiMap headers = makeHeaders(request.getDevice(), page);
         final List<HttpRequest<Void>> httpRequests = strUriParameters.stream()
                 .map(strUriParameter -> SharethroughUriBuilderUtil.buildSharethroughUrl(
                         endpointUrl, SUPPLY_ID, VERSION, strUriParameter))
@@ -93,8 +92,7 @@ public class SharethroughBidder implements Bidder<Void> {
         final ExtUser extUser = SharethroughRequestUtil.getExtUser(request.getUser());
         final String consent = SharethroughRequestUtil.getConsent(extUser);
 
-        final String ua = SharethroughRequestUtil.getUa(request.getDevice());
-        final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(ua);
+        final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
 
         final List<StrUriParameters> strUriParameters = new ArrayList<>();
         for (Imp imp : request.getImp()) {
@@ -107,7 +105,7 @@ public class SharethroughBidder implements Bidder<Void> {
     }
 
     /**
-     * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values
+     * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values.
      */
     private StrUriParameters createStrUriParameters(boolean isConsentRequired, String consentString,
                                                     boolean canBrowserAutoPlayVideo, Imp imp,
@@ -126,7 +124,25 @@ public class SharethroughBidder implements Bidder<Void> {
     }
 
     /**
-     * Make {@link HttpRequest} from uri and headers
+     * Make Headers for request.
+     */
+    private MultiMap makeHeaders(Device device, String page) {
+        final MultiMap headers = HttpUtil.headers()
+                .add("Origin", SharethroughRequestUtil.getHost(page));
+        final String ip = device.getIp();
+        if (ip != null) {
+            headers.add("X-Forwarded-For", ip);
+        }
+
+        final String ua = device.getUa();
+        if (ua != null) {
+            headers.add("User-Agent", ua);
+        }
+        return headers;
+    }
+
+    /**
+     * Make {@link HttpRequest} from uri and headers.
      */
     private HttpRequest<Void> makeHttpRequest(String uri, MultiMap headers) {
         return HttpRequest.<Void>builder()
