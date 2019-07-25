@@ -3,7 +3,6 @@ package org.prebid.server.bidder.sharethrough;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -31,7 +30,7 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves size from imp.ext.sharethrough.iframeSize or from im.banner.format
+     * Retrieves size from imp.ext.sharethrough.iframeSize or from im.banner.format.
      */
     static Size getSize(Imp imp, ExtImpSharethrough extImpSharethrough) {
         final List<Integer> iframeSize = extImpSharethrough.getIframeSize();
@@ -88,7 +87,7 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves {@link ExtUser} from user.ext or returns null in case of exception or when user or user.ext null
+     * Retrieves {@link ExtUser} from user.ext or returns null in case of exception or when user or user.ext null.
      */
     static ExtUser getExtUser(User user) {
         final ObjectNode extUserNode = user != null ? user.getExt() : null;
@@ -100,14 +99,7 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves device.ua from device or null if device is null
-     */
-    static String getUa(Device device) {
-        return device != null ? device.getUa() : null;
-    }
-
-    /**
-     * Check min browser version from userAgent
+     * Check min browser version from userAgent.
      */
     static boolean canBrowserAutoPlayVideo(String userAgent) {
         if (StringUtils.isBlank(userAgent)) {
@@ -124,7 +116,7 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Return uri host or empty string in case of bad uri
+     * Return uri host or empty string in case of bad uri.
      */
     static String getHost(String uriString) {
         if (StringUtils.isBlank(uriString)) {
@@ -133,7 +125,8 @@ class SharethroughRequestUtil {
         try {
             final URI uri = new URI(uriString);
             final String host = uri.getHost();
-            return host != null ? host : "";
+            final String scheme = uri.getScheme();
+            return host != null ? scheme + "://" + host : "";
         } catch (URISyntaxException e) {
             return "";
         }

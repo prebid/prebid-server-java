@@ -63,7 +63,7 @@
           {
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\",\"deal_id\":\"dealId\"},\"version\":0}]}",
             "status": 200,
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&supplyId=FGMrCMMc&strVersion=1.0.0"
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&supplyId=FGMrCMMc&strVersion=1.0.1"
           }
         ]
       },
@@ -103,10 +103,10 @@
         "device": {
           "dnt": 2,
           "ifa": "ifaId",
-          "ip": "192.168.244.1",
+          "ua": "Android Chrome/60",
+          "ip" : "127.0.0.1",
           "language": "en",
-          "pxratio": 4.2,
-          "ua": "userAgent"
+          "pxratio": 4.2
         },
         "site": {
           "domain": "example.com",
