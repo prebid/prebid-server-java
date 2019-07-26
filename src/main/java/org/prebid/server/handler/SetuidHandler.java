@@ -36,6 +36,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final String GDPR_PARAM = "gdpr";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final String UID_PARAM = "uid";
+    private static final String FORMAT_PARAM = "format";
+    private static final String IMG_FORMAT_PARAM = "img";
+    private static final String PIXEL_FILE_PATH = "static/tracking-pixel.png";
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -145,7 +148,15 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
-        context.addCookie(cookie).response().end();
+        context.addCookie(cookie);
+
+        // Send pixel file to response if "format=img"
+        final String format = context.request().getParam(FORMAT_PARAM);
+        if (StringUtils.equals(format, IMG_FORMAT_PARAM)) {
+            context.response().sendFile(PIXEL_FILE_PATH);
+        } else {
+            context.response().end();
+        }
 
         analyticsReporter.processEvent(SetuidEvent.builder()
                 .status(HttpResponseStatus.OK.code())

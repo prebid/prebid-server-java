@@ -184,6 +184,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
+        verify(httpResponse, never()).sendFile(any());
         verify(routingContext, never()).addCookie(any());
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Unexpected GDPR processing error"));
@@ -224,6 +225,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("format")).willReturn("img");
 
         // this uids cookie stands for {"tempUIDs":{"adnxs":{"uid":"12345"}}}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
@@ -234,7 +236,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         final Cookie uidsCookie = captureCookie();
-        verify(httpResponse).end();
+        verify(httpResponse).sendFile(any());
         // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
         final Uids decodedUids = decodeUids(uidsCookie.getValue());
         assertThat(decodedUids.getUids()).hasSize(1);
@@ -260,6 +262,7 @@ public class SetuidHandlerTest extends VertxTest {
         // then
         final Cookie uidsCookie = captureCookie();
         verify(httpResponse).end();
+        verify(httpResponse, never()).sendFile(any());
         // this uids cookie value stands for {"uids":{"audienceNetwork":"facebookUid"}}
         final Uids decodedUids = decodeUids(uidsCookie.getValue());
         assertThat(decodedUids.getUids()).hasSize(1);
@@ -277,6 +280,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("format")).willReturn("img");
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
@@ -285,7 +289,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end();
+        verify(httpResponse).sendFile(any());
         final Cookie uidsCookie = captureCookie();
         final Uids decodedUids = decodeUids(uidsCookie.getValue());
         assertThat(decodedUids.getUids()).hasSize(1);
