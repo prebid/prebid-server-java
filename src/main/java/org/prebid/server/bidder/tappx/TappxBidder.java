@@ -48,19 +48,14 @@ public class TappxBidder implements Bidder<BidRequest> {
     /**
      * Makes the HTTP requests which should be made to fetch bids.
      * <p>
-     * Creates POST http request with all parameters in url and headers with empty body.
+     * Creates POST http request with all parameters in url and headers with encoded request in body.
      */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpTappx extImpTappx;
-        try {
-            extImpTappx = parseBidRequestToExtImpTappx(request);
-        } catch (IllegalArgumentException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
-        }
-
         final String url;
         try {
+            extImpTappx = parseBidRequestToExtImpTappx(request);
             url = buildEndpointUrl(extImpTappx, request.getTest());
         } catch (IllegalArgumentException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
@@ -142,10 +137,8 @@ public class TappxBidder implements Bidder<BidRequest> {
         BidType bidType = BidType.banner;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return bidType;
-                } else if (imp.getVideo() != null) {
-                    bidType = BidType.video;
+                if (imp.getVideo() != null) {
+                    return BidType.video;
                 }
             }
         }

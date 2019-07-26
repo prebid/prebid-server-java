@@ -3,6 +3,7 @@ package org.prebid.server.bidder.tappx;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -27,6 +28,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class TappxBidderTest extends VertxTest {
 
@@ -69,7 +71,7 @@ public class TappxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host", "tappxkey", "endpoint"))))
+                                ExtImpTappx.of("host/", "tappxkey", "endpoint"))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -90,7 +92,7 @@ public class TappxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host", "tappxkey", "endpoint"))))
+                                ExtImpTappx.of("host/", "tappxkey", "endpoint"))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -109,7 +111,7 @@ public class TappxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenExtParameterIsEmpty() {
+    public void makeHttpRequestsShouldReturnErrorWhenEitherOfExtParametersIsEmpty() {
         // given
         final BidRequest bidRequestEmptyHost = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -187,7 +189,26 @@ public class TappxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = TappxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnDefaultBannerBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
