@@ -341,11 +341,9 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().id("id").build()),
                 builder -> builder.video(Video.builder().build()),
-                builder -> {
-                    builder.visitor(mapper.valueToTree("{}"));
-                    builder.inventory(mapper.valueToTree("{}"));
-                    return builder;
-                });
+                builder -> builder
+                        .visitor(mapper.createObjectNode())
+                        .inventory(mapper.createObjectNode()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);

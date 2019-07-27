@@ -267,8 +267,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app,
                                        boolean useFirstPartyData) {
         final JsonNode inventory = rubiconImpExt.getInventory();
-        final ObjectNode inventoryNode = inventory.isNull() || inventory.size() == 0 ? Json.mapper.createObjectNode()
-                : (ObjectNode) inventory;
+        final ObjectNode inventoryNode = inventory.isNull() ? Json.mapper.createObjectNode() : (ObjectNode) inventory;
 
         if (useFirstPartyData) {
             final ExtImpContext context = extImpContext(imp);
