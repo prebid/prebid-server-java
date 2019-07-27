@@ -42,7 +42,7 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     public TappxBidder(String endpointUrl) {
         final String validatedEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.endpointUrl = validatedEndpoint.equals("https:") ? "https://" : validatedEndpoint;
+        this.endpointUrl = validatedEndpoint.endsWith(":") ? validatedEndpoint + "//" : validatedEndpoint;
     }
 
     /**
@@ -57,7 +57,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         try {
             extImpTappx = parseBidRequestToExtImpTappx(request);
             url = buildEndpointUrl(extImpTappx, request.getTest());
-        } catch (IllegalArgumentException e) {
+        } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
 
@@ -76,8 +76,12 @@ public class TappxBidder implements Bidder<BidRequest> {
      * Retrieves first {@link ExtImpTappx} from {@link Imp}.
      */
     private static ExtImpTappx parseBidRequestToExtImpTappx(BidRequest request) {
-        return Json.mapper.<ExtPrebid<?, ExtImpTappx>>convertValue(
-                request.getImp().get(0).getExt(), TAPX_EXT_TYPE_REFERENCE).getBidder();
+        try {
+            return Json.mapper.<ExtPrebid<?, ExtImpTappx>>convertValue(
+                    request.getImp().get(0).getExt(), TAPX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -86,17 +90,17 @@ public class TappxBidder implements Bidder<BidRequest> {
     private String buildEndpointUrl(ExtImpTappx extImpTappx, Integer test) {
         final String host = extImpTappx.getHost();
         if (StringUtils.isBlank(host)) {
-            throw new IllegalArgumentException("Tappx host undefined");
+            throw new PreBidException("Tappx host undefined");
         }
 
         final String endpoint = extImpTappx.getEndpoint();
         if (StringUtils.isBlank(endpoint)) {
-            throw new IllegalArgumentException("Tappx endpoint undefined");
+            throw new PreBidException("Tappx endpoint undefined");
         }
 
         final String tappxkey = extImpTappx.getTappxkey();
         if (StringUtils.isBlank(tappxkey)) {
-            throw new IllegalArgumentException("Tappx tappxkey undefined");
+            throw new PreBidException("Tappx tappxkey undefined");
         }
 
         String url = String.format("%s%s%s?tappxkey=%s", endpointUrl, host, endpoint, tappxkey);
@@ -106,6 +110,13 @@ public class TappxBidder implements Bidder<BidRequest> {
         }
 
         url += "&v=" + VERSION;
+
+        try {
+            HttpUtil.validateUrl(url);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Not valid url: " + url, e);
+        }
+
         return url;
     }
 
@@ -134,7 +145,6 @@ public class TappxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
-        BidType bidType = BidType.banner;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {
@@ -142,7 +152,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        return bidType;
+        return BidType.banner;
     }
 
     @Override

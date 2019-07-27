@@ -34,11 +34,11 @@ public class TappxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://";
 
-    private TappxBidder TappxBidder;
+    private TappxBidder tappxBidder;
 
     @Before
     public void setUp() {
-        TappxBidder = new TappxBidder(ENDPOINT_URL);
+        tappxBidder = new TappxBidder(ENDPOINT_URL);
     }
 
     @Test
@@ -57,7 +57,7 @@ public class TappxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = TappxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -77,7 +77,7 @@ public class TappxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = TappxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -98,7 +98,7 @@ public class TappxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = TappxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -132,9 +132,9 @@ public class TappxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> emptyHostResult = TappxBidder.makeHttpRequests(bidRequestEmptyHost);
-        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult = TappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
-        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult = TappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
+        final Result<List<HttpRequest<BidRequest>>> emptyHostResult = tappxBidder.makeHttpRequests(bidRequestEmptyHost);
+        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult = tappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
+        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult = tappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
 
         // then
         assertThat(emptyHostResult.getErrors()).hasSize(1);
@@ -151,7 +151,7 @@ public class TappxBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = TappxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = tappxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -167,7 +167,7 @@ public class TappxBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = TappxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = tappxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -181,7 +181,7 @@ public class TappxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = TappxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = tappxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -199,7 +199,7 @@ public class TappxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = TappxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = tappxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -218,7 +218,7 @@ public class TappxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = TappxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = tappxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -228,7 +228,7 @@ public class TappxBidderTest extends VertxTest {
 
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(TappxBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+        assertThat(tappxBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
