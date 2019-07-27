@@ -214,7 +214,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static JsonNode makeInventory(RubiconParams rubiconParams) {
         final JsonNode inventory = rubiconParams.getInventory();
-        return !inventory.isNull() ? inventory : null;
+        return !inventory.isNull() && inventory.size() != 0 ? inventory : null;
     }
 
     private static RubiconImpExtRpTrack makeImpExtRpTrack(PreBidRequestContext preBidRequestContext) {
@@ -333,7 +333,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, User user, ExtUser extUser) {
         final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
         final JsonNode visitorNode = rubiconParams.getVisitor();
-        final JsonNode visitor = !visitorNode.isNull() ? visitorNode : null;
+        final JsonNode visitor = !visitorNode.isNull() && visitorNode.size() != 0 ? visitorNode : null;
         final String gender = user != null ? user.getGender() : null;
         final Integer yob = user != null ? user.getYob() : null;
         final Geo geo = user != null ? user.getGeo() : null;

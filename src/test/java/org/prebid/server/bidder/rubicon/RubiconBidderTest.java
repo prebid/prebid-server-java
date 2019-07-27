@@ -336,6 +336,27 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotFillUserExtRpWhenVisitorAndInventoryIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().id("id").build()),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder
+                        .visitor(mapper.createObjectNode())
+                        .inventory(mapper.createObjectNode()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .containsOnly(User.builder().id("id").build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillUserExtIfUserAndDigiTrustPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
