@@ -42,11 +42,6 @@ public class TappxBidderTest extends VertxTest {
     }
 
     @Test
-    public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new TappxBidder("invalid_url"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()

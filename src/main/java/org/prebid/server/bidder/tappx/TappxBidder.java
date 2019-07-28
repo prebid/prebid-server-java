@@ -41,8 +41,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
 
     public TappxBidder(String endpointUrl) {
-        final String validatedEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.endpointUrl = validatedEndpoint.endsWith(":") ? validatedEndpoint + "//" : validatedEndpoint;
+        this.endpointUrl = Objects.requireNonNull(endpointUrl);
     }
 
     /**
