@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -141,7 +140,7 @@ public class ExchangeService {
         }
 
         final Map<String, String> aliases = aliases(requestExt);
-        final String publisherId = publisherId(bidRequest);
+        final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
@@ -151,8 +150,7 @@ public class ExchangeService {
         final List<Imp> imps = bidRequest.getImp();
         final List<SeatBid> storedResponse = new ArrayList<>();
 
-        return storedResponseProcessor
-                .getStoredResponseResult(imps, aliases, timeout)
+        return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest -> extractBidderRequests(bidRequest, impsRequiredRequest, requestExt,
                         uidsCookie, aliases, isGdprEnforced, timeout))
@@ -205,22 +203,6 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
-    }
-
-    /**
-     * Extracts publisher id either from {@link BidRequest}.app.publisher.id or {@link BidRequest}.site.publisher.id.
-     * If neither is present returns empty string.
-     */
-    private static String publisherId(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        final Publisher appPublisher = app != null ? app.getPublisher() : null;
-        final Site site = bidRequest.getSite();
-        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
-
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
-
-        final String publisherId = publisher != null ? publisher.getId() : null;
-        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
 
     /**

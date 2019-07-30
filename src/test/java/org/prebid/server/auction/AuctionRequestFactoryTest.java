@@ -31,6 +31,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -681,11 +682,35 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAuctionContextWithAccount() {
+    public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherExt() {
         // given
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
-                        .publisher(Publisher.builder().id("accountId").build())
+                        .publisher(Publisher.builder().id("accountId")
+                                .ext(mapper.valueToTree(ExtPublisher.of("parentAccount")))
+                                .build())
+                        .build())
+                .build());
+
+        final Account givenAccount = Account.builder().id("parentAccount").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        verify(applicationSettings).getAccountById(eq("parentAccount"), any());
+
+        assertThat(account).isSameAs(givenAccount);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherIdWhenExtIsNull() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId").ext(null).build())
                         .build())
                 .build());
 
@@ -697,6 +722,31 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
 
         // then
+        verify(applicationSettings).getAccountById(eq("accountId"), any());
+
+        assertThat(account).isSameAs(givenAccount);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherIdWhenExtParentIsEmpty() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId")
+                                .ext(mapper.valueToTree(ExtPublisher.of(""))).build())
+                        .build())
+                .build());
+
+        final Account givenAccount = Account.builder().id("accountId").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        verify(applicationSettings).getAccountById(eq("accountId"), any());
+
         assertThat(account).isSameAs(givenAccount);
     }
 
@@ -705,7 +755,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
-                        .publisher(Publisher.builder().id("accountId").build())
+                        .publisher(Publisher.builder().id("accountId")
+                                .ext(mapper.valueToTree(ExtPublisher.of("parentAccount")))
+                                .build())
                         .build())
                 .build());
 
@@ -716,7 +768,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
 
         // then
-        assertThat(account).isEqualTo(Account.builder().id("accountId").build());
+        verify(applicationSettings).getAccountById(eq("parentAccount"), any());
+
+        assertThat(account).isEqualTo(Account.builder().id("parentAccount").build());
     }
 
     @Test
@@ -735,6 +789,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
 
         // then
+        verify(applicationSettings).getAccountById(eq("accountId"), any());
+
         assertThat(account).isEqualTo(Account.builder().id("accountId").build());
     }
 

@@ -30,6 +30,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -540,7 +541,7 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Extracts publisher id either from {@link BidRequest}.app.publisher.id or {@link BidRequest}.site.publisher.id.
+     * Extracts publisher id either from {@link BidRequest}.app.publisher or {@link BidRequest}.site.publisher.
      * If neither is present returns empty string.
      */
     private static String accountIdFrom(BidRequest bidRequest) {
@@ -551,8 +552,34 @@ public class AuctionRequestFactory {
 
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
 
-        final String publisherId = publisher != null ? publisher.getId() : null;
+        final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+    }
+
+    /**
+     * Resolves what value should be used as a publisher id - either taken from publisher.ext.parentAccount
+     * or publisher.id in this respective priority.
+     */
+    private static String resolvePublisherId(Publisher publisher) {
+        final ObjectNode extPublisherNode = publisher.getExt();
+        if (extPublisherNode != null) {
+            final String parentAccount = getParentAccountFromExt(extPublisherNode);
+            if (StringUtils.isNotBlank(parentAccount)) {
+                return parentAccount;
+            }
+        }
+        return publisher.getId();
+    }
+
+    /**
+     * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
+     */
+    private static String getParentAccountFromExt(ObjectNode extPublisher) {
+        try {
+            return Json.mapper.convertValue(extPublisher, ExtPublisher.class).getParentAccount();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
