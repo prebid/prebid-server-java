@@ -561,21 +561,25 @@ public class AuctionRequestFactory {
      * or publisher.id in this respective priority.
      */
     private static String resolvePublisherId(Publisher publisher) {
-        final ObjectNode publisherExt = publisher.getExt();
-        final String publisherId = publisher.getId();
-        if (publisherExt != null) {
-            try {
-                final ExtPublisher extPublisher = Json.mapper.convertValue(publisherExt, ExtPublisher.class);
-                final String parentAccount = extPublisher.getParentAccount();
-
-                if (StringUtils.isNotBlank(parentAccount)) {
-                    return parentAccount;
-                }
-            } catch (IllegalArgumentException e) {
-                return publisherId;
+        final ObjectNode extPublisherNode = publisher.getExt();
+        if (extPublisherNode != null) {
+            final String parentAccount = getParentAccountFromExt(extPublisherNode);
+            if (StringUtils.isNotBlank(parentAccount)) {
+                return parentAccount;
             }
         }
-        return publisherId;
+        return publisher.getId();
+    }
+
+    /**
+     * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
+     */
+    private static String getParentAccountFromExt(ObjectNode extPublisher) {
+        try {
+            return Json.mapper.convertValue(extPublisher, ExtPublisher.class).getParentAccount();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
