@@ -8,6 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
@@ -27,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -47,6 +49,7 @@ public class AmpRequestFactory {
     private static final String CURL_REQUEST_PARAM = "curl";
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
+    private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final StoredRequestProcessor storedRequestProcessor;
@@ -199,13 +202,15 @@ public class AmpRequestFactory {
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
+        final User updatedUser = overrideUser(bidRequest.getUser(), request);
 
         final BidRequest result;
-        if (updatedSite != null || updatedImp != null || updatedTimeout != null) {
+        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null) {
             result = bidRequest.toBuilder()
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
+                    .user(updatedUser != null ? updatedUser : bidRequest.getUser())
                     .build();
         } else {
             result = bidRequest;
@@ -272,6 +277,18 @@ public class AmpRequestFactory {
         return CollectionUtils.isNotEmpty(paramsFormats)
                 ? paramsFormats
                 : updateFormatsFromParams(formats, width, height);
+    }
+
+    private static Integer parseIntParamOrZero(HttpServerRequest request, String name) {
+        return parseIntOrZero(request.getParam(name));
+    }
+
+    private static Integer parseIntOrZero(String param) {
+        try {
+            return Integer.parseInt(param);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**
@@ -343,15 +360,36 @@ public class AmpRequestFactory {
         return timeout > 0 && !Objects.equals(timeout, tmax) ? timeout : null;
     }
 
-    private static Integer parseIntParamOrZero(HttpServerRequest request, String name) {
-        return parseIntOrZero(request.getParam(name));
+    private static User overrideUser(User user, HttpServerRequest request) {
+        final String gdprConsent = request.getParam(GDPR_CONSENT_PARAM);
+        if (StringUtils.isBlank(gdprConsent)) {
+            return null;
+        }
+
+        final boolean hasUser = user != null;
+        final ObjectNode extUserNode = hasUser ? user.getExt() : null;
+
+        final ExtUser.ExtUserBuilder extUserBuilder = extUserNode != null
+                ? extractExtUser(extUserNode).toBuilder()
+                : ExtUser.builder();
+
+        final ExtUser updatedExtUser = extUserBuilder.consent(gdprConsent).build();
+
+        final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
+
+        return userBuilder
+                .ext(Json.mapper.valueToTree(updatedExtUser))
+                .build();
     }
 
-    private static Integer parseIntOrZero(String param) {
+    /**
+     * Extracts {@link ExtUser} from bidrequest.user.ext {@link ObjectNode}.
+     */
+    private static ExtUser extractExtUser(ObjectNode extUserNode) {
         try {
-            return Integer.parseInt(param);
-        } catch (NumberFormatException e) {
-            return 0;
+            return Json.mapper.treeToValue(extUserNode, ExtUser.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()));
         }
     }
 
