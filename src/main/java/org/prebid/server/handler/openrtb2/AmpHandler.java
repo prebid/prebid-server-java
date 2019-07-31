@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -109,7 +110,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .build())
 
                 .map(context -> addToEvent(context.getBidRequest(), ampEventBuilder::bidRequest, context))
-                .map(context -> updateAppAndNoCookieAndImpsRequestedMetrics(context, isSafari))
+                .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
 
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
@@ -130,12 +131,15 @@ public class AmpHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private AuctionContext updateAppAndNoCookieAndImpsRequestedMetrics(AuctionContext context, boolean isSafari) {
+    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context, boolean isSafari) {
         final BidRequest bidRequest = context.getBidRequest();
         final UidsCookie uidsCookie = context.getUidsCookie();
 
+        final List<Imp> imps = bidRequest.getImp();
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                isSafari, bidRequest.getImp().size());
+                isSafari, imps.size());
+
+        metrics.updateImpTypesMetrics(imps);
 
         return context;
     }

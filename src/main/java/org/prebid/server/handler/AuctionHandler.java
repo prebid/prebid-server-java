@@ -30,6 +30,7 @@ import org.prebid.server.gdpr.GdprUtils;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderInfo;
@@ -44,6 +45,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -109,7 +111,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         String.format("Error parsing request: %s", exception.getMessage()), exception))
 
                 .map(preBidRequestContext ->
-                        updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext, isSafari))
+                        updateAppAndNoCookieAndImpsMetrics(preBidRequestContext, isSafari))
 
                 .compose(preBidRequestContext -> accountFrom(preBidRequestContext)
                         .map(account -> Tuple2.of(preBidRequestContext, account)))
@@ -140,12 +142,22 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         respondWith(bidResponseOrError(preBidResponseResult), context, startTime));
     }
 
-    private PreBidRequestContext updateAppAndNoCookieAndImpsRequestedMetrics(
-            PreBidRequestContext preBidRequestContext, boolean isSafari) {
+    private PreBidRequestContext updateAppAndNoCookieAndImpsMetrics(PreBidRequestContext preBidRequestContext,
+                                                                    boolean isSafari) {
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final List<AdUnit> adUnits = preBidRequest.getAdUnits();
 
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext.getPreBidRequest().getApp() != null,
-                !preBidRequestContext.isNoLiveUids(), isSafari,
-                preBidRequestContext.getPreBidRequest().getAdUnits().size());
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequest.getApp() != null,
+                !preBidRequestContext.isNoLiveUids(), isSafari, adUnits.size());
+
+        final Map<String, Long> mediaTypeToCount = adUnits.stream()
+                .map(AdUnit::getMediaTypes)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(String::toLowerCase, Collectors.counting()));
+
+        metrics.updateImpTypesMetrics(mediaTypeToCount);
 
         return preBidRequestContext;
     }

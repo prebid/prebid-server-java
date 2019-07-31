@@ -1,13 +1,18 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import com.iab.openrtb.request.Imp;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Defines interface for submitting different kinds of metrics.
@@ -81,6 +86,57 @@ public class Metrics extends UpdatableMetrics {
             }
         }
         incCounter(MetricName.imps_requested, numImps);
+    }
+
+    public void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
+        for (Map.Entry<String, Long> mediaTypeCount : countPerMediaType.entrySet()) {
+            switch (mediaTypeCount.getKey()) {
+                case "banner":
+                    incCounter(MetricName.imps_banner, mediaTypeCount.getValue());
+                    break;
+                case "video":
+                    incCounter(MetricName.imps_video, mediaTypeCount.getValue());
+                    break;
+                case "native":
+                    incCounter(MetricName.imps_native, mediaTypeCount.getValue());
+                    break;
+                case "audio":
+                    incCounter(MetricName.imps_audio, mediaTypeCount.getValue());
+                    break;
+                default:
+                    // ignore unrecognized media types
+                    break;
+            }
+        }
+    }
+
+    public void updateImpTypesMetrics(List<Imp> imps) {
+
+        final Map<String, Long> mediaTypeToCount = imps.stream()
+                .map(Metrics::getPresentMediaTypes)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        updateImpTypesMetrics(mediaTypeToCount);
+    }
+
+    private static List<String> getPresentMediaTypes(Imp imp) {
+        final List<String> impMediaTypes = new ArrayList<>();
+
+        if (imp.getBanner() != null) {
+            impMediaTypes.add("banner");
+        }
+        if (imp.getVideo() != null) {
+            impMediaTypes.add("video");
+        }
+        if (imp.getXNative() != null) {
+            impMediaTypes.add("native");
+        }
+        if (imp.getAudio() != null) {
+            impMediaTypes.add("audio");
+        }
+
+        return impMediaTypes;
     }
 
     public void updateRequestTimeMetric(long millis) {
