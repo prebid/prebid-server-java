@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
@@ -33,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -962,6 +964,102 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getTmax()).isEqualTo(1000L);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithUnmodifiedUserWhenGdprConsentParamIsNullOrBlank() {
+        // given
+        given(httpRequest.getParam("gdpr_consent")).willReturn(null, "");
+
+        //given
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("should-remain").build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest firstResult = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final BidRequest secondResult = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        final User expectedUser = User.builder()
+                .ext(mapper.valueToTree(ExtUser.builder().consent("should-remain").build()))
+                .build();
+
+        assertThat(firstResult.getUser()).isEqualTo(expectedUser);
+        assertThat(secondResult.getUser()).isEqualTo(expectedUser);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverriddenUserExtConsentWhenGdprConsentParamIsAvailable() {
+        // given
+        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+
+        //given
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder()
+                                .id("1")
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("should-be-overridden").build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser())
+                .isEqualTo(User.builder()
+                        .id("1")
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
+                        .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithNewUserThatContainsUserExtConsentWhenInitialUserIsMissing() {
+        // given
+        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+
+        //given
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser())
+                .isEqualTo(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
+                        .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithNewUserExtConsentWhenInitialUserExtIsMissing() {
+        // given
+        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+
+        //given
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder().build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser())
+                .isEqualTo(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
+                        .build());
     }
 
     @Test
