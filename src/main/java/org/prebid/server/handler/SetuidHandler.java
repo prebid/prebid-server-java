@@ -148,7 +148,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
-        context.addCookie(cookie);
+        addCookie(context, cookie);
 
         // Send pixel file to response if "format=img"
         final String format = context.request().getParam(FORMAT_PARAM);
@@ -164,6 +164,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .uid(uid)
                 .success(successfullyUpdated)
                 .build());
+    }
+
+    private void addCookie(RoutingContext context, Cookie cookie) {
+        if (cookie != null) {
+            context.response().putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.cookieToSetCookie(cookie));
+        }
     }
 
     private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {

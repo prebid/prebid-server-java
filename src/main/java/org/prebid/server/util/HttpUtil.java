@@ -150,4 +150,8 @@ public final class HttpUtil {
         return context.cookies().stream()
                 .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
     }
+
+    public static String cookieToSetCookie(Cookie cookie) {
+        return String.join(";", cookie.encode(), " SameSite=none");
+    }
 }

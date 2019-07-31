@@ -133,4 +133,18 @@ public class HttpUtilTest {
         assertThat(cookies).hasSize(1)
                 .containsOnly(entry("name", "value"));
     }
+
+    @Test
+    public void cookieToSetCookieShouldReturnCookieWithAdditionalParameter() {
+        // given
+        final Cookie cookie = Cookie.cookie("cookie", "value")
+                .setPath("/")
+                .setDomain("rubicon.com");
+
+        // when
+        final String setCookie = HttpUtil.cookieToSetCookie(cookie);
+
+        // then
+        assertThat(setCookie).isEqualTo("cookie=value; Path=/; Domain=rubicon.com; SameSite=none");
+    }
 }
