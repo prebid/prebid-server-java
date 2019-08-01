@@ -50,6 +50,7 @@ import org.prebid.server.util.HttpUtil;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -65,6 +66,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
@@ -427,6 +429,25 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
+    }
+
+    @Test
+    public void shouldIncrementImpsTypesMetrics() {
+        // given
+        final List<Imp> imps = singletonList(Imp.builder().build());
+
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(builder -> builder.imp(imps))));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(givenBidResponse(mapper.valueToTree(
+                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateImpTypesMetrics(same(imps));
     }
 
     @Test

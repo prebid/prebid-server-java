@@ -216,7 +216,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfUnexpectedExceptionOccurs() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new RuntimeException()));
@@ -263,7 +263,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotInteractWithCacheServiceIfRequestHasBidsAndNoCacheMarkupFlag() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -281,7 +281,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotInteractWithCacheServiceIfRequestHasNoBidsButCacheMarkupFlag() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextWith1AdUnitAndOneBid(builder -> builder.cacheMarkup(1));
 
         givenBidderRespondingWithBids(RUBICON, identity());
 
@@ -295,7 +295,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfCacheServiceFails() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextWith1AdUnitAndOneBid(builder -> builder.cacheMarkup(1));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -528,8 +528,11 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementCommonMetrics() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(
-                builder -> builder.adUnits(singletonList(AdUnit.builder().build())).app(App.builder().build()));
+        givenPreBidRequestContextWith1AdUnitAndOneBid(builder -> builder
+                .adUnits(singletonList(AdUnit.builder()
+                        .mediaTypes(singletonList("banner"))
+                        .build()))
+                .app(App.builder().build()));
 
         // simulate calling end handler that is supposed to update request_time timer value
         given(httpResponse.endHandler(any())).willAnswer(inv -> {
@@ -545,6 +548,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.ok));
         verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), eq(1));
+        verify(metrics).updateImpTypesMetrics(singletonMap("banner", 1L));
         verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.legacy));
         verify(metrics).updateRequestTimeMetric(anyLong());
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq(RUBICON), eq("accountId"));
@@ -556,7 +560,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoBidMetrics() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithBids(RUBICON, builder -> builder.noBid(true));
 
@@ -585,7 +589,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfRequestBodyHasUnknownAccountId() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -613,7 +617,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfAdapterReturnsBadInputError() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithError(RUBICON, BidderError.badInput("rubicon error"));
 
@@ -627,7 +631,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfAdapterReturnsBadServerResponseError() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithError(RUBICON, BidderError.badServerResponse("rubicon error"));
 
@@ -641,7 +645,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfAdapterReturnsGenericError() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithError(RUBICON, BidderError.generic("rubicon error"));
 
@@ -655,7 +659,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfAdapterReturnsTimeoutError() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithError(RUBICON, BidderError.timeout("time out"));
 
@@ -669,7 +673,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfCacheServiceFails() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextWith1AdUnitAndOneBid(builder -> builder.cacheMarkup(1));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -686,7 +690,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateNetworkErrorMetric() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -706,7 +710,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotUpdateNetworkErrorMetricIfResponseSucceeded() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -720,7 +724,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateNetworkErrorMetricIfClientClosedConnection() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -792,7 +796,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithUsersyncInfoForBiddersButNotForHostVendor() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+        givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
         final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
         vendorsToGdpr.put(1, true); // host vendor id from app config
@@ -818,7 +822,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .containsOnly(UsersyncInfo.of("url1", "type1", null));
     }
 
-    private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
+    private void givenPreBidRequestContextWith1AdUnitAndOneBid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
         final List<AdapterRequest> adapterRequests = singletonList(AdapterRequest.of(RUBICON, singletonList(null)));

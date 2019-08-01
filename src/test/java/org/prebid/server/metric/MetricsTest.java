@@ -4,22 +4,34 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 public class MetricsTest {
 
@@ -331,6 +343,55 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("no_cookie_requests").getCount()).isEqualTo(2);
         assertThat(metricRegistry.counter("safari_no_cookie_requests").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("imps_requested").getCount()).isEqualTo(5);
+    }
+
+    @Test
+    public void updateImpTypesMetricsByCountPerMediaTypeShouldIncrementMetrics() {
+        // given
+        final Map<String, Long> mediaTypeToCount = new HashMap<>();
+        mediaTypeToCount.put("banner", 3L);
+        mediaTypeToCount.put("video", 5L);
+        mediaTypeToCount.put("native", 1L);
+        mediaTypeToCount.put("audio", 4L);
+        mediaTypeToCount.put("bad_mediatype", 11L);
+
+        // when
+        metrics.updateImpTypesMetrics(mediaTypeToCount);
+
+        // then
+        assertThat(metricRegistry.counter("imps_banner").getCount()).isEqualTo(3);
+        assertThat(metricRegistry.counter("imps_video").getCount()).isEqualTo(5);
+        assertThat(metricRegistry.counter("imps_native").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("imps_audio").getCount()).isEqualTo(4);
+    }
+
+    @Test
+    public void updateImpTypesMetricsByImpsShouldGroupCountByMediaTypeAndCallOverloadedMethodToIncrementMetrics() {
+        // given
+        final Metrics metricsSpy = Mockito.spy(metrics);
+
+        final List<Imp> imps = asList(
+                Imp.builder().banner(Banner.builder().build()).video(Video.builder().build()).build(),
+                Imp.builder().xNative(Native.builder().build()).build(),
+                Imp.builder().audio(Audio.builder().build()).build(),
+                Imp.builder().video(Video.builder().build()).audio(Audio.builder().build()).build());
+
+        // when
+        metricsSpy.updateImpTypesMetrics(imps);
+
+        // then
+        final Map<String, Long> expectedMap = new HashMap<>();
+        expectedMap.put("banner", 1L);
+        expectedMap.put("video", 2L);
+        expectedMap.put("native", 1L);
+        expectedMap.put("audio", 2L);
+
+        verify(metricsSpy).updateImpTypesMetrics(eq(expectedMap));
+
+        assertThat(metricRegistry.counter("imps_banner").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("imps_video").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("imps_native").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("imps_audio").getCount()).isEqualTo(2);
     }
 
     @Test
