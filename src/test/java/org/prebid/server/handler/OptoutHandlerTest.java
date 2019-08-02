@@ -4,6 +4,7 @@ import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -51,7 +52,6 @@ public class OptoutHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
-        given(routingContext.addCookie(any())).willReturn(routingContext);
 
         given(httpRequest.getFormAttribute("g-recaptcha-response")).willReturn("recaptcha1");
 
@@ -60,6 +60,7 @@ public class OptoutHandlerTest extends VertxTest {
 
         given(googleRecaptchaVerifier.verify(anyString())).willReturn(Future.succeededFuture());
 
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("cookie", "value"));
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 

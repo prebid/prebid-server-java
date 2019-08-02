@@ -72,9 +72,9 @@ public class OptoutHandler implements Handler<RoutingContext> {
     }
 
     private void sendResponse(RoutingContext context, Cookie cookie, String url) {
-        context.addCookie(cookie)
-                .response()
+        context.response()
                 .putHeader(HttpUtil.LOCATION_HEADER, url)
+                .putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
                 .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                 .end();
     }
