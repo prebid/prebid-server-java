@@ -151,7 +151,7 @@ public final class HttpUtil {
                 .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
     }
 
-    public static String cookieToSetCookie(Cookie cookie) {
+    public static String toSetCookieHeaderValue(Cookie cookie) {
         return String.join("; ", cookie.encode(), "SameSite=none");
     }
 }

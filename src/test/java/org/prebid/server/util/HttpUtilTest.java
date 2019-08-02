@@ -135,16 +135,16 @@ public class HttpUtilTest {
     }
 
     @Test
-    public void cookieToSetCookieShouldReturnCookieWithAdditionalParameter() {
+    public void toSetCookieHeaderValueShouldReturnExpectedString() {
         // given
         final Cookie cookie = Cookie.cookie("cookie", "value")
                 .setPath("/")
                 .setDomain("rubicon.com");
 
         // when
-        final String setCookie = HttpUtil.cookieToSetCookie(cookie);
+        final String setCookieHeaderValue = HttpUtil.toSetCookieHeaderValue(cookie);
 
         // then
-        assertThat(setCookie).isEqualTo("cookie=value; Path=/; Domain=rubicon.com; SameSite=none");
+        assertThat(setCookieHeaderValue).isEqualTo("cookie=value; Path=/; Domain=rubicon.com; SameSite=none");
     }
 }
