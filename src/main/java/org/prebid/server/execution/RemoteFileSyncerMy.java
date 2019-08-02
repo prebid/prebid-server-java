@@ -13,6 +13,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -29,9 +30,10 @@ public class RemoteFileSyncerMy {
     private Vertx vertx;
     private int retryCount; // how many times try to download
 
-    public RemoteFileSyncerMy(URL downloadUrl, File saveFilePath, int retryCount, long retryInterval, long refreshPeriod, int timeout, Vertx vertx) {
-        this.downloadUrl = downloadUrl;
-        this.saveFilePath = saveFilePath;
+    public RemoteFileSyncerMy(URL downloadUrl, File saveFilePath, int retryCount, long retryInterval,
+                              long refreshPeriod, int timeout, Vertx vertx) {
+        this.downloadUrl = Objects.requireNonNull(downloadUrl);
+        this.saveFilePath = Objects.requireNonNull(saveFilePath);
 
         this.retryCount = retryCount;
         this.retryInterval = retryInterval;
@@ -116,9 +118,12 @@ public class RemoteFileSyncerMy {
     private void download(FileOutputStream fileOutputStream, Future<Void> future) {
         long timeoutTimerId = 0;
         try (FileChannel channel = fileOutputStream.getChannel();
-                ReadableByteChannel readableByteChannel = Channels.newChannel(downloadUrl.openStream())) {
+             ReadableByteChannel readableByteChannel = Channels.newChannel(downloadUrl.openStream())) {
 
-            //Timeout in executeBlocking ???????????
+            // Remove possibly corrupted file
+            Files.delete(saveFilePath.toPath());
+
+            //Timeout in executeBlocking ?
             timeoutTimerId = setTimeoutTimer(channel, readableByteChannel, fileOutputStream, future);
 
             channel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
@@ -143,7 +148,9 @@ public class RemoteFileSyncerMy {
             close(fileOutputStream);
             close(channel);
             close(readableByteChannel);
-            future.fail(new RuntimeException());
+            if (!future.succeeded()) {
+                future.fail(new RuntimeException("Timeout"));
+            }
         });
     }
 
