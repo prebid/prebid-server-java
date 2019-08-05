@@ -2,9 +2,9 @@ package org.prebid.server.execution;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.prebid.server.execution.util.FileHelper;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +13,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -23,15 +24,16 @@ public class RemoteFileSyncerMy {
 
     private final URL downloadUrl;  // url to resource to be downloaded
 
-    private final File saveFilePath; // full path on file system where downloaded file located
+    private final Path saveFilePath; // full path on file system where downloaded file located
     private final long retryInterval; // how long to wait between failed retries
     private final long refreshPeriod; // period for file updates (0 for one time downloading)
     private final int timeout;
     private Vertx vertx;
+    private FileHelper fileHelper;
     private int retryCount; // how many times try to download
 
-    public RemoteFileSyncerMy(URL downloadUrl, File saveFilePath, int retryCount, long retryInterval,
-                              long refreshPeriod, int timeout, Vertx vertx) {
+    public RemoteFileSyncerMy(URL downloadUrl, Path saveFilePath, int retryCount, long retryInterval,
+                              long refreshPeriod, int timeout, Vertx vertx, FileHelper fileHelper) {
         this.downloadUrl = Objects.requireNonNull(downloadUrl);
         this.saveFilePath = Objects.requireNonNull(saveFilePath);
 
@@ -40,6 +42,7 @@ public class RemoteFileSyncerMy {
         this.refreshPeriod = refreshPeriod;
         this.timeout = timeout;
         this.vertx = vertx;
+        this.fileHelper = fileHelper;
     }
 
     /**
@@ -53,11 +56,11 @@ public class RemoteFileSyncerMy {
      * Fetches remote file and executes given callback with filepath on finish.
      */
     public void syncForFilepath(Consumer<String> consumer) {
-        downloadIfNotExist().setHandler(event -> consumer.accept(saveFilePath.getPath()));
+        downloadIfNotExist().setHandler(event -> consumer.accept(saveFilePath.toString()));
     }
 
     private Future<Void> downloadIfNotExist() {
-        if (saveFilePath.exists()) {
+        if (Files.exists(saveFilePath)) {
             return Future.succeededFuture();
         } else {
             return tryDownload();
@@ -66,7 +69,7 @@ public class RemoteFileSyncerMy {
 
     private InputStream makeInputStream() {
         try {
-            return Files.newInputStream(saveFilePath.toPath());
+            return Files.newInputStream(saveFilePath);
         } catch (IOException e) {
             throw new IllegalArgumentException("Cant create inputStream for: " + saveFilePath.getPath(), e);
         }
@@ -105,7 +108,7 @@ public class RemoteFileSyncerMy {
     private Future<Void> performBlockingDownload() {
         final FileOutputStream fileOutputStream;
         try {
-            fileOutputStream = new FileOutputStream(saveFilePath);
+            fileOutputStream = fileHelper.fromPath(saveFilePath);
         } catch (IOException e) {
             return Future.failedFuture(e);
         }
@@ -118,28 +121,20 @@ public class RemoteFileSyncerMy {
     private void download(FileOutputStream fileOutputStream, Future<Void> future) {
         long timeoutTimerId = 0;
         try (FileChannel channel = fileOutputStream.getChannel();
-             ReadableByteChannel readableByteChannel = Channels.newChannel(downloadUrl.openStream())) {
+             ReadableByteChannel readableByteChannel = fileHelper.fromUrl(downloadUrl)) {
 
-            // Remove possibly corrupted file
-            Files.delete(saveFilePath.toPath());
+            // Remove possibly corrupted file after several retry
+            Files.deleteIfExists(saveFilePath);
 
-            //Timeout in executeBlocking ?
             timeoutTimerId = setTimeoutTimer(channel, readableByteChannel, fileOutputStream, future);
-
             channel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+            cancelTimer(timeoutTimerId);
 
-            //I am not sure. Does future can switch it`s state between our operations? (after timer is reached)
             future.complete();
         } catch (IOException e) {
             cancelTimer(timeoutTimerId);
             future.fail(new RuntimeException(String.format("Cant download file: %s, from url: %s", saveFilePath,
                     downloadUrl.getPath()), e));
-        }
-    }
-
-    private void cancelTimer(long timeoutTimerId) {
-        if (timeoutTimerId != 0) {
-            vertx.cancelTimer(timeoutTimerId);
         }
     }
 
@@ -152,6 +147,12 @@ public class RemoteFileSyncerMy {
                 future.fail(new RuntimeException("Timeout"));
             }
         });
+    }
+
+    private void cancelTimer(long timeoutTimerId) {
+        if (timeoutTimerId != 0) {
+            vertx.cancelTimer(timeoutTimerId);
+        }
     }
 
     private void close(Closeable closeable) {
