@@ -1,133 +1,186 @@
 package org.prebid.server.execution;
 
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.file.AsyncFile;
+import io.vertx.core.file.FileSystem;
+import io.vertx.core.file.OpenOptions;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.streams.Pump;
+import org.prebid.server.util.HttpUtil;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
  * Works with remote web resource.
  */
+
 public class RemoteFileSyncer {
+    private static final Logger logger = LoggerFactory.getLogger(RemoteFileSyncer.class);
 
-    private final URL downloadUrl;  // url to resource to be downloaded
-
-    private final File saveFilePath; // full path on file system where downloaded file located
+    private final String downloadUrl;  // url to resource to be downloaded
+    private final String domainUrl;
+    private final String saveFilePath; // full path on file system where downloaded file located
+    private final int retryCount; // how many times try to download
     private final long retryInterval; // how long to wait between failed retries
-    private long timerId;
-    private int retryCount; // how many times try to download
+    private final long timeout;
+    private final HttpClient httpClient;
+    private final Vertx vertx;
+    private final FileSystem fileSystem;
+    private final OpenOptions openOptions;
 
-    public RemoteFileSyncer(URL downloadUrl, File saveFilePath, int retryCount, long retryInterval) {
-        this.downloadUrl = downloadUrl;
-        this.saveFilePath = saveFilePath;
+    public RemoteFileSyncer(String downloadUrl, String saveFilePath, int retryCount, long retryInterval, long timeout,
+                            HttpClient httpClient, Vertx vertx) {
+        this.downloadUrl = HttpUtil.validateUrl(downloadUrl);
+        this.saveFilePath = Objects.requireNonNull(saveFilePath);
+        this.domainUrl = HttpUtil.getDomainFromUrl(downloadUrl);
+        this.fileSystem = vertx.fileSystem();
 
         this.retryCount = retryCount;
         this.retryInterval = retryInterval;
-    }
+        this.timeout = timeout;
+        this.httpClient = httpClient;
+        this.vertx = vertx;
 
-    /**
-     * Fetches remote file and executes given callback with {@link InputStream} on finish.
-     */
-    public void syncForInputStream(Consumer<InputStream> consumer) {
-        downloadIfNotExist().setHandler(event -> consumer.accept(makeInputStream()));
-    }
-
-    private Future<Void> downloadIfNotExist() {
-        if (saveFilePath.exists()) {
-            return Future.succeededFuture();
-        } else {
-            final Future<Void> future = Future.future();
-            sync(future);
-            return future;
-        }
-    }
-
-    private InputStream makeInputStream() {
-        try {
-            return Files.newInputStream(saveFilePath.toPath());
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Cant create inputStream for: " + saveFilePath.getPath(), e);
-        }
+        this.openOptions = new OpenOptions()
+                // Will fail if file already exist setCreateNew
+                .setCreateNew(true);
     }
 
     /**
      * Fetches remote file and executes given callback with filepath on finish.
      */
     public void syncForFilepath(Consumer<String> consumer) {
-        downloadIfNotExist().setHandler(event -> consumer.accept(saveFilePath.getPath()));
-    }
-
-    /**
-     * Downloads remote file.
-     */
-    private void sync(Future<Void> recieveFuture) {
-        final FileOutputStream fileOutputStream;
-        try {
-            fileOutputStream = new FileOutputStream(saveFilePath);
-        } catch (IOException e) {
-            Future.failedFuture(e);
-            return;
-        }
-
-
-//        final long l = Vertx.vertx().setTimer(downloadTimer, event -> {
-//            fileOutputStream.close();
-//.....});)
-
-
-        download(fileOutputStream)
-                .setHandler(event -> {
-                    if (event.failed()) {
-                        if (retryCount > 0) {
-                            retryCount--;
-
-//                            if (timerId > 0) {
-//                                Vertx.vertx().cancelTimer(timerId);
-//                            }
-
-                            Vertx.vertx().setTimer(retryInterval, downloadIdTimer -> downloadWrapper(fileOutputStream, recieveFuture, downloadIdTimer));
-                        } else {
-                            recieveFuture.fail(new RuntimeException());
-                        }
-                    } else {
-                        recieveFuture.complete();
-                    }
-                });
-    }
-
-    private void downloadWrapper(FileOutputStream fileOutputStream, Future recieveFuture, long downloadIdTimer) {
-        this.timerId = timerId;
-        download(fileOutputStream).handle(recieveFuture);
-    }
-
-    private Future<Void> download(FileOutputStream fileOutputStream) {
-        final Future<Void> future = Future.future();
-
-        Vertx.vertx().executeBlocking(event -> {
-
-            try (FileChannel channel = fileOutputStream.getChannel();
-                 ReadableByteChannel readableByteChannel = Channels.newChannel(downloadUrl.openStream())) {
-
-                channel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-
-                event.complete();
-            } catch (IOException e) {
-                event.fail(new RuntimeException(String.format("Cant download file: %s, from url: %s", saveFilePath,
-                        downloadUrl.getPath()), e));
+        downloadIfNotExist().setHandler(aVoid -> {
+            if (aVoid.succeeded()) {
+                consumer.accept(saveFilePath);
+            } else { // ONLY FOR TEST
+                logger.info("CANT accept fail" + aVoid.cause());
             }
-        }, false, future);
+        });
+    }
 
+    private Future<Void> downloadIfNotExist() {
+        Future<Void> future = Future.future();
+        fileSystem.exists(saveFilePath, existResult -> {
+            if (existResult.succeeded()) {
+                if (existResult.result()) {
+                    future.complete();
+                } else {
+                    tryDownload(future);
+                }
+            } else {
+                future.fail(new RuntimeException("Cant check existence of a file: " + saveFilePath));
+            }
+        });
         return future;
+    }
 
+    private void tryDownload(Future<Void> future) {
+        download().setHandler(event -> {
+            if (event.failed()) {
+                retryDownload(future, retryInterval, retryCount);
+            } else {
+                future.complete();
+            }
+        });
+    }
+
+    private Future<Void> download() {
+        final Future<Void> future = Future.future();
+        fileSystem.open(saveFilePath, openOptions, fileOpenResult -> {
+            if (fileOpenResult.succeeded()) {
+                AsyncFile asyncFile = fileOpenResult.result();
+                try {
+                    // .getNow is not working
+                    HttpClientRequest httpClientRequest = httpClient
+                            .get(domainUrl, downloadUrl, pumpFileFromRequest(asyncFile, future));
+                    httpClientRequest.end();
+
+                    // Not sure about this exceptions.
+                } catch (Exception e) {
+                    future.fail(new RuntimeException(String.format("Error while resolving url: %s", downloadUrl), e));
+                }
+            } else {
+                future.fail(fileOpenResult.cause());
+            }
+        });
+        return future;
+    }
+
+    private Handler<HttpClientResponse> pumpFileFromRequest(AsyncFile asyncFile, Future<Void> future) {
+        return httpClientResponse -> {
+            logger.info("RESPONSE WAS GIVEN");
+
+            httpClientResponse.pause();
+            Pump pump = Pump.pump(httpClientResponse, asyncFile);
+            pump.start();
+            httpClientResponse.resume();
+
+            final long idTimer = vertx.setTimer(timeout, event -> {
+                logger.info("TIMEOUT ON DOWNLOAD");
+                pump.stop();
+                asyncFile.close();
+                //TODO Mb there are smt like httpClentResponse . close ? (Warring about memory leak)
+                if (!future.isComplete()) {
+                    future.fail(new RuntimeException("Timeout on download"));
+                }
+            });
+
+            //TODO need pump.stop, or it already handled (Warring about memory leak)
+            httpClientResponse.endHandler(responseEndResult -> {
+                logger.info("END HANDLER");
+                vertx.cancelTimer(idTimer);
+                asyncFile.flush().close(future);
+            });
+        };
+    }
+
+    private void retryDownload(Future<Void> receivedFuture, long retryInterval, long retryCount) {
+        logger.info("RETRY " + retryCount);
+        vertx.setTimer(retryInterval, retryTimerId -> {
+            if (retryCount > 0) {
+                final long next = retryCount - 1;
+                cleanUp().compose(aVoid -> download())
+                        .setHandler(downloadResult -> {
+                            if (downloadResult.succeeded()) {
+                                receivedFuture.complete();
+                            } else {
+                                logger.info("FAILED after retry");
+                                retryDownload(receivedFuture, retryInterval, next);
+                            }
+                        });
+            } else {
+                logger.info("FINAL FAIL");
+                // TODO Mb we can use also timeout, but service already responding with emptyObject,
+                // and it can get only fail
+                cleanUp().setHandler(aVoid -> receivedFuture.fail(new RuntimeException()));
+            }
+        });
+    }
+
+    private Future<Void> cleanUp() {
+        logger.info("CLEANUP");
+        final Future<Void> future = Future.future();
+        fileSystem.exists(saveFilePath, existResult -> {
+            if (existResult.succeeded()) {
+                if (existResult.result()) {
+                    fileSystem.delete(saveFilePath, future);
+                } else {
+                    logger.info("CLEANUP Future complete");
+                    future.complete();
+                }
+            } else {
+                future.fail(new RuntimeException("Cant check if file exists " + saveFilePath));
+            }
+        });
+        return future;
     }
 }
 

@@ -28,6 +28,7 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
@@ -381,6 +382,36 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
+    }
+
+    @Bean
+    //@Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
+    @ConditionalOnProperty(prefix = "http-client.file-sync", name = "enabled", havingValue = "true")
+    io.vertx.core.http.HttpClient fileSyncHttpClient(
+            @Value("${http-client.file-sync.connectionTimeout}") int connectionTimeout,
+            @Value("${http-client.file-sync.maxRedirect}") int maxRedirect,
+            Vertx vertx) {
+
+        final HttpClientOptions httpClientOptions = new HttpClientOptions()
+                .setConnectTimeout(connectionTimeout)
+                .setMaxRedirects(maxRedirect);
+
+        return vertx.createHttpClient(httpClientOptions);
+    }
+
+    @Bean
+    //@Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
+    @ConditionalOnProperty(prefix = "http-client.file-sync", name = "enabled", havingValue = "true")
+    RemoteFileSyncer remoteFileSyncerTestResource(
+            @Value("${http-client.file-sync.testResource.downloadUrl}") String downloadUrl,
+            @Value("${http-client.file-sync.testResource.saveFilePath}") String saveFilePath,
+            @Value("${http-client.file-sync.testResource.retryCount}") int retryCount,
+            @Value("${http-client.file-sync.testResource.retryInterval}") long retryInterval,
+            @Value("${http-client.file-sync.testResource.timeout}") long timeout,
+            io.vertx.core.http.HttpClient fileSyncHttpClient, Vertx vertx) {
+
+        return new RemoteFileSyncer(downloadUrl, saveFilePath, retryCount, retryInterval, timeout, fileSyncHttpClient,
+                vertx);
     }
 
     @Configuration
