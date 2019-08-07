@@ -44,7 +44,6 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final int RETRY_COUNT = 2;
     private static final long RETRY_INTERVAL = 2000;
     private static final String EXAMPLE_URL = "https://example.com";
-    private static final String DOMAIN = "example.com";
     private static final String FILE_PATH = "./src/test/resources/org/prebid/server/geolocation/test.pdf";
     private static final String DIR_PATH = "./src/test/resources/org/prebid/server/geolocation";
 
@@ -99,23 +98,8 @@ public class RemoteFileSyncerTest extends VertxTest {
                 () -> RemoteFileSyncer.create(null, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
         Assertions.assertThatIllegalArgumentException().isThrownBy(
                 () -> RemoteFileSyncer.create("bad url", FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, -1, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, -100, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, 99, TIMEOUT, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, 0, TIMEOUT, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, -10, TIMEOUT, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, 0, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, 999, httpClient, vertx));
-        Assertions.assertThatIllegalArgumentException().isThrownBy(
-                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, -10000, httpClient, vertx));
     }
+
     @Test
     public void creteShouldCreateDirWithWritePermissionIfDirNotExist() {
         // given
@@ -203,8 +187,8 @@ public class RemoteFileSyncerTest extends VertxTest {
         given(fileSystem.open(anyString(), any(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
 
-        given(httpClient.get(any(), any(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 2));
+        given(httpClient.getAbs(any(), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
 
         given(httpClientResponse.endHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(null, 0));
@@ -220,7 +204,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(fileSystem).open(eq(FILE_PATH), any(), any());
 
         // Response handled
-        verify(httpClient).get(eq(DOMAIN), eq(EXAMPLE_URL), any());
+        verify(httpClient).getAbs(eq(EXAMPLE_URL), any());
         verify(vertx).setTimer(eq(TIMEOUT), any());
         verify(httpClientResponse).endHandler(any());
         verify(vertx).cancelTimer(timerId);
@@ -243,7 +227,6 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // when
         remoteFileSyncer.syncForFilepath(stringResultConsumer);
-
 
         // then
         verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), any());
@@ -299,8 +282,8 @@ public class RemoteFileSyncerTest extends VertxTest {
         given(fileSystem.delete(any(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
-        given(httpClient.get(any(), any(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 2));
+        given(httpClient.getAbs(any(), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
         given(vertx.setTimer(eq(TIMEOUT), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(null, 22L, 1));
 
@@ -313,7 +296,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(FILE_PATH), any(), any());
 
         // Response handled
-        verify(httpClient, times(RETRY_COUNT + 1)).get(eq(DOMAIN), eq(EXAMPLE_URL), any());
+        verify(httpClient, times(RETRY_COUNT + 1)).getAbs(eq(EXAMPLE_URL), any());
         verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(TIMEOUT), any());
         verify(asyncFile, times(RETRY_COUNT + 1)).close();
 
@@ -344,8 +327,8 @@ public class RemoteFileSyncerTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException())))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
-        given(httpClient.get(any(), any(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 2));
+        given(httpClient.getAbs(any(), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
         given(httpClientResponse.endHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(null, 0));
         doAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 0))
@@ -360,7 +343,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(fileSystem, times(2)).open(eq(FILE_PATH), any(), any());
 
         // Response handled
-        verify(httpClient).get(eq(DOMAIN), eq(EXAMPLE_URL), any());
+        verify(httpClient).getAbs(eq(EXAMPLE_URL), any());
         verify(vertx).setTimer(eq(TIMEOUT), any());
         verify(httpClientResponse).endHandler(any());
         verify(vertx).cancelTimer(timerId);

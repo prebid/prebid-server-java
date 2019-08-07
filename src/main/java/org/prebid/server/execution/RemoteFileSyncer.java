@@ -28,7 +28,6 @@ import java.util.function.Consumer;
 public class RemoteFileSyncer {
 
     private final String downloadUrl;  // url to resource to be downloaded
-    private final String domainUrl;
     private final String saveFilePath; // full path on file system where downloaded file located
     private final int retryCount; // how many times try to download
     private final long retryInterval; // how long to wait between failed retries
@@ -38,11 +37,10 @@ public class RemoteFileSyncer {
     private final FileSystem fileSystem;
     private final OpenOptions openOptions;
 
-    private RemoteFileSyncer(String downloadUrl, String domainUrl, String saveFilePath, int retryCount,
+    private RemoteFileSyncer(String downloadUrl, String saveFilePath, int retryCount,
                              long retryInterval, long timeout, HttpClient httpClient, Vertx vertx,
                              FileSystem fileSystem, OpenOptions openOptions) {
         this.downloadUrl = downloadUrl;
-        this.domainUrl = domainUrl;
         this.saveFilePath = saveFilePath;
         this.retryCount = retryCount;
         this.retryInterval = retryInterval;
@@ -56,8 +54,6 @@ public class RemoteFileSyncer {
     public static RemoteFileSyncer create(String downloadUrl, String saveFilePath, int retryCount, long retryInterval,
                                           long timeout, HttpClient httpClient, Vertx vertx) {
         HttpUtil.validateUrl(downloadUrl);
-        String domainFromUrl = HttpUtil.getDomainFromUrl(downloadUrl);
-        Objects.requireNonNull(domainFromUrl);
         Objects.requireNonNull(saveFilePath);
         Objects.requireNonNull(vertx);
         FileSystem fileSystem = vertx.fileSystem();
@@ -66,7 +62,7 @@ public class RemoteFileSyncer {
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
 
         OpenOptions openOptions = new OpenOptions().setCreateNew(true);
-        return new RemoteFileSyncer(downloadUrl, domainFromUrl, saveFilePath, retryCount, retryInterval, timeout,
+        return new RemoteFileSyncer(downloadUrl, saveFilePath, retryCount, retryInterval, timeout,
                 httpClient, vertx, fileSystem, openOptions);
     }
 
@@ -128,7 +124,7 @@ public class RemoteFileSyncer {
             try {
                 // .getNow is not working
                 HttpClientRequest httpClientRequest = httpClient
-                        .get(domainUrl, downloadUrl, response -> pumpFileFromRequest(response, asyncFile, future));
+                        .getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, future));
                 httpClientRequest.end();
             } catch (Exception ex) {
                 future.fail(ex);
