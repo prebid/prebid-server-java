@@ -13,7 +13,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://t.visx.net/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+      url: https://t.visx.net/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
       redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={UUID}
       cookie-family-name: visx
       type: redirect
