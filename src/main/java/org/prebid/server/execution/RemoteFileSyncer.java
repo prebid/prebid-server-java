@@ -2,7 +2,6 @@ package org.prebid.server.execution;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.FileProps;
@@ -133,27 +132,25 @@ public class RemoteFileSyncer {
 
     private Future<Void> downloadIfNotExist() {
         Future<Void> future = Future.future();
-        fileSystem.exists(saveFilePath, onExistDownloadHandler(future));
+        fileSystem.exists(saveFilePath, existResult -> handleFileExists(future, existResult));
         return future;
     }
 
-    private Handler<AsyncResult<Boolean>> onExistDownloadHandler(Future<Void> future) {
-        return existResult -> {
-            if (existResult.succeeded()) {
-                if (existResult.result()) {
-                    future.complete();
-                } else {
-                    tryDownload(future);
-                }
+    private void handleFileExists(Future<Void> future, AsyncResult<Boolean> existResult) {
+        if (existResult.succeeded()) {
+            if (existResult.result()) {
+                future.complete();
             } else {
-                future.fail(existResult.cause());
+                tryDownload(future);
             }
-        };
+        } else {
+            future.fail(existResult.cause());
+        }
     }
 
     private void tryDownload(Future<Void> future) {
-        download().setHandler(event -> {
-            if (event.failed()) {
+        download().setHandler(downloadResult -> {
+            if (downloadResult.failed()) {
                 retryDownload(future, retryInterval, retryCount);
             } else {
                 future.complete();
@@ -163,48 +160,44 @@ public class RemoteFileSyncer {
 
     private Future<Void> download() {
         final Future<Void> future = Future.future();
-        fileSystem.open(saveFilePath, openOptions, onFileOpenHandler(future));
+        fileSystem.open(saveFilePath, openOptions, openResult -> handleFileOpenWithDownload(future, openResult));
         return future;
     }
 
-    private Handler<AsyncResult<AsyncFile>> onFileOpenHandler(Future<Void> future) {
-        return fileOpenResult -> {
-            if (fileOpenResult.succeeded()) {
-                AsyncFile asyncFile = fileOpenResult.result();
-                try {
-                    // .getNow is not working
-                    HttpClientRequest httpClientRequest = httpClient
-                            .get(domainUrl, downloadUrl, onRespondPumpFileHandler(asyncFile, future));
-                    httpClientRequest.end();
-                } catch (Exception ex) {
-                    future.fail(ex);
-                }
-            } else {
-                future.fail(fileOpenResult.cause());
+    private void handleFileOpenWithDownload(Future<Void> future, AsyncResult<AsyncFile> openResult) {
+        if (openResult.succeeded()) {
+            AsyncFile asyncFile = openResult.result();
+            try {
+                // .getNow is not working
+                HttpClientRequest httpClientRequest = httpClient
+                        .get(domainUrl, downloadUrl, response -> pumpFileFromRequest(response, asyncFile, future));
+                httpClientRequest.end();
+            } catch (Exception ex) {
+                future.fail(ex);
             }
-        };
+        } else {
+            future.fail(openResult.cause());
+        }
     }
 
-    private Handler<HttpClientResponse> onRespondPumpFileHandler(AsyncFile asyncFile, Future<Void> future) {
-        return httpClientResponse -> {
-            logger.info("RESPONSE WAS GIVEN");
-            httpClientResponse.pause();
-            Pump pump = Pump.pump(httpClientResponse, asyncFile);
-            pump.start();
-            httpClientResponse.resume();
+    private void pumpFileFromRequest(HttpClientResponse httpClientResponse, AsyncFile asyncFile, Future<Void> future) {
+        logger.info("RESPONSE WAS GIVEN");
+        httpClientResponse.pause();
+        Pump pump = Pump.pump(httpClientResponse, asyncFile);
+        pump.start();
+        httpClientResponse.resume();
 
-            final long idTimer = setTimeoutTimer(asyncFile, future, pump);
+        final long idTimer = setTimeoutTimer(asyncFile, future, pump);
 
-            httpClientResponse.endHandler(responseEndResult -> {
-                logger.info("END HANDLER");
-                vertx.cancelTimer(idTimer);
-                asyncFile.flush().close(future);
-            });
-        };
+        httpClientResponse.endHandler(responseEndResult -> {
+            logger.info("END HANDLER");
+            vertx.cancelTimer(idTimer);
+            asyncFile.flush().close(future);
+        });
     }
 
     private long setTimeoutTimer(AsyncFile asyncFile, Future<Void> future, Pump pump) {
-        return vertx.setTimer(timeout, event -> {
+        return vertx.setTimer(timeout, timerId -> {
             logger.info("TIMEOUT ON DOWNLOAD");
             pump.stop();
             asyncFile.close();
@@ -217,55 +210,49 @@ public class RemoteFileSyncer {
 
     private void retryDownload(Future<Void> receivedFuture, long retryInterval, long retryCount) {
         logger.info("RETRY " + retryCount);
-        vertx.setTimer(retryInterval, onRetryTriggerHandler(receivedFuture, retryInterval, retryCount));
+        vertx.setTimer(retryInterval, retryTimerId -> handleRetry(receivedFuture, retryInterval, retryCount));
     }
 
-    private Handler<Long> onRetryTriggerHandler(Future<Void> receivedFuture, long retryInterval, long retryCount) {
-        return retryTimerId -> {
-            if (retryCount > 0) {
-                final long next = retryCount - 1;
-                cleanUp().compose(aVoid -> download())
-                        .setHandler(onRetryHandler(receivedFuture, retryInterval, next));
-            } else {
-                logger.info("FINAL FAIL");
-                // TODO Mb we can use also timeout, but service already responding with emptyObject,
-                // and it can get only fail
-                cleanUp().setHandler(aVoid -> receivedFuture.fail("File sync failed after retries."));
-            }
-        };
+    private void handleRetry(Future<Void> receivedFuture, long retryInterval, long retryCount) {
+        if (retryCount > 0) {
+            final long next = retryCount - 1;
+            cleanUp().compose(aVoid -> download())
+                    .setHandler(retryResult -> handleRetryResult(receivedFuture, retryInterval, next, retryResult));
+        } else {
+            logger.info("FINAL FAIL");
+            // TODO Mb we can use also timeout, but service already responding with emptyObject,
+            // and it can get only fail
+            cleanUp().setHandler(aVoid -> receivedFuture.fail("File sync failed after retries"));
+        }
     }
 
-    private Handler<AsyncResult<Void>> onRetryHandler(Future<Void> receivedFuture, long retryInterval, long next) {
-        return downloadResult -> {
-            if (downloadResult.succeeded()) {
-                receivedFuture.complete();
-            } else {
-                logger.info("FAILED after retry");
-                retryDownload(receivedFuture, retryInterval, next);
-            }
-        };
+    private void handleRetryResult(Future<Void> future, long retryInterval, long next, AsyncResult<Void> retryResult) {
+        if (retryResult.succeeded()) {
+            future.complete();
+        } else {
+            logger.info("FAILED after retry");
+            retryDownload(future, retryInterval, next);
+        }
     }
 
     private Future<Void> cleanUp() {
         logger.info("CLEANUP");
         final Future<Void> future = Future.future();
-        fileSystem.exists(saveFilePath, onExistDeleteFileHandler(future));
+        fileSystem.exists(saveFilePath, existResult -> handleFileExistsWithDelete(future, existResult));
         return future;
     }
 
-    private Handler<AsyncResult<Boolean>> onExistDeleteFileHandler(Future<Void> future) {
-        return existResult -> {
-            if (existResult.succeeded()) {
-                if (existResult.result()) {
-                    fileSystem.delete(saveFilePath, future);
-                } else {
-                    logger.info("CLEANUP Future complete");
-                    future.complete();
-                }
+    private void handleFileExistsWithDelete(Future<Void> future, AsyncResult<Boolean> existResult) {
+        if (existResult.succeeded()) {
+            if (existResult.result()) {
+                fileSystem.delete(saveFilePath, future);
             } else {
-                future.fail(String.format("Cant check if file exists %s", saveFilePath));
+                logger.info("CLEANUP Future complete");
+                future.complete();
             }
-        };
+        } else {
+            future.fail(String.format("Cant check if file exists %s", saveFilePath));
+        }
     }
 }
 
