@@ -15,7 +15,7 @@ User ID module |+|+
 Bid Categories |-|+
 Event endpoint |+|-
 Video Endpoint |-|+
-COPPA |+|-
+COPPA |+|+
 All adapters ported to OpenRTB |+|-
 Bidder Generator |+|-
 
