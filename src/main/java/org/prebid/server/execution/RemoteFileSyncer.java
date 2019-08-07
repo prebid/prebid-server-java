@@ -11,8 +11,6 @@ import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.Pump;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
@@ -23,13 +21,11 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 /**
  * Works with remote web resource.
  */
 public class RemoteFileSyncer {
-    private static final Logger logger = LoggerFactory.getLogger(RemoteFileSyncer.class);
 
     private final String downloadUrl;  // url to resource to be downloaded
     private final String domainUrl;
@@ -66,37 +62,12 @@ public class RemoteFileSyncer {
         Objects.requireNonNull(vertx);
         FileSystem fileSystem = vertx.fileSystem();
         Objects.requireNonNull(httpClient);
-        validateRetryCount(retryCount);
-        validateRetryInterval(retryInterval);
-        validateTimeout(timeout);
 
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
 
-        // Will fail if file already exist setCreateNew
         OpenOptions openOptions = new OpenOptions().setCreateNew(true);
         return new RemoteFileSyncer(downloadUrl, domainFromUrl, saveFilePath, retryCount, retryInterval, timeout,
                 httpClient, vertx, fileSystem, openOptions);
-    }
-
-    private static void validateTimeout(long timeout) {
-        validate(timeout, l -> l < 1000,
-                String.format("Timeout need to be grater than 1000 ms, current value: %s", timeout));
-    }
-
-    private static void validateRetryInterval(long retryInterval) {
-        validate(retryInterval, l -> l < 100,
-                String.format("RetryInterval need to be grater than 100 ms, current value: %s", retryInterval));
-    }
-
-    private static void validateRetryCount(int retryCount) {
-        validate(retryCount, l -> l < 0,
-                String.format("RetryCount need to be grater than 0, current value: %s", retryCount));
-    }
-
-    private static <T> void validate(T value, Predicate<T> violation, String errorMessage) {
-        if (violation.test(value)) {
-            throw new IllegalArgumentException(errorMessage);
-        }
     }
 
     /**
@@ -120,14 +91,7 @@ public class RemoteFileSyncer {
      * Fetches remote file and executes given callback with filepath on finish.
      */
     public void syncForFilepath(Consumer<String> consumer) {
-        downloadIfNotExist().setHandler(aVoid -> {
-            if (aVoid.succeeded()) {
-                consumer.accept(saveFilePath);
-            } else { // ONLY FOR TEST
-                logger.info(String.format("Consumer not accept anything for file: %s, with cause: %s", saveFilePath,
-                        aVoid.cause()));
-            }
-        });
+        downloadIfNotExist().setHandler(aVoid -> handleSync(consumer, aVoid));
     }
 
     private Future<Void> downloadIfNotExist() {
@@ -149,13 +113,7 @@ public class RemoteFileSyncer {
     }
 
     private void tryDownload(Future<Void> future) {
-        download().setHandler(downloadResult -> {
-            if (downloadResult.failed()) {
-                retryDownload(future, retryInterval, retryCount);
-            } else {
-                future.complete();
-            }
-        });
+        download().setHandler(downloadResult -> handleDownload(future, downloadResult));
     }
 
     private Future<Void> download() {
@@ -181,7 +139,6 @@ public class RemoteFileSyncer {
     }
 
     private void pumpFileFromRequest(HttpClientResponse httpClientResponse, AsyncFile asyncFile, Future<Void> future) {
-        logger.info("RESPONSE WAS GIVEN");
         httpClientResponse.pause();
         Pump pump = Pump.pump(httpClientResponse, asyncFile);
         pump.start();
@@ -189,27 +146,35 @@ public class RemoteFileSyncer {
 
         final long idTimer = setTimeoutTimer(asyncFile, future, pump);
 
-        httpClientResponse.endHandler(responseEndResult -> {
-            logger.info("END HANDLER");
-            vertx.cancelTimer(idTimer);
-            asyncFile.flush().close(future);
-        });
+        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, future, idTimer));
     }
 
     private long setTimeoutTimer(AsyncFile asyncFile, Future<Void> future, Pump pump) {
-        return vertx.setTimer(timeout, timerId -> {
-            logger.info("TIMEOUT ON DOWNLOAD");
-            pump.stop();
-            asyncFile.close();
-            //TODO Mb there are smt like httpClentResponse. close ? (Warring about memory leak)
-            if (!future.isComplete()) {
-                future.fail(new TimeoutException("Timeout on download"));
-            }
-        });
+        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, future, pump));
+    }
+
+    private void handleTimeout(AsyncFile asyncFile, Future<Void> future, Pump pump) {
+        pump.stop();
+        asyncFile.close();
+        if (!future.isComplete()) {
+            future.fail(new TimeoutException("Timeout on download"));
+        }
+    }
+
+    private void handleResponseEnd(AsyncFile asyncFile, Future<Void> future, long idTimer) {
+        vertx.cancelTimer(idTimer);
+        asyncFile.flush().close(future);
+    }
+
+    private void handleDownload(Future<Void> future, AsyncResult<Void> downloadResult) {
+        if (downloadResult.failed()) {
+            retryDownload(future, retryInterval, retryCount);
+        } else {
+            future.complete();
+        }
     }
 
     private void retryDownload(Future<Void> receivedFuture, long retryInterval, long retryCount) {
-        logger.info("RETRY " + retryCount);
         vertx.setTimer(retryInterval, retryTimerId -> handleRetry(receivedFuture, retryInterval, retryCount));
     }
 
@@ -219,24 +184,11 @@ public class RemoteFileSyncer {
             cleanUp().compose(aVoid -> download())
                     .setHandler(retryResult -> handleRetryResult(receivedFuture, retryInterval, next, retryResult));
         } else {
-            logger.info("FINAL FAIL");
-            // TODO Mb we can use also timeout, but service already responding with emptyObject,
-            // and it can get only fail
             cleanUp().setHandler(aVoid -> receivedFuture.fail("File sync failed after retries"));
         }
     }
 
-    private void handleRetryResult(Future<Void> future, long retryInterval, long next, AsyncResult<Void> retryResult) {
-        if (retryResult.succeeded()) {
-            future.complete();
-        } else {
-            logger.info("FAILED after retry");
-            retryDownload(future, retryInterval, next);
-        }
-    }
-
     private Future<Void> cleanUp() {
-        logger.info("CLEANUP");
         final Future<Void> future = Future.future();
         fileSystem.exists(saveFilePath, existResult -> handleFileExistsWithDelete(future, existResult));
         return future;
@@ -247,12 +199,26 @@ public class RemoteFileSyncer {
             if (existResult.result()) {
                 fileSystem.delete(saveFilePath, future);
             } else {
-                logger.info("CLEANUP Future complete");
                 future.complete();
             }
         } else {
             future.fail(String.format("Cant check if file exists %s", saveFilePath));
         }
     }
+
+    private void handleRetryResult(Future<Void> future, long retryInterval, long next, AsyncResult<Void> retryResult) {
+        if (retryResult.succeeded()) {
+            future.complete();
+        } else {
+            retryDownload(future, retryInterval, next);
+        }
+    }
+
+    private void handleSync(Consumer<String> consumer, AsyncResult<Void> aVoid) {
+        if (aVoid.succeeded()) {
+            consumer.accept(saveFilePath);
+        }
+    }
+
 }
 

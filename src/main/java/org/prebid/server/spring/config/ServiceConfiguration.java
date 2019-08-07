@@ -387,31 +387,23 @@ public class ServiceConfiguration {
     @Bean
     //@Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
     @ConditionalOnProperty(prefix = "http-client.file-sync", name = "enabled", havingValue = "true")
-    io.vertx.core.http.HttpClient fileSyncHttpClient(
+    RemoteFileSyncer remoteFileSyncerTestResource(
             @Value("${http-client.file-sync.connectionTimeout}") int connectionTimeout,
             @Value("${http-client.file-sync.maxRedirect}") int maxRedirect,
-            Vertx vertx) {
+            @Value("${http-client.file-sync.testResource.downloadUrl}") String downloadUrl,
+            @Value("${http-client.file-sync.testResource.saveFilePath}") String saveFilePath,
+            @Value("${http-client.file-sync.testResource.retryCount}") int retryCount,
+            @Value("${http-client.file-sync.testResource.retryInterval}") long retryInterval,
+            @Value("${http-client.file-sync.testResource.timeout}") long timeout, Vertx vertx) {
 
         final HttpClientOptions httpClientOptions = new HttpClientOptions()
                 .setConnectTimeout(connectionTimeout)
                 .setMaxRedirects(maxRedirect);
 
-        return vertx.createHttpClient(httpClientOptions);
-    }
-
-    @Bean
-    //@Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
-    @ConditionalOnProperty(prefix = "http-client.file-sync", name = "enabled", havingValue = "true")
-    RemoteFileSyncer remoteFileSyncerTestResource(
-            @Value("${http-client.file-sync.testResource.downloadUrl}") String downloadUrl,
-            @Value("${http-client.file-sync.testResource.saveFilePath}") String saveFilePath,
-            @Value("${http-client.file-sync.testResource.retryCount}") int retryCount,
-            @Value("${http-client.file-sync.testResource.retryInterval}") long retryInterval,
-            @Value("${http-client.file-sync.testResource.timeout}") long timeout,
-            io.vertx.core.http.HttpClient fileSyncHttpClient, Vertx vertx) {
+        final io.vertx.core.http.HttpClient httpClient = vertx.createHttpClient(httpClientOptions);
 
         return RemoteFileSyncer.create(downloadUrl, saveFilePath, retryCount, retryInterval, timeout,
-                fileSyncHttpClient, vertx);
+                httpClient, vertx);
     }
 
     @Configuration
