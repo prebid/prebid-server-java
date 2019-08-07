@@ -35,11 +35,10 @@ public class RemoteFileSyncer {
     private final HttpClient httpClient;
     private final Vertx vertx;
     private final FileSystem fileSystem;
-    private final OpenOptions openOptions;
 
     private RemoteFileSyncer(String downloadUrl, String saveFilePath, int retryCount,
                              long retryInterval, long timeout, HttpClient httpClient, Vertx vertx,
-                             FileSystem fileSystem, OpenOptions openOptions) {
+                             FileSystem fileSystem) {
         this.downloadUrl = downloadUrl;
         this.saveFilePath = saveFilePath;
         this.retryCount = retryCount;
@@ -48,7 +47,6 @@ public class RemoteFileSyncer {
         this.httpClient = httpClient;
         this.vertx = vertx;
         this.fileSystem = fileSystem;
-        this.openOptions = openOptions;
     }
 
     public static RemoteFileSyncer create(String downloadUrl, String saveFilePath, int retryCount, long retryInterval,
@@ -56,14 +54,13 @@ public class RemoteFileSyncer {
         HttpUtil.validateUrl(downloadUrl);
         Objects.requireNonNull(saveFilePath);
         Objects.requireNonNull(vertx);
-        FileSystem fileSystem = vertx.fileSystem();
         Objects.requireNonNull(httpClient);
+        final FileSystem fileSystem = vertx.fileSystem();
 
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
 
-        OpenOptions openOptions = new OpenOptions().setCreateNew(true);
         return new RemoteFileSyncer(downloadUrl, saveFilePath, retryCount, retryInterval, timeout,
-                httpClient, vertx, fileSystem, openOptions);
+                httpClient, vertx, fileSystem);
     }
 
     /**
@@ -91,7 +88,7 @@ public class RemoteFileSyncer {
     }
 
     private Future<Void> downloadIfNotExist() {
-        Future<Void> future = Future.future();
+        final Future<Void> future = Future.future();
         fileSystem.exists(saveFilePath, existResult -> handleFileExists(future, existResult));
         return future;
     }
@@ -114,16 +111,17 @@ public class RemoteFileSyncer {
 
     private Future<Void> download() {
         final Future<Void> future = Future.future();
+        final OpenOptions openOptions = new OpenOptions().setCreateNew(true);
         fileSystem.open(saveFilePath, openOptions, openResult -> handleFileOpenWithDownload(future, openResult));
         return future;
     }
 
     private void handleFileOpenWithDownload(Future<Void> future, AsyncResult<AsyncFile> openResult) {
         if (openResult.succeeded()) {
-            AsyncFile asyncFile = openResult.result();
+            final AsyncFile asyncFile = openResult.result();
             try {
                 // .getNow is not working
-                HttpClientRequest httpClientRequest = httpClient
+                final HttpClientRequest httpClientRequest = httpClient
                         .getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, future));
                 httpClientRequest.end();
             } catch (Exception ex) {
@@ -136,7 +134,7 @@ public class RemoteFileSyncer {
 
     private void pumpFileFromRequest(HttpClientResponse httpClientResponse, AsyncFile asyncFile, Future<Void> future) {
         httpClientResponse.pause();
-        Pump pump = Pump.pump(httpClientResponse, asyncFile);
+        final Pump pump = Pump.pump(httpClientResponse, asyncFile);
         pump.start();
         httpClientResponse.resume();
 
@@ -180,7 +178,7 @@ public class RemoteFileSyncer {
             cleanUp().compose(aVoid -> download())
                     .setHandler(retryResult -> handleRetryResult(receivedFuture, retryInterval, next, retryResult));
         } else {
-            cleanUp().setHandler(aVoid -> receivedFuture.fail("File sync failed after retries"));
+            cleanUp().setHandler(aVoid -> receivedFuture.fail(new PreBidException("File sync failed after retries")));
         }
     }
 
@@ -198,7 +196,7 @@ public class RemoteFileSyncer {
                 future.complete();
             }
         } else {
-            future.fail(String.format("Cant check if file exists %s", saveFilePath));
+            future.fail(new PreBidException(String.format("Cant check if file exists %s", saveFilePath)));
         }
     }
 
@@ -215,6 +213,5 @@ public class RemoteFileSyncer {
             consumer.accept(saveFilePath);
         }
     }
-
 }
 
