@@ -46,8 +46,8 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final int RETRY_COUNT = 2;
     private static final long RETRY_INTERVAL = 2000;
     private static final String EXAMPLE_URL = "https://example.com";
-    private static final String FILE_PATH = "./src/test/resources/org/prebid/server/geolocation/test.pdf";
-    private static final String DIR_PATH = "./src/test/resources/org/prebid/server/geolocation";
+    private static final String FILE_PATH = "fake/path/to/file.pdf";
+    private static final String DIR_PATH = "fake/path/to";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -339,7 +339,7 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // then
         verify(vertx, times(2)).setTimer(eq(RETRY_INTERVAL), any());
-        verify(fileSystem, times(RETRY_COUNT + 1)).exists(eq(FILE_PATH), any());
+        verify(fileSystem, times(3)).exists(eq(FILE_PATH), any());
         verify(fileSystem, times(2)).open(eq(FILE_PATH), any(), any());
 
         // Response handled
