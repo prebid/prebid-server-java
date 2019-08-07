@@ -6,7 +6,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: j.bartek@improvedigital.com
+      maintainer-email: hb@azerion.com
       app-media-types:
         - banner
         - video
