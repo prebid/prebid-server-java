@@ -410,8 +410,8 @@ public class ServiceConfiguration {
             @Value("${http-client.file-sync.testResource.timeout}") long timeout,
             io.vertx.core.http.HttpClient fileSyncHttpClient, Vertx vertx) {
 
-        return new RemoteFileSyncer(downloadUrl, saveFilePath, retryCount, retryInterval, timeout, fileSyncHttpClient,
-                vertx);
+        return RemoteFileSyncer.create(downloadUrl, saveFilePath, retryCount, retryInterval, timeout,
+                fileSyncHttpClient, vertx);
     }
 
     @Configuration

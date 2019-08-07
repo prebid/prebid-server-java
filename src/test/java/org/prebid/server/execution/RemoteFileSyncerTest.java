@@ -1,28 +1,35 @@
 package org.prebid.server.execution;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.AsyncFile;
+import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
+import io.vertx.core.file.FileSystemException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.exception.PreBidException;
 
 import java.util.function.Consumer;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -30,6 +37,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class RemoteFileSyncerTest extends VertxTest {
 
     private static final long TIMEOUT = 10000;
@@ -38,6 +46,7 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final String EXAMPLE_URL = "https://example.com";
     private static final String DOMAIN = "example.com";
     private static final String FILE_PATH = "./src/test/resources/org/prebid/server/geolocation/test.pdf";
+    private static final String DIR_PATH = "./src/test/resources/org/prebid/server/geolocation";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -63,223 +72,323 @@ public class RemoteFileSyncerTest extends VertxTest {
     @Mock
     private HttpClientResponse httpClientResponse;
 
-    @Captor
-    private ArgumentCaptor<Handler<AsyncResult<Boolean>>> isExistCaptor;
-
-    @Captor
-    private ArgumentCaptor<Handler<AsyncResult<AsyncFile>>> openFileCaptor;
-
-    @Captor
-    private ArgumentCaptor<Handler<HttpClientResponse>> responseCaptor;
-
-    @Captor
-    private ArgumentCaptor<Handler<Void>> responseEndCaptor;
-
-    @Captor
-    private ArgumentCaptor<Handler<Long>> retryCaptor;
-
-    @Captor
-    private ArgumentCaptor<Handler<AsyncResult<Void>>> futureCaptor;
+    @Mock
+    private FileProps props;
 
     private RemoteFileSyncer remoteFileSyncer;
 
     @Before
     public void setUp() {
         when(vertx.fileSystem()).thenReturn(fileSystem);
-        remoteFileSyncer = new RemoteFileSyncer(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx);
+        remoteFileSyncer = RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx);
+    }
+
+    @Test
+    public void shouldThrowNullPointerExceptionWhenIllegalArgumentsWhenNullArguments() {
+        Assertions.assertThatNullPointerException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, null, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatNullPointerException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, null, vertx));
+        Assertions.assertThatNullPointerException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, null));
+    }
+
+    @Test
+    public void shouldThrowIllegalArgumentExceptionWhenIllegalArguments() {
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(null, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create("bad url", FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, -1, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, -100, RETRY_INTERVAL, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, 99, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, 0, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, -10, TIMEOUT, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, 0, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, 999, httpClient, vertx));
+        Assertions.assertThatIllegalArgumentException().isThrownBy(
+                () -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, -10000, httpClient, vertx));
+    }
+    @Test
+    public void creteShouldCreateDirWithWritePermissionIfDirNotExist() {
+        // given
+        reset(fileSystem);
+        when(fileSystem.existsBlocking(eq(DIR_PATH))).thenReturn(false);
+
+        // when
+        RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx);
+
+        // then
+        verify(fileSystem).mkdirsBlocking(eq(DIR_PATH));
+    }
+
+    @Test
+    public void createShouldCreateDirWithWritePermissionIfItsNotDir() {
+        // given
+        reset(fileSystem);
+        when(fileSystem.existsBlocking(eq(DIR_PATH))).thenReturn(true);
+        when(fileSystem.propsBlocking(eq(DIR_PATH))).thenReturn(props);
+        when(props.isDirectory()).thenReturn(false);
+
+        // when
+        RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx);
+
+        // then
+        verify(fileSystem).mkdirsBlocking(eq(DIR_PATH));
+    }
+
+    @Test
+    public void createShouldThrowPreBidExceptionWhenPropsThrowException() {
+        // given
+        reset(fileSystem);
+        when(fileSystem.existsBlocking(eq(DIR_PATH))).thenReturn(true);
+        when(fileSystem.propsBlocking(eq(DIR_PATH))).thenThrow(FileSystemException.class);
+
+        // when and then
+        assertThatThrownBy(() -> RemoteFileSyncer.create(EXAMPLE_URL, FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, httpClient, vertx))
+                .isInstanceOf(PreBidException.class);
     }
 
     @Test
     public void syncForFilepathShouldTriggerConsumerAcceptWithoutDownloadingWhenFileIsExist() {
         // given
-        remoteFileSyncer.syncForFilepath(stringResultConsumer);
-
-        verify(vertx).fileSystem();
-        verify(fileSystem).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.succeededFuture(true));
-
-        // when and then
-        verify(stringResultConsumer).accept(FILE_PATH);
-        verifyNoMoreInteractions(vertx);
-    }
-
-    @Test
-    public void syncForFilepathShouldNotTriggerConsumerAcceptWhenCantCheckIfFileExist() {
-        // given
-        remoteFileSyncer.syncForFilepath(stringResultConsumer);
-
-        verify(vertx).fileSystem();
-        verify(fileSystem).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-
-        // when and then
-        verifyZeroInteractions(stringResultConsumer);
-        verifyNoMoreInteractions(vertx);
-    }
-
-    @Test
-    public void syncForFilepathShouldTriggerConsumerAcceptAfterDownload() {
-        // given
-        when(asyncFile.flush()).thenReturn(asyncFile);
-        when(httpClient.get(any(), any(), any())).thenReturn(httpClientRequest);
-
-        final long timerId = 22L;
-        when(vertx.setTimer(eq(TIMEOUT), any())).thenReturn(timerId);
+        given(fileSystem.exists(anyString(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
 
         // when
         remoteFileSyncer.syncForFilepath(stringResultConsumer);
 
         // then
-        verify(fileSystem).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.succeededFuture(false));
+        verify(vertx).fileSystem();
+        verify(fileSystem).exists(eq(FILE_PATH), any());
+        verify(stringResultConsumer).accept(FILE_PATH);
+        verifyZeroInteractions(httpClient);
+        verifyZeroInteractions(vertx);
+    }
 
-        verify(fileSystem).open(eq(FILE_PATH), any(), openFileCaptor.capture());
-        openFileCaptor.getValue().handle(Future.succeededFuture(asyncFile));
+    @Test
+    public void syncForFilepathShouldNotTriggerConsumerAcceptWhenCantCheckIfFileExist() {
+        // given
+        given(fileSystem.exists(anyString(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException())));
 
-        verify(httpClient).get(eq(DOMAIN), eq(EXAMPLE_URL), responseCaptor.capture());
-        responseCaptor.getValue().handle(httpClientResponse);
+        // when
+        remoteFileSyncer.syncForFilepath(stringResultConsumer);
 
-        // Timeout timer
+        // then
+        verify(vertx).fileSystem();
+        verify(fileSystem).exists(eq(FILE_PATH), any());
+        verifyZeroInteractions(stringResultConsumer);
+        verifyNoMoreInteractions(vertx);
+        verifyZeroInteractions(httpClient);
+    }
+
+    @Test
+    public void syncForFilepathShouldTriggerConsumerAcceptAfterDownload() {
+        // given
+        final long timerId = 22L;
+        when(vertx.setTimer(eq(TIMEOUT), any())).thenReturn(timerId);
+        when(asyncFile.flush()).thenReturn(asyncFile);
+
+        given(fileSystem.exists(anyString(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)));
+
+        given(fileSystem.open(anyString(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
+
+        given(httpClient.get(any(), any(), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 2));
+
+        given(httpClientResponse.endHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(null, 0));
+
+        doAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 0))
+                .when(asyncFile).close(any());
+
+        // when
+        remoteFileSyncer.syncForFilepath(stringResultConsumer);
+
+        // then
+        verify(fileSystem).exists(eq(FILE_PATH), any());
+        verify(fileSystem).open(eq(FILE_PATH), any(), any());
+
+        // Response handled
+        verify(httpClient).get(eq(DOMAIN), eq(EXAMPLE_URL), any());
         verify(vertx).setTimer(eq(TIMEOUT), any());
-
-        // Response ended
-        verify(httpClientResponse).endHandler(responseEndCaptor.capture());
-        responseEndCaptor.getValue().handle(null);
-
+        verify(httpClientResponse).endHandler(any());
         verify(vertx).cancelTimer(timerId);
-        verify(asyncFile).close(futureCaptor.capture());
-        futureCaptor.getValue().handle(Future.succeededFuture());
+        verify(asyncFile).close(any());
 
         verify(stringResultConsumer).accept(FILE_PATH);
     }
 
     @Test
     public void syncForFilepathShouldRetryAfterFailedDownload() {
-        // when
-        remoteFileSyncer.syncForFilepath(stringResultConsumer);
-
-        // then
-        // First download fail
-        verify(fileSystem).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.succeededFuture(false));
-
-        verify(fileSystem).open(eq(FILE_PATH), any(), openFileCaptor.capture());
-        openFileCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-
-        // Retries
-        for (int i = 1; i <= RETRY_COUNT; i++) {
-            verify(vertx, times(i)).setTimer(eq(RETRY_INTERVAL), retryCaptor.capture());
-            retryCaptor.getValue().handle(0L);
-
-            // Check if we need to delete file
-            verify(fileSystem, times(i + 1)).exists(eq(FILE_PATH), isExistCaptor.capture());
-            isExistCaptor.getValue().handle(Future.succeededFuture(false));
-
-            verify(fileSystem, times(i + 1)).open(eq(FILE_PATH), any(), openFileCaptor.capture());
-            openFileCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-        }
-
-        // Final call when RETRY_COUNT = 0
-        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), retryCaptor.capture());
-        retryCaptor.getValue().handle(0L);
-
-        verifyZeroInteractions(stringResultConsumer);
-        verifyZeroInteractions(httpClient);
-    }
-
-    @Test
-    public void syncForFilepathShouldRetryAfterFailedDownloadWhenDeleteFileIsFailed() {
-        // when
-        remoteFileSyncer.syncForFilepath(stringResultConsumer);
-
-        // then
-        // First download fail
-        verify(fileSystem).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.succeededFuture(false));
-
-        verify(fileSystem).open(eq(FILE_PATH), any(), openFileCaptor.capture());
-        openFileCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-
-        // Retries
-        for (int i = 1; i <= RETRY_COUNT; i++) {
-            verify(vertx, times(i)).setTimer(eq(RETRY_INTERVAL), retryCaptor.capture());
-            retryCaptor.getValue().handle(0L);
-
-            // Check if we need to delete file
-            verify(fileSystem, times(i + 1)).exists(eq(FILE_PATH), isExistCaptor.capture());
-            isExistCaptor.getValue().handle(Future.succeededFuture(true));
-
-            verify(fileSystem, times(i)).delete(eq(FILE_PATH), futureCaptor.capture());
-            futureCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-        }
-
-        // Final call when RETRY_COUNT = 0
-        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), retryCaptor.capture());
-        retryCaptor.getValue().handle(0L);
-
-        verifyZeroInteractions(stringResultConsumer);
-        verifyZeroInteractions(httpClient);
-    }
-
-    @Test
-    public void syncForFilepathShouldRetryAfterFailedDownloadAndTriggerConsumerAcceptAfterSuccessfullyDownload() {
         // given
-        when(asyncFile.flush()).thenReturn(asyncFile);
-        when(httpClient.get(any(), any(), any())).thenReturn(httpClientRequest);
+        given(fileSystem.exists(any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)));
 
+        given(fileSystem.open(any(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException()), 2));
+
+        given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
+
+        // when
+        remoteFileSyncer.syncForFilepath(stringResultConsumer);
+
+
+        // then
+        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), any());
+        verify(fileSystem, times(RETRY_COUNT + 2)).exists(eq(FILE_PATH), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(FILE_PATH), any(), any());
+
+        verifyZeroInteractions(httpClient);
+        verifyZeroInteractions(stringResultConsumer);
+    }
+
+    @Test
+    public void syncForFilepathShouldRetryWhenDeleteFileIsFailed() {
+        // then
+        given(fileSystem.exists(any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
+
+        given(fileSystem.open(any(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException()), 2));
+
+        given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
+
+        given(fileSystem.delete(any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException())));
+
+        // when
+        remoteFileSyncer.syncForFilepath(stringResultConsumer);
+
+        // then
+        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), any());
+        verify(fileSystem, times(RETRY_COUNT + 2)).exists(eq(FILE_PATH), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).delete(eq(FILE_PATH), any());
+
+        verifyZeroInteractions(httpClient);
+        verifyZeroInteractions(stringResultConsumer);
+    }
+
+
+    @Test
+    public void syncForFilepathShouldRetryWhenTimeoutIsReached() {
+        // given
+        given(fileSystem.exists(anyString(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
+
+        given(fileSystem.open(anyString(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
+
+        given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
+
+        given(fileSystem.delete(any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+
+        given(httpClient.get(any(), any(), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 2));
+        given(vertx.setTimer(eq(TIMEOUT), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(null, 22L, 1));
+
+        // when
+        remoteFileSyncer.syncForFilepath(stringResultConsumer);
+
+        // then
+        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), any());
+        verify(fileSystem, times(RETRY_COUNT + 2)).exists(eq(FILE_PATH), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(FILE_PATH), any(), any());
+
+        // Response handled
+        verify(httpClient, times(RETRY_COUNT + 1)).get(eq(DOMAIN), eq(EXAMPLE_URL), any());
+        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(TIMEOUT), any());
+        verify(asyncFile, times(RETRY_COUNT + 1)).close();
+
+        verifyZeroInteractions(stringResultConsumer);
+    }
+
+    @Test
+    public void syncForFilepathShouldRetryAndTriggerConsumerAcceptAfterDownload() {
+        // given
         final long timerId = 22L;
         when(vertx.setTimer(eq(TIMEOUT), any())).thenReturn(timerId);
+        when(asyncFile.flush()).thenReturn(asyncFile);
+
+        given(fileSystem.exists(anyString(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
+
+        given(fileSystem.open(anyString(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException()), 2))
+                // After file deleted successfully
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
+
+        // setTimer also used for timeout setup which we don`t want to trigger
+        given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
+
+        given(fileSystem.delete(any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException())))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+
+        given(httpClient.get(any(), any(), any()))
+                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 2));
+        given(httpClientResponse.endHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(null, 0));
+        doAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 0))
+                .when(asyncFile).close(any());
 
         // when
         remoteFileSyncer.syncForFilepath(stringResultConsumer);
 
         // then
-        // First download fail
-        verify(fileSystem).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.succeededFuture(false));
+        verify(vertx, times(2)).setTimer(eq(RETRY_INTERVAL), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).exists(eq(FILE_PATH), any());
+        verify(fileSystem, times(2)).open(eq(FILE_PATH), any(), any());
 
-        verify(fileSystem).open(eq(FILE_PATH), any(), openFileCaptor.capture());
-        openFileCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-
-        // Retries
-        for (int i = 1; i < RETRY_COUNT; i++) {
-            verify(vertx, times(i)).setTimer(eq(RETRY_INTERVAL), retryCaptor.capture());
-            retryCaptor.getValue().handle(0L);
-
-            // Check if we need to delete file
-            verify(fileSystem, times(i + 1)).exists(eq(FILE_PATH), isExistCaptor.capture());
-            isExistCaptor.getValue().handle(Future.succeededFuture(true));
-
-            verify(fileSystem, times(i)).delete(eq(FILE_PATH), futureCaptor.capture());
-            futureCaptor.getValue().handle(Future.failedFuture(new RuntimeException()));
-        }
-
-        // Final retry
-        verify(vertx, times(RETRY_COUNT)).setTimer(eq(RETRY_INTERVAL), retryCaptor.capture());
-        retryCaptor.getValue().handle(0L);
-
-        verify(fileSystem, times(RETRY_COUNT + 1)).exists(eq(FILE_PATH), isExistCaptor.capture());
-        isExistCaptor.getValue().handle(Future.succeededFuture(false));
-
-        // Successful download
-        verify(fileSystem, times(2)).open(eq(FILE_PATH), any(), openFileCaptor.capture());
-        openFileCaptor.getValue().handle(Future.succeededFuture(asyncFile));
-
-        verify(httpClient).get(eq(DOMAIN), eq(EXAMPLE_URL), responseCaptor.capture());
-        responseCaptor.getValue().handle(httpClientResponse);
-
-        // Timeout timer
+        // Response handled
+        verify(httpClient).get(eq(DOMAIN), eq(EXAMPLE_URL), any());
         verify(vertx).setTimer(eq(TIMEOUT), any());
-
-        // Response ended
-        verify(httpClientResponse).endHandler(responseEndCaptor.capture());
-        responseEndCaptor.getValue().handle(null);
-
+        verify(httpClientResponse).endHandler(any());
         verify(vertx).cancelTimer(timerId);
-        verify(asyncFile).close(futureCaptor.capture());
-        futureCaptor.getValue().handle(Future.succeededFuture());
+        verify(asyncFile).close(any());
 
         verify(stringResultConsumer).accept(FILE_PATH);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int index) {
+        return inv -> {
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(index)).handle(obj);
+            return inv.getMock();
+        };
+    }
+
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
+        return withSelfAndPassObjectToHandler(obj, 1);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T, V> Answer<Object> withReturnObjectAndPassObjectToHandler(T obj, V ret, int index) {
+        return inv -> {
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(index)).handle(obj);
+            return ret;
+        };
     }
 }
 
