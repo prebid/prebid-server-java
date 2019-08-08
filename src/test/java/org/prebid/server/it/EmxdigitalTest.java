@@ -58,7 +58,7 @@ public class EmxdigitalTest extends IntegrationTest {
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/emxdigital/test-auction-emxdigital-response.json",
-                response, singletonList("emxdigital"));
+                response, singletonList("emx_digital"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
