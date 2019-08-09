@@ -18,7 +18,6 @@ import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -200,7 +199,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Creates headers for post request with version and {@link Device} properties.
      */
     private MultiMap createHeaders(Device device) {
-        final MultiMap headers = BidderUtil.headers();
+        final MultiMap headers = HttpUtil.headers();
 
         headers.add(OPEN_RTB_VERSION_HEADER, VERSION);
 

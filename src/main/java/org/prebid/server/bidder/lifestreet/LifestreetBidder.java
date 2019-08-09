@@ -14,7 +14,6 @@ import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -65,7 +64,7 @@ public class LifestreetBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .body(body)
-                        .headers(BidderUtil.headers())
+                        .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .build());
             } catch (PreBidException e) {

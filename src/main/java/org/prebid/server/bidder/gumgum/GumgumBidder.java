@@ -15,7 +15,6 @@ import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -73,7 +72,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
                         .body(body)
-                        .headers(BidderUtil.headers())
+                        .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .build()),
                 errors);

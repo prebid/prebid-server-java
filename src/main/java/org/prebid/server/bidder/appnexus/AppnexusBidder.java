@@ -15,7 +15,6 @@ import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
@@ -105,7 +104,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(url)
                         .body(body)
-                        .headers(BidderUtil.headers())
+                        .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .build()),
                 errors);

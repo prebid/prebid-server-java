@@ -105,8 +105,8 @@ public final class HttpUtil {
      */
     public static MultiMap headers() {
         return MultiMap.caseInsensitiveMultiMap()
-                .add(HttpUtil.CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
-                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
+                .add(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
+                .add(ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 
     /**

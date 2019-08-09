@@ -162,7 +162,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .body(body)
-                .headers(BidderUtil.headers())
+                .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build();
     }

@@ -21,7 +21,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontRequests;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
@@ -130,7 +129,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
     private static HttpRequestBuilder<BeachfrontRequests> httpRequestBuilderWithPopulatedHeadersAndMethod(
             Device device, HttpMethod httpMethod) {
-        final MultiMap headers = BidderUtil.headers();
+        final MultiMap headers = HttpUtil.headers();
         if (device != null) {
             addDeviceHeaders(headers, device);
         }

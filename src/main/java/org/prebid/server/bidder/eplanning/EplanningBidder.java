@@ -17,7 +17,6 @@ import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
 import org.prebid.server.bidder.eplanning.model.HbResponseAd;
@@ -171,7 +170,7 @@ public class EplanningBidder implements Bidder<Void> {
      * Crates http headers from {@link Device} properties.
      */
     private static MultiMap createHeaders(Device device) {
-        final MultiMap headers = BidderUtil.headers();
+        final MultiMap headers = HttpUtil.headers();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
