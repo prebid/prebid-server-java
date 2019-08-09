@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.emx_digital;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
@@ -25,6 +26,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.emx_digital.ExtImpEmxDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -64,7 +67,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         final String body = Json.encode(bidRequest);
         final MultiMap headers = makeHeaders(request);
-        final String url = makeUrl(request.getTest(), request.getTmax());
+        final String url = makeUrl(request);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -162,9 +165,9 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             throw new PreBidException("Request needs to include a Banner object");
         }
 
-        final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
 
         if (banner.getW() == null && banner.getH() == null) {
+            final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
             final List<Format> originalFormat = banner.getFormat();
 
             if (originalFormat == null || originalFormat.isEmpty()) {
@@ -209,16 +212,48 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private String makeUrl(Integer test, Long timeout) {
-        final int urlTimeout = timeout == null || timeout == 0 ? 1000 : timeout.intValue();
+    private String makeUrl(BidRequest bidRequest) {
+        final Long tmax = bidRequest.getTmax();
+        final int urlTimeout = tmax == null || tmax == 0 ? 1000 : tmax.intValue();
 
-        if (test != null && test == 1) {
+        if (isDebugEnabled(bidRequest)) {
             // for passing validation tests
             return String.format("%s?t=1000&ts=2060541160", endpointUrl);
         }
 
         return String.format("%s?t=%s&ts=%s&src=pbserver", endpointUrl, urlTimeout,
                 (int) Instant.now().getEpochSecond());
+    }
+
+    /**
+     * Determines debug flag from {@link BidRequest} or {@link ExtBidRequest}.
+     */
+    private static boolean isDebugEnabled(BidRequest bidRequest) {
+        if (Objects.equals(bidRequest.getTest(), 1)) {
+            return true;
+        }
+
+        final ExtBidRequest extBidRequest;
+        try {
+            extBidRequest = requestExt(bidRequest);
+        } catch (Exception e) {
+            return false;
+        }
+
+        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
+    }
+
+    /**
+     * Extracts {@link ExtBidRequest} from {@link BidRequest}.
+     */
+    private static ExtBidRequest requestExt(BidRequest bidRequest) {
+        try {
+            return bidRequest.getExt() != null
+                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
+        }
     }
 
     @Override
