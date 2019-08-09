@@ -46,7 +46,6 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String endpointUrl;
-    private boolean testing;
 
     public EmxDigitalBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -65,7 +64,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         final String body = Json.encode(bidRequest);
         final MultiMap headers = makeHeaders(request);
-        final String url = makeUrl(request.getTmax());
+        final String url = makeUrl(request.getTest(), request.getTmax());
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -210,10 +209,10 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private String makeUrl(Long timeout) {
+    private String makeUrl(Integer test, Long timeout) {
         final int urlTimeout = timeout == null || timeout == 0 ? 1000 : timeout.intValue();
 
-        if (testing) {
+        if (test != null && test == 1) {
             // for passing validation tests
             return String.format("%s?t=1000&ts=2060541160", endpointUrl);
         }
@@ -256,10 +255,6 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     @Override
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
-    }
-
-    private void setTesting(boolean testing) {
-        this.testing = testing;
     }
 }
 

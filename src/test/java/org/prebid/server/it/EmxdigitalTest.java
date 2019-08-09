@@ -25,9 +25,9 @@ public class EmxdigitalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromEmxdigital() throws IOException, JSONException {
         // given
-        wireMockRule.stubFor(post(urlPathEqualTo("/emxdigital-exchange"))
+        wireMockRule.stubFor(post(urlPathEqualTo("/emx_digital-exchange"))
                 .withQueryParam("t", equalTo("1000"))
-                .withQueryParam("src", equalTo("pbserver"))
+                .withQueryParam("ts", equalTo("2060541160"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("Android Chrome/60"))
