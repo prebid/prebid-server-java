@@ -24,7 +24,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
     private final ApplicationSettings delegate;
 
     private final Map<String, Account> accountCache;
-    private final Map<String, PreBidException> accountNotFoundCache;
+    private final Map<String, String> accountToExceptionMessageCache;
     private final Map<String, String> adUnitConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
@@ -36,7 +36,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         }
         this.delegate = Objects.requireNonNull(delegate);
         this.accountCache = SettingsCache.createCache(ttl, size);
-        this.accountNotFoundCache = SettingsCache.createCache(ttl, size);
+        this.accountToExceptionMessageCache = SettingsCache.createCache(ttl, size);
         this.adUnitConfigCache = SettingsCache.createCache(ttl, size);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
@@ -47,7 +47,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return getFromCacheOrDelegate(accountCache, accountNotFoundCache, accountId, timeout, delegate::getAccountById);
+        return getFromCacheOrDelegate(accountCache, accountToExceptionMessageCache, accountId, timeout,
+                delegate::getAccountById);
     }
 
     /**
@@ -55,7 +56,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return getFromCacheOrDelegate(adUnitConfigCache, accountNotFoundCache, adUnitConfigId, timeout,
+        return getFromCacheOrDelegate(adUnitConfigCache, accountToExceptionMessageCache, adUnitConfigId, timeout,
                 delegate::getAdUnitConfigById);
     }
 
@@ -84,7 +85,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache,
-                                                        Map<String, PreBidException> accountNotFoundCache, String key,
+                                                        Map<String, String> accountToExceptionMessageCache, String key,
                                                         Timeout timeout,
                                                         BiFunction<String, Timeout, Future<T>> retriever) {
 
@@ -93,9 +94,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
             return Future.succeededFuture(cachedValue);
         }
 
-        final PreBidException preBidException = accountNotFoundCache.get(key);
-        if (preBidException != null) {
-            return Future.failedFuture(preBidException);
+        final String preBidExceptionMessage = accountToExceptionMessageCache.get(key);
+        if (preBidExceptionMessage != null) {
+            return Future.failedFuture(new PreBidException(preBidExceptionMessage));
         }
 
         return retriever.apply(key, timeout)
@@ -103,7 +104,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                     cache.put(key, value);
                     return value;
                 })
-                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, accountNotFoundCache));
+                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, accountToExceptionMessageCache));
     }
 
     /**
@@ -146,9 +147,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     private static <T> Future<T> cacheAndReturnFailedFuture(Throwable throwable, String key,
-                                                            Map<String, PreBidException> cache) {
+                                                            Map<String, String> cache) {
         if (throwable instanceof PreBidException) {
-            cache.put(key, (PreBidException) throwable);
+            cache.put(key, throwable.getMessage());
         }
         return Future.failedFuture(throwable);
     }
