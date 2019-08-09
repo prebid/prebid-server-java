@@ -10,6 +10,7 @@ import io.vertx.core.file.FileSystemException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import java.io.File;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,8 +47,8 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final int RETRY_COUNT = 2;
     private static final long RETRY_INTERVAL = 2000;
     private static final String EXAMPLE_URL = "https://example.com";
-    private static final String FILE_PATH = "fake/path/to/file.pdf";
-    private static final String DIR_PATH = "fake/path/to";
+    private static final String FILE_PATH = String.join(File.separator, "fake", "path", "to", "file.pdf");
+    private static final String DIR_PATH = String.join(File.separator, "fake", "path", "to");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
