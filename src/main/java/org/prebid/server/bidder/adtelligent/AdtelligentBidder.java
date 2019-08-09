@@ -14,7 +14,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -52,7 +51,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
 
     public AdtelligentBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        headers = BidderUtil.headers();
+        headers = HttpUtil.headers();
     }
 
     /**

@@ -13,7 +13,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -127,7 +126,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return bidRequests.stream()
                 .filter(Objects::nonNull)
                 .map(singleBidRequest -> HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri(endpointUrl)
-                        .body(Json.encode(singleBidRequest)).headers(BidderUtil.headers()).payload(singleBidRequest)
+                        .body(Json.encode(singleBidRequest)).headers(HttpUtil.headers()).payload(singleBidRequest)
                         .build())
                 .collect(Collectors.toList());
     }

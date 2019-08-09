@@ -14,7 +14,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -149,7 +148,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap basicHeaders() {
-        return BidderUtil.headers()
+        return HttpUtil.headers()
                 .add("x-openrtb-version", "2.5");
     }
 

@@ -13,7 +13,6 @@ import io.vertx.core.json.Json;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.mgid.model.ExtBidMgid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -77,7 +76,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl + accountId)
                 .body(body)
-                .headers(BidderUtil.headers())
+                .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build()), Collections.emptyList());
     }

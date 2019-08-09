@@ -18,7 +18,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -128,7 +127,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private MultiMap headers(BidRequest bidRequest) {
-        final MultiMap headers = BidderUtil.headers();
+        final MultiMap headers = HttpUtil.headers();
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
