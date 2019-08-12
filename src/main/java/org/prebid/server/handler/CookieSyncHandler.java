@@ -52,24 +52,29 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
+    private final List<List<String>> prioritisedBidders;
     private final GdprService gdprService;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
+    private final boolean defaultCoop;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
 
     public CookieSyncHandler(String externalUrl, long defaultTimeout, UidsCookieService uidsCookieService,
-                             BidderCatalog bidderCatalog,
+                             BidderCatalog bidderCatalog, List<List<String>> prioritisedBidders,
                              GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
-                             AnalyticsReporter analyticsReporter, Metrics metrics, TimeoutFactory timeoutFactory) {
+                             boolean defaultCoop, AnalyticsReporter analyticsReporter, Metrics metrics,
+                             TimeoutFactory timeoutFactory) {
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.prioritisedBidders = prioritisedBidders;
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
+        this.defaultCoop = defaultCoop;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -117,7 +122,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final Collection<String> biddersToSync = biddersToSync(cookieSyncRequest.getBidders());
+        final Integer limit = cookieSyncRequest.getLimit();
+        final Boolean coopSync = cookieSyncRequest.getCoopSync();
+        final Collection<String> biddersToSync = biddersToSync(cookieSyncRequest.getBidders(), coopSync, limit);
 
         final Set<Integer> vendorIds = gdprVendorIdsFor(biddersToSync);
         vendorIds.add(gdprHostVendorId);
@@ -127,8 +134,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdprAsString, gdprConsent, ip,
                 timeoutFactory.create(defaultTimeout))
-                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, biddersToSync,
-                        gdprAsString, gdprConsent, cookieSyncRequest.getLimit()));
+                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, biddersToSync, gdprAsString,
+                        gdprConsent, limit));
     }
 
     /**
@@ -136,10 +143,33 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * <p>
      * If bidder list was omitted in request, that means sync should be done for all bidders.
      */
-    private Collection<String> biddersToSync(List<String> biddersFromRequest) {
-        return CollectionUtils.isEmpty(biddersFromRequest)
-                ? bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet())
-                : biddersFromRequest;
+    private Collection<String> biddersToSync(List<String> requestBidders, Boolean requestCoop, Integer requestLimit) {
+        if (CollectionUtils.isEmpty(requestBidders)) {
+            return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
+        }
+
+        final boolean coop = requestCoop == null ? defaultCoop : requestCoop;
+
+        if (coop) {
+            final int limit = requestLimit == null ? Integer.MAX_VALUE : requestLimit;
+            final int remaining = limit - requestBidders.size();
+            final Collection<String> coopSync = getCoopSync(remaining);
+            requestBidders.addAll(coopSync);
+        }
+
+        return requestBidders;
+    }
+
+    private Collection<String> getCoopSync(int limit) {
+        if (prioritisedBidders == null || limit <= 0) {
+            return Collections.emptyList();
+        }
+
+        return prioritisedBidders.stream()
+                .peek(Collections::shuffle)
+                .flatMap(Collection::stream)
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     /**
