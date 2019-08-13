@@ -84,9 +84,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(ampCache, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
-    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache,
-                                                        Map<String, String> accountToExceptionMessageCache, String key,
-                                                        Timeout timeout,
+    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,
+                                                        String key, Timeout timeout,
                                                         BiFunction<String, Timeout, Future<T>> retriever) {
 
         final T cachedValue = cache.get(key);
@@ -94,7 +93,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
             return Future.succeededFuture(cachedValue);
         }
 
-        final String preBidExceptionMessage = accountToExceptionMessageCache.get(key);
+        final String preBidExceptionMessage = accountToErrorCache.get(key);
         if (preBidExceptionMessage != null) {
             return Future.failedFuture(new PreBidException(preBidExceptionMessage));
         }
@@ -104,7 +103,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                     cache.put(key, value);
                     return value;
                 })
-                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, accountToExceptionMessageCache));
+                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, accountToErrorCache));
     }
 
     /**
