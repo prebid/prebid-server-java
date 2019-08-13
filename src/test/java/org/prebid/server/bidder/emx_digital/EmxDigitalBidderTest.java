@@ -2,15 +2,14 @@ package org.prebid.server.bidder.emx_digital;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.within;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.Banner.BannerBuilder;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
@@ -19,6 +18,9 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +36,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn;
 import org.prebid.server.proto.openrtb.ext.request.emx_digital.ExtImpEmxDigital;
 
 public class EmxDigitalBidderTest extends VertxTest {
@@ -77,13 +78,12 @@ public class EmxDigitalBidderTest extends VertxTest {
 	}
 
 	@Test
-	public void makeHttpRequestsShouldReturnErrorWhenImpExtNotContainsBanner() {
+	public void makeHttpRequestsShouldReturnErrorWhenImpNotContainsBanner() {
 		// given
 		final BidRequest bidRequest = BidRequest.builder()
 			.imp(singletonList(Imp.builder()
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", ""))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -107,7 +107,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 				.banner(Banner.builder().build())
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of(null, ""))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -131,7 +130,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 				.banner(Banner.builder().build())
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("not", ""))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -155,7 +153,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 				.banner(Banner.builder().build())
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("0", ""))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -172,14 +169,13 @@ public class EmxDigitalBidderTest extends VertxTest {
 	}
 
 	@Test
-	public void makeHttpRequestsShouldReturnErrorWhenWAndHIsNullAndBannerFormatIsNull() {
+	public void makeHttpRequestsShouldReturnErrorWhenWidthAndHeightIsNullAndBannerFormatIsNull() {
 		// given
 		final BidRequest bidRequest = BidRequest.builder()
 			.imp(singletonList(Imp.builder()
 				.banner(Banner.builder().build())
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("1", "1"))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -196,14 +192,13 @@ public class EmxDigitalBidderTest extends VertxTest {
 	}
 
 	@Test
-	public void makeHttpRequestsShouldReturnErrorWhenWAndHIsNullAndBannerFormatIsEmpty() {
+	public void makeHttpRequestsShouldReturnErrorWhenWidthAndHeightIsNullAndBannerFormatIsEmpty() {
 		// given
 		final BidRequest bidRequest = BidRequest.builder()
 			.imp(singletonList(Imp.builder()
 				.banner(Banner.builder().format(Collections.emptyList()).build())
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("1", "1"))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -220,7 +215,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 	}
 
 	@Test
-	public void makeHttpRequestsShouldModifyImpWhenExtImpEmxDigitalContainsRequredValues() {
+	public void makeHttpRequestsShouldModifyImpWhenExtImpEmaDigitalContainsRequiredValues() {
 		// given
 		final BidRequest bidRequest = BidRequest.builder()
 			.imp(singletonList(Imp.builder()
@@ -228,7 +223,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("123", "2"))))
 				.build()))
 			.site(Site.builder().page("https://exmaple/").build())
-			.id("request_id")
 			.build();
 
 		// when
@@ -236,22 +230,23 @@ public class EmxDigitalBidderTest extends VertxTest {
 			.makeHttpRequests(bidRequest);
 
 		// then
+		final Imp expectedImp = Imp.builder()
+				.banner(Banner.builder().w(100).h(100).build())
+				.tagid("123")
+				.secure(1)
+				.bidfloor(new BigDecimal("2"))
+				.bidfloorcur("USD")
+				.build();
+
 		assertThat(result.getErrors()).isEmpty();
 		assertThat(result.getValue()).hasSize(1)
 			.extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
 			.flatExtracting(BidRequest::getImp)
-			.hasSize(1)
-			.first()
-			.satisfies(imp -> {
-				assertThat(imp.getTagid()).isEqualTo("123");
-				assertThat(imp.getSecure()).isEqualTo(1);
-				assertThat(imp.getBidfloor()).isEqualTo("2");
-				assertThat(imp.getBidfloorcur()).isEqualTo("USD");
-			});
+			.containsOnly(expectedImp);
 	}
 
 	@Test
-	public void makeHttpRequestsShouldModifyBannerFormatAndWAndHWhenRequestBannerWAndHIsNull() {
+	public void makeHttpRequestsShouldModifyBannerFormatAndWidthAndHeightWhenRequestBannerWidthAndHeightIsNull() {
 		// given
 		final List<Format> formats = Arrays.asList(
 			Format.builder().h(20).w(21).build(),
@@ -262,7 +257,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 				.banner(Banner.builder().format(formats).build())
 				.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("1", "asd"))))
 				.build()))
-			.id("request_id")
 			.build();
 
 		// when
@@ -273,18 +267,17 @@ public class EmxDigitalBidderTest extends VertxTest {
 		final Banner expectedBanner = Banner.builder().h(20).w(21)
 			.format(singletonList(Format.builder().h(30).w(31).build())).build();
 
+		final Imp expectedImp = Imp.builder()
+				.banner(expectedBanner)
+				.tagid("1")
+				.secure(0)
+				.build();
+
 		assertThat(result.getErrors()).isEmpty();
 		assertThat(result.getValue()).hasSize(1)
 			.extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
 			.flatExtracting(BidRequest::getImp).hasSize(1)
-			.first()
-			.satisfies(imp -> {
-				assertThat(imp.getTagid()).isEqualTo("1");
-				assertThat(imp.getSecure()).isEqualTo(0);
-				assertThat(imp.getBidfloor()).isNull();
-				assertThat(imp.getBidfloorcur()).isNull();
-				assertThat(imp.getBanner()).isEqualTo(expectedBanner);
-			});
+			.containsOnly(expectedImp);
 	}
 
 	@Test
@@ -297,7 +290,6 @@ public class EmxDigitalBidderTest extends VertxTest {
 				.build()))
 			.device(Device.builder().ip("ip").ua("Agent").language("fr").dnt(1).build())
 			.site(Site.builder().page("myPage").build())
-			.id("request_id")
 			.build();
 
 		// when
@@ -305,11 +297,17 @@ public class EmxDigitalBidderTest extends VertxTest {
 			.makeHttpRequests(bidRequest);
 
 		// then
+		final int expectedTime = (int) Instant.now().getEpochSecond();
+
 		assertThat(result.getErrors()).isEmpty();
 		assertThat(result.getValue()).hasSize(1)
-			.first()
-			.satisfies(request ->
-				assertThat(request.getUri()).startsWith("https://test.endpoint.com?t=1000&ts="));
+			.extracting(HttpRequest::getUri)
+			.allSatisfy(uri -> {
+				assertThat(uri).startsWith("https://test.endpoint.com?t=1000&ts=");
+				assertThat(uri).endsWith("&src=pbserver");
+				final String ts = uri.substring(36, uri.indexOf("&src"));
+				assertThat(Integer.parseInt(ts)).isCloseTo(expectedTime, within(10));
+			});
 
 		assertThat(result.getValue()).hasSize(1)
 			.flatExtracting(r -> r.getHeaders().entries())
@@ -322,6 +320,42 @@ public class EmxDigitalBidderTest extends VertxTest {
 				tuple("Referer", "myPage"),
 				tuple("DNT", "1"),
 				tuple("Accept-Language", "fr"));
+	}
+
+	@Test
+	public void makeHttpRequestsShouldSendRequestToTestUrlWithHeadersWhenTestIsOne() {
+		// given
+		final BidRequest bidRequest = BidRequest.builder()
+				.imp(singletonList(Imp.builder()
+						.banner(Banner.builder().w(1).h(1).build())
+						.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("1", "asd"))))
+						.build()))
+				.device(Device.builder().ip("ip").ua("Agent").language("fr").dnt(1).build())
+				.site(Site.builder().page("myPage").build())
+				.test(1)
+				.build();
+
+		// when
+		final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+				.makeHttpRequests(bidRequest);
+
+		// then
+		assertThat(result.getErrors()).isEmpty();
+		assertThat(result.getValue()).hasSize(1)
+				.extracting(HttpRequest::getUri)
+				.allSatisfy(uri -> assertThat(uri).isEqualTo("https://test.endpoint.com?t=1000&ts=2060541160"));
+
+		assertThat(result.getValue()).hasSize(1)
+				.flatExtracting(r -> r.getHeaders().entries())
+				.extracting(Map.Entry::getKey, Map.Entry::getValue)
+				.containsOnly(
+						tuple("Content-Type", "application/json;charset=utf-8"),
+						tuple("Accept", "application/json"),
+						tuple("User-Agent", "Agent"),
+						tuple("X-Forwarded-For", "ip"),
+						tuple("Referer", "myPage"),
+						tuple("DNT", "1"),
+						tuple("Accept-Language", "fr"));
 	}
 
 	@Test
@@ -372,7 +406,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 	}
 
 	@Test
-	public void makeBidsShouldReturnBannerBidWhenBannerIsPresentWithChangedBidImpId() throws JsonProcessingException {
+	public void makeBidsShouldAlwaysReturnBannerBidWithChangedBidImpId() throws JsonProcessingException {
 		// given
 		final HttpCall<BidRequest> httpCall = givenHttpCall(
 			BidRequest.builder()

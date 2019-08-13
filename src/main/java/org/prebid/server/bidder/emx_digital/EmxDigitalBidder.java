@@ -83,14 +83,13 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     // Handle request errors and formatting to be sent to EMX
     private static BidRequest makeBidRequest(BidRequest request, List<BidderError> errors) {
         final List<BidderError> makeBidRequestErrors = new ArrayList<>();
-        final List<Imp> resultImp = new ArrayList<>();
+        final List<Imp> modifiedImps = new ArrayList<>();
         final boolean isSecure = isSecure(request.getSite());
 
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpEmxDigital extImpEmxDigital = unpackImpExt(imp);
-                final Imp populatedImp = modifyImp(imp, isSecure, extImpEmxDigital);
-                resultImp.add(populatedImp);
+                modifiedImps.add(modifyImp(imp, isSecure, extImpEmxDigital));
             } catch (PreBidException e) {
                 makeBidRequestErrors.add(BidderError.badInput(e.getMessage()));
             }
@@ -104,7 +103,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         }
 
         return request.toBuilder()
-                .imp(resultImp)
+                .imp(modifiedImps)
                 .build();
     }
 
@@ -145,7 +144,8 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(extImpEmxDigital.getTagid())
                 .secure(BooleanUtils.toInteger(isSecure))
-                .banner(banner);
+                .banner(banner)
+                .ext(null);
 
         final BigDecimal bidfloor;
         try {
@@ -156,7 +156,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         return impBuilder
                 .bidfloor(bidfloor)
-                .bidfloorcur("USD")
+                .bidfloorcur(DEFAULT_BID_CURRENCY)
                 .build();
     }
 
@@ -164,7 +164,6 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         if (banner == null) {
             throw new PreBidException("Request needs to include a Banner object");
         }
-
 
         if (banner.getW() == null && banner.getH() == null) {
             final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
