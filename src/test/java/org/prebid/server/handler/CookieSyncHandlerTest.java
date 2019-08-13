@@ -267,11 +267,11 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
+                BidderUsersyncStatus.builder().bidder(disabledBidder).error("Unsupported bidder").build(),
                 BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
                         UsersyncInfo.of("http://adnxsexample.com", "redirect", false)).build(),
                 BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(
-                        UsersyncInfo.of("http://rubiconexample.com", "redirect", false)).build(),
-                BidderUsersyncStatus.builder().bidder(disabledBidder).error("Unsupported bidder").build())));
+                        UsersyncInfo.of("http://rubiconexample.com", "redirect", false)).build())));
     }
 
     @Test

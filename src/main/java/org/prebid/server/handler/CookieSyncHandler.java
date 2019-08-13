@@ -35,6 +35,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -152,25 +153,35 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         if (coop) {
             final int limit = requestLimit == null ? Integer.MAX_VALUE : requestLimit;
-            final int remaining = limit - requestBidders.size();
-            final Collection<String> coopSync = getCoopSync(requestBidders, remaining);
-            requestBidders.addAll(coopSync);
+            return addCoopSyncBidders(requestBidders, limit);
         }
 
         return requestBidders;
     }
 
-    private Collection<String> getCoopSync(List<String> bidders, int limit) {
+    private Collection<String> addCoopSyncBidders(List<String> bidders, int limit) {
         if (prioritisedBidders == null || limit <= 0) {
-            return Collections.emptyList();
+            return bidders;
         }
+        final HashSet<String> allBidders = new HashSet<>(bidders);
 
-        return prioritisedBidders.stream()
-                .peek(Collections::shuffle)
-                .flatMap(Collection::stream)
-                .filter(bidder -> !bidders.contains(bidder))
-                .limit(limit)
-                .collect(Collectors.toList());
+        for (List<String> pr : prioritisedBidders) {
+            final int remaining = limit - allBidders.size();
+            if (remaining <= 0) {
+                return allBidders;
+            }
+
+            if (pr.size() > remaining) {
+                Collections.shuffle(pr);
+                pr.stream()
+                        .filter(allBidders::add)
+                        .limit(remaining)
+                        .count();
+            } else {
+                allBidders.addAll(pr);
+            }
+        }
+        return allBidders;
     }
 
     /**
