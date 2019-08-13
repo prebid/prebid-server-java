@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.emx_digital.ExtImpEmxDigital;
+import org.prebid.server.proto.openrtb.ext.request.emxdigital.ExtImpEmxDigital;
 
 import java.math.BigDecimal;
 import java.time.Instant;

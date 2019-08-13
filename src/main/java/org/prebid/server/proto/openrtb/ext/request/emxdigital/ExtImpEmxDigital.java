@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request.emx_digital;
+package org.prebid.server.proto.openrtb.ext.request.emxdigital;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
