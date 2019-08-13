@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.emx_digital;
+package org.prebid.server.bidder.emxdigital;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,7 +34,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -56,13 +55,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
         final BidRequest bidRequest;
         try {
-            bidRequest = makeBidRequest(request, errors);
+            bidRequest = makeBidRequest(request);
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
 
         final String body = Json.encode(bidRequest);
@@ -76,31 +73,16 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                         .body(body)
                         .headers(headers)
                         .payload(request)
-                        .build()),
-                errors);
+                        .build()), Collections.emptyList());
     }
 
     // Handle request errors and formatting to be sent to EMX
-    private static BidRequest makeBidRequest(BidRequest request, List<BidderError> errors) {
-        final List<BidderError> makeBidRequestErrors = new ArrayList<>();
-        final List<Imp> modifiedImps = new ArrayList<>();
+    private static BidRequest makeBidRequest(BidRequest request) {
         final boolean isSecure = isSecure(request.getSite());
 
-        for (Imp imp : request.getImp()) {
-            try {
-                final ExtImpEmxDigital extImpEmxDigital = unpackImpExt(imp);
-                modifiedImps.add(modifyImp(imp, isSecure, extImpEmxDigital));
-            } catch (PreBidException e) {
-                makeBidRequestErrors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
-
-        errors.addAll(makeBidRequestErrors);
-
-        if (!makeBidRequestErrors.isEmpty()) {
-            throw new PreBidException(
-                    String.format("Error in makeBidRequest of Imp, err: %s", makeBidRequestErrors));
-        }
+        final List<Imp> modifiedImps = request.getImp().stream()
+                .map(imp -> modifyImp(imp, isSecure, unpackImpExt(imp)))
+                .collect(Collectors.toList());
 
         return request.toBuilder()
                 .imp(modifiedImps)
@@ -147,10 +129,15 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .banner(banner)
                 .ext(null);
 
+        final String stringBidfloor = extImpEmxDigital.getBidfloor();
+        if (StringUtils.isBlank(stringBidfloor)) {
+            return impBuilder.build();
+        }
+
         final BigDecimal bidfloor;
         try {
-            bidfloor = new BigDecimal(extImpEmxDigital.getBidfloor());
-        } catch (NumberFormatException | NullPointerException e) {
+            bidfloor = new BigDecimal(stringBidfloor);
+        } catch (NumberFormatException e) {
             return impBuilder.build();
         }
 
@@ -213,7 +200,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     private String makeUrl(BidRequest bidRequest) {
         final Long tmax = bidRequest.getTmax();
-        final int urlTimeout = tmax == null || tmax == 0 ? 1000 : tmax.intValue();
+        final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
         if (isDebugEnabled(bidRequest)) {
             // for passing validation tests
