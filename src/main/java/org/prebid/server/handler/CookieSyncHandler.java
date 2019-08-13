@@ -153,14 +153,14 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         if (coop) {
             final int limit = requestLimit == null ? Integer.MAX_VALUE : requestLimit;
             final int remaining = limit - requestBidders.size();
-            final Collection<String> coopSync = getCoopSync(remaining);
+            final Collection<String> coopSync = getCoopSync(requestBidders, remaining);
             requestBidders.addAll(coopSync);
         }
 
         return requestBidders;
     }
 
-    private Collection<String> getCoopSync(int limit) {
+    private Collection<String> getCoopSync(List<String> bidders, int limit) {
         if (prioritisedBidders == null || limit <= 0) {
             return Collections.emptyList();
         }
@@ -168,6 +168,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return prioritisedBidders.stream()
                 .peek(Collections::shuffle)
                 .flatMap(Collection::stream)
+                .filter(bidder -> !bidders.contains(bidder))
                 .limit(limit)
                 .collect(Collectors.toList());
     }

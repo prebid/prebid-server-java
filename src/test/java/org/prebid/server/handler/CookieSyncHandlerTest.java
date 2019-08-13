@@ -281,7 +281,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        final List<List<String>> priorityBidders = asList(singletonList(RUBICON), asList("bidder1", "bidder2"), singletonList("spam"));
+        final List<List<String>> priorityBidders = asList(singletonList(APPNEXUS), singletonList(RUBICON),
+                asList("bidder1", "bidder2"), singletonList("spam"));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
                 priorityBidders, gdprService, 1, false, true, analyticsReporter, metrics, timeoutFactory);
