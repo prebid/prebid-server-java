@@ -47,8 +47,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return getFromCacheOrDelegate(accountCache, accountToErrorCache, accountId, timeout,
-                delegate::getAccountById);
+        return getFromCacheOrDelegate(accountCache, accountToErrorCache, accountId, timeout, delegate::getAccountById);
     }
 
     /**
