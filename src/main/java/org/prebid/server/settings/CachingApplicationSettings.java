@@ -1,6 +1,7 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -23,6 +24,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
     private final ApplicationSettings delegate;
 
     private final Map<String, Account> accountCache;
+    private final Map<String, String> accountToErrorCache;
     private final Map<String, String> adUnitConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
@@ -34,6 +36,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         }
         this.delegate = Objects.requireNonNull(delegate);
         this.accountCache = SettingsCache.createCache(ttl, size);
+        this.accountToErrorCache = SettingsCache.createCache(ttl, size);
         this.adUnitConfigCache = SettingsCache.createCache(ttl, size);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
@@ -44,7 +47,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return getFromCacheOrDelegate(accountCache, accountId, timeout, delegate::getAccountById);
+        return getFromCacheOrDelegate(accountCache, accountToErrorCache, accountId, timeout, delegate::getAccountById);
     }
 
     /**
@@ -52,7 +55,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, timeout, delegate::getAdUnitConfigById);
+        return getFromCacheOrDelegate(adUnitConfigCache, accountToErrorCache, adUnitConfigId, timeout,
+                delegate::getAdUnitConfigById);
     }
 
     /**
@@ -79,22 +83,26 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(ampCache, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
-    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, Timeout timeout,
+    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,
+                                                        String key, Timeout timeout,
                                                         BiFunction<String, Timeout, Future<T>> retriever) {
-        final Future<T> result;
 
         final T cachedValue = cache.get(key);
         if (cachedValue != null) {
-            result = Future.succeededFuture(cachedValue);
-        } else {
-            result = retriever.apply(key, timeout)
-                    .map(value -> {
-                        cache.put(key, value);
-                        return value;
-                    });
+            return Future.succeededFuture(cachedValue);
         }
 
-        return result;
+        final String preBidExceptionMessage = accountToErrorCache.get(key);
+        if (preBidExceptionMessage != null) {
+            return Future.failedFuture(new PreBidException(preBidExceptionMessage));
+        }
+
+        return retriever.apply(key, timeout)
+                .map(value -> {
+                    cache.put(key, value);
+                    return value;
+                })
+                .recover(throwable -> cacheAndReturnFailedFuture(throwable, key, accountToErrorCache));
     }
 
     /**
@@ -134,6 +142,14 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
             return Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, result.getErrors()));
         });
+    }
+
+    private static <T> Future<T> cacheAndReturnFailedFuture(Throwable throwable, String key,
+                                                            Map<String, String> cache) {
+        if (throwable instanceof PreBidException) {
+            cache.put(key, throwable.getMessage());
+        }
+        return Future.failedFuture(throwable);
     }
 
     private static Map<String, String> getFromCacheOrAddMissedIds(Set<String> ids, Map<String, String> cache,
