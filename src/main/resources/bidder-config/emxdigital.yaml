@@ -1,0 +1,20 @@
+adapters:
+  emxdigital:
+    enabled: false
+    endpoint: https://hb.emxdgt.com
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: adops@emxdigital.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 183
+    usersync:
+      url: https://biddr.brealtime.com/check_pbs.html?redir=
+      redirect-url: /setuid?bidder=emx_digital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={UID}
+      cookie-family-name: emx_digital
+      type: redirect
+      support-cors: false

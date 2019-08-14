@@ -1,0 +1,175 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "uuid",
+          "impid": "uuid",
+          "price": 2.942808,
+          "adm": "<div id=\"123456789_ad\"><script>!function(){console.log\"Hello, world.\";}();</script></div>",
+          "adid": "94395500",
+          "crid": "94395500",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "2.90",
+                "hb_cache_id_emx_digital": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045",
+                "hb_cache_path":  "{{ cache.path }}",
+                "hb_cache_path_emx_digital":  "{{ cache.path }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_emx_digital": "{{ cache.host }}",
+                "hb_size": "300x250",
+                "hb_bidder": "emx_digital",
+                "hb_cache_id": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045",
+                "hb_bidder_emx_digital": "emx_digital",
+                "hb_size_emx_digital": "300x250",
+                "hb_pb_emx_digital": "2.90"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}9a5d11a7-de5a-4ce4-8e89-d37f18a10045",
+                  "cacheId": "9a5d11a7-de5a-4ce4-8e89-d37f18a10045"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "emx_digital",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "emx_digital": [
+          {
+            "uri": "{{ emx_digital.exchange_uri }}?t=1000&ts=2060541160",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"bid\",\"banner\":{\"format\":[],\"w\":300,\"h\":250},\"tagid\":\"25251\",\"secure\":0}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"Android Chrome/60\",\"dnt\":2,\"ip\":\"127.0.0.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"some_test_auction\",\"seatbid\":[{\"seat\":\"12356\",\"bid\":[{\"id\":\"uuid\",\"adm\":\"<div id=\\\"123456789_ad\\\"><script>!function(){console.log\\\"Hello, world.\\\";}();</script></div>\",\"impid\":\"some_test_ad_id\",\"ttl\":300,\"crid\":\"94395500\",\"w\":300,\"price\":2.942808,\"adid\":\"94395500\",\"h\":250}]}],\"cur\":\"USD\"}",
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"uuid\",\"impid\":\"uuid\",\"price\":2.942808,\"adm\":\"<div id=\\\"123456789_ad\\\"><script>!function(){console.log\\\"Hello, world.\\\";}();</script></div>\",\"adid\":\"94395500\",\"crid\":\"94395500\",\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"9a5d11a7-de5a-4ce4-8e89-d37f18a10045\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "bid",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "emx_digital": {
+                "tagid": "25251"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "Android Chrome/60",
+          "dnt": 2,
+          "ip": "127.0.0.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "cache": "{{ cache.response_time_ms }}",
+      "emx_digital": "{{ emx_digital.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}
