@@ -69,4 +69,12 @@ gdpr:
   geolocation:
     enabled: true
     maxmind:
-      db-archive-path: /maxmind_db.tar.gz
+      remote-file-syncer:
+        download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
+        save-filepath: /var/tmp/prebid/GeoLite2-Country.tar.gz
+        retry-count: 3
+        retry-interval-ms: 3000
+        timeout-ms: 300000
+        http-client:
+          connect-timeout-ms: 2500
+          max-redirects: 3

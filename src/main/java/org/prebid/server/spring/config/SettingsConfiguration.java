@@ -19,6 +19,7 @@ import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
+import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -88,16 +89,22 @@ public class SettingsConfiguration {
         }
 
         @Bean
+        @ConfigurationProperties(prefix = "settings.database.circuit-breaker")
+        @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
+        CircuitBreakerProperties databaseCircuitBreakerProperties() {
+            return new CircuitBreakerProperties();
+        }
+
+        @Bean
         @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
         CircuitBreakerSecuredJdbcClient circuitBreakerSecuredJdbcClient(
                 Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner,
-                @Value("${settings.database.circuit-breaker.opening-threshold}") int openingThreshold,
-                @Value("${settings.database.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
-                @Value("${settings.database.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
+                @Qualifier("databaseCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties) {
 
             final JdbcClient jdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
-            return new CircuitBreakerSecuredJdbcClient(vertx, jdbcClient, metrics, openingThreshold, openingIntervalMs,
-                    closingIntervalMs);
+            return new CircuitBreakerSecuredJdbcClient(vertx, jdbcClient, metrics,
+                    circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
+                    circuitBreakerProperties.getClosingIntervalMs());
         }
 
         private static BasicJdbcClient createBasicJdbcClient(

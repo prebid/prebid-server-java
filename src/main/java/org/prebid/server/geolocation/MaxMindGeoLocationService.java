@@ -10,10 +10,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
-import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -22,38 +21,29 @@ import java.util.zip.GZIPInputStream;
  */
 public class MaxMindGeoLocationService implements GeoLocationService {
 
-    private final DatabaseReader databaseReader;
+    private static final String DATABASE_FILE_NAME = "GeoLite2-Country.mmdb";
 
-    private MaxMindGeoLocationService(DatabaseReader databaseReader) {
-        this.databaseReader = Objects.requireNonNull(databaseReader);
-    }
+    private DatabaseReader databaseReader;
 
-    public static MaxMindGeoLocationService create(String dbArchive, String databaseFileName) {
-        final InputStream resourceAsStream = MaxMindGeoLocationService.class.getResourceAsStream(dbArchive);
-
-        if (resourceAsStream == null) {
-            throw new PreBidException(String.format("No database archive found with a file name: %s", dbArchive));
-        }
-
-        try (TarArchiveInputStream tarInput = new TarArchiveInputStream(
-                new GZIPInputStream(resourceAsStream))) {
+    public void setDatabaseReader(String dbArchivePath) {
+        try (TarArchiveInputStream tarInput = new TarArchiveInputStream(new GZIPInputStream(
+                new FileInputStream(dbArchivePath)))) {
 
             TarArchiveEntry currentEntry;
             boolean hasDatabaseFile = false;
             while ((currentEntry = tarInput.getNextTarEntry()) != null) {
-                if (currentEntry.getName().contains(databaseFileName)) {
+                if (currentEntry.getName().contains(DATABASE_FILE_NAME)) {
                     hasDatabaseFile = true;
                     break;
                 }
             }
             if (!hasDatabaseFile) {
                 throw new PreBidException(String.format("Database file %s not found in %s archive",
-                        databaseFileName, dbArchive));
+                        DATABASE_FILE_NAME, dbArchivePath));
             }
-            final DatabaseReader databaseReader = new DatabaseReader.Builder(tarInput)
-                    .fileMode(Reader.FileMode.MEMORY).build();
 
-            return new MaxMindGeoLocationService(databaseReader);
+            databaseReader = new DatabaseReader.Builder(tarInput).fileMode(Reader.FileMode.MEMORY).build();
+
         } catch (IOException e) {
             throw new PreBidException(String.format(
                     "IO Exception occurred while trying to read an archive/db file: %s", e.getMessage()), e);
@@ -62,6 +52,10 @@ public class MaxMindGeoLocationService implements GeoLocationService {
 
     @Override
     public Future<GeoInfo> lookup(String ip, Timeout timeout) {
+        if (databaseReader == null) {
+            return Future.failedFuture("Geo location database file hasn't been downloaded yet, try again later");
+        }
+
         final String countryIso;
         try {
             countryIso = databaseReader.country(InetAddress.getByName(ip))

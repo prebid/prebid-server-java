@@ -386,18 +386,6 @@
                             <outputFileName>effective_tld_names.dat</outputFileName>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>maxmind_db</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>wget</goal>
-                        </goals>
-                        <configuration>
-                            <url>https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz</url>
-                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                            <outputFileName>maxmind_db.tar.gz</outputFileName>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
             <plugin>
