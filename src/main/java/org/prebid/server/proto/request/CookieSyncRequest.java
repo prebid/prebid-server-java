@@ -1,5 +1,6 @@
 package org.prebid.server.proto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -15,5 +16,9 @@ public class CookieSyncRequest {
 
     String gdprConsent;
 
+    @JsonProperty("coopSync")
+    Boolean coopSync;
+
     Integer limit;
 }
+

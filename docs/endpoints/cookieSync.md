@@ -12,6 +12,7 @@ must supply a JSON object to define the list of bidders that may need to be sync
 ```
 {
     "bidders": ["appnexus", "rubicon"],
+    "coopSync": true,
     "gdpr": 1,
     "gdpr_consent": "BONV8oqONXwgmADACHENAO7pqzAAppY",
     "limit": 2
@@ -20,19 +21,24 @@ must supply a JSON object to define the list of bidders that may need to be sync
 
 `bidders` is optional. If present, it limits the endpoint to return syncs for bidders defined in the list.
 
+`coopSync` is optional. It overrides default value of cooperative syncing.
+
 `gdpr` is optional. It should be 1 if GDPR is in effect, 0 if not, and omitted if the caller is unsure.
 
 `gdpr_consent` is required if `gdpr` is `1`, and optional otherwise. If present, it should be an [unpadded base64-URL](https://tools.ietf.org/html/rfc4648#page-7) encoded [Vendor Consent String](https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/Consent%20string%20and%20vendor%20list%20formats%20v1.1%20Final.md#vendor-consent-string-format-).
-
-If `gdpr` is  omitted, callers are still encouraged to send `gdpr_consent` if they have it.
-Depending on how the Prebid Server host company has configured their servers, they may or may not require it for cookie syncs.
 
 `limit` is optional. If present and greater than zero, it will limit the number of syncs returned to `limit`, dropping some syncs to
 get the count down to limit if more would otherwise have been returned. This is to facilitate clients not overloading a user with syncs
 the first time they are encountered.
 
-If the `bidders` field is an empty list, it will not supply any syncs. If the `bidders` field is omitted completely, it will attempt
+If `gdpr` is  omitted, callers are still encouraged to send `gdpr_consent` if they have it.
+Depending on how the Prebid Server host company has configured their servers, they may or may not require it for cookie syncs.
+
+If the `bidders` field is an empty list or field is omitted completely, it will attempt
 to sync all bidders.
+
+If the `coop-sync` is enabled by request value `coopSync` or default value by the Prebid Server host company, response will include
+ sync for bidders configured and prioritised by the host company.
 
 ### Sample Response
 

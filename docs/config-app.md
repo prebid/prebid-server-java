@@ -51,6 +51,8 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
+- `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
+- `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.

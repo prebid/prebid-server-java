@@ -37,6 +37,8 @@ amp:
 setuid:
   default-timeout-ms: 2000
 cookie-sync:
+  coop-sync:
+    default: false
   default-timeout-ms: 2000
 currency-converter:
   enabled: true

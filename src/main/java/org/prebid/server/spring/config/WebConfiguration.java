@@ -260,15 +260,17 @@ public class WebConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
+            CoopSyncPriorities coopSyncPriorities,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
-
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService,
-                hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
+                coopSyncPriorities.getPri(), gdprService, hostVendorId, useGeoLocation, defaultCoopSync,
+                analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -340,6 +342,15 @@ public class WebConfiguration {
         Set<String> getCustomTargetingSet() {
             return new HashSet<>(customTargeting);
         }
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "cookie-sync.coop-sync")
+    @Data
+    @NoArgsConstructor
+    private static class CoopSyncPriorities {
+
+        private List<List<String>> pri = new ArrayList<>();
     }
 
     @Configuration
