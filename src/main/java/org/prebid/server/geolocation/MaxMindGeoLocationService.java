@@ -25,16 +25,6 @@ public class MaxMindGeoLocationService implements GeoLocationService {
 
     private DatabaseReader databaseReader;
 
-    public MaxMindGeoLocationService() {
-    }
-
-    /**
-     * Constructor for tests use only.
-     */
-    public MaxMindGeoLocationService(DatabaseReader databaseReader) {
-        this.databaseReader = databaseReader;
-    }
-
     public void setDatabaseReader(String dbArchivePath) {
         try (TarArchiveInputStream tarInput = new TarArchiveInputStream(new GZIPInputStream(
                 new FileInputStream(dbArchivePath)))) {
@@ -63,7 +53,7 @@ public class MaxMindGeoLocationService implements GeoLocationService {
     @Override
     public Future<GeoInfo> lookup(String ip, Timeout timeout) {
         if (databaseReader == null) {
-            return Future.failedFuture("Database file does not exist");
+            return Future.failedFuture("Geo location database file hasn't been downloaded yet, try again later");
         }
 
         final String countryIso;

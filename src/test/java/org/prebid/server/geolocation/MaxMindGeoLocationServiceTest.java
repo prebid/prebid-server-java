@@ -5,8 +5,10 @@ import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
 import io.vertx.core.Future;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.geolocation.model.GeoInfo;
 
@@ -22,25 +24,35 @@ public class MaxMindGeoLocationServiceTest {
 
     private static final String TEST_IP = "80.215.195.122";
 
+    private MaxMindGeoLocationService maxMindGeoLocationService;
+
+    @Before
+    public void setUp() {
+        maxMindGeoLocationService = new MaxMindGeoLocationService();
+    }
+
     @Test
     public void lookupShouldReturnFailedFutureWhenDatabaseReaderWasNotSet() {
         // given and when
-        final Future<GeoInfo> result = new MaxMindGeoLocationService().lookup(TEST_IP, null);
+        final Future<GeoInfo> result = maxMindGeoLocationService.lookup(TEST_IP, null);
 
         // then
         assertTrue(result.failed());
+        assertThat(result.cause())
+                .hasMessage("Geo location database file hasn't been downloaded yet, try again later");
     }
 
     @Test
     public void setDatabaseReaderShouldThrowExceptionIfDatabaseArchiveNotFound() {
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> new MaxMindGeoLocationService().setDatabaseReader("no_file"))
+                .isThrownBy(() -> maxMindGeoLocationService.setDatabaseReader("no_file"))
                 .withMessage("IO Exception occurred while trying to read an archive/db file: no_file " +
                         "(No such file or directory)");
     }
 
     @Test
-    public void lookupShouldReturnCountryIsoWhenDatabaseReaderWasSet() throws IOException, GeoIp2Exception {
+    public void lookupShouldReturnCountryIsoWhenDatabaseReaderWasSet() throws IOException, GeoIp2Exception,
+            NoSuchFieldException {
         // given
         final DatabaseReader databaseReader = Mockito.mock(DatabaseReader.class);
 
@@ -49,8 +61,11 @@ public class MaxMindGeoLocationServiceTest {
 
         given(databaseReader.country(any())).willReturn(countryResponse);
 
+        FieldSetter.setField(maxMindGeoLocationService,
+                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
+
         // when
-        final Future<GeoInfo> future = new MaxMindGeoLocationService(databaseReader).lookup(TEST_IP, null);
+        final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);
 
         // then
         assertThat(future.succeeded()).isTrue();
