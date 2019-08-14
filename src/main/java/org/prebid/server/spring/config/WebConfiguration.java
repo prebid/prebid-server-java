@@ -264,12 +264,12 @@ public class WebConfiguration {
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
-            @Value("${cookie-sync.coop-sync.default:#{false}}") boolean coopDefault,
+            @Value("${cookie-sync.coop-sync.default}") boolean coopDefault,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                coopSyncPriorities.getPrioritisedBidders(), gdprService, hostVendorId, useGeoLocation, coopDefault,
+                coopSyncPriorities.getPri(), gdprService, hostVendorId, useGeoLocation, coopDefault,
                 analyticsReporter, metrics, timeoutFactory);
     }
 
@@ -350,7 +350,7 @@ public class WebConfiguration {
     @NoArgsConstructor
     private static class CoopSyncPriorities {
 
-        private List<List<String>> prioritisedBidders = new ArrayList<>();
+        private List<List<String>> pri = new ArrayList<>();
     }
 
     @Configuration

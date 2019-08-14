@@ -32,6 +32,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -53,7 +54,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
-    private final List<List<String>> prioritisedBidders;
+    private final List<List<String>> listOfPrioritisedBidders;
     private final GdprService gdprService;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
@@ -63,7 +64,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final TimeoutFactory timeoutFactory;
 
     public CookieSyncHandler(String externalUrl, long defaultTimeout, UidsCookieService uidsCookieService,
-                             BidderCatalog bidderCatalog, List<List<String>> prioritisedBidders,
+                             BidderCatalog bidderCatalog, List<List<String>> listOfPrioritisedBidders,
                              GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
                              boolean defaultCoop, AnalyticsReporter analyticsReporter, Metrics metrics,
                              TimeoutFactory timeoutFactory) {
@@ -71,7 +72,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.prioritisedBidders = prioritisedBidders;
+        this.listOfPrioritisedBidders = listOfPrioritisedBidders;
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
@@ -160,25 +161,29 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private Collection<String> addCoopSyncBidders(List<String> bidders, int limit) {
-        if (prioritisedBidders == null || limit <= 0) {
+        if (listOfPrioritisedBidders == null || limit <= 0) {
             return bidders;
         }
-        final HashSet<String> allBidders = new HashSet<>(bidders);
+        final Set<String> allBidders = new HashSet<>(bidders);
 
-        for (List<String> pr : prioritisedBidders) {
-            final int remaining = limit - allBidders.size();
+        for (List<String> prioritisedBidders : listOfPrioritisedBidders) {
+            int remaining = limit - allBidders.size();
             if (remaining <= 0) {
                 return allBidders;
             }
 
-            if (pr.size() > remaining) {
-                Collections.shuffle(pr);
-                pr.stream()
-                        .filter(allBidders::add)
-                        .limit(remaining)
-                        .count();
+            if (prioritisedBidders.size() > remaining) {
+                final List<String> list = new ArrayList<>(prioritisedBidders);
+                Collections.shuffle(list);
+                for (String prioritisedBidder : list) {
+                    if (allBidders.add(prioritisedBidder)) {
+                        if (allBidders.size() >= limit) {
+                            break;
+                        }
+                    }
+                }
             } else {
-                allBidders.addAll(pr);
+                allBidders.addAll(prioritisedBidders);
             }
         }
         return allBidders;
