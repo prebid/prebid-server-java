@@ -76,7 +76,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetExpectedResponseFields() {
+    public void shouldSetExpectedConstantResponseFields() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final CacheServiceResult cacheServiceResult = givenEmptyCacheServiceResult();
@@ -89,18 +89,19 @@ public class BidResponseCreatorTest extends VertxTest {
                 null, cacheServiceResult, null, emptyMap(), false);
 
         // then
-        assertThat(bidResponse).isEqualTo(BidResponse.builder()
+        final BidResponse responseWithExpectedFields = BidResponse.builder()
                 .id("123")
                 .cur("USD")
-                .nbr(null)
-                .seatbid(emptyList())
                 .ext(mapper.valueToTree(
                         ExtBidResponse.of(null, null, singletonMap("bidder1", 100), 1000L, null)))
-                .build());
+                .build();
+
+        assertThat(bidResponse)
+                .isEqualToIgnoringGivenFields(responseWithExpectedFields, "nbr", "seatbid");
     }
 
     @Test
-    public void shouldSetNbrValueTwoIfIncomingBidResponsesAreEmpty() {
+    public void shouldSetNbrValueTwoAndEmptySeatbidWhenIncomingBidResponsesAreEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final CacheServiceResult cacheServiceResult = givenEmptyCacheServiceResult();
@@ -111,6 +112,44 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(bidResponse).returns(2, BidResponse::getNbr);
+        assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
+    }
+
+    @Test
+    public void shouldSetNbrValueTwoAndEmptySeatbidWhenIncomingBidResponsesDoNotContainAnyBids() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final CacheServiceResult cacheServiceResult = givenEmptyCacheServiceResult();
+
+        final List<BidderResponse> bidderResponses =
+                singletonList(BidderResponse.of("bidder1", givenSeatBid(), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null,
+                cacheServiceResult, null, emptyMap(), false);
+
+        // then
+        assertThat(bidResponse).returns(2, BidResponse::getNbr);
+        assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
+    }
+
+    @Test
+    public void shouldSetNbrNullAndPopulateSeatbidWhenAtLeastOneBidIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final CacheServiceResult cacheServiceResult = givenEmptyCacheServiceResult();
+
+        final List<BidderResponse> bidderResponses =
+                singletonList(BidderResponse.of("bidder1", givenSeatBid(
+                        BidderBid.of(Bid.builder().build(), null, null)), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null,
+                cacheServiceResult, null, emptyMap(), false);
+
+        // then
+        assertThat(bidResponse.getNbr()).isNull();
+        assertThat(bidResponse.getSeatbid()).hasSize(1);
     }
 
     @Test

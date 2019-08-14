@@ -73,6 +73,20 @@ public class BidResponseCreator {
     BidResponse create(List<BidderResponse> bidderResponses, BidRequest bidRequest, ExtRequestTargeting targeting,
                        CacheServiceResult cacheResult, BidRequestCacheInfo cacheInfo, Map<Bid, Events> eventsByBids,
                        boolean debugEnabled) {
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
+
+        final BidResponse.BidResponseBuilder bidResponseBuilder = BidResponse.builder()
+                .id(bidRequest.getId())
+                .cur(bidRequest.getCur().get(0))
+                .ext(Json.mapper.valueToTree(bidResponseExt));
+
+        if (checkEmptyResponses(bidderResponses)) {
+            return bidResponseBuilder
+                    .nbr(2)  // signal "Invalid Request"
+                    .seatbid(Collections.emptyList())
+                    .build();
+        }
+
         final Set<Bid> winningBids = newOrEmptySet(targeting);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
@@ -87,15 +101,144 @@ public class BidResponseCreator {
                         winningBids, winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), eventsByBids))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
-
-        return BidResponse.builder()
-                .id(bidRequest.getId())
-                .cur(bidRequest.getCur().get(0))
-                .nbr(bidderResponses.isEmpty() ? 2 : null) // signal "Invalid Request" if no valid bidders
+        return bidResponseBuilder
                 .seatbid(seatBids)
-                .ext(Json.mapper.valueToTree(bidResponseExt))
                 .build();
+    }
+
+    /**
+     * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
+     * bidders.
+     */
+    private ExtBidResponse toExtBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                                            CacheServiceResult cacheResult, boolean debugEnabled) {
+
+        final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled ? toExtHttpCalls(bidderResponses, cacheResult)
+                : null;
+        final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
+
+        final Map<String, List<ExtBidderError>> errors = toExtBidderErrors(bidderResponses, bidRequest, cacheResult);
+
+        final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
+
+        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null);
+    }
+
+    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponse> bidderResponses,
+                                                                 CacheServiceResult cacheResult) {
+        final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
+                .collect(Collectors.toMap(BidderResponse::getBidder,
+                        bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
+
+        final CacheHttpCall httpCall = cacheResult.getHttpCall();
+        final ExtHttpCall cacheExtHttpCall = httpCall != null ? toExtHttpCall(httpCall) : null;
+        final Map<String, List<ExtHttpCall>> cacheHttpCalls = cacheExtHttpCall != null
+                ? Collections.singletonMap(CACHE, Collections.singletonList(cacheExtHttpCall))
+                : Collections.emptyMap();
+
+        final Map<String, List<ExtHttpCall>> httpCalls = new HashMap<>();
+        httpCalls.putAll(bidderHttpCalls);
+        httpCalls.putAll(cacheHttpCalls);
+        return httpCalls.isEmpty() ? null : httpCalls;
+    }
+
+    private static ExtHttpCall toExtHttpCall(CacheHttpCall cacheHttpCall) {
+        final CacheHttpRequest request = cacheHttpCall.getRequest();
+        final CacheHttpResponse response = cacheHttpCall.getResponse();
+
+        return ExtHttpCall.builder()
+                .uri(request.getUri())
+                .requestbody(request.getBody())
+                .status(response != null ? response.getStatusCode() : null)
+                .responsebody(response != null ? response.getBody() : null)
+                .build();
+    }
+
+    private Map<String, List<ExtBidderError>> toExtBidderErrors(List<BidderResponse> bidderResponses,
+                                                                BidRequest bidRequest, CacheServiceResult cacheResult) {
+        final Map<String, List<ExtBidderError>> errors = new HashMap<>();
+
+        errors.putAll(extractBidderErrors(bidderResponses));
+        errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
+        errors.putAll(extractCacheErrors(cacheResult));
+
+        return errors.isEmpty() ? null : errors;
+    }
+
+    /**
+     * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
+     */
+    private Map<String, List<ExtBidderError>> extractBidderErrors(List<BidderResponse> bidderResponses) {
+        return bidderResponses.stream()
+                .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
+                .collect(Collectors.toMap(BidderResponse::getBidder,
+                        bidderResponse -> errorsDetails(bidderResponse.getSeatBid().getErrors())));
+    }
+
+    /**
+     * Maps a list of {@link BidderError} to a list of {@link ExtBidderError}s.
+     */
+    private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
+        return errors.stream()
+                .map(bidderError -> ExtBidderError.of(bidderError.getType().getCode(), bidderError.getMessage()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns a map with deprecated bidder name as a key and list of {@link ExtBidderError}s as a value.
+     */
+    private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+        return bidRequest.getImp().stream()
+                .filter(imp -> imp.getExt() != null)
+                .flatMap(imp -> asStream(imp.getExt().fieldNames()))
+                .distinct()
+                .filter(bidderCatalog::isDeprecatedName)
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                                bidderCatalog.errorForDeprecatedName(bidder)))));
+    }
+
+    /**
+     * Returns a singleton map with "prebid" as a key and list of {@link ExtBidderError}s cache errors as a value.
+     */
+    private static Map<String, List<ExtBidderError>> extractCacheErrors(CacheServiceResult cacheResult) {
+        final Throwable error = cacheResult.getError();
+        if (error != null) {
+            final ExtBidderError extBidderError = ExtBidderError.of(BidderError.Type.generic.getCode(),
+                    error.getMessage());
+            return Collections.singletonMap(PREBID_EXT, Collections.singletonList(extBidderError));
+        }
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Returns a map with response time by bidders and cache.
+     */
+    private static Map<String, Integer> toResponseTimes(List<BidderResponse> bidderResponses,
+                                                        CacheServiceResult cacheResult) {
+        final Map<String, Integer> responseTimeMillis = bidderResponses.stream()
+                .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
+
+        final CacheHttpCall cacheHttpCall = cacheResult.getHttpCall();
+        final Integer cacheResponseTime = cacheHttpCall != null ? cacheHttpCall.getResponseTimeMillis() : null;
+        if (cacheResponseTime != null) {
+            responseTimeMillis.put(CACHE, cacheResponseTime);
+        }
+        return responseTimeMillis;
+    }
+
+    private static <T> Stream<T> asStream(Iterator<T> iterator) {
+        final Iterable<T> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    /**
+     * Checks whether bidder responses are empty or contain no bids.
+     */
+    private static boolean checkEmptyResponses(List<BidderResponse> bidderResponses) {
+        return bidderResponses.isEmpty() || bidderResponses.stream()
+                .map(bidderResponse -> bidderResponse.getSeatBid().getBids())
+                .allMatch(CollectionUtils::isEmpty);
     }
 
     /**
@@ -306,131 +449,5 @@ public class BidResponseCreator {
      */
     private CacheAsset toCacheAsset(String cacheId) {
         return CacheAsset.of(cacheAssetUrlTemplate.concat(cacheId), cacheId);
-    }
-
-    /**
-     * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
-     * bidders.
-     */
-    private ExtBidResponse toExtBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                            CacheServiceResult cacheResult, boolean debugEnabled) {
-
-        final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled ? toExtHttpCalls(bidderResponses, cacheResult)
-                : null;
-        final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
-
-        final Map<String, List<ExtBidderError>> errors = toExtBidderErrors(bidderResponses, bidRequest, cacheResult);
-
-        final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
-
-        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null);
-    }
-
-    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponse> bidderResponses,
-                                                                 CacheServiceResult cacheResult) {
-        final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder,
-                        bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
-
-        final CacheHttpCall httpCall = cacheResult.getHttpCall();
-        final ExtHttpCall cacheExtHttpCall = httpCall != null ? toExtHttpCall(httpCall) : null;
-        final Map<String, List<ExtHttpCall>> cacheHttpCalls = cacheExtHttpCall != null
-                ? Collections.singletonMap(CACHE, Collections.singletonList(cacheExtHttpCall))
-                : Collections.emptyMap();
-
-        final Map<String, List<ExtHttpCall>> httpCalls = new HashMap<>();
-        httpCalls.putAll(bidderHttpCalls);
-        httpCalls.putAll(cacheHttpCalls);
-        return httpCalls.isEmpty() ? null : httpCalls;
-    }
-
-    private static ExtHttpCall toExtHttpCall(CacheHttpCall cacheHttpCall) {
-        final CacheHttpRequest request = cacheHttpCall.getRequest();
-        final CacheHttpResponse response = cacheHttpCall.getResponse();
-
-        return ExtHttpCall.builder()
-                .uri(request.getUri())
-                .requestbody(request.getBody())
-                .status(response != null ? response.getStatusCode() : null)
-                .responsebody(response != null ? response.getBody() : null)
-                .build();
-    }
-
-    private Map<String, List<ExtBidderError>> toExtBidderErrors(List<BidderResponse> bidderResponses,
-                                                                BidRequest bidRequest, CacheServiceResult cacheResult) {
-        final Map<String, List<ExtBidderError>> errors = new HashMap<>();
-
-        errors.putAll(extractBidderErrors(bidderResponses));
-        errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
-        errors.putAll(extractCacheErrors(cacheResult));
-
-        return errors.isEmpty() ? null : errors;
-    }
-
-    /**
-     * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
-     */
-    private Map<String, List<ExtBidderError>> extractBidderErrors(List<BidderResponse> bidderResponses) {
-        return bidderResponses.stream()
-                .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
-                .collect(Collectors.toMap(BidderResponse::getBidder,
-                        bidderResponse -> errorsDetails(bidderResponse.getSeatBid().getErrors())));
-    }
-
-    /**
-     * Maps a list of {@link BidderError} to a list of {@link ExtBidderError}s.
-     */
-    private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
-        return errors.stream()
-                .map(bidderError -> ExtBidderError.of(bidderError.getType().getCode(), bidderError.getMessage()))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Returns a map with deprecated bidder name as a key and list of {@link ExtBidderError}s as a value.
-     */
-    private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
-        return bidRequest.getImp().stream()
-                .filter(imp -> imp.getExt() != null)
-                .flatMap(imp -> asStream(imp.getExt().fieldNames()))
-                .distinct()
-                .filter(bidderCatalog::isDeprecatedName)
-                .collect(Collectors.toMap(Function.identity(),
-                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
-                                bidderCatalog.errorForDeprecatedName(bidder)))));
-    }
-
-    /**
-     * Returns a singleton map with "prebid" as a key and list of {@link ExtBidderError}s cache errors as a value.
-     */
-    private static Map<String, List<ExtBidderError>> extractCacheErrors(CacheServiceResult cacheResult) {
-        final Throwable error = cacheResult.getError();
-        if (error != null) {
-            final ExtBidderError extBidderError = ExtBidderError.of(BidderError.Type.generic.getCode(),
-                    error.getMessage());
-            return Collections.singletonMap(PREBID_EXT, Collections.singletonList(extBidderError));
-        }
-        return Collections.emptyMap();
-    }
-
-    /**
-     * Returns a map with response time by bidders and cache.
-     */
-    private static Map<String, Integer> toResponseTimes(List<BidderResponse> bidderResponses,
-                                                        CacheServiceResult cacheResult) {
-        final Map<String, Integer> responseTimeMillis = bidderResponses.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
-
-        final CacheHttpCall cacheHttpCall = cacheResult.getHttpCall();
-        final Integer cacheResponseTime = cacheHttpCall != null ? cacheHttpCall.getResponseTimeMillis() : null;
-        if (cacheResponseTime != null) {
-            responseTimeMillis.put(CACHE, cacheResponseTime);
-        }
-        return responseTimeMillis;
-    }
-
-    private static <T> Stream<T> asStream(Iterator<T> iterator) {
-        final Iterable<T> iterable = () -> iterator;
-        return StreamSupport.stream(iterable.spliterator(), false);
     }
 }
