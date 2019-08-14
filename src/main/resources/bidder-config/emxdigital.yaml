@@ -1,5 +1,5 @@
 adapters:
-  emx_digital:
+  emxdigital:
     enabled: false
     endpoint: https://hb.emxdgt.com
     pbs-enforces-gdpr: true

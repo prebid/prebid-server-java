@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 
 public class EmxDigitalBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMX_DIGITAL_EXT_TYPE_REFERENCE = new
+    private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMXDIGITAL_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpEmxDigital>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -98,7 +98,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final ExtImpEmxDigital bidder;
         try {
             bidder = Json.mapper.<ExtPrebid<?, ExtImpEmxDigital>>convertValue(imp.getExt(),
-                    EMX_DIGITAL_EXT_TYPE_REFERENCE).getBidder();
+                    EMXDIGITAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
