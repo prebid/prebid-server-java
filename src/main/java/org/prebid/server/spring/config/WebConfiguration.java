@@ -264,12 +264,12 @@ public class WebConfiguration {
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
-            @Value("${cookie-sync.coop-sync.default}") boolean coopDefault,
+            @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                coopSyncPriorities.getPri(), gdprService, hostVendorId, useGeoLocation, coopDefault,
+                coopSyncPriorities.getPri(), gdprService, hostVendorId, useGeoLocation, defaultCoopSync,
                 analyticsReporter, metrics, timeoutFactory);
     }
 

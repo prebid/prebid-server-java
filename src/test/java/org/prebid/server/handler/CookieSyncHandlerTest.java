@@ -103,7 +103,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                null, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+                emptyList(), gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
