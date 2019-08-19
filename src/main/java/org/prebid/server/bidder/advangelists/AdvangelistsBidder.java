@@ -64,35 +64,24 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     }
 
     private static Map<ExtImpAdvangelists, List<Imp>> getImpToExtImp(BidRequest request, List<BidderError> errors) {
-        final Map<ExtImpAdvangelists, List<Imp>> parsedExtToListOfImp = new HashMap<>();
+        final Map<ExtImpAdvangelists, List<Imp>> extToListOfUpdatedImp = new HashMap<>();
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdvangelists extImpEmxDigital = parseAndValidateImpExt(imp);
+                final Imp updatedImp = updateImp(imp);
 
-                parsedExtToListOfImp.putIfAbsent(extImpEmxDigital, new ArrayList<>());
-                parsedExtToListOfImp.get(extImpEmxDigital).add(imp);
+                extToListOfUpdatedImp.putIfAbsent(extImpEmxDigital, new ArrayList<>());
+                extToListOfUpdatedImp.get(extImpEmxDigital).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (parsedExtToListOfImp.isEmpty()) {
+        if (extToListOfUpdatedImp.isEmpty()) {
             throw new PreBidException("No appropriate impressions");
         }
 
-        final Map<ExtImpAdvangelists, List<Imp>> extToListOfUpdatedImps = new HashMap<>();
-        for (Map.Entry<ExtImpAdvangelists, List<Imp>> extToImps : parsedExtToListOfImp.entrySet()) {
-            final List<Imp> imps = updateImps(extToImps.getValue(), errors);
-            if (!imps.isEmpty()) {
-                extToListOfUpdatedImps.put(extToImps.getKey(), imps);
-            }
-        }
-
-        if (extToListOfUpdatedImps.isEmpty()) {
-            throw new PreBidException("No appropriate impressions");
-        }
-
-        return extToListOfUpdatedImps;
+        return extToListOfUpdatedImp;
     }
 
     private static ExtImpAdvangelists parseAndValidateImpExt(Imp imp) {
@@ -109,19 +98,6 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         }
 
         return bidder;
-    }
-
-    private static List<Imp> updateImps(List<Imp> imps, List<BidderError> errors) {
-        final List<Imp> updatedImps = new ArrayList<>();
-
-        for (Imp imp : imps) {
-            try {
-                updatedImps.add(updateImp(imp));
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
-        return updatedImps;
     }
 
     private static Imp updateImp(Imp imp) {
@@ -259,5 +235,6 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
     }
+
 }
 

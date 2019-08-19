@@ -140,12 +140,11 @@ public class AdvangelistsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(5)
-                .containsExactlyElementsOf(Arrays.asList(
-                        BidderError.badInput("No pubid value provided"),
+                .containsOnly(BidderError.badInput("No pubid value provided"),
                         BidderError.badInput("No pubid value provided"),
                         BidderError.badInput("Expected at least one banner.format entry or explicit w/h"),
                         BidderError.badInput("Expected at least one banner.format entry or explicit w/h"),
-                        BidderError.badInput("Unsupported impression has been received")));
+                        BidderError.badInput("Unsupported impression has been received"));
         assertThat(result.getValue()).hasSize(1);
     }
 
