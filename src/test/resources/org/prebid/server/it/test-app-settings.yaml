@@ -4,6 +4,7 @@ accounts:
     bannerCacheTtl: 100
     videoCacheTtl: 100
     eventsEnabled: true
+    analyticsSamplingFactor: 1
   - id: 1001
   - id: 2763
   - id: 5001
