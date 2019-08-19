@@ -66,7 +66,6 @@ public class AdvangelistsBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                         .build()))
-                .id("request_id")
                 .build();
 
         // when

@@ -64,61 +64,64 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     }
 
     private static Map<ExtImpAdvangelists, List<Imp>> getImpToExtImp(BidRequest request, List<BidderError> errors) {
-        final List<Imp> imps = new ArrayList<>();
-        final List<ExtImpAdvangelists> extImpList = new ArrayList<>();
+        final Map<ExtImpAdvangelists, List<Imp>> parsedExtToListOfImp = new HashMap<>();
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpAdvangelists extImpEmxDigital = getExtImpAdvangelists(imp);
-                validateImpExt(extImpEmxDigital);
+                final ExtImpAdvangelists extImpEmxDigital = parseAndValidateImpExt(imp);
 
-                imps.add(imp);
-                extImpList.add(extImpEmxDigital);
+                parsedExtToListOfImp.putIfAbsent(extImpEmxDigital, new ArrayList<>());
+                parsedExtToListOfImp.get(extImpEmxDigital).add(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        if (extImpList.isEmpty()) {
+
+        if (parsedExtToListOfImp.isEmpty()) {
             throw new PreBidException("No appropriate impressions");
         }
 
-        final Map<ExtImpAdvangelists, List<Imp>> extImpToListOfImp = dispatchImp(imps, extImpList, errors);
-        if (extImpToListOfImp.isEmpty()) {
+        final Map<ExtImpAdvangelists, List<Imp>> extToListOfUpdatedImps = new HashMap<>();
+        for (Map.Entry<ExtImpAdvangelists, List<Imp>> extToImps : parsedExtToListOfImp.entrySet()) {
+            final List<Imp> imps = updateImps(extToImps.getValue(), errors);
+            if (!imps.isEmpty()) {
+                extToListOfUpdatedImps.put(extToImps.getKey(), imps);
+            }
+        }
+
+        if (extToListOfUpdatedImps.isEmpty()) {
             throw new PreBidException("No appropriate impressions");
         }
 
-        return extImpToListOfImp;
+        return extToListOfUpdatedImps;
     }
 
-    private static ExtImpAdvangelists getExtImpAdvangelists(Imp imp) {
+    private static ExtImpAdvangelists parseAndValidateImpExt(Imp imp) {
+        final ExtImpAdvangelists bidder;
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpAdvangelists>>convertValue(imp.getExt(),
+            bidder = Json.mapper.<ExtPrebid<?, ExtImpAdvangelists>>convertValue(imp.getExt(),
                     ADVANGELISTS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
 
-    private static void validateImpExt(ExtImpAdvangelists extImpAdvangelists) {
-        if (StringUtils.isBlank(extImpAdvangelists.getPubid())) {
+        if (StringUtils.isBlank(bidder.getPubid())) {
             throw new PreBidException("No pubid value provided");
         }
+
+        return bidder;
     }
 
-    private static Map<ExtImpAdvangelists, List<Imp>> dispatchImp(List<Imp> imps, List<ExtImpAdvangelists> impExts,
-                                                                  List<BidderError> errors) {
-        final Map<ExtImpAdvangelists, List<Imp>> result = new HashMap<>();
+    private static List<Imp> updateImps(List<Imp> imps, List<BidderError> errors) {
+        final List<Imp> updatedImps = new ArrayList<>();
 
-        for (int i = 0; i < imps.size(); i++) {
+        for (Imp imp : imps) {
             try {
-                final Imp imp = updateImp(imps.get(i));
-                final ExtImpAdvangelists impExt = impExts.get(i);
-                result.putIfAbsent(impExt, new ArrayList<>());
-                result.get(impExt).add(imp);
+                updatedImps.add(updateImp(imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        return result;
+        return updatedImps;
     }
 
     private static Imp updateImp(Imp imp) {
@@ -241,7 +244,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Figures out which media type this bid is for.
+     * Resolves the media type for the bid.
      */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
@@ -256,6 +259,5 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
     }
-
 }
 
