@@ -106,6 +106,57 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetTagidToIncomingRequestWhenImpExtHasBlankPlacementId() {
+        // given
+        final String impId = "impId";
+        final String accId = "accId";
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id(impId)
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpMgid.of(accId, null, null, null, null, null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly(impId);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidToIncomingRequestWhenImpExtHasNotBlankPlacementId() {
+        // given
+        final String impId = "impId";
+        final String accId = "accId";
+        final String placementId = "placID";
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id(impId)
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpMgid.of(accId, placementId, null, null, null, null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedTagId = placementId + "/" + impId;
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly(expectedTagId);
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor() {
         // given
         final String currency = "GRP";
@@ -126,11 +177,12 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
+        final String expectedTagId = placementId + "/null";
         final BidRequest expected = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(bidFloor)
                         .bidfloorcur(currency)
-                        .tagid(placementId)
+                        .tagid(expectedTagId)
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMgid.of("accId", placementId, currency, null, bidFloor, null))))
                         .build()))
@@ -163,11 +215,12 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
+        final String expectedTagId = placementId + "/null";
         final BidRequest expected = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .bidfloor(bidFloor)
                         .bidfloorcur(currency)
-                        .tagid(placementId)
+                        .tagid(expectedTagId)
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMgid.of("accId", placementId, null, currency, null, bidFloor))))
                         .build()))
@@ -183,9 +236,11 @@ public class MgidBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotModifyIncomingRequestWhenImpExtNotContainsParamters() {
         // given
         final String placementId = "placID";
+        final String impId = "impId";
         final String accId = "accId";
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id(impId)
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMgid.of(accId, placementId, null, null, null, null))))
                         .build()))
@@ -197,9 +252,11 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
+        final String expectedTagId = placementId + "/" + impId;
         final BidRequest expected = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .tagid(placementId)
+                        .id(impId)
+                        .tagid(expectedTagId)
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMgid.of("accId", placementId, null, null, null, null))))
                         .build()))

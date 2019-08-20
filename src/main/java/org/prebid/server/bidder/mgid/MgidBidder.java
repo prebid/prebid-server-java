@@ -103,8 +103,15 @@ public class MgidBidder implements Bidder<BidRequest> {
         }
 
         return impBuilder
-                .tagid(impExt.getPlacementId())
+                .tagid(getTagid(imp, impExt))
                 .build();
+    }
+
+    private static String getTagid(Imp imp, ExtImpMgid impMgid) {
+        final String placementId = impMgid.getPlacementId();
+        final String impId = imp.getId();
+
+        return StringUtils.isBlank(placementId) ? impId : String.format("%s/%s", placementId, impId);
     }
 
     private static String getCur(ExtImpMgid impMgid) {
@@ -178,3 +185,4 @@ public class MgidBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
+
