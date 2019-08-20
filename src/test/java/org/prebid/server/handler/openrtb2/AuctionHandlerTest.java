@@ -475,9 +475,13 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
+                .requestTypeMetric(MetricName.openrtb2web)
+                .build();
+
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())
-                .bidRequest(auctionContext.getBidRequest())
+                .auctionContext(expectedAuctionContext)
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
                 .build());
@@ -498,9 +502,13 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
+                .requestTypeMetric(MetricName.openrtb2web)
+                .build();
+
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())
-                .bidRequest(auctionContext.getBidRequest())
+                .auctionContext(expectedAuctionContext)
                 .bidResponse(BidResponse.builder().build())
                 .status(200)
                 .errors(emptyList())

@@ -69,7 +69,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .requestTypeMetric(requestTypeMetric(context.getBidRequest()))
                         .build())
 
-                .map(context -> addToEvent(context.getBidRequest(), auctionEventBuilder::bidRequest, context))
+                .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
 
                 .compose(context -> exchangeService.holdAuction(context)
