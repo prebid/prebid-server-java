@@ -277,8 +277,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    BidResponseCreator bidResponseCreator(BidderCatalog bidderCatalog, CacheService cacheService) {
-        return new BidResponseCreator(bidderCatalog, cacheService.getEndpointHost(),
+    BidResponseCreator bidResponseCreator(
+            BidderCatalog bidderCatalog,
+            EventsService eventsService,
+            CacheService cacheService) {
+
+        return new BidResponseCreator(bidderCatalog, eventsService, cacheService.getEndpointHost(),
                 cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
     }
 
@@ -290,7 +294,6 @@ public class ServiceConfiguration {
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
-            EventsService eventsService,
             CacheService cacheService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
@@ -299,7 +302,7 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyConversionService, eventsService, cacheService,
+                httpBidderRequester, responseBidValidator, currencyConversionService, cacheService,
                 bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
