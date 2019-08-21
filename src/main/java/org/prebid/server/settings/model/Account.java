@@ -15,9 +15,10 @@ public class Account {
 
     Integer videoCacheTtl;
 
-    Integer analyticsSamplingFactor;
-
     Boolean eventsEnabled;
 
     Boolean enforceGdpr;
+
+    Integer analyticsSamplingFactor;
 }
+
