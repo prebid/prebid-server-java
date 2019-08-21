@@ -1,10 +1,10 @@
 package org.prebid.server.analytics.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.model.AuctionContext;
 
 import java.util.List;
 import java.util.Map;
@@ -22,7 +22,7 @@ public class AmpEvent {
 
     HttpContext httpContext;
 
-    BidRequest bidRequest;
+    AuctionContext auctionContext;
 
     BidResponse bidResponse;
 

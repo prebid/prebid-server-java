@@ -109,7 +109,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
 
-                .map(context -> addToEvent(context.getBidRequest(), ampEventBuilder::bidRequest, context))
+                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
 
                 .compose(context -> exchangeService.holdAuction(context)

@@ -610,9 +610,13 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         final AmpEvent ampEvent = captureAmpEvent();
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
+                .requestTypeMetric(MetricName.amp)
+                .build();
+
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
                 .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
-                .bidRequest(auctionContext.getBidRequest())
+                .auctionContext(expectedAuctionContext)
                 .origin("http://example.com")
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
@@ -636,9 +640,13 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         final AmpEvent ampEvent = captureAmpEvent();
+        final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
+                .requestTypeMetric(MetricName.amp)
+                .build();
+
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
                 .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
-                .bidRequest(auctionContext.getBidRequest())
+                .auctionContext(expectedAuctionContext)
                 .bidResponse(BidResponse.builder().seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .ext(mapper.valueToTree(ExtPrebid.of(
