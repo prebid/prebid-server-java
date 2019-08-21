@@ -49,7 +49,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
-
     private final String externalUrl;
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -62,6 +61,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
+    private final Collection<String> allActiveBidders;
 
     public CookieSyncHandler(String externalUrl, long defaultTimeout, UidsCookieService uidsCookieService,
                              BidderCatalog bidderCatalog, List<List<String>> listOfCoopSyncBidders,
@@ -80,6 +80,20 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+
+        allActiveBidders = activeBidders(bidderCatalog);
+        fillCoopSyncIfEmpty(listOfCoopSyncBidders, allActiveBidders);
+    }
+
+    private static Collection<String> activeBidders(BidderCatalog bidderCatalog) {
+        return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
+    }
+
+    private static void fillCoopSyncIfEmpty(List<List<String>> listOfCoopSyncBidders,
+                                            Collection<String> allActiveBidders) {
+        if (listOfCoopSyncBidders.isEmpty()) {
+            listOfCoopSyncBidders.add(new ArrayList<>(allActiveBidders));
+        }
     }
 
     @Override
@@ -147,7 +161,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private Collection<String> biddersToSync(List<String> requestBidders, Boolean requestCoop, Integer requestLimit) {
         if (CollectionUtils.isEmpty(requestBidders)) {
-            return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
+            return allActiveBidders;
         }
 
         final boolean coop = requestCoop == null ? defaultCoopSync : requestCoop;

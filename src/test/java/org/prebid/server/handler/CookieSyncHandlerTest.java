@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -77,6 +78,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
+    private List<List<String>> listOfCoopSyncBidders;
+    @Mock
     private GdprService gdprService;
     @Mock
     private AnalyticsReporter analyticsReporter;
@@ -101,9 +104,9 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
-
+        given(listOfCoopSyncBidders.isEmpty()).willReturn(false);
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                emptyList(), gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+                listOfCoopSyncBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
@@ -122,7 +125,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).setStatusMessage(eq("User has opted out"));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, bidderCatalog);
+        verify(routingContext, never()).getBody();
+        verifyNoMoreInteractions(httpResponse, gdprService);
     }
 
     @Test
@@ -138,7 +142,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, bidderCatalog);
+        verifyNoMoreInteractions(httpResponse, gdprService);
     }
 
     @Test
@@ -156,7 +160,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).setStatusMessage(eq("JSON parse failed"));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, bidderCatalog);
+        verifyNoMoreInteractions(httpResponse, gdprService);
     }
 
     @Test
@@ -174,7 +178,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).setStatusMessage(eq("gdpr_consent is required if gdpr is 1"));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, bidderCatalog);
+        verifyNoMoreInteractions(httpResponse, gdprService);
     }
 
     @Test
@@ -238,6 +242,40 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .noCookie(true)
                         .usersync(UsersyncInfo.of("http://adnxsexample.com", "redirect", false))
                         .build())));
+    }
+
+    @Test
+    public void shouldRespondWithAllActiveBiddersWhenRequestCoopSyncTrueAndNoPriorityConfigured() throws IOException {
+        // given
+        final String disabledBidder = "disabled_bidder";
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+        given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
+
+        final List<List<String>> emptyCoopBidders = new ArrayList<>();
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
+                emptyCoopBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, true, null)));
+
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
+        rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
+        givenUsersyncersReturningFamilyName();
+
+        givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(emptyCoopBidders).contains(asList(APPNEXUS, RUBICON));
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
+                BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
+                        UsersyncInfo.of("http://adnxsexample.com", "redirect", false)).build(),
+                BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(
+                        UsersyncInfo.of("http://rubiconexample.com", "redirect", false)).build())));
     }
 
     @Test
@@ -316,6 +354,9 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
+
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
+                listOfCoopSyncBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -516,7 +557,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByGdpr() throws IOException {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                emptyList(), gdprService, null, false, false, analyticsReporter, metrics, timeoutFactory);
+                listOfCoopSyncBidders, gdprService, null, false, false, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
