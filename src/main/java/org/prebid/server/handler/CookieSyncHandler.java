@@ -54,11 +54,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
     private final Collection<String> activeBidders;
-    private final List<Collection<String>> listOfCoopSyncBidders;
     private final GdprService gdprService;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
     private final boolean defaultCoopSync;
+    private final List<Collection<String>> listOfCoopSyncBidders;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
