@@ -1,39 +1,28 @@
 {
-  "id": "test-request-id",
+  "id": "tid",
   "imp": [
     {
-      "id": "test-imp-id",
+      "id": "testimpid",
       "banner": {
         "format": [
           {
-            "w": 300,
+            "w": 320,
             "h": 250
           },
           {
-            "w": 300,
-            "h": 600
+            "w": 320,
+            "h": 300
           }
-        ]
+        ],
+        "w": 320,
+        "h": 250
       },
-      "tagid": "456/test-imp-id",
-      "bidfloor": 1.1,
-      "bidfloorcur": "GBP",
-      "ext": {
-        "bidder": {
-          "accountId": "123",
-          "placementId": "456",
-          "bidfloor": 1.1,
-          "cur": "GBP"
-        }
-      }
+      "tagid": "dummyplacement"
     }
   ],
   "site": {
-    "domain": "example.com",
+    "domain": "",
     "page": "http://www.example.com",
-    "publisher": {
-      "id": "publisherId"
-    },
     "ext": {
       "amp": 0
     }
@@ -47,14 +36,14 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "MGID-UID",
+    "buyeruid": "AV-UID",
     "ext": {
-      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "consent": "consentValue"
     }
   },
   "test": 1,

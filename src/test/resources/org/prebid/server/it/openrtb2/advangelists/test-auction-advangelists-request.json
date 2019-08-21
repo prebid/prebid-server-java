@@ -1,60 +1,40 @@
 {
-  "id": "test-request-id",
+  "id": "tid",
   "imp": [
     {
-      "id": "test-imp-id",
+      "id": "testimpid",
       "banner": {
         "format": [
           {
-            "w": 300,
+            "w": 320,
             "h": 250
           },
           {
-            "w": 300,
-            "h": 600
+            "w": 320,
+            "h": 300
           }
-        ]
+        ],
+        "w": 320,
+        "h": 250
       },
-      "tagid": "456/test-imp-id",
-      "bidfloor": 1.1,
-      "bidfloorcur": "GBP",
       "ext": {
-        "bidder": {
-          "accountId": "123",
-          "placementId": "456",
-          "bidfloor": 1.1,
-          "cur": "GBP"
+        "advangelists": {
+          "pubid": "19f1b372c7548ec1fe734d2c9f8dc688",
+          "placement": "dummyplacement"
         }
-      }
+      },
+      "tagid": "impId021"
     }
   ],
-  "site": {
-    "domain": "example.com",
-    "page": "http://www.example.com",
-    "publisher": {
-      "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
-    }
-  },
   "device": {
-    "ua": "userAgent",
-    "dnt": 2,
-    "ip": "192.168.244.1",
     "pxratio": 4.2,
+    "dnt": 2,
     "language": "en",
     "ifa": "ifaId"
   },
-  "user": {
-    "buyeruid": "MGID-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
+  "site": {
+    "publisher": {
+      "id": "publisherId"
     }
   },
   "test": 1,
@@ -66,11 +46,6 @@
   "source": {
     "fd": 1,
     "tid": "tid"
-  },
-  "regs": {
-    "ext": {
-      "gdpr": 0
-    }
   },
   "ext": {
     "prebid": {
@@ -94,12 +69,10 @@
               "USD": 1.2406
             },
             "USD": {
-              "EUR": 0.811
+              "EUR": 0.8110
             }
           }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
+        }
       },
       "cache": {
         "bids": {},
@@ -107,6 +80,21 @@
           "ttlseconds": 120
         }
       }
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
     }
   }
 }

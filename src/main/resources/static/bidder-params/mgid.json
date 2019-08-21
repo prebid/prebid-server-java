@@ -10,7 +10,7 @@
     },
     "placementId": {
       "type": "string",
-      "description": "Internal Mgid Placement ID"
+      "description": "optional internal Mgid Placement ID"
     },
     "cur": {
       "type": "string",
@@ -29,5 +29,5 @@
       "description": "optional minimum acceptable bid, in CPM, USD by default"
     }
   },
-  "required": ["accountId","placementId"]
+  "required": ["accountId"]
 }
