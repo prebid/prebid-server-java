@@ -65,7 +65,8 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts: [ { id: '123', priceGranularity: 'low', bannerCacheTtl: '100',"
-                        + " videoCacheTtl : '100', eventsEnabled: 'true', enforceGdpr: 'true'} ]"));
+                        + " videoCacheTtl : '100', eventsEnabled: 'true', enforceGdpr: 'true',"
+                        + " analyticsSamplingFactor : '1'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
@@ -82,6 +83,7 @@ public class FileApplicationSettingsTest {
                 .videoCacheTtl(100)
                 .eventsEnabled(true)
                 .enforceGdpr(true)
+                .analyticsSamplingFactor(1)
                 .build());
     }
 

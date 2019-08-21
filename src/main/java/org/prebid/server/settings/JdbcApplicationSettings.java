@@ -88,7 +88,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
-                        + " events_enabled, enforce_gdpr FROM accounts_account where uuid = ? LIMIT 1",
+                        + " events_enabled, enforce_gdpr, analytics_sampling_factor FROM accounts_account"
+                        + " where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.builder()
                         .id(row.getString(0))
@@ -97,6 +98,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .videoCacheTtl(row.getInteger(3))
                         .eventsEnabled(row.getBoolean(4))
                         .enforceGdpr(row.getBoolean(5))
+                        .analyticsSamplingFactor(row.getInteger(6))
                         .build()),
                 timeout)
                 .compose(JdbcApplicationSettings::failedIfNull);

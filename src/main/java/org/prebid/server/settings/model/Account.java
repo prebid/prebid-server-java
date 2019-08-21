@@ -18,4 +18,7 @@ public class Account {
     Boolean eventsEnabled;
 
     Boolean enforceGdpr;
+
+    Integer analyticsSamplingFactor;
 }
+
