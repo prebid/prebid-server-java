@@ -1,0 +1,20 @@
+adapters:
+  verizonmedia:
+    enabled: false
+    endpoint: https://
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: hb-fe-tech@verizonmedia.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 25
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: verizonmedia
+      type: redirect
+      support-cors: false
