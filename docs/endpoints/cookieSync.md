@@ -38,7 +38,8 @@ If the `bidders` field is an empty list or field is omitted completely, it will 
 to sync all bidders.
 
 If the `coop-sync` is enabled by request value `coopSync` or default value by the Prebid Server host company, response will include
- sync for bidders configured and prioritised by the host company.
+sync for bidders configured and prioritised by the host company. If no default priorities given, all active bidders will be used
+for cooperative cookie sync.
 
 ### Sample Response
 
