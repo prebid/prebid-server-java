@@ -97,9 +97,12 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
 
     private static MultiMap makeHeaders(Device device) {
         final String deviceUa = device != null ? device.getUa() : null;
-        return HttpUtil.headers()
-                .add("User-Agent", deviceUa)
+
+        final MultiMap headers = HttpUtil.headers()
                 .add("x-openrtb-version", "2.5");
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", deviceUa);
+
+        return headers;
     }
 
     private static BidRequest modifyRequest(BidRequest request, Imp firstImp, ExtImpVerizonmedia extImpVerizonmedia) {
