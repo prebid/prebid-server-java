@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,8 +78,6 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private List<List<String>> listOfCoopSyncBidders;
-    @Mock
     private GdprService gdprService;
     @Mock
     private AnalyticsReporter analyticsReporter;
@@ -104,9 +102,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
-        given(listOfCoopSyncBidders.isEmpty()).willReturn(false);
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                listOfCoopSyncBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+                gdprService, 1, false, false, emptyList(), analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
@@ -253,9 +250,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
-        final List<List<String>> emptyCoopBidders = new ArrayList<>();
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                emptyCoopBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+                gdprService, 1, false, false, emptyList(), analyticsReporter, metrics, timeoutFactory);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, true, null)));
 
@@ -270,7 +266,6 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(emptyCoopBidders).contains(asList(APPNEXUS, RUBICON));
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
                 BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(
                         UsersyncInfo.of("http://adnxsexample.com", "redirect", false)).build(),
@@ -286,10 +281,10 @@ public class CookieSyncHandlerTest extends VertxTest {
         final String disabledBidder = "disabled_bidder";
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
-        final List<List<String>> coopBidders = asList(singletonList(RUBICON), singletonList(disabledBidder));
+        final List<Collection<String>> coopBidders = asList(singletonList(RUBICON), singletonList(disabledBidder));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                coopBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+                gdprService, 1, false, false, coopBidders, analyticsReporter, metrics, timeoutFactory);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, true, null)));
 
@@ -317,11 +312,11 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        final List<List<String>> priorityBidders = asList(singletonList(APPNEXUS), singletonList(RUBICON),
+        final List<Collection<String>> priorityBidders = asList(singletonList(APPNEXUS), singletonList(RUBICON),
                 asList("bidder1", "bidder2"), singletonList("spam"));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                priorityBidders, gdprService, 1, false, true, analyticsReporter, metrics, timeoutFactory);
+                gdprService, 1, false, true, priorityBidders, analyticsReporter, metrics, timeoutFactory);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS), null, null, null, 2)));
 
@@ -356,7 +351,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
 
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                listOfCoopSyncBidders, gdprService, 1, false, false, analyticsReporter, metrics, timeoutFactory);
+                gdprService, 1, false, false, emptyList(), analyticsReporter, metrics, timeoutFactory);
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
@@ -557,7 +552,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByGdpr() throws IOException {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
-                listOfCoopSyncBidders, gdprService, null, false, false, analyticsReporter, metrics, timeoutFactory);
+                gdprService, null, false, false, emptyList(), analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));

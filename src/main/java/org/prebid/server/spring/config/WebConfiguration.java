@@ -64,6 +64,7 @@ import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -269,7 +270,7 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                coopSyncPriorities.getPri(), gdprService, hostVendorId, useGeoLocation, defaultCoopSync,
+                gdprService, hostVendorId, useGeoLocation, defaultCoopSync, coopSyncPriorities.getPri(),
                 analyticsReporter, metrics, timeoutFactory);
     }
 
@@ -350,7 +351,7 @@ public class WebConfiguration {
     @NoArgsConstructor
     private static class CoopSyncPriorities {
 
-        private List<List<String>> pri = new ArrayList<>();
+        private List<Collection<String>> pri;
     }
 
     @Configuration

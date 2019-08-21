@@ -53,7 +53,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
-    private final List<List<String>> listOfCoopSyncBidders;
+    private final Collection<String> activeBidders;
+    private final List<Collection<String>> listOfCoopSyncBidders;
     private final GdprService gdprService;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
@@ -61,39 +62,31 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
-    private final Collection<String> allActiveBidders;
 
     public CookieSyncHandler(String externalUrl, long defaultTimeout, UidsCookieService uidsCookieService,
-                             BidderCatalog bidderCatalog, List<List<String>> listOfCoopSyncBidders,
-                             GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
-                             boolean defaultCoopSync, AnalyticsReporter analyticsReporter, Metrics metrics,
-                             TimeoutFactory timeoutFactory) {
+                             BidderCatalog bidderCatalog, GdprService gdprService, Integer gdprHostVendorId,
+                             boolean useGeoLocation, boolean defaultCoopSync,
+                             List<Collection<String>> listOfCoopSyncBidders, AnalyticsReporter analyticsReporter,
+                             Metrics metrics, TimeoutFactory timeoutFactory) {
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.listOfCoopSyncBidders = Objects.requireNonNull(listOfCoopSyncBidders);
+        activeBidders = activeBidders(bidderCatalog);
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
         this.defaultCoopSync = defaultCoopSync;
+        this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
+                ? listOfCoopSyncBidders
+                : Collections.singletonList(activeBidders);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-
-        allActiveBidders = activeBidders(bidderCatalog);
-        fillCoopSyncIfEmpty(listOfCoopSyncBidders, allActiveBidders);
     }
 
     private static Collection<String> activeBidders(BidderCatalog bidderCatalog) {
         return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
-    }
-
-    private static void fillCoopSyncIfEmpty(List<List<String>> listOfCoopSyncBidders,
-                                            Collection<String> allActiveBidders) {
-        if (listOfCoopSyncBidders.isEmpty()) {
-            listOfCoopSyncBidders.add(new ArrayList<>(allActiveBidders));
-        }
     }
 
     @Override
@@ -161,7 +154,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private Collection<String> biddersToSync(List<String> requestBidders, Boolean requestCoop, Integer requestLimit) {
         if (CollectionUtils.isEmpty(requestBidders)) {
-            return allActiveBidders;
+            return activeBidders;
         }
 
         final boolean coop = requestCoop == null ? defaultCoopSync : requestCoop;
@@ -189,7 +182,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
         final Set<String> allBidders = new HashSet<>(bidders);
 
-        for (List<String> prioritisedBidders : listOfCoopSyncBidders) {
+        for (Collection<String> prioritisedBidders : listOfCoopSyncBidders) {
             int remaining = limit - allBidders.size();
             if (remaining <= 0) {
                 return allBidders;
