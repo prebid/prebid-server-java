@@ -22,13 +22,21 @@ public class EventsServiceTest {
     }
 
     @Test
-    public void createEventsShouldReturnNewEvent() {
+    public void createEventsShouldReturnExpectedEvent() {
         // when
-        final Events events = eventsService.createEvent("bidId", "bidder");
+        final Events events = eventsService.createEvent("bidId", "accountId");
 
         // then
-        assertThat(events).isEqualTo(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=bidder",
-                "http://external.org/event?type=view&bidid=bidId&bidder=bidder"));
+        assertThat(events).isEqualTo(Events.of("http://external.org/event?t=win&b=bidId&a=accountId&f=i",
+                "http://external.org/event?t=view&b=bidId&a=accountId&f=i"));
+    }
+
+    @Test
+    public void winUrlTargetingShouldReturnExpectedUrl() {
+        // when
+        final String winUrlTargeting = eventsService.winUrlTargeting("accountId");
+
+        // then
+        assertThat(winUrlTargeting).isEqualTo("http://external.org/event?t=win&b=BIDID&a=accountId&f=i");
     }
 }
-
