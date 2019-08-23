@@ -57,6 +57,13 @@ public class BidderCatalog {
     }
 
     /**
+     * Tells if given bidder allows to modify video's Vast XML.
+     */
+    public boolean isModifyingVastXmlAllowed(String name) {
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isModifyingVastXmlAllowed();
+    }
+
+    /**
      * Tells if given name corresponds to any of the registered deprecated bidder's name.
      */
     public boolean isDeprecatedName(String name) {

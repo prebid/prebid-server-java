@@ -152,20 +152,23 @@ public class CacheService {
             final Map<String, Integer> impIdToTtl = new HashMap<>(imps.size());
             boolean impWithNoExpExists = false; // indicates at least one impression without expire presents
             final List<String> videoImpIds = new ArrayList<>();
+            final boolean shouldCacheVideoBids = cacheContext.isShouldCacheVideoBids();
             for (Imp imp : imps) {
-                impIdToTtl.put(imp.getId(), imp.getExp());
+                final String impId = imp.getId();
+                impIdToTtl.put(impId, imp.getExp());
                 impWithNoExpExists |= imp.getExp() == null;
-                if (cacheContext.isShouldCacheVideoBids() && imp.getId() != null && imp.getVideo() != null) {
-                    videoImpIds.add(imp.getId());
+                if (shouldCacheVideoBids && impId != null && imp.getVideo() != null) {
+                    videoImpIds.add(impId);
                 }
             }
 
             final List<CacheBid> cacheBids = getCacheBids(cacheContext.isShouldCacheBids(), bids, impIdToTtl,
                     impWithNoExpExists, cacheContext.getCacheBidsTtl(), account);
-            final List<CacheBid> videoCacheBids = getVideoCacheBids(cacheContext.isShouldCacheVideoBids(), bids,
+            final List<CacheBid> videoCacheBids = getVideoCacheBids(shouldCacheVideoBids, bids,
                     impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
 
-            result = doCacheOpenrtb(cacheBids, videoCacheBids, timeout);
+            result = doCacheOpenrtb(cacheBids, videoCacheBids, cacheContext.getVideoBidIdsToModify(), account.getId(),
+                    timeout);
         }
 
         return result;
@@ -238,10 +241,11 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
-    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids, Timeout timeout) {
+    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
+                                                      List<String> bidIdsToModify, String accountId, Timeout timeout) {
         final List<PutObject> putObjects = Stream.concat(
                 bids.stream().map(CacheService::createJsonPutObjectOpenrtb),
-                videoBids.stream().map(CacheService::createXmlPutObjectOpenrtb))
+                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidIdsToModify, accountId)))
                 .collect(Collectors.toList());
 
         if (putObjects.isEmpty()) {
@@ -326,16 +330,47 @@ public class CacheService {
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid) {
-        if (cacheBid.getBid().getAdm() == null) {
-            return PutObject.of("xml", new TextNode("<VAST version=\"3.0\"><Ad><Wrapper>"
+    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid, List<String> bidIdsToModify,
+                                                       String accountId) {
+        final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
+        String stringValue;
+        if (bid.getAdm() == null) {
+            stringValue = "<VAST version=\"3.0\"><Ad><Wrapper>"
                     + "<AdSystem>prebid.org wrapper</AdSystem>"
-                    + "<VASTAdTagURI><![CDATA[" + cacheBid.getBid().getNurl() + "]]></VASTAdTagURI>"
+                    + "<VASTAdTagURI><![CDATA[" + bid.getNurl() + "]]></VASTAdTagURI>"
                     + "<Impression></Impression><Creatives></Creatives>"
-                    + "</Wrapper></Ad></VAST>"), cacheBid.getTtl());
+                    + "</Wrapper></Ad></VAST>";
         } else {
-            return PutObject.of("xml", new TextNode(cacheBid.getBid().getAdm()), cacheBid.getTtl());
+            stringValue = bid.getAdm();
         }
+
+        final String bidId = bid.getId();
+        if (CollectionUtils.isNotEmpty(bidIdsToModify) && bidIdsToModify.contains(bidId)) {
+            stringValue = modifyVastXml(stringValue, bidId, accountId);
+        }
+
+        return PutObject.of("xml", new TextNode(stringValue), cacheBid.getTtl());
+    }
+
+    private static String modifyVastXml(String stringValue, String bidId, String accountId) {
+        final String closeTag = "</Impression>";
+        final int closeTagIndex = stringValue.indexOf(closeTag);
+
+        // no impression tag - pass it as it is
+        if (closeTagIndex == -1) {
+            return stringValue;
+        }
+
+        final String impressionUrl = String.format("https://prebid-server.rubiconproject.com/event?t=imp&b=%s&f=b&a=%s",
+                bidId, accountId);
+        final String openTag = "<Impression>";
+
+        // empty impression tag - just insert the link
+        if (closeTagIndex - stringValue.indexOf(openTag) == openTag.length()) {
+            return stringValue.replaceFirst(openTag, openTag + impressionUrl);
+        }
+
+        return stringValue.replaceFirst(closeTag, closeTag + "\n" + openTag + impressionUrl + closeTag);
     }
 
     /**

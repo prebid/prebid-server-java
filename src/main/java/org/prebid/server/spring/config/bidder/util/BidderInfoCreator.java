@@ -14,6 +14,7 @@ public class BidderInfoCreator {
         final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
+                configurationProperties.isModifyingVastXmlAllowed(),
                 metaInfo.getMaintainerEmail(),
                 metaInfo.getAppMediaTypes(),
                 metaInfo.getSiteMediaTypes(),

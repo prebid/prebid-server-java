@@ -862,16 +862,7 @@ public class ExchangeService {
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo,
                                               Account account, Timeout timeout, boolean debugEnabled) {
-        final Set<Bid> bids = bidderResponses.stream()
-                .map(BidderResponse::getSeatBid)
-                .filter(Objects::nonNull)
-                .map(BidderSeatBid::getBids)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(BidderBid::getBid)
-                .collect(Collectors.toSet());
-
-        return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, account, timeout)
+        return toBidsWithCacheIds(bidderResponses, bidRequest.getImp(), cacheInfo, account, timeout)
                 .map(cacheResult -> bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
                         cacheResult, account, debugEnabled));
     }
@@ -879,8 +870,13 @@ public class ExchangeService {
     /**
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
-    private Future<CacheServiceResult> toBidsWithCacheIds(Set<Bid> bids, List<Imp> imps, BidRequestCacheInfo cacheInfo,
-                                                          Account account, Timeout timeout) {
+    private Future<CacheServiceResult> toBidsWithCacheIds(List<BidderResponse> bidderResponses, List<Imp> imps,
+                                                          BidRequestCacheInfo cacheInfo, Account account,
+                                                          Timeout timeout) {
+        final Set<Bid> bids = bidderResponses.stream()
+                .flatMap(ExchangeService::getBids)
+                .collect(Collectors.toSet());
+
         final Future<CacheServiceResult> result;
 
         if (!cacheInfo.isDoCaching()) {
@@ -891,14 +887,52 @@ public class ExchangeService {
                     .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
                     .collect(Collectors.toList());
 
-            final CacheContext cacheContext = CacheContext.of(cacheInfo.isShouldCacheBids(),
-                    cacheInfo.getCacheBidsTtl(), cacheInfo.isShouldCacheVideoBids(), cacheInfo.getCacheVideoBidsTtl());
+            final boolean shouldCacheVideoBids = cacheInfo.isShouldCacheVideoBids();
+            final boolean eventsEnabled = Objects.equals(account.getEventsEnabled(), true);
+
+            final List<String> videoBidIdsToModify = shouldCacheVideoBids && eventsEnabled
+                    ? getVideoBidIdsToModify(bidderResponses, imps)
+                    : Collections.emptyList();
+
+            final CacheContext cacheContext = CacheContext.builder()
+                    .cacheBidsTtl(cacheInfo.getCacheBidsTtl())
+                    .cacheVideoBidsTtl(cacheInfo.getCacheVideoBidsTtl())
+                    .shouldCacheBids(cacheInfo.isShouldCacheBids())
+                    .shouldCacheVideoBids(shouldCacheVideoBids)
+                    .videoBidIdsToModify(videoBidIdsToModify)
+                    .build();
 
             result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, timeout)
                     .map(cacheResult -> addNotCachedBids(cacheResult, bids));
         }
 
         return result;
+    }
+
+    private static Stream<Bid> getBids(BidderResponse bidderResponse) {
+        return Stream.of(bidderResponse)
+                .map(BidderResponse::getSeatBid)
+                .filter(Objects::nonNull)
+                .map(BidderSeatBid::getBids)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(BidderBid::getBid);
+    }
+
+    private List<String> getVideoBidIdsToModify(List<BidderResponse> bidderResponses, List<Imp> imps) {
+        return bidderResponses.stream()
+                .filter(bidderResponse -> bidderCatalog.isModifyingVastXmlAllowed(bidderResponse.getBidder()))
+                .flatMap(ExchangeService::getBids)
+                .filter(bid -> isVideoBid(bid, imps))
+                .map(Bid::getId)
+                .collect(Collectors.toList());
+    }
+
+    private static boolean isVideoBid(Bid bid, List<Imp> imps) {
+        return imps.stream()
+                .filter(imp -> imp.getId() != null && imp.getVideo() != null)
+                .map(Imp::getId)
+                .anyMatch(impId -> bid.getImpid().equals(impId));
     }
 
     /**

@@ -16,6 +16,8 @@ public class BidderConfigurationProperties {
     @NotNull
     private Boolean enabled;
 
+    private boolean modifyingVastXmlAllowed;
+
     @NotBlank
     private String endpoint;
 

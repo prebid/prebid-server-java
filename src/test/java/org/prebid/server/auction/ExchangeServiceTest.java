@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -62,6 +63,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -1048,8 +1050,42 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
-                eq(CacheContext.of(true, null, false, null)),
+                eq(CacheContext.builder().shouldCacheBids(true).videoBidIdsToModify(emptyList()).build()),
                 eq(Account.builder().id("accountId").eventsEnabled(false).build()), eq(timeout));
+    }
+
+    @Test
+    public void shouldRequestCacheServiceWithVideoBidsToModifyWhenEventsEnabledAndForBidderThatAllowsModifyVastXml() {
+        // given
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid1))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
+
+        given(bidderCatalog.isModifyingVastXmlAllowed(eq("bidder1"))).willReturn(true, false);
+
+        // imp ids are not really used for matching, included them here for clarity
+        final Imp imp1 = givenImp(singletonMap("bidder1", 1),
+                builder -> builder.id("impId1").video(Video.builder().build()));
+        final Imp imp2 = givenImp(singletonMap("bidder2", 2),
+                builder -> builder.id("impId2").video(Video.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(asList(imp1, imp2),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting())
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                                ExtRequestPrebidCacheVastxml.of(null, true)))
+                        .build()))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest,
+                Account.builder().id("accountId").eventsEnabled(true).build()));
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(
+                argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
+                eq(CacheContext.builder().shouldCacheBids(true).shouldCacheVideoBids(true)
+                        .videoBidIdsToModify(singletonList("bidId1")).build()),
+                eq(Account.builder().id("accountId").eventsEnabled(true).build()), eq(timeout));
     }
 
     @Test
@@ -1071,7 +1107,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(argThat(bids -> bids.contains(bid1)), eq(singletonList(imp1)),
-                eq(CacheContext.of(true, null, false, null)),
+                eq(CacheContext.builder().shouldCacheBids(true).videoBidIdsToModify(emptyList()).build()),
                 eq(Account.builder().id("accountId").eventsEnabled(false).build()), eq(timeout));
     }
 
@@ -1549,7 +1585,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
-        return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
+        return new BidderInfo(true, false, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
     }
 
     private static ExtRequestTargeting givenTargeting() {

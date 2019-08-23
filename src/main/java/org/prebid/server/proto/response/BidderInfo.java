@@ -10,6 +10,8 @@ public class BidderInfo {
 
     boolean enabled;
 
+    boolean modifyingVastXmlAllowed;
+
     MaintainerInfo maintainer;
 
     CapabilitiesInfo capabilities;
@@ -18,15 +20,15 @@ public class BidderInfo {
 
     GdprInfo gdpr;
 
-    public static BidderInfo create(boolean enabled, String maintainerEmail, List<String> appMediaTypes,
-                                    List<String> siteMediaTypes, List<String> supportedVendors,
-                                    int vendorId, boolean enforceGdpr) {
+    public static BidderInfo create(boolean enabled, boolean modifyingVastXmlAllowed, String maintainerEmail,
+                                    List<String> appMediaTypes, List<String> siteMediaTypes,
+                                    List<String> supportedVendors, int vendorId, boolean enforceGdpr) {
         final MaintainerInfo maintainer = new MaintainerInfo(maintainerEmail);
         final CapabilitiesInfo capabilities = new CapabilitiesInfo(platformInfo(appMediaTypes),
                 platformInfo(siteMediaTypes));
         final GdprInfo gdpr = new GdprInfo(vendorId, enforceGdpr);
 
-        return new BidderInfo(enabled, maintainer, capabilities, supportedVendors, gdpr);
+        return new BidderInfo(enabled, modifyingVastXmlAllowed, maintainer, capabilities, supportedVendors, gdpr);
     }
 
     private static PlatformInfo platformInfo(List<String> mediaTypes) {
