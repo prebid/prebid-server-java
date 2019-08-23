@@ -6,9 +6,11 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class NotificationEvent {
+
     String type;
 
     String bidId;
 
-    String bidder;
+    String accountId;
 }
+

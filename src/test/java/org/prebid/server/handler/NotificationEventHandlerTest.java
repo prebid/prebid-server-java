@@ -1,7 +1,7 @@
 package org.prebid.server.handler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.util.AsciiString;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
@@ -26,22 +26,16 @@ import java.io.IOException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class NotificationEventHandlerTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
-    private RoutingContext routingContext;
-
-    @Mock
-    private HttpServerRequest httpRequest;
-
-    @Mock
-    private HttpServerResponse httpResponse;
 
     @Mock
     private AnalyticsReporter analyticsReporter;
@@ -52,12 +46,11 @@ public class NotificationEventHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-
-        notificationHandler = NotificationEventHandler.create(analyticsReporter);
+        notificationHandler = new NotificationEventHandler(analyticsReporter, timeoutFactory, applicationSettings);
     }
 
     @Test
@@ -71,14 +64,13 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(400);
         assertThat(captureResponseBody())
-                .isEqualTo("Request is invalid: Type is required query parameter. Possible values are win and view,"
-                        + " but was null");
+                .isEqualTo("'type' is required query parameter. Possible values are i and w, but was null");
     }
 
     @Test
-    public void shouldReturnBadRequestWhenTypeIsNotViewOrWin() throws JsonProcessingException {
+    public void shouldReturnBadRequestWhenTypeValueIsInvalid() {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "invalid"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("t", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -86,14 +78,15 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(400);
         assertThat(captureResponseBody())
-                .isEqualTo("Request is invalid: Type is required query parameter. Possible values are win and view,"
-                        + " but was invalid");
+                .isEqualTo("'type' is required query parameter. Possible values are i and w, but was invalid");
+
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
-    public void shouldReturnBadRequestWhenBididWasNotDefined() throws JsonProcessingException {
+    public void shouldReturnBadRequestWhenBididWasNotDefined() {
         // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("t", "w"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -101,14 +94,37 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(400);
         assertThat(captureResponseBody())
-                .isEqualTo("Request is invalid: bidid is required query parameter and can't be empty.");
+                .isEqualTo("'bidid' is required query parameter and can't be empty");
+
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
-    public void shouldReturnBadRequestWhenBidderWasNotDefined() throws JsonProcessingException {
+    public void shouldReturnBadRequestWhenAccountWasNotDefined() {
         // given
         given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "id"));
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("t", "w").add("b", "id"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        assertThat(captureResponseStatusCode()).isEqualTo(401);
+        assertThat(captureResponseBody())
+                .isEqualTo("'account' is required query parameter and can't be empty");
+
+        verifyZeroInteractions(analyticsReporter);
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenFormatValueIsInvalid() {
+        // given
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "id")
+                        .add("a", "account")
+                        .add("f", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -116,15 +132,44 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(400);
         assertThat(captureResponseBody())
-                .isEqualTo("Request is invalid: bidder is required query parameter and can't be empty.");
+                .isEqualTo("'format' is required query parameter. Possible values are b and i, but was invalid");
+
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
-    public void shouldPassEventObjectToAnalyticReporter() throws JsonProcessingException {
+    public void shouldReturnBadRequestWhenAnalyticsValueIsInvalid() {
         // given
         given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                        .add("bidder", "rubicon"));
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "id")
+                        .add("a", "account")
+                        .add("f", "b")
+                        .add("x", "invalid"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+        assertThat(captureResponseBody())
+                .isEqualTo("'analytics' is required query parameter. Possible values are 1 and 0, but was invalid");
+
+        verifyZeroInteractions(analyticsReporter);
+    }
+
+    @Test
+    public void shouldNotPassEventToAnalyticReporterAndRespondUnauthorizedWhenAccountNotFound() {
+        // given
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "bidId")
+                        .add("a", "accountId"));
+
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("Not Found")));
 
         // when
         notificationHandler.handle(routingContext);
@@ -134,27 +179,78 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestWhenFormatParameterIsNotJPGOrPNG() throws JsonProcessingException {
+    public void shouldNotPassEventToAnalyticReporterWhenAccountEventNotEnabled() {
         // given
         given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                        .add("bidder", "rubicon").add("format", "invalid"));
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "bidId")
+                        .add("a", "accountId"));
+
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(false).build()));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("Request is invalid: 'format' query parameter can have one of the next values: [jpg, png]");
+        assertThat(captureResponseStatusCode()).isEqualTo(401);
+        assertThat(captureResponseBody()).isEqualTo("Given 'accountId' is not supporting the event");
+
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
-    public void shouldRespondWithPixelTrackingPngByteAndContentTypePngHeader() throws IOException {
+    public void shouldPassEventToAnalyticReporterWhenAccountEventEnabled() {
         // given
         given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                        .add("bidder", "rubicon").add("format", "png"));
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "bidId")
+                        .add("a", "accountId"));
+
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of("w", "bidId", "accountId"));
+    }
+
+    @Test
+    public void shouldNotPassEventToAnalyticReporterWhenAnalyticsValueIsZero() {
+        // given
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "bidId")
+                        .add("a", "accountId")
+                        .add("x", "0"));
+
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+    }
+
+    @Test
+    public void shouldRespondWithPixelAndContentTypeWhenRequestFormatIsImp() throws IOException {
+        // given
+        given(httpRequest.params())
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "bidId")
+                        .add("a", "accountId")
+                        .add("f", "i"));
+
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
 
         // when
         notificationHandler.handle(routingContext);
@@ -168,21 +264,23 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithPixelTrackingJpgByteAndContentTypeJpgHeader() throws IOException {
+    public void shouldNotRespondWithPixelAndContentTypeWhenRequestFormatNotDefined() {
         // given
         given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("type", "win").add("bidid", "bidId")
-                        .add("bidder", "rubicon").add("format", "jpg"));
+                .willReturn(MultiMap.caseInsensitiveMultiMap()
+                        .add("t", "w")
+                        .add("b", "bidId")
+                        .add("a", "accountId"));
+
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        final Tuple2<CharSequence, CharSequence> header = captureHeader();
-        assertThat(header.getLeft()).isEqualTo(AsciiString.of("content-type"));
-        assertThat(header.getRight()).isEqualTo("image/jpeg");
-        assertThat(captureResponseBodyBuffer())
-                .isEqualTo(Buffer.buffer(ResourceUtil.readByteArrayFromClassPath("static/tracking-pixel.jpg")));
+        verify(httpResponse).end();
+        verifyNoMoreInteractions(httpResponse);
     }
 
     private Integer captureResponseStatusCode() {
