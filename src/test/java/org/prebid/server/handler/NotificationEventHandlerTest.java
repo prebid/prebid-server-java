@@ -17,11 +17,19 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +47,16 @@ public class NotificationEventHandlerTest extends VertxTest {
 
     @Mock
     private AnalyticsReporter analyticsReporter;
+    @Mock
+    private TimeoutFactory timeoutFactory;
+    @Mock
+    private ApplicationSettings applicationSettings;
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
+    @Mock
+    private HttpServerResponse httpResponse;
 
     private NotificationEventHandler notificationHandler;
 
@@ -175,7 +193,10 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of("win", "bidId", "rubicon"));
+        assertThat(captureResponseStatusCode()).isEqualTo(401);
+        assertThat(captureResponseBody()).isEqualTo("Given 'accountId' is not supporting the event");
+
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
@@ -216,7 +237,17 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of("w", "bidId", "accountId"));
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("t", "w");
+        headers.put("b", "bidId");
+        headers.put("a", "accountId");
+        final HttpContext expectedHttpContext = HttpContext.builder().queryParams(headers)
+                .headers(Collections.emptyMap())
+                .cookies(Collections.emptyMap())
+                .build();
+
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of("w", "bidId", "accountId",
+                expectedHttpContext));
     }
 
     @Test

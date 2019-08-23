@@ -14,6 +14,7 @@ import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
@@ -80,21 +81,22 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
             return;
         }
 
+        final String format = queryParameters.get(FORMAT_PARAMETER);
         final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
         final boolean isAnalyticsEnabled = analytics == null || analytics.equals(ENABLED_ANALYTICS);
 
         final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
         isAccountEventEnabled(accountId)
-                .setHandler(isEnabledResult -> handleEventEnabled(isEnabledResult, isAnalyticsEnabled, queryParameters,
+                .setHandler(isEnabledResult -> handleEvent(isEnabledResult, isAnalyticsEnabled, format, context,
                         response));
     }
 
-    private void handleEventEnabled(AsyncResult<Boolean> isEnabledResult, boolean isAnalyticsEnabled,
-                                    MultiMap queryParameters, HttpServerResponse response) {
+    private void handleEvent(AsyncResult<Boolean> isEnabledResult, boolean isAnalyticsEnabled, String format,
+                                    RoutingContext context, HttpServerResponse response) {
         if (isEnabledResult.result()) {
             if (isAnalyticsEnabled) {
-                analyticsReporter.processEvent(makeNotificationEvent(queryParameters));
-                respondWithOkStatus(response, queryParameters.get(FORMAT_PARAMETER));
+                analyticsReporter.processEvent(makeNotificationEvent(context));
+                respondWithOkStatus(response, format);
             }
         } else {
             respondWithUnauthorized(response, "Given 'accountId' is not supporting the event");
@@ -149,11 +151,13 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         }
     }
 
-    private static NotificationEvent makeNotificationEvent(MultiMap queryParameters) {
+    private static NotificationEvent makeNotificationEvent(RoutingContext context) {
+        final MultiMap queryParameters = context.request().params();
         final String type = queryParameters.get(TYPE_PARAMETER);
         final String bidId = queryParameters.get(BID_ID_PARAMETER);
         final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
-        return NotificationEvent.of(type, bidId, accountId);
+        final HttpContext httpContext = HttpContext.from(context);
+        return NotificationEvent.of(type, bidId, accountId, httpContext);
     }
 
     private void respondWithOkStatus(HttpServerResponse response, String format) {

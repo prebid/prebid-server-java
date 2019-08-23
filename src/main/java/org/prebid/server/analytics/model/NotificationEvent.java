@@ -12,5 +12,7 @@ public class NotificationEvent {
     String bidId;
 
     String accountId;
+
+    HttpContext httpContext;
 }
 
