@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
@@ -126,8 +127,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         }
 
         final String account = queryParameters.get(ACCOUNT_PARAMETER);
-        if (StringUtils.isBlank(account)) {
-            final String accountErrorMessage = "'account' is required query parameter and can't be empty";
+        if (!NumberUtils.isCreatable(account)) {
+            final String accountErrorMessage = "'account' is required query parameter and must be a number";
             respondWithUnauthorized(response, accountErrorMessage);
             throw new InvalidRequestException(accountErrorMessage);
         }
@@ -155,7 +156,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         final MultiMap queryParameters = context.request().params();
         final String type = queryParameters.get(TYPE_PARAMETER);
         final String bidId = queryParameters.get(BID_ID_PARAMETER);
-        final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
+        final Integer accountId = NumberUtils.createInteger(queryParameters.get(ACCOUNT_PARAMETER));
         final HttpContext httpContext = HttpContext.from(context);
         return NotificationEvent.of(type, bidId, accountId, httpContext);
     }
