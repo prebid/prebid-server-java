@@ -166,12 +166,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private static NotificationEvent.Type toNotificationType(String type) {
-        if (Objects.equals(WIN_TYPE, type)) {
-            return NotificationEvent.Type.win;
-        } else if (Objects.equals(IMP_TYPE, type)) {
-            return NotificationEvent.Type.imp;
-        }
-        return null;
+        return Objects.equals(WIN_TYPE, type) ? NotificationEvent.Type.win : NotificationEvent.Type.imp;
     }
 
     private void respondWithOkStatus(HttpServerResponse response, String format) {
