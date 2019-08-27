@@ -56,9 +56,9 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private static final String DISABLED_ANALYTICS = "0";
 
     private final AnalyticsReporter analyticsReporter;
+    private final TimeoutFactory timeoutFactory;
+    private final ApplicationSettings applicationSettings;
     private final TrackingPixel trackingPixel;
-    private TimeoutFactory timeoutFactory;
-    private ApplicationSettings applicationSettings;
 
     public NotificationEventHandler(AnalyticsReporter analyticsReporter, TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings) {
@@ -100,8 +100,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
         final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
         isAccountEventEnabled(accountId)
-                .setHandler(isEnabledResult -> handleEvent(isEnabledResult, isAnalyticsEnabled, format, context,
-                        response));
+                .setHandler(isEnabledResult -> handleEvent(isEnabledResult, isAnalyticsEnabled, format, context));
     }
 
     private static void validateParametersForBadStatusError(MultiMap queryParameters) {
@@ -145,7 +144,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private void handleEvent(AsyncResult<Boolean> isEnabledResult, boolean isAnalyticsEnabled, String format,
-                             RoutingContext context, HttpServerResponse response) {
+                             RoutingContext context) {
+        final HttpServerResponse response = context.response();
         if (isEnabledResult.result()) {
             if (isAnalyticsEnabled) {
                 analyticsReporter.processEvent(makeNotificationEvent(context));
@@ -171,7 +171,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         } else if (Objects.equals(IMP_TYPE, type)) {
             return NotificationEvent.Type.imp;
         }
-        throw new IllegalArgumentException(String.format("Type is undefined, %s", type));
+        return null;
     }
 
     private void respondWithOkStatus(HttpServerResponse response, String format) {
