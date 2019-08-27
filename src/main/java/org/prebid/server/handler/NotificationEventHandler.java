@@ -8,6 +8,8 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -18,6 +20,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -32,7 +35,9 @@ import java.util.Objects;
  */
 public class NotificationEventHandler implements Handler<RoutingContext> {
 
-    private static final Long DEFAULT_TIMEOUT = 1000L;
+    private static final Logger logger = LoggerFactory.getLogger(NotificationEventHandler.class);
+
+    private static final long DEFAULT_TIMEOUT = 1000L;
     private static final String TRACKING_PIXEL_PNG = "static/tracking-pixel.png";
     private static final String PNG_CONTENT_TYPE = "image/png";
 
@@ -77,8 +82,16 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         final HttpServerResponse response = context.response();
         final MultiMap queryParameters = context.request().params();
         try {
-            validateParameters(queryParameters, response);
+            validateParametersForBadStatusError(queryParameters);
         } catch (InvalidRequestException ex) {
+            respondWithBadStatus(response, ex.getMessage());
+            return;
+        }
+
+        try {
+            validateParametersForUnauthorizedError(queryParameters);
+        } catch (InvalidRequestException ex) {
+            respondWithUnauthorized(response, ex.getMessage());
             return;
         }
 
@@ -92,8 +105,48 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         response));
     }
 
+    private static void validateParametersForBadStatusError(MultiMap queryParameters) {
+        final String type = queryParameters.get(TYPE_PARAMETER);
+        if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
+            throw new InvalidRequestException(String.format("'type' is required query parameter. Possible values are "
+                    + "%s and %s, but was %s", IMP_TYPE, WIN_TYPE, type));
+        }
+
+        final String bidId = queryParameters.get(BID_ID_PARAMETER);
+        if (StringUtils.isBlank(bidId)) {
+            throw new InvalidRequestException("'bidid' is required query parameter and can't be empty");
+        }
+
+        final String format = queryParameters.get(FORMAT_PARAMETER);
+        if (StringUtils.isNotBlank(format) && ObjectUtils.notEqual(format, BLANK_FORMAT)
+                && ObjectUtils.notEqual(format, PIXEL_FORMAT)) {
+            throw new InvalidRequestException(String.format("'format' is required query parameter. Possible values "
+                    + "are %s and %s, but was %s", BLANK_FORMAT, PIXEL_FORMAT, format));
+        }
+
+        final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
+        if (StringUtils.isNotBlank(analytics) && ObjectUtils.notEqual(analytics, ENABLED_ANALYTICS)
+                && ObjectUtils.notEqual(analytics, DISABLED_ANALYTICS)) {
+            throw new InvalidRequestException(String.format("'analytics' is required query parameter. Possible values "
+                    + "are %s and %s, but was %s", ENABLED_ANALYTICS, DISABLED_ANALYTICS, analytics));
+        }
+    }
+
+    private static void validateParametersForUnauthorizedError(MultiMap queryParameters) {
+        final String account = queryParameters.get(ACCOUNT_PARAMETER);
+        if (!NumberUtils.isCreatable(account)) {
+            throw new InvalidRequestException("'account' is required query parameter and must be a number");
+        }
+    }
+
+    private Future<Boolean> isAccountEventEnabled(String accountId) {
+        return applicationSettings.getAccountById(accountId, timeoutFactory.create(DEFAULT_TIMEOUT))
+                .map(Account::getEventsEnabled)
+                .otherwise(throwable -> fallbackResult(accountId, throwable));
+    }
+
     private void handleEvent(AsyncResult<Boolean> isEnabledResult, boolean isAnalyticsEnabled, String format,
-                                    RoutingContext context, HttpServerResponse response) {
+                             RoutingContext context, HttpServerResponse response) {
         if (isEnabledResult.result()) {
             if (isAnalyticsEnabled) {
                 analyticsReporter.processEvent(makeNotificationEvent(context));
@@ -104,61 +157,22 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         }
     }
 
-    private Future<Boolean> isAccountEventEnabled(String accountId) {
-        return applicationSettings.getAccountById(accountId, timeoutFactory.create(DEFAULT_TIMEOUT))
-                .map(Account::getEventsEnabled)
-                .otherwise(false);
-    }
-
-    private static void validateParameters(MultiMap queryParameters, HttpServerResponse response) {
-        final String type = queryParameters.get(TYPE_PARAMETER);
-        if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
-            final String typeErrorMessage = String.format("'type' is required query parameter. Possible values are %s "
-                    + "and %s, but was %s", IMP_TYPE, WIN_TYPE, type);
-            respondWithBadStatus(response, typeErrorMessage);
-            throw new InvalidRequestException(typeErrorMessage);
-        }
-
-        final String bidId = queryParameters.get(BID_ID_PARAMETER);
-        if (StringUtils.isBlank(bidId)) {
-            final String bidIdErrorMessage = "'bidid' is required query parameter and can't be empty";
-            respondWithBadStatus(response, bidIdErrorMessage);
-            throw new InvalidRequestException(bidIdErrorMessage);
-        }
-
-        final String account = queryParameters.get(ACCOUNT_PARAMETER);
-        if (!NumberUtils.isCreatable(account)) {
-            final String accountErrorMessage = "'account' is required query parameter and must be a number";
-            respondWithUnauthorized(response, accountErrorMessage);
-            throw new InvalidRequestException(accountErrorMessage);
-        }
-
-        final String format = queryParameters.get(FORMAT_PARAMETER);
-        if (StringUtils.isNotBlank(format) && ObjectUtils.notEqual(format, BLANK_FORMAT)
-                && ObjectUtils.notEqual(format, PIXEL_FORMAT)) {
-            final String formatErrorMessage = String.format("'format' is required query parameter. Possible values "
-                    + "are %s and %s, but was %s", BLANK_FORMAT, PIXEL_FORMAT, format);
-            respondWithBadStatus(response, formatErrorMessage);
-            throw new InvalidRequestException(formatErrorMessage);
-        }
-
-        final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
-        if (StringUtils.isNotBlank(analytics) && ObjectUtils.notEqual(analytics, ENABLED_ANALYTICS)
-                && ObjectUtils.notEqual(analytics, DISABLED_ANALYTICS)) {
-            final String analyticsErrorMessage = String.format("'analytics' is required query parameter. Possible "
-                    + "values are %s and %s, but was %s", ENABLED_ANALYTICS, DISABLED_ANALYTICS, analytics);
-            respondWithBadStatus(response, analyticsErrorMessage);
-            throw new InvalidRequestException(analyticsErrorMessage);
-        }
-    }
-
     private static NotificationEvent makeNotificationEvent(RoutingContext context) {
         final MultiMap queryParameters = context.request().params();
-        final String type = queryParameters.get(TYPE_PARAMETER);
+        final NotificationEvent.Type type = toNotificationType(queryParameters.get(TYPE_PARAMETER));
         final String bidId = queryParameters.get(BID_ID_PARAMETER);
         final Integer accountId = NumberUtils.createInteger(queryParameters.get(ACCOUNT_PARAMETER));
         final HttpContext httpContext = HttpContext.from(context);
         return NotificationEvent.of(type, bidId, accountId, httpContext);
+    }
+
+    private static NotificationEvent.Type toNotificationType(String type) {
+        if (Objects.equals(WIN_TYPE, type)) {
+            return NotificationEvent.Type.win;
+        } else if (Objects.equals(IMP_TYPE, type)) {
+            return NotificationEvent.Type.imp;
+        }
+        throw new IllegalArgumentException(String.format("Type is undefined, %s", type));
     }
 
     private void respondWithOkStatus(HttpServerResponse response, String format) {
@@ -168,6 +182,13 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         } else {
             response.end();
         }
+    }
+
+    private Boolean fallbackResult(String accountId, Throwable throwable) {
+        if (!(throwable instanceof PreBidException)) {
+            logger.warn(String.format("Error when retrieving account with %s id", accountId), throwable);
+        }
+        return false;
     }
 
     private static void respondWithUnauthorized(HttpServerResponse response, String message) {

@@ -266,7 +266,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .cookies(Collections.emptyMap())
                 .build();
 
-        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of("w", "bidId", 1233213,
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of(NotificationEvent.Type.win, "bidId", 1233213,
                 expectedHttpContext));
     }
 
@@ -315,7 +315,7 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotRespondWithPixelAndContentTypeWhenRequestFormatNotDefined() {
+    public void shouldRespondWithNoContentWhenRequestFormatIsNotDefined() {
         // given
         given(httpRequest.params())
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -365,3 +365,4 @@ public class NotificationEventHandlerTest extends VertxTest {
         return captor.getValue();
     }
 }
+

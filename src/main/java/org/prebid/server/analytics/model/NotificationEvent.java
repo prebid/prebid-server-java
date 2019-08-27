@@ -7,12 +7,16 @@ import lombok.Value;
 @Value
 public class NotificationEvent {
 
-    String type;
+    Type type;
 
     String bidId;
 
     Integer accountId;
 
     HttpContext httpContext;
+
+    public enum Type {
+        win, imp
+    }
 }
 
