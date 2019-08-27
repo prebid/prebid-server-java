@@ -129,27 +129,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(401);
         assertThat(captureResponseBody())
-                .isEqualTo("'account' is required query parameter and must be a number");
-
-        verifyZeroInteractions(analyticsReporter);
-    }
-
-    @Test
-    public void shouldReturnUnauthorizedWhenAccountIsNotNumber() {
-        // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "id")
-                        .add("a", "notNumber"));
-
-        // when
-        notificationHandler.handle(routingContext);
-
-        // then
-        assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody())
-                .isEqualTo("'account' is required query parameter and must be a number");
+                .isEqualTo("'account' is required query parameter and can't be empty");
 
         verifyZeroInteractions(analyticsReporter);
     }
@@ -161,7 +141,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
                         .add("t", "w")
                         .add("b", "id")
-                        .add("a", "1233211")
+                        .add("a", "acc")
                         .add("f", "invalid"));
 
         // when
@@ -204,7 +184,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
                         .add("t", "w")
                         .add("b", "bidId")
-                        .add("a", "1233213"));
+                        .add("a", "acc"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
@@ -266,7 +246,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .cookies(Collections.emptyMap())
                 .build();
 
-        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of(NotificationEvent.Type.win, "bidId", 1233213,
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of(NotificationEvent.Type.win, "bidId", "1233213",
                 expectedHttpContext));
     }
 
