@@ -241,11 +241,12 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
-    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
-                                                      List<String> bidIdsToModify, String accountId, Timeout timeout) {
+    private Future<CacheServiceResult> doCacheOpenrtb(
+            List<CacheBid> bids, List<CacheBid> videoBids, List<String> videoBidIdsToModify, String accountId,
+            Timeout timeout) {
         final List<PutObject> putObjects = Stream.concat(
                 bids.stream().map(CacheService::createJsonPutObjectOpenrtb),
-                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidIdsToModify, accountId)))
+                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, videoBidIdsToModify, accountId)))
                 .collect(Collectors.toList());
 
         if (putObjects.isEmpty()) {
@@ -330,26 +331,26 @@ public class CacheService {
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid, List<String> bidIdsToModify,
+    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid, List<String> videoBidIdsToModify,
                                                        String accountId) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
-        String stringValue;
+        String vastXml;
         if (bid.getAdm() == null) {
-            stringValue = "<VAST version=\"3.0\"><Ad><Wrapper>"
+            vastXml = "<VAST version=\"3.0\"><Ad><Wrapper>"
                     + "<AdSystem>prebid.org wrapper</AdSystem>"
                     + "<VASTAdTagURI><![CDATA[" + bid.getNurl() + "]]></VASTAdTagURI>"
                     + "<Impression></Impression><Creatives></Creatives>"
                     + "</Wrapper></Ad></VAST>";
         } else {
-            stringValue = bid.getAdm();
+            vastXml = bid.getAdm();
         }
 
         final String bidId = bid.getId();
-        if (CollectionUtils.isNotEmpty(bidIdsToModify) && bidIdsToModify.contains(bidId)) {
-            stringValue = modifyVastXml(stringValue, bidId, accountId);
+        if (CollectionUtils.isNotEmpty(videoBidIdsToModify) && videoBidIdsToModify.contains(bidId)) {
+            vastXml = modifyVastXml(vastXml, bidId, accountId);
         }
 
-        return PutObject.of("xml", new TextNode(stringValue), cacheBid.getTtl());
+        return PutObject.of("xml", new TextNode(vastXml), cacheBid.getTtl());
     }
 
     private static String modifyVastXml(String stringValue, String bidId, String accountId) {

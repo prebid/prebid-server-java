@@ -16,8 +16,6 @@ public class BidderConfigurationProperties {
     @NotNull
     private Boolean enabled;
 
-    private boolean modifyingVastXmlAllowed;
-
     @NotBlank
     private String endpoint;
 
@@ -32,6 +30,8 @@ public class BidderConfigurationProperties {
 
     @NotNull
     private MetaInfo metaInfo;
+
+    private boolean modifyingVastXmlAllowed;
 
     @NotNull
     private UsersyncConfigurationProperties usersync;

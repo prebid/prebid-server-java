@@ -139,8 +139,8 @@ public class BidderCatalogTest {
     @Test
     public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
         // given
-        final BidderInfo bidderInfo = BidderInfo.create(true, false, "test@email.com",
-                singletonList("banner"), singletonList("video"), null, 99, true);
+        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
+                singletonList("banner"), singletonList("video"), null, 99, true, false);
 
         bidderDeps = BidderDeps.builder()
                 .name(BIDDER)

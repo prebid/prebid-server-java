@@ -930,7 +930,7 @@ public class ExchangeService {
 
     private static boolean isVideoBid(Bid bid, List<Imp> imps) {
         return imps.stream()
-                .filter(imp -> imp.getId() != null && imp.getVideo() != null)
+                .filter(imp -> imp.getVideo() != null)
                 .map(Imp::getId)
                 .anyMatch(impId -> bid.getImpid().equals(impId));
     }

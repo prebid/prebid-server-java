@@ -1035,7 +1035,6 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid1))));
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
-        // imp ids are not really used for matching, included them here for clarity
         final Imp imp1 = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
         final Imp imp2 = givenImp(singletonMap("bidder2", 2), builder -> builder.id("impId2"));
         final BidRequest bidRequest = givenBidRequest(asList(imp1, imp2),
@@ -1062,9 +1061,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid1))));
         givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
 
-        given(bidderCatalog.isModifyingVastXmlAllowed(eq("bidder1"))).willReturn(true, false);
+        given(bidderCatalog.isModifyingVastXmlAllowed(eq("bidder1"))).willReturn(true);
 
-        // imp ids are not really used for matching, included them here for clarity
         final Imp imp1 = givenImp(singletonMap("bidder1", 1),
                 builder -> builder.id("impId1").video(Video.builder().build()));
         final Imp imp2 = givenImp(singletonMap("bidder2", 2),
@@ -1585,7 +1583,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
-        return new BidderInfo(true, false, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
+        return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), false);
     }
 
     private static ExtRequestTargeting givenTargeting() {
