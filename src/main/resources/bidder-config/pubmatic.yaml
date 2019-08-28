@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://hbopenbid.pubmatic.com/translator?source=prebid-server
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

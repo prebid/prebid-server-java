@@ -59,14 +59,16 @@ public class CacheService {
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
+    private final String eventsUrlTemplate;
     private final Clock clock;
 
     public CacheService(CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
-                        String cachedAssetUrlTemplate, Clock clock) {
+                        String cachedAssetUrlTemplate, String eventsUrlTemplate, Clock clock) {
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
+        this.eventsUrlTemplate = Objects.requireNonNull(eventsUrlTemplate);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -331,8 +333,8 @@ public class CacheService {
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid, List<String> videoBidIdsToModify,
-                                                       String accountId) {
+    private PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid, List<String> videoBidIdsToModify,
+                                                String accountId) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
         String vastXml;
         if (bid.getAdm() == null) {
@@ -353,7 +355,7 @@ public class CacheService {
         return PutObject.of("xml", new TextNode(vastXml), cacheBid.getTtl());
     }
 
-    private static String modifyVastXml(String stringValue, String bidId, String accountId) {
+    private String modifyVastXml(String stringValue, String bidId, String accountId) {
         final String closeTag = "</Impression>";
         final int closeTagIndex = stringValue.indexOf(closeTag);
 
@@ -362,8 +364,7 @@ public class CacheService {
             return stringValue;
         }
 
-        final String impressionUrl = String.format("https://prebid-server.rubiconproject.com/event?t=imp&b=%s&f=b&a=%s",
-                bidId, accountId);
+        final String impressionUrl = String.format(eventsUrlTemplate, bidId, accountId);
         final String openTag = "<Impression>";
 
         // empty impression tag - just insert the link
@@ -371,7 +372,7 @@ public class CacheService {
             return stringValue.replaceFirst(openTag, openTag + impressionUrl);
         }
 
-        return stringValue.replaceFirst(closeTag, closeTag + "\n" + openTag + impressionUrl + closeTag);
+        return stringValue.replaceFirst(closeTag, closeTag + openTag + impressionUrl + closeTag);
     }
 
     /**

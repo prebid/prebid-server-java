@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://east-bid.ybp.yahoo.com/bid/appnexuspbs
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

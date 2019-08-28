@@ -79,6 +79,7 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            @Value("${events.urltemplate}") String eventsUrlTemplate,
             HttpClient httpClient,
             Clock clock) {
 
@@ -87,7 +88,7 @@ public class ServiceConfiguration {
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
-                clock);
+                eventsUrlTemplate, clock);
     }
 
     @Bean

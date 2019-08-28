@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://tag.adkernel.com/rtbpub?account=
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

@@ -64,6 +64,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CacheServiceTest extends VertxTest {
 
+    private static final String ENDPOINT_URL_TEMPLATE = "https://test-event.com/event?t=imp&b=%s&f=b&a=%s";
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -88,7 +90,7 @@ public class CacheServiceTest extends VertxTest {
 
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=", clock);
+                "http://cache-service-host/cache?uuid=", ENDPOINT_URL_TEMPLATE, clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -236,7 +238,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=", clock);
+                "https://cache-service-host:8080/cache?uuid=", ENDPOINT_URL_TEMPLATE, clock);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -528,7 +530,8 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
+                ENDPOINT_URL_TEMPLATE, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -547,7 +550,8 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
+                ENDPOINT_URL_TEMPLATE, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -565,7 +569,8 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
+                ENDPOINT_URL_TEMPLATE, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -747,8 +752,8 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
                         PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("<Impression>https://prebid-server." +
-                                "rubiconproject.com/event?t=imp&b=bid1&f=b&a=accountId</Impression>"), null));
+                        PutObject.of("xml", new TextNode("<Impression>https://test-event.com/event?t=imp&" +
+                                "b=bid1&f=b&a=accountId</Impression>"), null));
     }
 
     @Test
@@ -769,9 +774,8 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
                         PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("<Impression>http:/test.com</Impression>\n" +
-                                "<Impression>https://prebid-server.rubiconproject.com/event?t=imp&b=bid1&f=b&" +
-                                "a=accountId</Impression>"), null));
+                        PutObject.of("xml", new TextNode("<Impression>http:/test.com</Impression><Impression>" +
+                                "https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId</Impression>"), null));
     }
 
     private static List<Bid> singleBidList() {
