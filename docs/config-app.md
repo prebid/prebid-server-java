@@ -17,7 +17,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## HTTP
 - `http.port` - the port to listen on.
-- `http.max-header-size` - set the maximum length of all headers.
+- `http.max-headers-size` - set the maximum length of all headers.
 - `http.ssl` - enable SSL/TLS support.
 - `http.jks-path` - path to the java keystore (if ssl is enabled).
 - `http.jks-password` - password for the keystore (if ssl is enabled).

@@ -110,7 +110,7 @@ public class WebConfiguration {
     }
 
     @Bean
-    HttpServerOptions httpServerOptions(@Value("${http.max-header-size}") int maxHeaderSize,
+    HttpServerOptions httpServerOptions(@Value("${http.max-headers-size}") int maxHeaderSize,
                                         @Value("${http.ssl}") boolean ssl,
                                         @Value("${http.jks-path}") String jksPath,
                                         @Value("${http.jks-password}") String jksPassword) {
