@@ -8,6 +8,7 @@ vertx:
   http-server-instances: 1
 http:
   port: 8080
+  max-header-size: 16384
   ssl: false
   jks-path:
   jks-password:
