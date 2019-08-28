@@ -17,9 +17,10 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## HTTP
 - `http.port` - the port to listen on.
-- `http.ssl` - enable SSL/TLS
-- `http.jks-path` - path to the java keystore (if ssl is enabled)
-- `http.jks-password` - password for the keystore (if ssl is enabled)
+- `http.max-headers-size` - set the maximum length of all headers.
+- `http.ssl` - enable SSL/TLS support.
+- `http.jks-path` - path to the java keystore (if ssl is enabled).
+- `http.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
@@ -66,7 +67,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
-- `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe)
+- `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
 But feel free to add additional bidder's specific options.
@@ -115,7 +116,7 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
-- `cache.path` - set the external Cache Service path, for example `/cache`
+- `cache.path` - set the external Cache Service path, for example `/cache`.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
 - `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
