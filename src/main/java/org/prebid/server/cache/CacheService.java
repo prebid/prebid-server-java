@@ -55,6 +55,9 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
+    private static final String BID_ID_PLACEHOLDER = "{BIDID}";
+    private static final String ACCOUNT_PLACEHOLDER = "{ACCOUNT}";
+
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
@@ -364,7 +367,8 @@ public class CacheService {
             return stringValue;
         }
 
-        final String impressionUrl = String.format(eventsUrlTemplate, bidId, accountId);
+        final String impressionUrl = eventsUrlTemplate.replace(BID_ID_PLACEHOLDER, bidId)
+                .replace(ACCOUNT_PLACEHOLDER, accountId);
         final String openTag = "<Impression>";
 
         // empty impression tag - just insert the link

@@ -41,7 +41,7 @@ cookie-sync:
     default: true
   default-timeout-ms: 2000
 events:
-  urltemplate: https://prebid-server.rubiconproject.com/event?t=imp&b=%s&f=b&a=%s
+  urltemplate: https://prebid-server.rubiconproject.com/event?t=imp&b={BIDID}&f=b&a={ACCOUNT}
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json

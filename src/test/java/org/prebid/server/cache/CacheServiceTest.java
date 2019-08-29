@@ -64,7 +64,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CacheServiceTest extends VertxTest {
 
-    private static final String ENDPOINT_URL_TEMPLATE = "https://test-event.com/event?t=imp&b=%s&f=b&a=%s";
+    private static final String ENDPOINT_URL_TEMPLATE = "https://test-event.com/event?t=imp&b={BIDID}&f=b&a={ACCOUNT}";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();

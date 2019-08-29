@@ -23,6 +23,7 @@ and not the other for an interim period. This page tracks known differences that
 1) PBS-Java supports per-account cache TTL and event URLs configuration in the database in columns `banner_cache_ttl`, `video_cache_ttl` and `events_enabled`.
 1) PBS-Java does not support passing bidder extensions in `imp[...].ext.prebid.bidder`. PBS-Go [PR 846](https://github.com/prebid/prebid-server/pull/846)
 1) PBS-Java responds with active bidders only in `/info/bidders` endpoint, although PBS-Go returns all implemented ones.
+1) PBS-Java supports video impression tracking [issue 1015](https://github.com/prebid/prebid-server/issues/1015). PBS-Java [PR 437](https://github.com/rubicon-project/prebid-server-java/pull/437). 
 
 ## Minor differences
 
