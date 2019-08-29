@@ -94,6 +94,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String ADSERVER_EID = "adserver.org";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String DATA_NODE_NAME = "data";
 
     private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
@@ -266,8 +267,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app,
                                        boolean useFirstPartyData) {
-        final JsonNode inventory = rubiconImpExt.getInventory();
-        final ObjectNode inventoryNode = inventory.isNull() ? Json.mapper.createObjectNode() : (ObjectNode) inventory;
+        final ObjectNode inventory = rubiconImpExt.getInventory();
+        final ObjectNode inventoryNode = inventory == null ? Json.mapper.createObjectNode() : inventory;
 
         if (useFirstPartyData) {
             final ExtImpContext context = extImpContext(imp);
@@ -275,13 +276,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
             // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
             final ObjectNode siteExt = site != null ? site.getExt() : null;
             if (siteExt != null) {
-                populateObjectNode(inventoryNode, siteExt.get("data"));
+                populateObjectNode(inventoryNode, getDataNode(siteExt));
             }
 
             // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
             final ObjectNode appExt = app != null ? app.getExt() : null;
             if (appExt != null) {
-                populateObjectNode(inventoryNode, appExt.get("data"));
+                populateObjectNode(inventoryNode, getDataNode(appExt));
             }
 
             // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
@@ -320,6 +321,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private static JsonNode getDataNode(ObjectNode extObjectNode) {
+        return extObjectNode.get(DATA_NODE_NAME);
     }
 
     private static void populateObjectNode(ObjectNode objectNode, JsonNode data) {
@@ -442,7 +447,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         ? Json.mapper.valueToTree(userExtRp)
                         : Json.mapper.createObjectNode();
 
-                populateObjectNode(userExtRpNode, userExtData);
+                userExtRpNode.setAll(userExtData);
 
                 rubiconUserExtNode.set("rp", userExtRpNode);
             }
@@ -470,8 +475,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
-        final JsonNode impExtVisitor = rubiconImpExt.getVisitor();
-        final JsonNode visitor = !impExtVisitor.isNull() && impExtVisitor.size() != 0 ? impExtVisitor : null;
+        final ObjectNode impExtVisitor = rubiconImpExt.getVisitor();
+        final ObjectNode visitor = impExtVisitor != null && impExtVisitor.size() != 0 ? impExtVisitor : null;
 
         final boolean hasUser = user != null;
         final String gender = hasUser ? user.getGender() : null;

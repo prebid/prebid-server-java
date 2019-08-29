@@ -1,7 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request.rubicon;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -25,9 +25,9 @@ public class ExtImpRubicon {
 
     List<Integer> sizes;
 
-    JsonNode inventory;
+    ObjectNode inventory;
 
-    JsonNode visitor;
+    ObjectNode visitor;
 
     RubiconVideoParams video;
 }
