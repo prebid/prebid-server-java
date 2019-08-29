@@ -3,6 +3,8 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.health.HealthChecker;
@@ -14,6 +16,8 @@ import java.util.stream.Collectors;
 
 public class StatusHandler implements Handler<RoutingContext> {
 
+    private static final Logger logger = LoggerFactory.getLogger(StatusHandler.class);
+
     private final List<HealthChecker> healthCheckers;
 
     public StatusHandler(List<HealthChecker> healthCheckers) {
@@ -22,11 +26,20 @@ public class StatusHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped");
+            return;
+        }
+
         if (CollectionUtils.isEmpty(healthCheckers)) {
-            context.response().setStatusCode(HttpResponseStatus.NO_CONTENT.code()).end();
+            context.response()
+                    .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+                    .end();
         } else {
-            context.response().end(Json.encode(new TreeMap<>(healthCheckers.stream()
-                    .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)))));
+            context.response()
+                    .end(Json.encode(new TreeMap<>(healthCheckers.stream()
+                            .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)))));
         }
     }
 }

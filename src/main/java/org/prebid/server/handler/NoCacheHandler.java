@@ -11,11 +11,11 @@ public class NoCacheHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext routingContext) {
-        routingContext.response()
+    public void handle(RoutingContext context) {
+        context.response()
                 .putHeader(HttpUtil.CACHE_CONTROL_HEADER, "no-cache, no-store, must-revalidate")
                 .putHeader(HttpUtil.PRAGMA_HEADER, "no-cache")
                 .putHeader(HttpUtil.EXPIRES_HEADER, "0");
-        routingContext.next();
+        context.next();
     }
 }

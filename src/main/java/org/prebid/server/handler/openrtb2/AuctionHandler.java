@@ -110,61 +110,66 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 ? responseResult.result().getRight().getRequestTypeMetric()
                 : MetricName.openrtb2web;
 
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-            return;
-        }
-
         context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
 
-        final MetricName requestStatus;
         final int status;
+        final String body;
+
+        final MetricName metricRequestStatus;
         final List<String> errorMessages;
 
         if (responseSucceeded) {
-            context.response()
-                    .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                    .end(Json.encode(responseResult.result().getLeft()));
-
-            requestStatus = MetricName.ok;
-            status = HttpResponseStatus.OK.code();
+            metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
+
+            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+            status = HttpResponseStatus.OK.code();
+            body = Json.encode(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
-                requestStatus = MetricName.badinput;
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                metricRequestStatus = MetricName.badinput;
                 errorMessages = ((InvalidRequestException) exception).getMessages();
-
                 logger.info("Invalid request format: {0}", errorMessages);
 
-                context.response()
-                        .setStatusCode(status)
-                        .end(errorMessages.stream().map(msg -> String.format("Invalid request format: %s", msg))
-                                .collect(Collectors.joining("\n")));
+                status = HttpResponseStatus.BAD_REQUEST.code();
+                body = errorMessages.stream()
+                        .map(msg -> String.format("Invalid request format: %s", msg))
+                        .collect(Collectors.joining("\n"));
             } else {
+                metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);
 
-                requestStatus = MetricName.err;
-                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
                 final String message = exception.getMessage();
                 errorMessages = Collections.singletonList(message);
 
-                context.response()
-                        .setStatusCode(status)
-                        .end(String.format("Critical error while running the auction: %s", message));
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                body = String.format("Critical error while running the auction: %s", message);
             }
         }
 
-        metrics.updateRequestTimeMetric(clock.millis() - startTime);
-        metrics.updateRequestTypeMetric(requestType, requestStatus);
-        analyticsReporter.processEvent(auctionEventBuilder.status(status).errors(errorMessages).build());
+        final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
+        respondWith(context, status, body, startTime, requestType, metricRequestStatus, auctionEvent);
     }
 
     private void handleResponseException(Throwable throwable, MetricName requestType) {
         logger.warn("Failed to send auction response", throwable);
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+    }
+
+    private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
+                             MetricName metricRequestStatus, AuctionEvent event) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped");
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+        } else {
+            context.response().setStatusCode(status).end(body);
+
+            metrics.updateRequestTimeMetric(clock.millis() - startTime);
+            metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
+            analyticsReporter.processEvent(event);
+        }
     }
 }
