@@ -8,6 +8,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.time.Clock;
 import java.util.Objects;
 
 /**
@@ -21,11 +22,12 @@ public class CircuitBreaker {
     private final io.vertx.circuitbreaker.CircuitBreaker breaker;
     private final Vertx vertx;
     private final long openingIntervalMs;
+    private final Clock clock;
 
     private volatile long lastFailureTime;
 
     public CircuitBreaker(String name, Vertx vertx, int openingThreshold, long openingIntervalMs,
-                          long closingIntervalMs) {
+                          long closingIntervalMs, Clock clock) {
         breaker = io.vertx.circuitbreaker.CircuitBreaker.create(
                 Objects.requireNonNull(name),
                 Objects.requireNonNull(vertx),
@@ -35,6 +37,7 @@ public class CircuitBreaker {
 
         this.vertx = vertx;
         this.openingIntervalMs = openingIntervalMs;
+        this.clock = Objects.requireNonNull(clock);
     }
 
     /**
@@ -91,7 +94,7 @@ public class CircuitBreaker {
      * so it is better to perform them on a worker thread.
      */
     private <T> void ensureState(Future<T> executeBlockingFuture) {
-        final long currentTime = System.currentTimeMillis();
+        final long currentTime = clock.millis();
         if (breaker.state() == CircuitBreakerState.CLOSED && lastFailureTime > 0
                 && currentTime - lastFailureTime > openingIntervalMs) {
             breaker.reset();

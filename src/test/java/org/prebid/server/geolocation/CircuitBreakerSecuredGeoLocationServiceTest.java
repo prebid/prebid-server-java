@@ -17,8 +17,11 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -32,6 +35,8 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
+
+    private Clock clock;
     @Mock
     private GeoLocationService wrappedGeoLocationService;
     @Mock
@@ -42,23 +47,14 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 1,
-                100L, 200L);
+                100L, 200L, clock);
     }
 
     @After
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredGeoLocationService(null, null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredGeoLocationService(vertx, null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, null, 0, 0L, 0L));
     }
 
     @Test
@@ -149,7 +145,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     public void lookupShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
         geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 2,
-                100L, 200L);
+                100L, 200L, clock);
 
         givenWrappedGeoLocationReturning(
                 Future.failedFuture(new RuntimeException("exception1")),

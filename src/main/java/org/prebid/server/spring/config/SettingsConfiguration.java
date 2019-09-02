@@ -104,7 +104,7 @@ public class SettingsConfiguration {
             final JdbcClient jdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
             return new CircuitBreakerSecuredJdbcClient(vertx, jdbcClient, metrics,
                     circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                    circuitBreakerProperties.getClosingIntervalMs());
+                    circuitBreakerProperties.getClosingIntervalMs(), clock);
         }
 
         private static BasicJdbcClient createBasicJdbcClient(
