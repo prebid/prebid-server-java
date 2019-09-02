@@ -94,13 +94,15 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final String format = queryParameters.get(FORMAT_PARAMETER);
         final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
         final boolean isAnalyticsRequested = analytics == null || analytics.equals(ENABLED_ANALYTICS);
 
-        final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
-        isAccountEventEnabled(accountId)
-                .setHandler(isEventSupported -> handleEvent(isEventSupported, isAnalyticsRequested, format, context));
+        if (isAnalyticsRequested) {
+            final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
+            final String format = queryParameters.get(FORMAT_PARAMETER);
+            isAccountEventEnabled(accountId)
+                    .setHandler(isEventSupported -> handleEvent(isEventSupported, format, context));
+        }
     }
 
     private static void validateParametersForBadStatusError(MultiMap queryParameters) {
@@ -143,14 +145,11 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                 .otherwise(throwable -> fallbackResult(accountId, throwable));
     }
 
-    private void handleEvent(AsyncResult<Boolean> isEventSupported, boolean isAnalyticsRequested, String format,
-                             RoutingContext context) {
+    private void handleEvent(AsyncResult<Boolean> isEventSupported, String format, RoutingContext context) {
         final HttpServerResponse response = context.response();
         if (isEventSupported.result()) {
-            if (isAnalyticsRequested) {
-                analyticsReporter.processEvent(makeNotificationEvent(context));
-                respondWithOkStatus(response, format);
-            }
+            analyticsReporter.processEvent(makeNotificationEvent(context));
+            respondWithOkStatus(response, format);
         } else {
             respondWithUnauthorized(response, "Given 'accountId' is not supporting the event");
         }

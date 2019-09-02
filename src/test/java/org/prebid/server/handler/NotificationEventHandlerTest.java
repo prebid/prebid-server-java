@@ -260,14 +260,12 @@ public class NotificationEventHandlerTest extends VertxTest {
                         .add("a", "1233213")
                         .add("x", "0"));
 
-        given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-
         // when
         notificationHandler.handle(routingContext);
 
         // then
         verifyZeroInteractions(analyticsReporter);
+        verifyZeroInteractions(applicationSettings);
     }
 
     @Test
