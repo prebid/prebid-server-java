@@ -5,6 +5,8 @@ import io.vertx.circuitbreaker.CircuitBreakerState;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 import java.util.Objects;
 
@@ -14,10 +16,13 @@ import java.util.Objects;
  */
 public class CircuitBreaker {
 
+    private static final Logger logger = LoggerFactory.getLogger(CircuitBreaker.class);
+
     private final io.vertx.circuitbreaker.CircuitBreaker breaker;
+    private final Vertx vertx;
     private final long openingIntervalMs;
 
-    private long lastFailure;
+    private volatile long lastFailureTime;
 
     public CircuitBreaker(String name, Vertx vertx, int openingThreshold, long openingIntervalMs,
                           long closingIntervalMs) {
@@ -28,6 +33,7 @@ public class CircuitBreaker {
                         .setMaxFailures(openingThreshold)
                         .setResetTimeout(closingIntervalMs));
 
+        this.vertx = vertx;
         this.openingIntervalMs = openingIntervalMs;
     }
 
@@ -62,24 +68,37 @@ public class CircuitBreaker {
      * Fails given {@link Future} and returns it.
      */
     private <T> Future<T> failBreaker(Throwable exception, Future<T> future) {
-        ensureToIncrementFailureCount();
+        final Future<T> ensureStateFuture = Future.future();
+        vertx.executeBlocking(this::ensureState, false, ensureStateFuture);
 
-        future.fail(exception);
-        return future;
+        return ensureStateFuture
+                .compose(ignored -> { // ensuring state succeeded
+                    future.fail(exception);
+                    return future;
+                })
+                .recover(throwable -> {
+                    logger.warn("Resetting circuit breaker state failed", throwable);
+                    future.fail(throwable);
+                    return future;
+                });
     }
 
     /**
-     * Reset failure counter to adjust open-circuit time frame.
+     * Resets failure counter to adjust open-circuit time frame.
+     * <p>
+     * Note: the operations {@link io.vertx.circuitbreaker.CircuitBreaker#state()}
+     * and {@link io.vertx.circuitbreaker.CircuitBreaker#reset()} can take a while,
+     * so it is better to perform them on a worker thread.
      */
-    private void ensureToIncrementFailureCount() {
-        final long currentTimeMillis = System.currentTimeMillis();
-
-        if (breaker.state() == CircuitBreakerState.CLOSED && lastFailure > 0
-                && currentTimeMillis - lastFailure > openingIntervalMs) {
+    private <T> void ensureState(Future<T> executeBlockingFuture) {
+        final long currentTime = System.currentTimeMillis();
+        if (breaker.state() == CircuitBreakerState.CLOSED && lastFailureTime > 0
+                && currentTime - lastFailureTime > openingIntervalMs) {
             breaker.reset();
         }
 
-        lastFailure = currentTimeMillis;
+        lastFailureTime = currentTime;
+        executeBlockingFuture.complete();
     }
 
     /**
