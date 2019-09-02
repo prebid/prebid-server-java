@@ -96,11 +96,11 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
         final String format = queryParameters.get(FORMAT_PARAMETER);
         final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
-        final boolean isAnalyticsEnabled = analytics == null || analytics.equals(ENABLED_ANALYTICS);
+        final boolean isAnalyticsRequested = analytics == null || analytics.equals(ENABLED_ANALYTICS);
 
         final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
         isAccountEventEnabled(accountId)
-                .setHandler(isEnabledResult -> handleEvent(isEnabledResult, isAnalyticsEnabled, format, context));
+                .setHandler(isEventSupported -> handleEvent(isEventSupported, isAnalyticsRequested, format, context));
     }
 
     private static void validateParametersForBadStatusError(MultiMap queryParameters) {
@@ -143,11 +143,11 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                 .otherwise(throwable -> fallbackResult(accountId, throwable));
     }
 
-    private void handleEvent(AsyncResult<Boolean> isEnabledResult, boolean isAnalyticsEnabled, String format,
+    private void handleEvent(AsyncResult<Boolean> isEventSupported, boolean isAnalyticsRequested, String format,
                              RoutingContext context) {
         final HttpServerResponse response = context.response();
-        if (isEnabledResult.result()) {
-            if (isAnalyticsEnabled) {
+        if (isEventSupported.result()) {
+            if (isAnalyticsRequested) {
                 analyticsReporter.processEvent(makeNotificationEvent(context));
                 respondWithOkStatus(response, format);
             }
@@ -180,7 +180,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private Boolean fallbackResult(String accountId, Throwable throwable) {
         if (!(throwable instanceof PreBidException)) {
-            logger.warn(String.format("Error when retrieving account with %s id", accountId), throwable);
+            logger.warn("Error when retrieving account with id={0}", throwable, accountId);
         }
         return false;
     }
