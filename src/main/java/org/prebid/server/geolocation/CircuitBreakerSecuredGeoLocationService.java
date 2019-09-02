@@ -9,6 +9,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 
+import java.time.Clock;
 import java.util.Objects;
 
 /**
@@ -24,10 +25,10 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     public CircuitBreakerSecuredGeoLocationService(Vertx vertx, GeoLocationService geoLocationService, Metrics metrics,
                                                    int openingThreshold, long openingIntervalMs,
-                                                   long closingIntervalMs) {
+                                                   long closingIntervalMs, Clock clock) {
 
         breaker = new CircuitBreaker("geolocation-service-circuit-breaker", Objects.requireNonNull(vertx),
-                openingThreshold, openingIntervalMs, closingIntervalMs)
+                openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());

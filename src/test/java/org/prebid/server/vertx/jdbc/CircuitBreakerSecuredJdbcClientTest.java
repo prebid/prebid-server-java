@@ -28,7 +28,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
@@ -42,6 +41,8 @@ public class CircuitBreakerSecuredJdbcClientTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
+
+    private Clock clock;
     @Mock
     private JdbcClient wrappedJdbcClient;
     @Mock
@@ -54,25 +55,15 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 1, 100L, 200L);
+        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 1, 100L, 200L, clock);
     }
 
     @After
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredJdbcClient(null, null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredJdbcClient(vertx, null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, null, 0, 0L, 0L));
     }
 
     @Test
@@ -176,7 +167,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @Test
     public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
-        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 2, 100L, 200L);
+        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 2, 100L, 200L, clock);
 
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
