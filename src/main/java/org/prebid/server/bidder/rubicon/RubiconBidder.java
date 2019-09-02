@@ -39,11 +39,14 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconBiddersExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
+import org.prebid.server.bidder.rubicon.proto.RubiconPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
@@ -91,10 +94,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
+    private static final String DEFAULT_TK_XINT = "rp-pbs";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String ADSERVER_EID = "adserver.org";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
+    private static final TypeReference<ExtPrebid<RubiconPrebid, ?>> RUBICON_PREBID_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<RubiconPrebid, ?>>() {
+            };
     private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
             };
@@ -122,7 +129,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(endpointUrl)
+                        .uri(endpointUrl + tkXintValue(bidRequest))
                         .body(body)
                         .headers(headers)
                         .payload(singleRequest)
@@ -205,6 +212,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
                 .build();
+    }
+
+    private static String tkXintValue(BidRequest bidRequest) {
+        try {
+            final ExtPrebid<RubiconPrebid, ?> rubiconPrebidExtPrebid = Json.mapper.convertValue(bidRequest.getExt(),
+                    RUBICON_PREBID_TYPE_REFERENCE);
+            final RubiconPrebid prebid = rubiconPrebidExtPrebid == null ? null : rubiconPrebidExtPrebid.getPrebid();
+            final RubiconBiddersExtPrebid biddersExtPrebid = prebid == null ? null : prebid.getBidders();
+            final RubiconExtPrebid rubiconExtPrebid = biddersExtPrebid == null ? null : biddersExtPrebid.getRubicon();
+            final String integration = rubiconExtPrebid == null ? null : rubiconExtPrebid.getIntegration();
+
+            return StringUtils.isBlank(integration) ? DEFAULT_TK_XINT : integration;
+        } catch (IllegalArgumentException e) {
+            return DEFAULT_TK_XINT;
+        }
     }
 
     private static ExtImpRubicon parseRubiconExt(Imp imp) {
