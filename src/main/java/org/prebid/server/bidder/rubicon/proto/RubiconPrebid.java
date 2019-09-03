@@ -7,6 +7,6 @@ import lombok.Value;
 @Value
 public class RubiconPrebid {
 
-    RubiconBiddersExtPrebid bidders;
+    RubiconBiddersPrebid bidders;
 }
 

@@ -39,10 +39,10 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconBiddersExtPrebid;
+import org.prebid.server.bidder.rubicon.proto.RubiconBiddersPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebid;
+import org.prebid.server.bidder.rubicon.proto.RubiconRubiconPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
@@ -219,9 +219,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ExtPrebid<RubiconPrebid, ?> rubiconPrebidExtPrebid = Json.mapper.convertValue(bidRequest.getExt(),
                     RUBICON_PREBID_TYPE_REFERENCE);
             final RubiconPrebid prebid = rubiconPrebidExtPrebid == null ? null : rubiconPrebidExtPrebid.getPrebid();
-            final RubiconBiddersExtPrebid biddersExtPrebid = prebid == null ? null : prebid.getBidders();
-            final RubiconExtPrebid rubiconExtPrebid = biddersExtPrebid == null ? null : biddersExtPrebid.getRubicon();
-            final String integration = rubiconExtPrebid == null ? null : rubiconExtPrebid.getIntegration();
+            final RubiconBiddersPrebid rubiconBiddersPrebid = prebid == null ? null : prebid.getBidders();
+            final RubiconRubiconPrebid rubiconRubiconPrebid = rubiconBiddersPrebid == null
+                    ? null
+                    : rubiconBiddersPrebid.getRubicon();
+            final String integration = rubiconRubiconPrebid == null ? null : rubiconRubiconPrebid.getIntegration();
 
             return StringUtils.isBlank(integration) ? DEFAULT_TK_XINT : integration;
         } catch (IllegalArgumentException e) {
