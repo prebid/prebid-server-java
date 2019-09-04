@@ -80,7 +80,6 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
-    private static final String DEFAULT_TK_XINT = "rp-pbs";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final String endpointUrl;
