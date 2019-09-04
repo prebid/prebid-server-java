@@ -42,13 +42,13 @@ import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconBiddersPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconRubiconPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.RubiconPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconRubiconPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
@@ -94,7 +94,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
-    private static final String DEFAULT_TK_XINT = "rp-pbs";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String ADSERVER_EID = "adserver.org";
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -216,7 +215,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private String makeUri(BidRequest bidRequest) {
         final String tkXint = tkXintValue(bidRequest);
-        return String.format("%s?tk_xint=%s", endpointUrl, tkXint);
+        return StringUtils.isBlank(tkXint) ? endpointUrl : String.format("%s?tk_xint=%s", endpointUrl, tkXint);
     }
 
     private static String tkXintValue(BidRequest bidRequest) {
@@ -230,9 +229,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     : rubiconBiddersPrebid.getRubicon();
             final String integration = rubiconRubiconPrebid == null ? null : rubiconRubiconPrebid.getIntegration();
 
-            return StringUtils.isBlank(integration) ? DEFAULT_TK_XINT : integration;
+            return StringUtils.isBlank(integration) ? null : integration;
         } catch (IllegalArgumentException e) {
-            return DEFAULT_TK_XINT;
+            return null;
         }
     }
 

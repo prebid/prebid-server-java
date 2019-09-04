@@ -121,7 +121,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = ENDPOINT_URL + "?tk_xint=rp-pbs";
+        final String expectedUrl = ENDPOINT_URL;
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns(expectedUrl, HttpRequest::getUri);
