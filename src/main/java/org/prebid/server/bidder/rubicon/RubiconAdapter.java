@@ -88,7 +88,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     public RubiconAdapter(String cookieFamilyName, String endpointUrl, String xapiUsername, String xapiPassword) {
         super(cookieFamilyName);
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)) + DEFAULT_TK_XINT;
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
                 + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
     }

@@ -92,7 +92,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RubiconBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=";
+    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
@@ -121,7 +121,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = ENDPOINT_URL + "rp-pbs";
+        final String expectedUrl = ENDPOINT_URL;
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns(expectedUrl, HttpRequest::getUri);
@@ -149,7 +149,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = ENDPOINT_URL + "test";
+        final String expectedUrl = ENDPOINT_URL + "?tk_xint=test";
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns(expectedUrl, HttpRequest::getUri);
