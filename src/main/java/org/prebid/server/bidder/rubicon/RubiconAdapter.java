@@ -80,6 +80,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
+    private static final String DEFAULT_URI_PARAMETER = "?tk_xint=rp-pbs";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final String endpointUrl;
@@ -87,7 +88,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     public RubiconAdapter(String cookieFamilyName, String endpointUrl, String xapiUsername, String xapiPassword) {
         super(cookieFamilyName);
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)) + DEFAULT_URI_PARAMETER;
         authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
                 + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
     }
