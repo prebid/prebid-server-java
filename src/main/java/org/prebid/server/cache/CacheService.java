@@ -55,8 +55,8 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private static final String BID_ID_PLACEHOLDER = "{BIDID}";
-    private static final String ACCOUNT_PLACEHOLDER = "{ACCOUNT}";
+    private static final String BID_ID_PLACEHOLDER = "BIDID";
+    private static final String ACCOUNT_PLACEHOLDER = "ACCOUNT";
 
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;

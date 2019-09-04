@@ -46,8 +46,7 @@ public class MaxMindGeoLocationServiceTest {
     public void setDatabaseReaderShouldThrowExceptionIfDatabaseArchiveNotFound() {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> maxMindGeoLocationService.setDatabaseReader("no_file"))
-                .withMessage("IO Exception occurred while trying to read an archive/db file: no_file " +
-                        "(No such file or directory)");
+                .withMessageStartingWith("IO Exception occurred while trying to read an archive/db file: no_file");
     }
 
     @Test
