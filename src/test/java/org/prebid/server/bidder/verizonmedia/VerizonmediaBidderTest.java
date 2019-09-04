@@ -238,7 +238,7 @@ public class VerizonmediaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmptyl() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));

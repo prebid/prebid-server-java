@@ -110,11 +110,13 @@ public class WebConfiguration {
     }
 
     @Bean
-    HttpServerOptions httpServerOptions(@Value("${http.ssl}") boolean ssl,
+    HttpServerOptions httpServerOptions(@Value("${http.max-headers-size}") int maxHeaderSize,
+                                        @Value("${http.ssl}") boolean ssl,
                                         @Value("${http.jks-path}") String jksPath,
                                         @Value("${http.jks-password}") String jksPassword) {
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
+                .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setIdleTimeout(10); // kick off long processing requests
 
@@ -323,8 +325,10 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter) {
-        return NotificationEventHandler.create(compositeAnalyticsReporter);
+    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter,
+                                                      TimeoutFactory timeoutFactory,
+                                                      ApplicationSettings applicationSettings) {
+        return new NotificationEventHandler(compositeAnalyticsReporter, timeoutFactory, applicationSettings);
     }
 
     @Bean

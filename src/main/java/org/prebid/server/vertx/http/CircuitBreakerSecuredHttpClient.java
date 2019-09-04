@@ -13,6 +13,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,9 +33,11 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private final Metrics metrics;
 
     public CircuitBreakerSecuredHttpClient(Vertx vertx, HttpClient httpClient, Metrics metrics,
-                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs) {
+                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs,
+                                           Clock clock) {
         circuitBreakerCreator = name -> new CircuitBreaker("http-client-circuit-breaker-" + name,
-                Objects.requireNonNull(vertx), openingThreshold, openingIntervalMs, closingIntervalMs)
+                Objects.requireNonNull(vertx), openingThreshold, openingIntervalMs, closingIntervalMs,
+                Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));

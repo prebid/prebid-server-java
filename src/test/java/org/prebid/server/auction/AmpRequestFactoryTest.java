@@ -971,7 +971,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("gdpr_consent")).willReturn(null, "");
 
-        //given
         givenBidRequest(
                 builder -> builder
                         .user(User.builder()
@@ -998,7 +997,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
 
-        //given
         givenBidRequest(
                 builder -> builder
                         .user(User.builder()
@@ -1024,7 +1022,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
 
-        //given
         givenBidRequest(
                 builder -> builder
                         .ext(mapper.valueToTree(ExtBidRequest.of(null))),
@@ -1045,7 +1042,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
 
-        //given
         givenBidRequest(
                 builder -> builder
                         .user(User.builder().build())

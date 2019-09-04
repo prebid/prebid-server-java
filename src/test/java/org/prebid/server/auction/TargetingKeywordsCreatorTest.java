@@ -310,8 +310,7 @@ public class TargetingKeywordsCreatorTest {
                 .makeFor(bid, "bidder1", true, null, null, null, null, "http://extetranlUrl");
 
         // then
-        assertThat(keywords).contains(
-                entry("hb_winurl", "http://extetranlUrl"),
-                entry("hb_winurl_bidder1", "http://extetranlUrl"));
+        assertThat(keywords).contains(entry("hb_winurl", "http://extetranlUrl"));
+        assertThat(keywords).doesNotContainKeys("hb_winurl_bidder1");
     }
 }

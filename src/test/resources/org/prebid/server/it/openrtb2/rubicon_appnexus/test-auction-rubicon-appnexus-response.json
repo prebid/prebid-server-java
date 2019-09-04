@@ -14,11 +14,12 @@
                 "hb_pb": "0.80",
                 "hb_pb_appnexus": "0.80",
                 "hb_cache_path": "/cache",
-                "hb_winurl": "http://localhost:8000/event?type=win&bidid=a121a07f-1579-4465-bc5e-5c5b02a0c421&bidder=appnexus",
+                "hb_winurl": "http://localhost:8000/event?t=win&b=BIDID&a=5001&f=i",
                 "hb_cache_path_appnexus": "/cache",
-                "hb_winurl_appnexus": "http://localhost:8000/event?type=win&bidid=a121a07f-1579-4465-bc5e-5c5b02a0c421&bidder=appnexus",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
+                "hb_bidid": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
+                "hb_bidid_appnexus": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
                 "hb_cache_id": "765e116a-5773-49d5-a648-0b97a9907a4e",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_appnexus": "{{ cache.host }}",
@@ -31,8 +32,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=a121a07f-1579-4465-bc5e-5c5b02a0c421&bidder=appnexus",
-                "view": "http://localhost:8000/event?type=view&bidid=a121a07f-1579-4465-bc5e-5c5b02a0c421&bidder=appnexus"
+                "win": "http://localhost:8000/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&f=i"
               }
             }
           }
@@ -57,22 +58,23 @@
               "targeting": {
                 "hb_pb": "5.50",
                 "hb_pb_appnexus": "5.50",
-                "hb_winurl": "http://localhost:8000/event?type=win&bidid=7706636740145184841&bidder=appnexus",
+                "hb_winurl": "http://localhost:8000/event?t=win&b=BIDID&a=5001&f=i",
                 "hb_size": "300x250",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
+                "hb_bidid": "7706636740145184841",
+                "hb_bidid_appnexus": "7706636740145184841",
                 "hb_cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493",
                 "hb_size_appnexus": "300x250",
                 "hb_cache_id_appnexus": "117431c9-807a-41e1-82a7-dcd8f8875493",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_appnexus": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_appnexus": "{{ cache.path }}",
-                "hb_winurl_appnexus": "http://localhost:8000/event?type=win&bidid=7706636740145184841&bidder=appnexus"
+                "hb_cache_path_appnexus": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=7706636740145184841&bidder=appnexus",
-                "view": "http://localhost:8000/event?type=view&bidid=7706636740145184841&bidder=appnexus"
+                "win": "http://localhost:8000/event?t=win&b=7706636740145184841&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=7706636740145184841&a=5001&f=i"
               },
               "cache": {
                 "bids": {
@@ -115,8 +117,9 @@
                 "hb_pb_appnexus": "1.00",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
-                "hb_winurl": "http://localhost:8000/event?type=win&bidid=928185755156387460&bidder=appnexus",
-                "hb_winurl_appnexus": "http://localhost:8000/event?type=win&bidid=928185755156387460&bidder=appnexus",
+                "hb_bidid": "928185755156387460",
+                "hb_bidid_appnexus": "928185755156387460",
+                "hb_winurl": "http://localhost:8000/event?t=win&b=BIDID&a=5001&f=i",
                 "hb_cache_id": "6cf69b42-96f5-4ba1-a984-a9b4d8ff21cf",
                 "hb_cache_id_appnexus": "6cf69b42-96f5-4ba1-a984-a9b4d8ff21cf",
                 "hb_cache_host": "{{ cache.host }}",
@@ -125,8 +128,8 @@
                 "hb_cache_path_appnexus": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=928185755156387460&bidder=appnexus",
-                "view": "http://localhost:8000/event?type=view&bidid=928185755156387460&bidder=appnexus"
+                "win": "http://localhost:8000/event?t=win&b=928185755156387460&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=928185755156387460&a=5001&f=i"
               },
               "cache": {
                 "bids": {
@@ -177,8 +180,8 @@
                 "hb_cache_path_appnexusAlias": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=7706636740145184840&bidder=appnexusAlias",
-                "view": "http://localhost:8000/event?type=view&bidid=7706636740145184840&bidder=appnexusAlias"
+                "win": "http://localhost:8000/event?t=win&b=7706636740145184840&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=7706636740145184840&a=5001&f=i"
               },
               "cache": {
                 "bids": {
@@ -216,12 +219,13 @@
                 "hb_pb_rubicon": "0.80",
                 "hb_cache_id_rubicon": "734b7948-e41d-4c14-b2c3-c31634b32376",
                 "hb_cache_path": "/cache",
-                "hb_winurl": "http://localhost:8000/event?type=win&bidid=f227a07f-1579-4465-bc5e-5c5b02a0c181&bidder=rubicon",
+                "hb_winurl": "http://localhost:8000/event?t=win&b=BIDID&a=5001&f=i",
                 "hb_bidder": "rubicon",
                 "hb_bidder_rubicon": "rubicon",
+                "hb_bidid": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
+                "hb_bidid_rubicon": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
                 "hb_cache_id": "734b7948-e41d-4c14-b2c3-c31634b32376",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_winurl_rubicon": "http://localhost:8000/event?type=win&bidid=f227a07f-1579-4465-bc5e-5c5b02a0c181&bidder=rubicon",
                 "hb_cache_path_rubicon": "{{ cache.path }}",
                 "hb_cache_host_rubicon": "{{ cache.host }}"
               },
@@ -232,8 +236,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=f227a07f-1579-4465-bc5e-5c5b02a0c181&bidder=rubicon",
-                "view": "http://localhost:8000/event?type=view&bidid=f227a07f-1579-4465-bc5e-5c5b02a0c181&bidder=rubicon"
+                "win": "http://localhost:8000/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&f=i"
               }
             }
           }
@@ -259,8 +263,8 @@
                 }
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=f227a07f-1579-4465-bc5e-5c5b02a0c180&bidder=rubicon",
-                "view": "http://localhost:8000/event?type=view&bidid=f227a07f-1579-4465-bc5e-5c5b02a0c180&bidder=rubicon"
+                "win": "http://localhost:8000/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&f=i"
               }
             }
           }
@@ -281,13 +285,14 @@
                 "hb_pb": "8.40",
                 "hb_pb_rubicon": "8.40",
                 "hb_cache_id_rubicon": "683fe79f-6df7-4971-ac70-820e0486992d",
-                "hb_winurl": "http://localhost:8000/event?type=win&bidid=880290288&bidder=rubicon",
-                "hb_winurl_rubicon": "http://localhost:8000/event?type=win&bidid=880290288&bidder=rubicon",
+                "hb_winurl": "http://localhost:8000/event?t=win&b=BIDID&a=5001&f=i",
                 "hb_deal_rubicon": "dealId1",
                 "hb_size": "300x250",
-                "hb_bidder": "rubicon",
                 "hb_size_rubicon": "300x250",
+                "hb_bidder": "rubicon",
                 "hb_bidder_rubicon": "rubicon",
+                "hb_bidid": "880290288",
+                "hb_bidid_rubicon": "880290288",
                 "hb_cache_id": "683fe79f-6df7-4971-ac70-820e0486992d",
                 "hb_deal": "dealId1",
                 "hb_uuid_rubicon": "b2528f73-96ab-42ab-8f15-fbe6ed779a26",
@@ -298,8 +303,8 @@
                 "hb_cache_path_rubicon": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=880290288&bidder=rubicon",
-                "view": "http://localhost:8000/event?type=view&bidid=880290288&bidder=rubicon"
+                "win": "http://localhost:8000/event?t=win&b=880290288&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=880290288&a=5001&f=i"
               },
               "cache": {
                 "vastXml": {
@@ -343,12 +348,13 @@
                 "hb_pb_rubicon": "4.20",
                 "hb_cache_id_rubicon": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
                 "hb_deal_rubicon": "dealId2",
-                "hb_winurl": "http://localhost:8000/event?type=win&bidid=466223845&bidder=rubicon",
-                "hb_winurl_rubicon": "http://localhost:8000/event?type=win&bidid=466223845&bidder=rubicon",
+                "hb_winurl": "http://localhost:8000/event?t=win&b=BIDID&a=5001&f=i",
                 "hb_size": "300x600",
-                "hb_bidder": "rubicon",
                 "hb_size_rubicon": "300x600",
+                "hb_bidder": "rubicon",
                 "hb_bidder_rubicon": "rubicon",
+                "hb_bidid": "466223845",
+                "hb_bidid_rubicon": "466223845",
                 "hb_cache_id": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
                 "hb_deal": "dealId2",
                 "hb_cache_host": "{{ cache.host }}",
@@ -357,8 +363,8 @@
                 "hb_cache_path_rubicon": "{{ cache.path }}"
               },
               "events": {
-                "win": "http://localhost:8000/event?type=win&bidid=466223845&bidder=rubicon",
-                "view": "http://localhost:8000/event?type=view&bidid=466223845&bidder=rubicon"
+                "win": "http://localhost:8000/event?t=win&b=466223845&a=5001&f=i",
+                "view": "http://localhost:8000/event?t=view&b=466223845&a=5001&f=i"
               },
               "cache": {
                 "bids": {

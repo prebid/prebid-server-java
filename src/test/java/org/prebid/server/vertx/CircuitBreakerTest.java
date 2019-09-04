@@ -14,8 +14,11 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 @RunWith(VertxUnitRunner.class)
 public class CircuitBreakerTest {
@@ -25,25 +28,20 @@ public class CircuitBreakerTest {
 
     private Vertx vertx;
 
+    private Clock clock;
+
     private CircuitBreaker circuitBreaker;
 
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        circuitBreaker = new CircuitBreaker("name", vertx, 1, 100L, 200L);
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        circuitBreaker = new CircuitBreaker("name", vertx, 1, 100L, 200L, clock);
     }
 
     @After
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreaker(null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreaker("name", null, 0, 0L, 0L));
     }
 
     @Test
@@ -122,7 +120,7 @@ public class CircuitBreakerTest {
     @Test
     public void executeShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
-        circuitBreaker = new CircuitBreaker("name", vertx, 2, 100L, 200L);
+        circuitBreaker = new CircuitBreaker("name", vertx, 2, 100L, 200L, clock);
 
         // when
         final Future<?> future1 = executeWithFail(context, "exception1");
