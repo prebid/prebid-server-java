@@ -6,9 +6,17 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class NotificationEvent {
-    String type;
+
+    Type type;
 
     String bidId;
 
-    String bidder;
+    String accountId;
+
+    HttpContext httpContext;
+
+    public enum Type {
+        win, imp
+    }
 }
+

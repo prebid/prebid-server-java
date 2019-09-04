@@ -20,6 +20,7 @@ import java.io.IOException;
 public class VersionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionHandler.class);
+
     private static final String DEFAULT_REVISION_VALUE = "not-set";
 
     private Revision revision;

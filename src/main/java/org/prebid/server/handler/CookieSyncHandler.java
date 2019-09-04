@@ -267,12 +267,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              Collection<String> bidders, Collection<String> biddersRejectedByGdpr, Integer limit) {
         updateCookieSyncGdprMetrics(bidders, biddersRejectedByGdpr);
 
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            return;
-        }
-
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
                 .map(bidder -> bidderStatusFor(bidder, context, uidsCookie, biddersRejectedByGdpr, gdpr, gdprConsent))
                 .filter(Objects::nonNull) // skip bidder with live UID
@@ -289,10 +283,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
                 updatedBidderStatuses);
+        final String body = Json.encode(response);
 
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped");
+            return;
+        }
         context.response()
                 .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                .end(Json.encode(response));
+                .end(body);
 
         analyticsReporter.processEvent(CookieSyncEvent.builder()
                 .status(HttpResponseStatus.OK.code())

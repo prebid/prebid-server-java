@@ -19,8 +19,11 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -37,6 +40,8 @@ public class CircuitBreakerSecuredHttpClientTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
+
+    private Clock clock;
     @Mock
     private HttpClient wrappedHttpClient;
     @Mock
@@ -47,22 +52,13 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L);
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, clock);
     }
 
     @After
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredHttpClient(null, null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredHttpClient(vertx, null, null, 0, 0L, 0L));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredHttpClient(vertx, httpClient, null, 0, 0L, 0L));
     }
 
     @Test
@@ -174,7 +170,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, clock);
 
         givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
 

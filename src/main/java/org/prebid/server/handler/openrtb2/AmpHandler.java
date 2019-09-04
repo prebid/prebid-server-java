@@ -264,64 +264,55 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext context, long startTime) {
-        // Don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-            return;
-        }
 
         context.response().exceptionHandler(this::handleResponseException);
 
         final String origin = originFrom(context);
         ampEventBuilder.origin(origin);
 
-        // Add AMP headers
-        context.response()
-                .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
-                .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-
-        final MetricName requestStatus;
-        final int status;
+        final MetricName metricRequestStatus;
         final List<String> errorMessages;
 
-        if (responseResult.succeeded()) {
-            context.response().putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            context.response().end(Json.encode(responseResult.result()));
+        final int status;
+        final String body;
 
-            requestStatus = MetricName.ok;
-            status = HttpResponseStatus.OK.code();
+        // Add AMP headers
+        context.response().headers()
+                .add("AMP-Access-Control-Allow-Source-Origin", origin)
+                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
+        if (responseResult.succeeded()) {
+            metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
+
+            status = HttpResponseStatus.OK.code();
+            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            body = Json.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
-                requestStatus = MetricName.badinput;
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                metricRequestStatus = MetricName.badinput;
                 errorMessages = ((InvalidRequestException) exception).getMessages();
-
                 logger.info("Invalid request format: {0}", errorMessages);
 
-                context.response()
-                        .setStatusCode(status)
-                        .end(errorMessages.stream().map(msg -> String.format("Invalid request format: %s", msg))
-                                .collect(Collectors.joining("\n")));
+                status = HttpResponseStatus.BAD_REQUEST.code();
+                body = errorMessages.stream().map(
+                        msg -> String.format("Invalid request format: %s", msg))
+                        .collect(Collectors.joining("\n"));
             } else {
+                final String message = exception.getMessage();
+
+                metricRequestStatus = MetricName.err;
+                errorMessages = Collections.singletonList(message);
                 logger.error("Critical error while running the auction", exception);
 
-                requestStatus = MetricName.err;
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
-                final String message = exception.getMessage();
-                errorMessages = Collections.singletonList(message);
-
-                context.response()
-                        .setStatusCode(status)
-                        .end(String.format("Critical error while running the auction: %s", message));
+                body = String.format("Critical error while running the auction: %s", message);
             }
         }
 
-        metrics.updateRequestTimeMetric(clock.millis() - startTime);
-        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, requestStatus);
-        analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
+        final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
+        respondWith(context, status, body, startTime, metricRequestStatus, ampEvent);
     }
 
     private static String originFrom(RoutingContext context) {
@@ -340,5 +331,20 @@ public class AmpHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable throwable) {
         logger.warn("Failed to send amp response", throwable);
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+    }
+
+    private void respondWith(RoutingContext context, int status, String body, long startTime,
+                             MetricName metricRequestStatus, AmpEvent event) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped");
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+        } else {
+            context.response().setStatusCode(status).end(body);
+
+            metrics.updateRequestTimeMetric(clock.millis() - startTime);
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
+            analyticsReporter.processEvent(event);
+        }
     }
 }

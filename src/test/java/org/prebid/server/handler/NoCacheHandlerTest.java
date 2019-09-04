@@ -23,7 +23,6 @@ public class NoCacheHandlerTest {
 
     @Mock
     private RoutingContext routingContext;
-
     @Mock
     private HttpServerResponse httpResponse;
 

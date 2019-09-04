@@ -325,8 +325,10 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter) {
-        return NotificationEventHandler.create(compositeAnalyticsReporter);
+    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter,
+                                                      TimeoutFactory timeoutFactory,
+                                                      ApplicationSettings applicationSettings) {
+        return new NotificationEventHandler(compositeAnalyticsReporter, timeoutFactory, applicationSettings);
     }
 
     @Bean

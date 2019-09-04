@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -61,6 +60,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -116,9 +116,7 @@ public class AmpHandlerTest extends VertxTest {
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         httpRequest.headers().add("Origin", "http://example.com");
 
-        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
-        given(httpResponse.putHeader(anyString(), eq((String) null))).willReturn(httpResponse);
-        given(httpResponse.putHeader(anyString(), anyString())).willReturn(httpResponse);
+        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
@@ -191,8 +189,11 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", "http://example.com");
-        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        assertThat(httpResponse.headers()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
     }
 
@@ -210,8 +211,11 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", "http://example.com");
-        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        assertThat(httpResponse.headers()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
     }
 
@@ -230,8 +234,11 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", "http://example.com");
-        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        assertThat(httpResponse.headers()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
         verify(httpResponse).end(
                 startsWith("Critical error while running the auction: Critical error while unpacking AMP targets:"));
     }
@@ -268,9 +275,12 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", "http://example.com");
-        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        assertThat(httpResponse.headers()).hasSize(3)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
 
@@ -307,9 +317,12 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", "http://example.com");
-        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        assertThat(httpResponse.headers()).hasSize(3)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\"," +
                 "\"hb_cache_id_bidder1\":\"value2\"}}"));
     }

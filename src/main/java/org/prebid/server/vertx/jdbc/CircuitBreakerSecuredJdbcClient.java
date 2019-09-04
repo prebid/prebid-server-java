@@ -9,6 +9,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -25,10 +26,11 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     private final Metrics metrics;
 
     public CircuitBreakerSecuredJdbcClient(Vertx vertx, JdbcClient jdbcClient, Metrics metrics,
-                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs) {
+                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs,
+                                           Clock clock) {
 
         breaker = new CircuitBreaker("jdbc-client-circuit-breaker", Objects.requireNonNull(vertx),
-                openingThreshold, openingIntervalMs, closingIntervalMs)
+                openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
