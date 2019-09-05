@@ -95,7 +95,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
-    private static final String REGEXP_QUERY_PARAMETER_VALUE = "=.*?(&|$)";
+    private static final String REGEX_QUERY_PARAMETER_VALUE = "=.*?(&|$)";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String ADSERVER_EID = "adserver.org";
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -224,7 +224,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final String updatedTkXintParam = String.format("%s=%s", TK_XINT_QUERY_PARAMETER, tkXint);
 
             if (endpointUrl.contains("?")) {
-                final String tkXintRegexp = TK_XINT_QUERY_PARAMETER + REGEXP_QUERY_PARAMETER_VALUE;
+                final String tkXintRegexp = TK_XINT_QUERY_PARAMETER + REGEX_QUERY_PARAMETER_VALUE;
                 updatedUrl = endpointUrl.replaceFirst(tkXintRegexp, updatedTkXintParam + "$1");
             } else {
                 updatedUrl = String.format("%s?%s", endpointUrl, updatedTkXintParam);
