@@ -16,6 +16,7 @@ Bid Categories |-|+
 Event endpoint |+|-
 Video Endpoint |-|+
 COPPA |+|+
+Video Impression Tracking |+|-
 All adapters ported to OpenRTB |+|-
 Bidder Generator |+|-
 

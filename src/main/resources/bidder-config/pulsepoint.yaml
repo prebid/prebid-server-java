@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://bid.contextweb.com/header/s/ortb/prebid-s2s
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

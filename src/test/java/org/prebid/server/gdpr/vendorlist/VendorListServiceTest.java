@@ -64,7 +64,8 @@ public class VendorListServiceTest extends VertxTest {
 
         given(bidderCatalog.names()).willReturn(singleton(null));
         given(bidderCatalog.bidderInfoByName(any()))
-                .willReturn(new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(52, true)));
+                .willReturn(new BidderInfo(true, null, null, null,
+                        new BidderInfo.GdprInfo(52, true), false));
 
         vendorListService = VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/{VERSION}",
                 0, null, bidderCatalog);

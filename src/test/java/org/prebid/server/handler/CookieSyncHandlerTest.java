@@ -478,7 +478,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, null, null, null, 2, true));
+                .willReturn(BidderInfo.create(true, null, null,
+                        null, null, 2, true, false));
 
         givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
 
@@ -507,7 +508,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, null, null, null, 2, true));
+                .willReturn(BidderInfo.create(true, null, null,
+                        null, null, 2, true, false));
 
         givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
 
@@ -976,7 +978,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         for (Map.Entry<String, Integer> entry : bidderToGdprVendorId.entrySet()) {
             given(bidderCatalog.bidderInfoByName(entry.getKey()))
-                    .willReturn(BidderInfo.create(true, null, null, null, null, entry.getValue(), true));
+                    .willReturn(BidderInfo.create(true, null, null,
+                            null, null, entry.getValue(), true, false));
 
             vendorToGdprResult.put(entry.getValue(), true);
         }

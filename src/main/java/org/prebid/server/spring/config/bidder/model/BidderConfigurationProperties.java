@@ -23,6 +23,9 @@ public class BidderConfigurationProperties {
     private Boolean pbsEnforcesGdpr;
 
     @NotNull
+    private Boolean modifyingVastXmlAllowed;
+
+    @NotNull
     private List<String> deprecatedNames;
 
     @NotNull

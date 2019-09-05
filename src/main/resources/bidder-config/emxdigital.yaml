@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: https://hb.emxdgt.com
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

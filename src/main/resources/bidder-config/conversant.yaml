@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

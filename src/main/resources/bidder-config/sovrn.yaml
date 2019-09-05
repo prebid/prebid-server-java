@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
     pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:

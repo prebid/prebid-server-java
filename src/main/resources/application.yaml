@@ -41,6 +41,8 @@ cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
+event:
+  url-template: /event?t=imp&b=BIDID&f=b&a=ACCOUNT
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
