@@ -39,16 +39,14 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconBiddersPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
-import org.prebid.server.bidder.rubicon.proto.RubiconPrebid;
+import org.prebid.server.bidder.rubicon.proto.RubiconPrebidBidder;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconRubiconPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
@@ -60,6 +58,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
+import org.prebid.server.proto.openrtb.ext.ExtReqPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -101,9 +101,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String DATA_NODE_NAME = "data";
 
-    private static final TypeReference<ExtPrebid<RubiconPrebid, ?>> RUBICON_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<RubiconPrebid, ?>>() {
-            };
+    private static final TypeReference<ExtPrebid<ExtReqPrebid<RubiconPrebidBidder>, ?>> RUBICON_PREBID_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtReqPrebid<RubiconPrebidBidder>, ?>>() {
+    };
+
     private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
             };
@@ -237,14 +238,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static String tkXintValue(BidRequest bidRequest) {
         try {
-            final ExtPrebid<RubiconPrebid, ?> rubiconPrebidExtPrebid = Json.mapper.convertValue(bidRequest.getExt(),
-                    RUBICON_PREBID_TYPE_REFERENCE);
-            final RubiconPrebid prebid = rubiconPrebidExtPrebid == null ? null : rubiconPrebidExtPrebid.getPrebid();
-            final RubiconBiddersPrebid rubiconBiddersPrebid = prebid == null ? null : prebid.getBidders();
-            final RubiconRubiconPrebid rubiconRubiconPrebid = rubiconBiddersPrebid == null
+            final ExtPrebid<ExtReqPrebid<RubiconPrebidBidder>, ?> rubiconPrebidExtPrebid =
+                    Json.mapper.convertValue(bidRequest.getExt(), RUBICON_PREBID_TYPE_REFERENCE);
+            final ExtReqPrebid<RubiconPrebidBidder> prebid = rubiconPrebidExtPrebid == null
                     ? null
-                    : rubiconBiddersPrebid.getRubicon();
-            final String integration = rubiconRubiconPrebid == null ? null : rubiconRubiconPrebid.getIntegration();
+                    : rubiconPrebidExtPrebid.getPrebid();
+            final ExtPrebidBidders<RubiconPrebidBidder> bidders = prebid == null ? null : prebid.getBidders();
+            final RubiconPrebidBidder rubiconPrebidBidder = bidders == null ? null : bidders.getBidder();
+            final String integration = rubiconPrebidBidder == null ? null : rubiconPrebidBidder.getIntegration();
 
             return StringUtils.isBlank(integration) ? null : integration;
         } catch (IllegalArgumentException e) {

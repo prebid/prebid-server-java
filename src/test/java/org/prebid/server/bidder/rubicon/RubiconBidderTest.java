@@ -40,6 +40,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
+import org.prebid.server.bidder.rubicon.proto.RubiconPrebidBidder;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
@@ -52,6 +53,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
@@ -137,11 +139,12 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetParametersFromPrebidExt() {
         // given
-        final ObjectNode prebidExt = (ObjectNode) Json.mapper.createObjectNode().set("prebid", Json.mapper.createObjectNode()
-                .set("bidders", Json.mapper.createObjectNode()
-                        .set("rubicon", Json.mapper.createObjectNode().put("integration", "test"))));
+        final ObjectNode ext = Json.mapper.valueToTree(ExtBidRequest.of(
+                ExtRequestPrebid.builder()
+                        .bidders(Json.mapper.valueToTree(ExtPrebidBidders.of(RubiconPrebidBidder.of("test"))))
+                        .build()));
 
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(prebidExt),
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(ext),
                 builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
                         .build()), identity());
 

@@ -5,8 +5,8 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class RubiconPrebid {
+public class RubiconPrebidBidder {
 
-    RubiconBiddersPrebid bidders;
+    String integration;
 }
 

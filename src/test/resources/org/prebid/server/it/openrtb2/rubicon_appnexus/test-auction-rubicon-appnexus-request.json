@@ -203,6 +203,11 @@
   },
   "ext": {
     "prebid": {
+      "bidders": {
+        "rubicon": {
+          "integration": "dmpbs"
+        }
+      },
       "aliases": {
         "appnexusAlias": "appnexus"
       },
