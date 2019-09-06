@@ -159,7 +159,6 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(givenBidResponseWithBids(singletonList(givenBid(identity())), null));
 
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
@@ -172,8 +171,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(privacyEnforcementService.mask(argThat(MapUtils::isEmpty), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyMap()));
-
-        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, true));
 
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
@@ -219,7 +216,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldTolerateImpWithUnknownBidderInExtension() {
         // given
-        given(bidderCatalog.isValidName(anyString())).willReturn(false);
+        given(bidderCatalog.isActive(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
 
@@ -227,9 +224,27 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidderCatalog).isValidName(eq("invalid"));
+        verify(bidderCatalog).isActive(eq("invalid"));
         verifyZeroInteractions(httpBidderRequester);
         assertThat(bidResponse).isNotNull();
+    }
+
+    @Test
+    public void shouldSkipBidderFromExtensionIfItIsDisabled() {
+        // given
+        given(bidderCatalog.isActive(eq("disabled_bidder"))).willReturn(false);
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(doubleMap("disabled_bidder", 0, "someBidder", 1)));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verify(bidderCatalog).isActive(eq("disabled_bidder"));
+        verify(bidderCatalog, times(2)).isActive(eq("someBidder"));
+        verify(privacyEnforcementService).mask(any(), any(), eq(singletonList("someBidder")), any(), any(),
+                any(), any());
     }
 
     @Test
@@ -419,8 +434,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnSeparateSeatBidsForTheSameBidderIfBiddersAliasAndBidderWereUsedWithingSingleImp() {
         // given
-        given(bidderCatalog.isValidName("bidder")).willReturn(true);
-
         given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(singletonMap("bidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
@@ -1278,8 +1291,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorWhenBidsWithDifferentCurrencies() throws JsonProcessingException {
         // given
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
-
         given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(asList(
                         BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "EUR"),
@@ -1352,7 +1363,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldCallUpdateCookieMetricsWithExpectedValue() {
         // given
-        given(bidderCatalog.isActive(any())).willReturn(false);
+        given(bidderCatalog.isActive(any())).willReturn(true, false);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.app(App.builder().build()));
@@ -1368,7 +1379,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldUseEmptyStringIfPublisherIdIsEmpty() {
         // given
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
@@ -1530,13 +1540,11 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private void givenBidder(BidderSeatBid response) {
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(response));
     }
 
     private void givenBidder(String bidderName, Bidder<?> bidder, BidderSeatBid response) {
-        given(bidderCatalog.isValidName(eq(bidderName))).willReturn(true);
         doReturn(bidder).when(bidderCatalog).bidderByName(eq(bidderName));
         given(httpBidderRequester.requestBids(same(bidder), any(), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(response));

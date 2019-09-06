@@ -278,10 +278,10 @@ public class ExchangeService {
     }
 
     /**
-     * Checks if bidder name is valid in case when bidder can also be alias name.
+     * Checks if bidder name or alias name is valid and that bidder(and its alias) is active.
      */
     private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+        return bidderCatalog.isActive(resolveBidder(bidder, aliases));
     }
 
     /**
