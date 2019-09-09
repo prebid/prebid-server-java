@@ -40,7 +40,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
-import org.prebid.server.bidder.rubicon.proto.RubiconPrebidBidder;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
@@ -53,7 +52,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
@@ -94,7 +92,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RubiconBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=rp-pbs";
+    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
@@ -123,39 +121,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = ENDPOINT_URL;
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(expectedUrl, HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple(HttpUtil.AUTHORIZATION_HEADER.toString(), "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
-                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "prebid-server/1.0"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetParametersFromPrebidExt() {
-        // given
-        final ObjectNode ext = Json.mapper.valueToTree(ExtBidRequest.of(
-                ExtRequestPrebid.builder()
-                        .bidders(Json.mapper.valueToTree(ExtPrebidBidders.of(RubiconPrebidBidder.of("test"))))
-                        .build()));
-
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(ext),
-                builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
-                        .build()), identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        final String expectedUrl = "http://rubiconproject.com/exchange.json?tk_xint=test";
-        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
-                .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(expectedUrl, HttpRequest::getUri);
+                .returns(ENDPOINT_URL, HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
