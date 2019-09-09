@@ -10,6 +10,7 @@ adapters:
       maintainer-email: info@prebid.org
       app-media-types:
         - banner
+        - video
         - native
       site-media-types:
         - banner
