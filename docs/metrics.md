@@ -18,6 +18,10 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `safari_no_cookie_requests` - number of requests received from Safari browser without `uids` cookie or with one that didn't contain at least one live UID
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
+- `imps_banner` - number of banner impressions
+- `imps_video` - number of video impressions
+- `imps_native` - number of native impressions
+- `imps_audio` - number of audio impressions
 - `requests.(ok|badinput|err|networkerr).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
@@ -25,6 +29,10 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
 - `httpclient_circuitbreaker_opened` - number of how many times http client circuit breaker was opened (requested resource is unavailable)
 - `httpclient_circuitbreaker_closed` - number of how many times http client circuit breaker was closed (requested resource is available again)
+- `stored_requests_found` - number of stored requests that were found
+- `stored_requests_missing` - number of stored requests that were not found by provided stored request IDs
+- `stored_imps_found` - number of stored impressions that were found
+- `stored_imps_missing` - number of stored impressions that were not found by provided stored impression IDs
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
