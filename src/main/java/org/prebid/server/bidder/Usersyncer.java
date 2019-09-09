@@ -2,6 +2,7 @@ package org.prebid.server.bidder;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.util.HttpUtil;
 
@@ -9,7 +10,10 @@ import java.util.Objects;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class Usersyncer {
+
+    public static final Usersyncer EMPTY = new Usersyncer();
 
     private String cookieFamilyName;
 

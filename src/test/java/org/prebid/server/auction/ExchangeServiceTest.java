@@ -105,6 +105,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
@@ -159,6 +160,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), any(), anyBoolean()))
                 .willReturn(givenBidResponseWithBids(singletonList(givenBid(identity())), null));
 
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
@@ -216,7 +218,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldTolerateImpWithUnknownBidderInExtension() {
         // given
-        given(bidderCatalog.isActive(anyString())).willReturn(false);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
 
@@ -224,27 +226,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidderCatalog).isActive(eq("invalid"));
+        verify(bidderCatalog).isValidName(eq("invalid"));
         verifyZeroInteractions(httpBidderRequester);
         assertThat(bidResponse).isNotNull();
-    }
-
-    @Test
-    public void shouldSkipBidderFromExtensionIfItIsDisabled() {
-        // given
-        given(bidderCatalog.isActive(eq("disabled_bidder"))).willReturn(false);
-
-        final BidRequest bidRequest = givenBidRequest(
-                givenSingleImp(doubleMap("disabled_bidder", 0, "someBidder", 1)));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        verify(bidderCatalog).isActive(eq("disabled_bidder"));
-        verify(bidderCatalog, times(2)).isActive(eq("someBidder"));
-        verify(privacyEnforcementService).mask(any(), any(), eq(singletonList("someBidder")), any(), any(),
-                any(), any());
     }
 
     @Test
@@ -758,7 +742,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenEmptySeatBid());
 
         // this is not required but stated for clarity's sake
-        given(uidsCookie.uidFrom(anyString())).willReturn(null);
+        given(usersyncer.getCookieFamilyName()).willReturn(null);
+        given(uidsCookie.uidFrom(any())).willReturn(null);
 
         final User user = User.builder().id("userId").build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
@@ -768,6 +753,8 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
+        verify(uidsCookie, times(2)).uidFrom(isNull());
+
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest.getUser()).isSameAs(user);
     }
@@ -1363,8 +1350,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldCallUpdateCookieMetricsWithExpectedValue() {
         // given
-        given(bidderCatalog.isActive(any())).willReturn(true, false);
-
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.app(App.builder().build()));
 

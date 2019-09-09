@@ -65,7 +65,7 @@ public class BidderDepsAssembler {
     }
 
     public BidderDeps assemble() {
-        final Usersyncer usersyncer = enabled ? usersyncerCreator.get() : null;
+        final Usersyncer usersyncer = enabled ? usersyncerCreator.get() : Usersyncer.EMPTY;
 
         final Bidder<?> bidder = enabled ? bidderCreator.get()
                 : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
