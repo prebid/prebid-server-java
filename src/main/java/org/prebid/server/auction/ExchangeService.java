@@ -600,20 +600,19 @@ public class ExchangeService {
 
         final ExtRequestPrebid.ExtRequestPrebidBuilder extRequestPrebidBuilder = requestExt.getPrebid().toBuilder();
 
-        if (!firstPartyDataBidders.isEmpty() && firstPartyDataBidders.contains(bidder)) {
-            extRequestPrebidBuilder.data(ExtRequestPrebidData.of(Collections.singletonList(bidder)));
-        } else {
-            extRequestPrebidBuilder.data(null);
-        }
+        final ExtRequestPrebidData extRequestPrebidData = firstPartyDataBidders.contains(bidder)
+                ? ExtRequestPrebidData.of(Collections.singletonList(bidder))
+                : null;
 
         final JsonNode prebidParameters = bidderToPrebidBidders.get(bidder);
-        if (!bidderToPrebidBidders.isEmpty() && prebidParameters != null) {
-            extRequestPrebidBuilder.bidders(Json.mapper.valueToTree(ExtPrebidBidders.of(prebidParameters)));
-        } else {
-            extRequestPrebidBuilder.bidders(null);
-        }
+        final ObjectNode bidders = prebidParameters != null
+                ? Json.mapper.valueToTree(ExtPrebidBidders.of(prebidParameters))
+                : null;
 
-        return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebidBuilder.build()));
+        return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebidBuilder
+                .data(extRequestPrebidData)
+                .bidders(bidders)
+                .build()));
     }
 
     /**
