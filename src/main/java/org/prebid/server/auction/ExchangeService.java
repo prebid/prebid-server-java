@@ -358,26 +358,6 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.bidders.
-     */
-    private static Map<String, JsonNode> bidderToPrebidParameters(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
-        final ObjectNode bidders = prebid == null ? null : prebid.getBidders();
-
-        if (bidders == null || bidders.isNull()) {
-            return Collections.emptyMap();
-        }
-
-        final Map<String, JsonNode> bidderToPrebidParameters = new HashMap<>();
-        final Iterator<Map.Entry<String, JsonNode>> biddersToParams = bidders.fields();
-        while (biddersToParams.hasNext()) {
-            final Map.Entry<String, JsonNode> bidderToParam = biddersToParams.next();
-            bidderToPrebidParameters.put(bidderToParam.getKey(), bidderToParam.getValue());
-        }
-        return bidderToPrebidParameters;
-    }
-
-    /**
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      */
@@ -478,6 +458,26 @@ public class ExchangeService {
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);
         return bidderRequests;
+    }
+
+    /**
+     * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.bidders.
+     */
+    private static Map<String, JsonNode> bidderToPrebidParameters(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final ObjectNode bidders = prebid == null ? null : prebid.getBidders();
+
+        if (bidders == null || bidders.isNull()) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, JsonNode> bidderToPrebidParameters = new HashMap<>();
+        final Iterator<Map.Entry<String, JsonNode>> biddersToParams = bidders.fields();
+        while (biddersToParams.hasNext()) {
+            final Map.Entry<String, JsonNode> bidderToParam = biddersToParams.next();
+            bidderToPrebidParameters.put(bidderToParam.getKey(), bidderToParam.getValue());
+        }
+        return bidderToPrebidParameters;
     }
 
     /**
