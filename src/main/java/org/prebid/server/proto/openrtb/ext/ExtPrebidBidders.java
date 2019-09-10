@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
@@ -9,7 +10,7 @@ import org.prebid.server.bidder.Bidder;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtPrebidBidders<B> {
+public class ExtPrebidBidders {
 
     /**
      * Contains the bidder-specific extension.
@@ -18,5 +19,5 @@ public class ExtPrebidBidders<B> {
      * unmarshaling extension using this class.
      * <p>
      */
-    B bidder;
+    JsonNode bidder;
 }
