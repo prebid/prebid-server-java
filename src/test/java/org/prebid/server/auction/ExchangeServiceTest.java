@@ -311,6 +311,46 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassRequestWithExtPrebidToDefinedBidder() {
+        // given
+        final String bidder1Name = "bidder1";
+        final String bidder2Name = "bidder2";
+        final Bidder<?> bidder1 = mock(Bidder.class);
+        final Bidder<?> bidder2 = mock(Bidder.class);
+        givenBidder(bidder1Name, bidder1, givenEmptySeatBid());
+        givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
+
+        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(
+                ExtRequestPrebid.builder()
+                        .bidders(mapper.createObjectNode()
+                                .putPOJO(bidder1Name, mapper.createObjectNode().put("test1", "test1"))
+                                .putPOJO(bidder2Name, mapper.createObjectNode().put("test2", "test2"))
+                                .putPOJO("spam", mapper.createObjectNode().put("spam", "spam")))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(singletonMap(bidder1Name, 1), identity()),
+                givenImp(singletonMap(bidder2Name, 2), identity())),
+               reqBuilder -> reqBuilder.ext(ext));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue();
+        assertThat(capturedBidRequest1.getExt().get("prebid").get("bidders").fields()).hasSize(1)
+                .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
+
+        final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
+        assertThat(capturedBidRequest2.getExt().get("prebid").get("bidders").fields()).hasSize(1)
+                .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
+    }
+
+    @Test
     public void shouldReturnFailedFutureWithUnchangedMessageWhenPrivacyEnforcementServiceFails() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
