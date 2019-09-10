@@ -237,7 +237,7 @@ public class AuctionHandlerTest extends VertxTest {
                         .targeting(ExtRequestTargeting.of(null,
                                 ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(1,
                                         singletonList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE)))),
-                                        null, null), null, null, null))
+                                        null, mapper.createObjectNode()), null, null, null))
                         .build())))
                 .build();
         given(exchangeService.holdAuction(any()))
@@ -254,7 +254,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":" +
                 "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":" +
-                "[{\"max\":10,\"increment\":1}]}}}}}}}}}"));
+                "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
     }
 
     @Test
