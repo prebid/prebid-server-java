@@ -356,7 +356,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(prebid2).isNotNull();
         final JsonNode bidders2 = prebid2.get("bidders");
         assertThat(bidders2).isNotNull();
-        assertThat(capturedBidRequest2.getExt().get("prebid").get("bidders").fields()).hasSize(1)
+        assertThat(bidders2.fields()).hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 

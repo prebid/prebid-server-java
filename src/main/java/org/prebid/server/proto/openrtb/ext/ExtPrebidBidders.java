@@ -13,11 +13,7 @@ import org.prebid.server.bidder.Bidder;
 public class ExtPrebidBidders {
 
     /**
-     * Contains the bidder-specific extension.
-     * <p>
-     * Each bidder should specify their corresponding ExtRequestPrebid{Bidder} class as a type argument when
-     * unmarshaling extension using this class.
-     * <p>
+     * Defines the contract for request.ext.prebid.bidders.bidder
      */
     JsonNode bidder;
 }
