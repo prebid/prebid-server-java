@@ -448,13 +448,13 @@ public class ExchangeService {
             Map<String, PrivacyEnforcementResult> bidderToPrivacyEnforcementResult, BidRequest bidRequest,
             ExtBidRequest requestExt, List<Imp> imps, List<String> firstPartyDataBidders) {
 
-        final Map<String, JsonNode> bidderToPrebidParameters = bidderToPrebidParameters(requestExt);
+        final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(requestExt);
         final List<BidderRequest> bidderRequests = bidderToPrivacyEnforcementResult.entrySet().stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(entry -> createBidderRequest(entry.getKey(), bidRequest, requestExt, imps, entry.getValue(),
-                        firstPartyDataBidders, bidderToPrebidParameters.get(entry.getKey())))
+                        firstPartyDataBidders, bidderToPrebidBidders))
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);
         return bidderRequests;
@@ -463,7 +463,7 @@ public class ExchangeService {
     /**
      * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.bidders.
      */
-    private static Map<String, JsonNode> bidderToPrebidParameters(ExtBidRequest requestExt) {
+    private static Map<String, JsonNode> bidderToPrebidBidders(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final ObjectNode bidders = prebid == null ? null : prebid.getBidders();
 
@@ -485,7 +485,8 @@ public class ExchangeService {
      */
     private static BidderRequest createBidderRequest(String bidder, BidRequest bidRequest, ExtBidRequest requestExt,
                                                      List<Imp> imps, PrivacyEnforcementResult privacyEnforcementResult,
-                                                     List<String> firstPartyDataBidders, JsonNode prebidParameters) {
+                                                     List<String> firstPartyDataBidders,
+                                                     Map<String, JsonNode> bidderToPrebidBidders) {
         final App app = bidRequest.getApp();
         final ExtApp extApp = extApp(app);
         final Site site = bidRequest.getSite();
@@ -497,7 +498,7 @@ public class ExchangeService {
                 .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                 .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
                 .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
-                .ext(prepareExt(bidder, firstPartyDataBidders, prebidParameters, requestExt, bidRequest.getExt()))
+                .ext(prepareExt(bidder, firstPartyDataBidders, bidderToPrebidBidders, requestExt, bidRequest.getExt()))
                 .build());
     }
 
@@ -590,35 +591,29 @@ public class ExchangeService {
      * Removes all bidders except the given bidder from bidrequest.ext.prebid.data.bidders and
      * bidrequest.ext.prebid.bidders to hide list of allowed bidders from initial request.
      */
-    private static ObjectNode prepareExt(String bidder, List<String> firstPartyDataBidders, JsonNode prebidParameters,
-                                         ExtBidRequest requestExt, ObjectNode requestExtNode) {
-        if (requestExt == null) {
+    private static ObjectNode prepareExt(String bidder, List<String> firstPartyDataBidders,
+                                         Map<String, JsonNode> bidderToPrebidBidders, ExtBidRequest requestExt,
+                                         ObjectNode requestExtNode) {
+        if (firstPartyDataBidders.isEmpty() && bidderToPrebidBidders.isEmpty()) {
             return requestExtNode;
         }
 
-        final ObjectNode prebidBidders = prebidParameters != null
-                ? Json.mapper.valueToTree(ExtPrebidBidders.of(prebidParameters))
-                : null;
+        final ExtRequestPrebid.ExtRequestPrebidBuilder extRequestPrebidBuilder = requestExt.getPrebid().toBuilder();
 
-        final ExtRequestPrebidData prebidData = firstPartyDataBidders.contains(bidder)
-                ? ExtRequestPrebidData.of(Collections.singletonList(bidder))
-                : null;
-
-        if (requestExt.getPrebid() == null && prebidBidders == null && prebidData == null) {
-            return requestExtNode;
-        }
-
-        final ExtRequestPrebid.ExtRequestPrebidBuilder extRequestPrebidBuilder;
-        if (requestExt.getPrebid() != null) {
-            extRequestPrebidBuilder = requestExt.getPrebid().toBuilder();
+        if (!firstPartyDataBidders.isEmpty() && firstPartyDataBidders.contains(bidder)) {
+            extRequestPrebidBuilder.data(ExtRequestPrebidData.of(Collections.singletonList(bidder)));
         } else {
-            extRequestPrebidBuilder = ExtRequestPrebid.builder();
+            extRequestPrebidBuilder.data(null);
         }
 
-        return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebidBuilder
-                .data(prebidData)
-                .bidders(prebidBidders) // need to be refreshed
-                .build()));
+        final JsonNode prebidParameters = bidderToPrebidBidders.get(bidder);
+        if (!bidderToPrebidBidders.isEmpty() && prebidParameters != null) {
+            extRequestPrebidBuilder.bidders(Json.mapper.valueToTree(ExtPrebidBidders.of(prebidParameters)));
+        } else {
+            extRequestPrebidBuilder.bidders(null);
+        }
+
+        return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebidBuilder.build()));
     }
 
     /**
