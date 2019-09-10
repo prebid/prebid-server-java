@@ -598,7 +598,7 @@ public class ExchangeService {
             return requestExtNode;
         }
 
-        final ExtRequestPrebidData extRequestPrebidData = firstPartyDataBidders.contains(bidder)
+        final ExtRequestPrebidData prebidData = firstPartyDataBidders.contains(bidder)
                 ? ExtRequestPrebidData.of(Collections.singletonList(bidder))
                 : null;
 
@@ -608,7 +608,7 @@ public class ExchangeService {
                 : null;
 
         return Json.mapper.valueToTree(ExtBidRequest.of(requestExt.getPrebid().toBuilder()
-                .data(extRequestPrebidData)
+                .data(prebidData)
                 .bidders(bidders)
                 .build()));
     }
