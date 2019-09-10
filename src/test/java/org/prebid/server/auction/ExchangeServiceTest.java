@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -339,13 +340,22 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
+
         final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue();
-        assertThat(capturedBidRequest1.getExt().get("prebid").get("bidders").fields()).hasSize(1)
+        final JsonNode prebid1 = capturedBidRequest1.getExt().get("prebid");
+        assertThat(prebid1).isNotNull();
+        final JsonNode bidders1 = prebid1.get("bidders");
+        assertThat(bidders1).isNotNull();
+        assertThat(bidders1.fields()).hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
+        final JsonNode prebid2 = capturedBidRequest2.getExt().get("prebid");
+        assertThat(prebid2).isNotNull();
+        final JsonNode bidders2 = prebid2.get("bidders");
+        assertThat(bidders2).isNotNull();
         assertThat(capturedBidRequest2.getExt().get("prebid").get("bidders").fields()).hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
