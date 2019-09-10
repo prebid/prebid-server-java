@@ -26,6 +26,7 @@ import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -428,13 +429,18 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts UID from uids from body or {@link UidsCookie}. If absent returns null.
+     * Extracts UID from uids from body or {@link UidsCookie}.
      */
     private String extractUid(Map<String, String> uidsBody, UidsCookie uidsCookie, String bidder) {
         final String uid = uidsBody.get(bidder);
-        return StringUtils.isNotBlank(uid)
-                ? uid
-                : uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName());
+        return StringUtils.isNotBlank(uid) ? uid : uidsCookie.uidFrom(resolveCookieFamilyName(bidder));
+    }
+
+    /**
+     * Extract cookie family name from bidder's {@link Usersyncer} if it is enabled. If not - return null.
+     */
+    private String resolveCookieFamilyName(String bidder) {
+        return bidderCatalog.isActive(bidder) ? bidderCatalog.usersyncerByName(bidder).getCookieFamilyName() : null;
     }
 
     /**

@@ -13,8 +13,6 @@ import java.util.Objects;
 @NoArgsConstructor
 public class Usersyncer {
 
-    public static final Usersyncer EMPTY = new Usersyncer();
-
     private String cookieFamilyName;
 
     private String usersyncUrl;

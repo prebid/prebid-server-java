@@ -741,8 +741,8 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        // this is not required but stated for clarity's sake
-        given(usersyncer.getCookieFamilyName()).willReturn(null);
+        // this is not required but stated for clarity's sake. The case when bidder is disabled.
+        given(bidderCatalog.isActive(anyString())).willReturn(false);
         given(uidsCookie.uidFrom(any())).willReturn(null);
 
         final User user = User.builder().id("userId").build();
@@ -753,7 +753,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(uidsCookie, times(2)).uidFrom(isNull());
+        verify(uidsCookie).uidFrom(isNull());
 
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest.getUser()).isSameAs(user);
