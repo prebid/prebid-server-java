@@ -14,7 +14,7 @@
         "id": "880290288",
         "impid": "impId1",
         "price": 8.43,
-        "adm": "adm1",
+        "adm": "<Impression><![CDATA[]]></Impression>",
         "crid": "crid1",
         "dealid": "dealId1",
         "w": 300,
@@ -145,7 +145,7 @@
     },
     {
       "type": "xml",
-      "value": "adm1",
+      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8000/event?t=imp&b=880290288&f=b&a=5001]]></Impression>",
       "expiry": 120
     }
   ]

@@ -367,8 +367,9 @@ public class CacheService {
             return stringValue;
         }
 
-        final String impressionUrl = eventsUrlTemplate.replace(BID_ID_PLACEHOLDER, bidId)
-                .replace(ACCOUNT_PLACEHOLDER, accountId);
+        final String impressionUrl = "<![CDATA["
+                + eventsUrlTemplate.replace(BID_ID_PLACEHOLDER, bidId).replace(ACCOUNT_PLACEHOLDER, accountId)
+                + "]]>";
         final String openTag = "<Impression>";
 
         // empty impression tag - just insert the link

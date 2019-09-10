@@ -2,10 +2,12 @@ package org.prebid.server.bidder.adkerneladn;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
@@ -58,11 +60,28 @@ public class AdkernelAdnBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorWhenImpHasNoBannerOrVideo() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid imp with id=123. Expected imp.banner or imp.video"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
+                                .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
@@ -79,14 +98,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfExtPubIdIsNull() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        mapper.valueToTree(ExtImpAdkernelAdn.builder().build()))))
-                                .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), extBuilder -> extBuilder.pubId(null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
@@ -100,14 +112,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfPubIdIsInvalid() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(mapper.createObjectNode(),
-                                        mapper.valueToTree(ExtImpAdkernelAdn.builder().pubId(0).build()))))
-                                .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), extBuilder -> extBuilder.pubId(0));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
@@ -192,11 +197,9 @@ public class AdkernelAdnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldSetImpExtNullAndKeepNullBanner() {
+    public void makeHttpRequestShouldAlwaysSetImpExtNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .video(Video.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
@@ -208,11 +211,27 @@ public class AdkernelAdnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt).hasSize(1)
                 .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldSetAudioVideoAndNativeNullAndKeepBannerWhenBannerIsPresent() {
+        // give
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(100).h(200).build())
+                        .xNative(Native.builder().build())
+                        .audio(Audio.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner).hasSize(1)
-                .containsNull();
+                .extracting(Imp::getBanner, Imp::getVideo, Imp::getAudio, Imp::getXNative)
+                .containsOnly(tuple(Banner.builder().w(100).h(200).build(), null, null, null));
     }
 
     @Test
@@ -264,9 +283,12 @@ public class AdkernelAdnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldModifyImpTagId() {
+    public void makeHttpRequestShouldSetAudioAndNativeNullAndKeepBannerNullWhenVideoIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("123"));
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .xNative(Native.builder().build())
+                        .audio(Audio.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(bidRequest);
@@ -276,7 +298,8 @@ public class AdkernelAdnBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(Imp.builder().id("123").tagid("123").build());
+                .extracting(Imp::getBanner, Imp::getVideo, Imp::getAudio, Imp::getXNative)
+                .containsOnly(tuple(null, Video.builder().build(), null, null));
     }
 
     @Test
@@ -381,11 +404,11 @@ public class AdkernelAdnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.id("123")
-                        .banner(Banner.builder().build())),
+                        .video(Video.builder().build())),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -395,11 +418,11 @@ public class AdkernelAdnBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfRequestImpHasVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfRequestImpHasBanner() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.id("123")
@@ -414,7 +437,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -448,6 +471,8 @@ public class AdkernelAdnBidderTest extends VertxTest {
             Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
+                .id("123")
+                .video(Video.builder().build())
                 .ext(mapper.valueToTree(
                         ExtPrebid.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
                 .build();

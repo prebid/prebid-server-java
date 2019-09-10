@@ -752,8 +752,8 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
                         PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("<Impression>https://test-event.com/event?t=imp&" +
-                                "b=bid1&f=b&a=accountId</Impression>"), null));
+                        PutObject.of("xml", new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&" +
+                                "b=bid1&f=b&a=accountId]]></Impression>"), null));
     }
 
     @Test
@@ -766,7 +766,8 @@ public class CacheServiceTest extends VertxTest {
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
-                        .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1")).build(),
+                        .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1"))
+                        .build(),
                 Account.builder().id("accountId").build(), timeout);
 
         // then
@@ -774,8 +775,10 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
                         PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("<Impression>http:/test.com</Impression><Impression>" +
-                                "https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId</Impression>"), null));
+                        PutObject.of("xml",
+                                new TextNode("<Impression>http:/test.com</Impression><Impression>" +
+                                        "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
+                                        + "</Impression>"), null));
     }
 
     private static List<Bid> singleBidList() {

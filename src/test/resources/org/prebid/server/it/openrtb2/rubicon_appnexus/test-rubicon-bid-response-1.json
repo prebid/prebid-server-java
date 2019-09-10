@@ -7,7 +7,7 @@
           "id": "880290288",
           "impid": "impId1",
           "price": 8.43,
-          "adm": "adm1",
+          "adm": "<Impression><![CDATA[]]></Impression>",
           "crid": "crid1",
           "dealid": "dealId1",
           "w": 300,

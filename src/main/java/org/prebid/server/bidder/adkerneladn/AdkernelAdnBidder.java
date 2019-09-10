@@ -79,8 +79,17 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private static List<ExtImpAdkernelAdn> getAndValidateImpExt(List<Imp> imps) {
         return imps.stream()
+                .map(AdkernelAdnBidder::validateImp)
                 .map(AdkernelAdnBidder::parseAndValidateAdkernelAdnExt)
                 .collect(Collectors.toList());
+    }
+
+    private static Imp validateImp(Imp imp) {
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException(String.format("Invalid imp with id=%s. Expected imp.banner or imp.video",
+                    imp.getId()));
+        }
+        return imp;
     }
 
     private static ExtImpAdkernelAdn parseAndValidateAdkernelAdnExt(Imp imp) {
@@ -119,11 +128,19 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
      */
     private static Imp compatImpression(Imp imp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        final Banner compatBanner = imp.getBanner();
-
         impBuilder.ext(null); // do not forward ext to adkernel platform
 
-        if (compatBanner != null && compatBanner.getW() == null && compatBanner.getH() == null) {
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
+            return compatBannerImpression(impBuilder, banner);
+        }
+        return impBuilder.audio(null)
+                .xNative(null)
+                .build();
+    }
+
+    private static Imp compatBannerImpression(Imp.ImpBuilder impBuilder, Banner compatBanner) {
+        if (compatBanner.getW() == null && compatBanner.getH() == null) {
             // As banner.w/h are required fields for adkernel adn platform - take the first format entry
             final List<Format> compatBannerFormat = compatBanner.getFormat();
 
@@ -146,7 +163,10 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             impBuilder.banner(bannerBuilder.build());
         }
 
-        return impBuilder.build();
+        return impBuilder.video(null)
+                .audio(null)
+                .xNative(null)
+                .build();
     }
 
     private static List<HttpRequest<BidRequest>> buildAdapterRequests(BidRequest preBidRequest,
@@ -170,17 +190,8 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest createBidRequest(BidRequest preBidRequest, List<Imp> imps) {
-        final BidRequest.BidRequestBuilder bidRequestBuilder = preBidRequest.toBuilder();
-
-        final List<Imp> modifiedImps = new ArrayList<>();
-        for (Imp imp : imps) {
-            final Imp modifiedImp = imp.toBuilder()
-                    .tagid(imp.getId())
-                    .build();
-
-            modifiedImps.add(modifiedImp);
-        }
-        bidRequestBuilder.imp(modifiedImps);
+        final BidRequest.BidRequestBuilder bidRequestBuilder = preBidRequest.toBuilder()
+                .imp(imps);
 
         final Site site = preBidRequest.getSite();
         if (site != null) {
@@ -250,11 +261,11 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
      */
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
+            if (imp.getId().equals(impId) && imp.getBanner() != null) {
+                return BidType.banner;
             }
         }
-        return BidType.banner;
+        return BidType.video;
     }
 
     @Override
