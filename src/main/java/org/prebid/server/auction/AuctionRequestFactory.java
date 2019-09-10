@@ -63,7 +63,7 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
     private final long maxRequestSize;
-    private final boolean isAccountEnforced;
+    private final boolean enforceValidAccount;
     private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
@@ -76,14 +76,14 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize, boolean isAccountEnforced,
+            long maxRequestSize, boolean enforceValidAccount,
             String adServerCurrency, StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog, RequestValidator requestValidator, InterstitialProcessor interstitialProcessor,
             TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory, ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
-        this.isAccountEnforced = isAccountEnforced;
+        this.enforceValidAccount = enforceValidAccount;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
@@ -536,14 +536,19 @@ public class AuctionRequestFactory {
      */
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
-        final Future<Account> failedAccountResult = isAccountEnforced
-                ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
-
         return StringUtils.isEmpty(accountId)
-                ? failedAccountResult
+                ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .recover(exception -> accountFallback(exception, failedAccountResult));
+                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));
+    }
+
+    /**
+     * Returns response depending on enforceValidAccount flag.
+     */
+    private Future<Account> responseToMissingAccount(String accountId) {
+        return enforceValidAccount
+                    ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
+                    : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**
