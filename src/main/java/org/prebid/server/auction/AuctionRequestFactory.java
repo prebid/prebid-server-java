@@ -38,7 +38,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -191,7 +190,7 @@ public class AuctionRequestFactory {
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
-        final User populatedUser = populateUser(bidRequest.getUser(), context);
+        final User populatedUser = populateUser(bidRequest.getUser());
         final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
         final boolean updateAt = at == null || at == 0;
@@ -291,36 +290,12 @@ public class AuctionRequestFactory {
     /**
      * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
-    private User populateUser(User user, RoutingContext context) {
-        final String id = userIdOrNull(user, context);
+    private User populateUser(User user) {
         final ObjectNode ext = userExtOrNull(user);
 
-        if (id != null || ext != null) {
+        if (ext != null) {
             final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-
-            if (id != null) {
-                builder.id(id);
-            }
-            if (ext != null) {
-                builder.ext(ext);
-            }
-
-            return builder.build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns new user ID from host cookie if no request.user.id
-     * or null in case of request.user.id is already presented  or no host cookie passed in request.
-     */
-    private String userIdOrNull(User user, RoutingContext context) {
-        final String id = user != null ? user.getId() : null;
-        if (StringUtils.isBlank(id)) {
-            final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
-            if (StringUtils.isNotBlank(parsedId)) {
-                return parsedId;
-            }
+            return builder.ext(ext).build();
         }
         return null;
     }

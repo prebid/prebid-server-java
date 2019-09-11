@@ -160,7 +160,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", "UnitTest");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -173,7 +172,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
         assertThat(request.getDevice())
                 .isEqualTo(Device.builder().ip("192.168.244.1").ua("UnitTest").build());
-        assertThat(request.getUser()).isEqualTo(User.builder().id("userId").build());
     }
 
     @Test
@@ -245,7 +243,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(bidRequest);
 
         givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -352,20 +349,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetUserIfNoHostCookie() {
-        // given
-        givenValidBidRequest();
-
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(request.getUser()).isNull();
-    }
-
-    @Test
     public void shouldSetUserExtDigitrustPerfIfNotDefined() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -375,8 +358,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                                 .build()))
                         .build())
                 .build());
-
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
