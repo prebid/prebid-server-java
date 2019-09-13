@@ -11,6 +11,8 @@ import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.proto.request.InvalidateSettingsCacheRequest;
 import org.prebid.server.settings.proto.request.UpdateSettingsCacheRequest;
 
+import java.util.Objects;
+
 /**
  * Handles HTTP requests for updating/invalidating settings cache.
  */
@@ -19,7 +21,7 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
     private CacheNotificationListener cacheNotificationListener;
 
     public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener) {
-        this.cacheNotificationListener = cacheNotificationListener;
+        this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
     }
 
     @Override

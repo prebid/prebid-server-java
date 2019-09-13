@@ -18,7 +18,7 @@ public class EventsServiceTest {
 
     @Before
     public void setUp() {
-        eventsService = new EventsService("http://external.org");
+        eventsService = new EventsService("http://external-url");
     }
 
     @Test
@@ -27,8 +27,9 @@ public class EventsServiceTest {
         final Events events = eventsService.createEvent("bidId", "accountId");
 
         // then
-        assertThat(events).isEqualTo(Events.of("http://external.org/event?t=win&b=bidId&a=accountId&f=i",
-                "http://external.org/event?t=view&b=bidId&a=accountId&f=i"));
+        assertThat(events).isEqualTo(Events.of(
+                "http://external-url/event?t=win&b=bidId&a=accountId&f=i",
+                "http://external-url/event?t=imp&b=bidId&a=accountId&f=i"));
     }
 
     @Test
@@ -37,6 +38,6 @@ public class EventsServiceTest {
         final String winUrlTargeting = eventsService.winUrlTargeting("accountId");
 
         // then
-        assertThat(winUrlTargeting).isEqualTo("http://external.org/event?t=win&b=BIDID&a=accountId&f=i");
+        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&f=i");
     }
 }
