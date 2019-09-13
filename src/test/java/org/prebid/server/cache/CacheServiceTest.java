@@ -778,7 +778,8 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
-                .containsOnly(PutObject.builder()
+                .containsOnly(
+                        PutObject.builder()
                                 .type("json")
                                 .value(mapper.valueToTree(bid))
                                 .build(),
@@ -786,7 +787,7 @@ public class CacheServiceTest extends VertxTest {
                                 .type("xml")
                                 .value(new TextNode("<Impression>http:/test.com</Impression><Impression>" +
                                         "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
-                                        + "</Impression>")))
+                                        + "</Impression>"))
                                 .build());
     }
 
@@ -835,8 +836,8 @@ public class CacheServiceTest extends VertxTest {
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
                 .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
                         "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>" +
-                        "<Impression>https://test-event.com/event?t=imp&b=biddid1&f=b&a=account</Impression>" +
-                        "<Creatives></Creatives></Wrapper></Ad></VAST>"))
+                        "<Impression><![CDATA[https://test-event.com/event?t=imp&b=biddid1&f=b&a=account]]>" +
+                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
                 .build();
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2).containsOnly(modifiedSecondPutObject, secondPutObject);
