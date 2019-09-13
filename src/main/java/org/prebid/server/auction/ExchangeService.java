@@ -652,12 +652,13 @@ public class ExchangeService {
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
-        final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
+        final List<String> cur = bidderRequest.getBidRequest().getCur();
+        final String adServerCurrency = cur.get(0);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolveBidder(bidderName, aliases));
         final long startTime = clock.millis();
 
         return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
-                .map(bidderSeatBid -> validateAndUpdateResponse(bidderSeatBid, bidderRequest.getBidRequest().getCur()))
+                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, cur))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)));
@@ -670,52 +671,18 @@ public class ExchangeService {
      * <p>
      * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
      */
-    private BidderSeatBid validateAndUpdateResponse(BidderSeatBid bidderSeatBid, List<String> requestCurrencies) {
-        final List<String> effectiveRequestCurrencies = requestCurrencies.isEmpty()
-                ? Collections.singletonList(DEFAULT_CURRENCY) : requestCurrencies;
-
+    private BidderSeatBid validBidderSeatBid(BidderSeatBid bidderSeatBid, List<String> requestCurrencies) {
         final List<BidderBid> bids = bidderSeatBid.getBids();
 
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
 
-        if (isValidCurFromResponse(effectiveRequestCurrencies, bids, errors)) {
-            validateResponseBids(bids, validBids, errors);
+        if (requestCurrencies.size() > 1) {
+            errors.add(BidderError.badInput(
+                    String.format("Cur parameter contains more than one currency. %s will be used",
+                            requestCurrencies.get(0))));
         }
 
-        return validBids.size() == bids.size()
-                ? bidderSeatBid
-                : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
-    }
-
-    private boolean isValidCurFromResponse(List<String> requestCurrencies, List<BidderBid> bids,
-                                           List<BidderError> errors) {
-        if (CollectionUtils.isNotEmpty(bids)) {
-            // assume that currencies are the same among all bids
-            final List<String> bidderCurrencies = bids.stream()
-                    .map(bid -> ObjectUtils.firstNonNull(bid.getBidCurrency(), DEFAULT_CURRENCY))
-                    .distinct()
-                    .collect(Collectors.toList());
-
-            if (bidderCurrencies.size() > 1) {
-                errors.add(BidderError.generic("Bid currencies mismatch found. "
-                        + "Expected all bids to have the same currencies."));
-                return false;
-            }
-
-            final String bidderCurrency = bidderCurrencies.get(0);
-            if (!requestCurrencies.contains(bidderCurrency)) {
-                errors.add(BidderError.generic(String.format(
-                        "Bid currency is not allowed. Was %s, wants: [%s]",
-                        String.join(",", requestCurrencies), bidderCurrency)));
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void validateResponseBids(List<BidderBid> bids, List<BidderBid> validBids, List<BidderError> errors) {
         for (BidderBid bid : bids) {
             final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
             if (validationResult.hasErrors()) {
@@ -726,13 +693,15 @@ public class ExchangeService {
                 validBids.add(bid);
             }
         }
+
+        return errors.isEmpty() ? bidderSeatBid : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
     }
 
     /**
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
+     * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
@@ -765,7 +734,9 @@ public class ExchangeService {
                 }
                 updatedBidderBids.add(bidderBid);
             } catch (PreBidException ex) {
-                errors.add(BidderError.generic(ex.getMessage()));
+                errors.add(BidderError.generic(
+                        String.format("Unable to covert bid currency %s to desired ad server currency %s. %s",
+                                bidCurrency, adServerCurrency, ex.getMessage())));
             }
         }
 
@@ -793,7 +764,7 @@ public class ExchangeService {
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}.
      * <p>
-     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
+     * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {

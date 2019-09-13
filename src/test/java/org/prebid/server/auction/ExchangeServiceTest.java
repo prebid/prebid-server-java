@@ -84,6 +84,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1161,7 +1162,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
-                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build(), "CUR"))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 identity());
@@ -1169,19 +1170,21 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willThrow(new PreBidException("no currency conversion available"));
 
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                "no currency conversion available"));
-        givenBidResponseCreator(emptyList(), ExtBidResponse.of(null, singletonMap("bidder", bidderErrors),
-                null, null, null));
-
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid).isEmpty();
-        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1)
-                .containsOnly(entry("bidder", bidderErrors));
+        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
+
+        assertThat(argumentCaptor.getValue()).hasSize(1);
+
+        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad" +
+                " server currency USD. no currency conversion available");
+        final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
+        assertThat(firstSeatBid.getBids()).isEmpty();
+        assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
     @Test
@@ -1199,27 +1202,31 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.valueOf(10.0));
 
-        final BigDecimal updatedPrice = BigDecimal.valueOf(100);
-        givenBidResponseCreator(singletonList(Bid.builder().price(updatedPrice).build()));
-
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        assertThat(bidResponse.getSeatbid())
-                .flatExtracting(SeatBid::getBid)
-                .extracting(Bid::getPrice)
-                .containsExactly(updatedPrice);
+        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
+
+        assertThat(argumentCaptor.getValue()).hasSize(1);
+
+        final BigDecimal updatedPrice = BigDecimal.valueOf(100);
+        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+        final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
+        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBid).containsOnly(expectedBid);
+        assertThat(firstSeatBid.getErrors()).isEmpty();
     }
 
     @Test
-    public void shouldUpdatePriceForOneBidAndDropAnotherIfPrebidExceptionHappensForSecondBid()
-            throws JsonProcessingException {
+    public void shouldUpdatePriceForOneBidAndDropAnotherIfPrebidExceptionHappensForSecondBid() {
         // given
-        final Bidder<?> bidder = mock(Bidder.class);
-        givenBidder("bidder", bidder, givenSeatBid(asList(
-                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()),
-                givenBid(Bid.builder().price(BigDecimal.valueOf(3.0)).build()))));
+        final BigDecimal firstBidderPrice = BigDecimal.valueOf(2.0);
+        final BigDecimal secondBidderPrice = BigDecimal.valueOf(3.0);
+        givenBidder("bidder", mock(Bidder.class), givenSeatBid(asList(
+                givenBid(Bid.builder().price(firstBidderPrice).build(), "CUR1"),
+                givenBid(Bid.builder().price(secondBidderPrice).build(), "CUR2"))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 identity());
@@ -1228,78 +1235,106 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice)
                 .willThrow(new PreBidException("no currency conversion available"));
 
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                "no currency conversion available"));
-        givenBidResponseCreator(singletonList(Bid.builder().price(updatedPrice).build()), ExtBidResponse.of(
-                null, singletonMap("bidder", bidderErrors), null, null, null));
-
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        assertThat(bidResponse.getSeatbid())
-                .flatExtracting(SeatBid::getBid)
-                .extracting(Bid::getPrice)
-                .containsExactly(updatedPrice);
+        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), any(), eq("CUR1"));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), any(), eq("CUR2"));
 
-        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1)
-                .containsOnly(entry("bidder", bidderErrors));
+        assertThat(argumentCaptor.getValue()).hasSize(1);
+
+        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR2 to desired ad" +
+                " server currency USD. no currency conversion available");
+        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+        final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
+        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBid).containsOnly(expectedBid);
+        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBidCurrency).containsOnly("CUR1");
+        assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
     @Test
-    public void shouldRespondWithErrorWhenBidsWithUnsupportedCurrency() throws JsonProcessingException {
+    public void shouldRespondWithOneResponseWithErrorWhenBidWithUnsupportedCurrency() {
         // given
-        final Bidder<?> bidderRequester = mock(Bidder.class);
-        givenBidder("bidder", bidderRequester, givenSeatBid(singletonList(
-                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
+        final BigDecimal firstBidderPrice = BigDecimal.valueOf(2.0);
+        final BigDecimal secondBidderPrice = BigDecimal.valueOf(10.0);
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(firstBidderPrice).build(), "USD"))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(10.0)).build(), "CUR"))));
 
-        final BidRequest bidRequest = BidRequest.builder().cur(Collections.singletonList("EUR"))
-                .imp(singletonList(givenImp(singletonMap("bidder", 2), identity()))).build();
+        final BidRequest bidRequest = BidRequest.builder().cur(Collections.singletonList("BAD"))
+                .imp(Arrays.asList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
+                        identity()))).build();
 
-        // returns the same price as in argument
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
-                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                "Bid currency is not allowed. Was EUR, wants: [USD]"));
-        givenBidResponseCreator(singletonMap("bidder", bidderErrors));
+        final BigDecimal updatedPrice = BigDecimal.valueOf(20);
+        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR")))
+                .willThrow(new PreBidException("no currency conversion available"));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        assertThat(bidResponse.getSeatbid()).isEmpty();
-        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1)
-                .containsOnly(entry("bidder", bidderErrors));
+        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), eq("BAD"), eq("USD"));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), eq("BAD"), eq("CUR"));
+
+        assertThat(argumentCaptor.getValue()).hasSize(2);
+
+        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+        assertThat(argumentCaptor.getValue())
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+
+        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad" +
+                " server currency BAD. no currency conversion available");
+        assertThat(argumentCaptor.getValue())
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getErrors)
+                .containsOnly(expectedError);
     }
 
     @Test
-    public void shouldRespondWithErrorWhenBidsWithDifferentCurrencies() throws JsonProcessingException {
+    public void shouldUpdateBidPriceWithCurrencyConversionAndAddErrorAboutMultipleCurrency() {
         // given
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+        final BigDecimal bidderPrice = BigDecimal.valueOf(2.0);
+        givenBidder("bidder", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(bidderPrice).build(), "USD"))));
 
-        given(httpBidderRequester.requestBids(any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenSeatBid(asList(
-                        BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "EUR"),
-                        BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "USD")))));
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .aliases(emptyMap())
+                        .build())))
+                        .cur(Arrays.asList("CUR1", "CUR2", "CUR2")));
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.site(Site.builder().build()));
-
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                "Bid currencies mismatch found. Expected all bids to have the same currencies."));
-        givenBidResponseCreator(singletonMap("someBidder", bidderErrors));
+        final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
+        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        assertThat(bidResponse.getSeatbid()).isEmpty();
-        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1)
-                .containsOnly(entry("someBidder", bidderErrors));
+        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
+        verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq("CUR1"), eq("USD"));
+
+        assertThat(argumentCaptor.getValue()).hasSize(1);
+
+        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+        final BidderError expectedError = BidderError.badInput("Cur parameter contains more than one currency." +
+                " CUR1 will be used");
+        final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
+        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBid).containsOnly(expectedBid);
+        assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
     @Test
@@ -1556,6 +1591,10 @@ public class ExchangeServiceTest extends VertxTest {
 
     private static BidderBid givenBid(Bid bid) {
         return BidderBid.of(bid, BidType.banner, null);
+    }
+
+    private static BidderBid givenBid(Bid bid, String cur) {
+        return BidderBid.of(bid, BidType.banner, cur);
     }
 
     private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilder) {
