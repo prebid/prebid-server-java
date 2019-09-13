@@ -1,9 +1,13 @@
 package org.prebid.server.analytics.model;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.settings.model.Account;
 
-@AllArgsConstructor(staticName = "of")
+/**
+ * Represents a transaction at /event endpoint.
+ */
+@Builder
 @Value
 public class NotificationEvent {
 
@@ -11,7 +15,7 @@ public class NotificationEvent {
 
     String bidId;
 
-    String accountId;
+    Account account;
 
     HttpContext httpContext;
 
@@ -19,4 +23,3 @@ public class NotificationEvent {
         win, imp
     }
 }
-

@@ -490,9 +490,9 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void eventHandlerShouldRespondWithPNGTrackingPixel() throws IOException {
+    public void eventHandlerShouldRespondWithTrackingPixel() throws IOException {
         final Response response = given(spec)
-                .queryParam("t", "w")
+                .queryParam("t", "win")
                 .queryParam("b", "bidId")
                 .queryParam("a", "14062")
                 .queryParam("f", "i")

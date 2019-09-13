@@ -33,7 +33,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&f=i"
               }
             }
           }
@@ -74,7 +74,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=7706636740145184841&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=7706636740145184841&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=7706636740145184841&a=5001&f=i"
               },
               "cache": {
                 "bids": {
@@ -129,7 +129,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=928185755156387460&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=928185755156387460&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=928185755156387460&a=5001&f=i"
               },
               "cache": {
                 "bids": {
@@ -181,7 +181,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=7706636740145184840&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=7706636740145184840&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=7706636740145184840&a=5001&f=i"
               },
               "cache": {
                 "bids": {
@@ -237,7 +237,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&f=i"
               }
             }
           }
@@ -264,7 +264,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&f=i"
               }
             }
           }
@@ -304,7 +304,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=880290288&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=880290288&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=880290288&a=5001&f=i"
               },
               "cache": {
                 "vastXml": {
@@ -364,7 +364,7 @@
               },
               "events": {
                 "win": "http://localhost:8000/event?t=win&b=466223845&a=5001&f=i",
-                "view": "http://localhost:8000/event?t=view&b=466223845&a=5001&f=i"
+                "imp": "http://localhost:8000/event?t=imp&b=466223845&a=5001&f=i"
               },
               "cache": {
                 "bids": {
