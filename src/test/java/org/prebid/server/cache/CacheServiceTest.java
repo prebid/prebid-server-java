@@ -70,6 +70,7 @@ public class CacheServiceTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
     private final CacheTtl mediaTypeCacheTtl = CacheTtl.of(null, null);
+
     @Mock
     private HttpClient httpClient;
     private Clock clock;
@@ -755,8 +756,9 @@ public class CacheServiceTest extends VertxTest {
                                 .build(),
                         PutObject.builder()
                                 .type("xml")
-                                .value(new TextNode("<Impression>https://test-event.com/event?t=imp&" +
-                                        "b=bid1&f=b&a=accountId</Impression>")).build());
+                                .value(new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&" +
+                                        "b=bid1&f=b&a=accountId]]></Impression>"))
+                                .build());
     }
 
     @Test
@@ -769,7 +771,8 @@ public class CacheServiceTest extends VertxTest {
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
-                        .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1")).build(),
+                        .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1"))
+                        .build(),
                 Account.builder().id("accountId").build(), timeout);
 
         // then
@@ -782,7 +785,8 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder()
                                 .type("xml")
                                 .value(new TextNode("<Impression>http:/test.com</Impression><Impression>" +
-                                        "https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId</Impression>"))
+                                        "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
+                                        + "</Impression>")))
                                 .build());
     }
 
