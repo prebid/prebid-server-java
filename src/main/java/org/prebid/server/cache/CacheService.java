@@ -152,12 +152,12 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals putObjects list size.
      */
-    public Future<BidCacheResponse> cachePutObject(List<PutObject> putObjects, List<String> updatabeBidders,
+    public Future<BidCacheResponse> cachePutObject(List<PutObject> putObjects, List<String> updatableBidders,
                                                    String accountId, Timeout timeout) {
         if (CollectionUtils.isEmpty(putObjects)) {
             return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
         }
-        final List<PutObject> updatedVtrackPuts = updatePutObjects(putObjects, updatabeBidders, accountId);
+        final List<PutObject> updatedVtrackPuts = updatePutObjects(putObjects, updatableBidders, accountId);
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
