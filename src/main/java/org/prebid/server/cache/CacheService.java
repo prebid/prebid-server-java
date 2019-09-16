@@ -23,6 +23,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
@@ -55,23 +56,20 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private static final String BID_ID_PLACEHOLDER = "BIDID";
-    private static final String ACCOUNT_PLACEHOLDER = "ACCOUNT";
-
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
-    private final String eventsUrlTemplate;
+    private final EventsService eventsService;
     private final Clock clock;
 
     public CacheService(CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
-                        String cachedAssetUrlTemplate, String eventsUrlTemplate, Clock clock) {
+                        String cachedAssetUrlTemplate, EventsService eventsService, Clock clock) {
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
-        this.eventsUrlTemplate = Objects.requireNonNull(eventsUrlTemplate);
+        this.eventsService = Objects.requireNonNull(eventsService);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -367,9 +365,7 @@ public class CacheService {
             return stringValue;
         }
 
-        final String impressionUrl = "<![CDATA["
-                + eventsUrlTemplate.replace(BID_ID_PLACEHOLDER, bidId).replace(ACCOUNT_PLACEHOLDER, accountId)
-                + "]]>";
+        final String impressionUrl = "<![CDATA[" + eventsService.vastUrlTracking(bidId, accountId) + "]]>";
         final String openTag = "<Impression>";
 
         // empty impression tag - just insert the link

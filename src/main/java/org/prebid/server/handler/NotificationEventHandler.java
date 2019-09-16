@@ -4,21 +4,18 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.events.EventRequest;
+import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
@@ -38,21 +35,6 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private static final String TRACKING_PIXEL_PNG = "static/tracking-pixel.png";
     private static final String PNG_CONTENT_TYPE = "image/png";
-
-    private static final String TYPE_PARAMETER = "t";
-    private static final String WIN_TYPE = "win";
-    private static final String IMP_TYPE = "imp";
-
-    private static final String BID_ID_PARAMETER = "b";
-    private static final String ACCOUNT_PARAMETER = "a";
-
-    private static final String FORMAT_PARAMETER = "f";
-    private static final String IMAGE_FORMAT = "i";
-    private static final String BLANK_FORMAT = "b";
-
-    private static final String ANALYTICS_PARAMETER = "x";
-    private static final String ENABLED_ANALYTICS = "1";
-    private static final String DISABLED_ANALYTICS = "0";
 
     private static final long DEFAULT_TIMEOUT = 1000L;
 
@@ -83,70 +65,27 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        final HttpServerResponse response = context.response();
-        final MultiMap queryParameters = context.request().params();
         try {
-            validateParametersForBadRequestError(queryParameters);
-        } catch (InvalidRequestException e) {
-            respondWithBadStatus(response, e.getMessage());
+            EventUtil.validateType(context);
+            EventUtil.validateBidId(context);
+            EventUtil.validateFormat(context);
+            EventUtil.validateAnalytics(context);
+        } catch (IllegalArgumentException e) {
+            respondWithBadStatus(context, e.getMessage());
             return;
         }
 
         try {
-            validateParametersForUnauthorizedError(queryParameters);
-        } catch (InvalidRequestException e) {
-            respondWithUnauthorized(response, e.getMessage());
+            EventUtil.validateAccountId(context);
+        } catch (IllegalArgumentException e) {
+            respondWithUnauthorized(context, e.getMessage());
             return;
         }
 
-        final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
-        final boolean isAnalyticsRequested = analytics == null || analytics.equals(ENABLED_ANALYTICS);
-
-        if (isAnalyticsRequested) {
-            final String accountId = queryParameters.get(ACCOUNT_PARAMETER);
-
-            getAccountById(accountId)
-                    .setHandler(async -> handleEvent(async, context));
-        }
-    }
-
-    private static void validateParametersForBadRequestError(MultiMap queryParameters) {
-        final String type = queryParameters.get(TYPE_PARAMETER);
-        if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
-            throw new InvalidRequestException(
-                    String.format("Type '%s' is required query parameter. Possible values are %s and %s, but was %s",
-                            TYPE_PARAMETER, WIN_TYPE, IMP_TYPE, type));
-        }
-
-        final String bidId = queryParameters.get(BID_ID_PARAMETER);
-        if (StringUtils.isBlank(bidId)) {
-            throw new InvalidRequestException(
-                    String.format("BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
-        }
-
-        final String format = queryParameters.get(FORMAT_PARAMETER);
-        if (StringUtils.isNotBlank(format) && ObjectUtils.notEqual(format, BLANK_FORMAT)
-                && ObjectUtils.notEqual(format, IMAGE_FORMAT)) {
-            throw new InvalidRequestException(
-                    String.format("Format '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
-                            FORMAT_PARAMETER, BLANK_FORMAT, IMAGE_FORMAT, format));
-        }
-
-        final String analytics = queryParameters.get(ANALYTICS_PARAMETER);
-        if (StringUtils.isNotBlank(analytics) && ObjectUtils.notEqual(analytics, ENABLED_ANALYTICS)
-                && ObjectUtils.notEqual(analytics, DISABLED_ANALYTICS)) {
-            throw new InvalidRequestException(
-                    String.format(
-                            "Analytics '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
-                            ANALYTICS_PARAMETER, ENABLED_ANALYTICS, DISABLED_ANALYTICS, analytics));
-        }
-    }
-
-    private static void validateParametersForUnauthorizedError(MultiMap queryParameters) {
-        final String account = queryParameters.get(ACCOUNT_PARAMETER);
-        if (StringUtils.isBlank(account)) {
-            throw new InvalidRequestException(
-                    String.format("Account '%s' is required query parameter and can't be empty", ACCOUNT_PARAMETER));
+        final EventRequest eventRequest = EventUtil.from(context);
+        if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
+            getAccountById(eventRequest.getAccountId())
+                    .setHandler(async -> handleEvent(async, eventRequest, context));
         }
     }
 
@@ -168,64 +107,54 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         return Future.failedFuture(exception);
     }
 
-    private void handleEvent(AsyncResult<Account> async, RoutingContext context) {
-        final HttpServerResponse response = context.response();
-
+    private void handleEvent(AsyncResult<Account> async, EventRequest eventRequest, RoutingContext context) {
         if (async.failed()) {
-            respondWithServerError(response, async.cause());
+            respondWithServerError(context, async.cause());
         } else {
             final Account account = async.result();
 
             if (Objects.equals(account.getEventsEnabled(), true)) {
-                analyticsReporter.processEvent(makeNotificationEvent(account, context));
-                respondWithOkStatus(response, context.request().params().get(FORMAT_PARAMETER));
+                final NotificationEvent notificationEvent = NotificationEvent.builder()
+                        .type(eventRequest.getType() == EventRequest.Type.win
+                                ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
+                        .bidId(eventRequest.getBidId())
+                        .account(account)
+                        .httpContext(HttpContext.from(context))
+                        .build();
+                analyticsReporter.processEvent(notificationEvent);
+
+                respondWithOkStatus(context, eventRequest.getFormat() == EventRequest.Format.image);
             } else {
-                respondWithUnauthorized(response,
-                        String.format("Account '%s' doesn't not support events", account.getId()));
+                respondWithUnauthorized(context, String.format("Account '%s' doesn't support events", account.getId()));
             }
         }
     }
 
-    private static NotificationEvent makeNotificationEvent(Account account, RoutingContext context) {
-        final MultiMap queryParameters = context.request().params();
-
-        return NotificationEvent.builder()
-                .type(toNotificationType(queryParameters.get(TYPE_PARAMETER)))
-                .bidId(queryParameters.get(BID_ID_PARAMETER))
-                .account(account)
-                .httpContext(HttpContext.from(context))
-                .build();
-    }
-
-    private static NotificationEvent.Type toNotificationType(String type) {
-        return Objects.equals(WIN_TYPE, type) ? NotificationEvent.Type.win : NotificationEvent.Type.imp;
-    }
-
-    private void respondWithOkStatus(HttpServerResponse response, String format) {
-        if (Objects.equals(format, IMAGE_FORMAT)) {
-            response.putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
+    private void respondWithOkStatus(RoutingContext context, boolean respondWithPixel) {
+        if (respondWithPixel) {
+            context.response().putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
                     .end(Buffer.buffer(trackingPixel.getContent()));
         } else {
-            response.end();
+            context.response().end();
         }
     }
 
-    private static void respondWithBadStatus(HttpServerResponse response, String message) {
-        respondWithError(response, message, HttpResponseStatus.BAD_REQUEST);
+    private static void respondWithBadStatus(RoutingContext context, String message) {
+        respondWithError(context, message, HttpResponseStatus.BAD_REQUEST);
     }
 
-    private static void respondWithUnauthorized(HttpServerResponse response, String message) {
-        respondWithError(response, message, HttpResponseStatus.UNAUTHORIZED);
+    private static void respondWithUnauthorized(RoutingContext context, String message) {
+        respondWithError(context, message, HttpResponseStatus.UNAUTHORIZED);
     }
 
-    private static void respondWithServerError(HttpServerResponse response, Throwable exception) {
+    private static void respondWithServerError(RoutingContext context, Throwable exception) {
         final String message = "Error occurred while fetching account";
         logger.warn(message, exception);
-        respondWithError(response, message, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        respondWithError(context, message, HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private static void respondWithError(HttpServerResponse response, String message, HttpResponseStatus status) {
-        response.setStatusCode(status.code()).end(message);
+    private static void respondWithError(RoutingContext context, String message, HttpResponseStatus status) {
+        context.response().setStatusCode(status.code()).end(message);
     }
 
     /**
