@@ -198,7 +198,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't not support events");
+        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
     }
 
     @Test
@@ -219,7 +219,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody()).isEqualTo("Account 'null' doesn't not support events");
+        assertThat(captureResponseBody()).isEqualTo("Account 'null' doesn't support events");
     }
 
     @Test

@@ -7,9 +7,6 @@ import java.util.Objects;
 
 public class EventsService {
 
-    private static final String EVENT_CALLBACK_URL_PATTERN = "%s/event?t=%s&b=%s&a=%s&f=i";
-    private static final String WIN_EVENT_TYPE = "win";
-    private static final String IMP_EVENT_TYPE = "imp";
     private static final String BIDID_PLACEHOLDER = "BIDID";
 
     private final String externalUrl;
@@ -23,14 +20,32 @@ public class EventsService {
      */
     public Events createEvent(String bidId, String accountId) {
         return Events.of(
-                String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, WIN_EVENT_TYPE, bidId, accountId),
-                String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, IMP_EVENT_TYPE, bidId, accountId));
+                eventUrl(EventRequest.Type.win, bidId, accountId, EventRequest.Format.image),
+                eventUrl(EventRequest.Type.imp, bidId, accountId, EventRequest.Format.image));
     }
 
     /**
-     * Returns value for hb_winurl targeting keyword.
+     * Returns value for "hb_winurl" targeting keyword.
      */
     public String winUrlTargeting(String accountId) {
-        return String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, WIN_EVENT_TYPE, BIDID_PLACEHOLDER, accountId);
+        return eventUrl(EventRequest.Type.win, BIDID_PLACEHOLDER, accountId, EventRequest.Format.image);
+    }
+
+    /**
+     * Returns url for VAST tracking.
+     */
+    public String vastUrlTracking(String bidId, String accountId) {
+        return eventUrl(EventRequest.Type.imp, bidId, accountId, EventRequest.Format.blank);
+    }
+
+    private String eventUrl(EventRequest.Type type, String bidId, String accountId, EventRequest.Format format) {
+        final EventRequest eventRequest = EventRequest.builder()
+                .type(type)
+                .bidId(bidId)
+                .accountId(accountId)
+                .format(format)
+                .build();
+
+        return EventUtil.toUrl(externalUrl, eventRequest);
     }
 }
