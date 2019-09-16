@@ -70,14 +70,14 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
             EventUtil.validateBidId(context);
             EventUtil.validateFormat(context);
             EventUtil.validateAnalytics(context);
-        } catch (PreBidException e) {
+        } catch (IllegalArgumentException e) {
             respondWithBadStatus(context, e.getMessage());
             return;
         }
 
         try {
             EventUtil.validateAccountId(context);
-        } catch (PreBidException e) {
+        } catch (IllegalArgumentException e) {
             respondWithUnauthorized(context, e.getMessage());
             return;
         }

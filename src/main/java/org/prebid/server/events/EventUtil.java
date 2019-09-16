@@ -4,7 +4,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.exception.PreBidException;
 
 import java.util.Objects;
 
@@ -32,6 +31,50 @@ public class EventUtil {
     private static final String DISABLED_ANALYTICS = "0";
 
     private EventUtil() {
+    }
+
+    public static void validateType(RoutingContext context) {
+        final String type = context.request().params().get(TYPE_PARAMETER);
+        if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
+            throw new IllegalArgumentException(String.format(
+                    "Type '%s' is required query parameter. Possible values are %s and %s, but was %s",
+                    TYPE_PARAMETER, WIN_TYPE, IMP_TYPE, type));
+        }
+    }
+
+    public static void validateBidId(RoutingContext context) {
+        final String bidId = context.request().params().get(BID_ID_PARAMETER);
+        if (StringUtils.isBlank(bidId)) {
+            throw new IllegalArgumentException(String.format(
+                    "BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
+        }
+    }
+
+    public static void validateAccountId(RoutingContext context) {
+        final String accountId = context.request().params().get(ACCOUNT_ID_PARAMETER);
+        if (StringUtils.isBlank(accountId)) {
+            throw new IllegalArgumentException(String.format(
+                    "Account '%s' is required query parameter and can't be empty", ACCOUNT_ID_PARAMETER));
+        }
+    }
+
+    public static void validateFormat(RoutingContext context) {
+        final String format = context.request().params().get(FORMAT_PARAMETER);
+        if (StringUtils.isNotEmpty(format) && !format.equals(BLANK_FORMAT) && !format.equals(IMAGE_FORMAT)) {
+            throw new IllegalArgumentException(String.format(
+                    "Format '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
+                    FORMAT_PARAMETER, BLANK_FORMAT, IMAGE_FORMAT, format));
+        }
+    }
+
+    public static void validateAnalytics(RoutingContext context) {
+        final String analytics = context.request().params().get(ANALYTICS_PARAMETER);
+        if (StringUtils.isNotEmpty(analytics) && !analytics.equals(ENABLED_ANALYTICS)
+                && !analytics.equals(DISABLED_ANALYTICS)) {
+            throw new IllegalArgumentException(String.format(
+                    "Analytics '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
+                    ANALYTICS_PARAMETER, ENABLED_ANALYTICS, DISABLED_ANALYTICS, analytics));
+        }
     }
 
     public static EventRequest from(RoutingContext context) {
@@ -85,49 +128,5 @@ public class EventUtil {
 
     private static String nameValueAsQueryString(String name, String value) {
         return StringUtils.isEmpty(value) ? StringUtils.EMPTY : "&" + name + "=" + value;
-    }
-
-    public static void validateType(RoutingContext context) {
-        final String type = context.request().params().get(TYPE_PARAMETER);
-        if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
-            throw new PreBidException(String.format(
-                    "Type '%s' is required query parameter. Possible values are %s and %s, but was %s",
-                    TYPE_PARAMETER, WIN_TYPE, IMP_TYPE, type));
-        }
-    }
-
-    public static void validateBidId(RoutingContext context) {
-        final String bidId = context.request().params().get(BID_ID_PARAMETER);
-        if (StringUtils.isBlank(bidId)) {
-            throw new PreBidException(String.format(
-                    "BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
-        }
-    }
-
-    public static void validateAccountId(RoutingContext context) {
-        final String accountId = context.request().params().get(ACCOUNT_ID_PARAMETER);
-        if (StringUtils.isBlank(accountId)) {
-            throw new PreBidException(String.format(
-                    "Account '%s' is required query parameter and can't be empty", ACCOUNT_ID_PARAMETER));
-        }
-    }
-
-    public static void validateFormat(RoutingContext context) {
-        final String format = context.request().params().get(FORMAT_PARAMETER);
-        if (StringUtils.isNotEmpty(format) && !format.equals(BLANK_FORMAT) && !format.equals(IMAGE_FORMAT)) {
-            throw new PreBidException(String.format(
-                    "Format '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
-                    FORMAT_PARAMETER, BLANK_FORMAT, IMAGE_FORMAT, format));
-        }
-    }
-
-    public static void validateAnalytics(RoutingContext context) {
-        final String analytics = context.request().params().get(ANALYTICS_PARAMETER);
-        if (StringUtils.isNotEmpty(analytics) && !analytics.equals(ENABLED_ANALYTICS)
-                && !analytics.equals(DISABLED_ANALYTICS)) {
-            throw new PreBidException(String.format(
-                    "Analytics '%s' query parameter is invalid. Possible values are %s and %s, but was %s",
-                    ANALYTICS_PARAMETER, ENABLED_ANALYTICS, DISABLED_ANALYTICS, analytics));
-        }
     }
 }
