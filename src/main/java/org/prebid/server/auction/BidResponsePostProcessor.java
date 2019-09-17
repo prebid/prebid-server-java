@@ -6,6 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.settings.model.Account;
 
 /**
  * A hook that is pulled once auction has been held. It allows companies that host Prebid Server to define and apply
@@ -20,10 +21,11 @@ public interface BidResponsePostProcessor {
      * @param uidsCookie  auction request {@link Uids} container
      * @param bidRequest  original auction request
      * @param bidResponse auction result
+     * @param account     {@link Account} fetched from request
      * @return a {@link Future} with (possibly modified) auction result
      */
     Future<BidResponse> postProcess(RoutingContext context, UidsCookie uidsCookie, BidRequest bidRequest,
-                                    BidResponse bidResponse);
+                                    BidResponse bidResponse, Account account);
 
     /**
      * Returns {@link NoOpBidResponsePostProcessor} instance that just does nothing to original auction result.
@@ -38,7 +40,7 @@ public interface BidResponsePostProcessor {
     class NoOpBidResponsePostProcessor implements BidResponsePostProcessor {
         @Override
         public Future<BidResponse> postProcess(RoutingContext context, UidsCookie uidsCookie, BidRequest bidRequest,
-                                               BidResponse bidResponse) {
+                                               BidResponse bidResponse, Account account) {
             return Future.succeededFuture(bidResponse);
         }
     }
