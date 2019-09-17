@@ -25,15 +25,16 @@ import java.util.stream.Collectors;
 public class VtrackHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VtrackHandler.class);
+
     private static final String ACCOUNT_REQUEST_PARAMETER = "a";
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
     private final TimeoutFactory timeoutFactory;
-    private final int defaultTimeout;
+    private final long defaultTimeout;
 
     public VtrackHandler(CacheService cacheService, BidderCatalog bidderCatalog, TimeoutFactory timeoutFactory,
-                         int defaultTimeout) {
+                         long defaultTimeout) {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -43,7 +44,6 @@ public class VtrackHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext context) {
         final List<PutObject> vtrackPuts;
-        String accountId = null;
         try {
             vtrackPuts = parsePuts(context.getBody());
         } catch (IllegalArgumentException e) {
@@ -51,6 +51,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             return;
         }
 
+        String accountId = null;
         final List<String> updatableBidders = biddersWithUpdatableVast(vtrackPuts);
         if (!updatableBidders.isEmpty()) {
             try {
@@ -61,7 +62,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             }
         }
 
-        cacheService.cachePutObject(vtrackPuts, updatableBidders, accountId, timeoutFactory.create(defaultTimeout))
+        cacheService.cachePutObjects(vtrackPuts, updatableBidders, accountId, timeoutFactory.create(defaultTimeout))
                 .setHandler(bidCacheResponseResult -> handleCacheResult(context, bidCacheResponseResult));
     }
 
@@ -81,7 +82,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static String accountId(RoutingContext context) {
         final String accountId = context.request().getParam(ACCOUNT_REQUEST_PARAMETER);
         if (accountId == null) {
-            throw new IllegalArgumentException("Request must contain 'a'=accountId parameter in request");
+            throw new IllegalArgumentException("Request must contain 'a'=accountId parameter");
         }
         return accountId;
     }
@@ -99,7 +100,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             respondWithCache(context, bidCacheResponseResult.result());
         } else {
             final String message = bidCacheResponseResult.cause().getMessage();
-            respondWith(context, HttpResponseStatus.BAD_REQUEST.code(), message);
+            respondWith(context, HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), message);
         }
     }
 
@@ -107,7 +108,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
         try {
             respondWith(context, HttpResponseStatus.OK.code(), Json.mapper.writeValueAsString(bidCacheResponse));
         } catch (JsonProcessingException e) {
-            logger.error("/vtrack Critical error when trying to marshal cache response: %s", e.getMessage());
+            logger.error("/vtrack Critical error when trying to marshal cache response: {0}", e.getMessage());
             respondWith(context, HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), e.getMessage());
         }
     }
@@ -118,13 +119,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             logger.warn("The client already closed connection, response will be skipped");
             return;
         }
-
-        context.response().setStatusCode(status);
-        if (body != null) {
-            context.response().end(body);
-        } else {
-            context.response().end();
-        }
+        context.response().setStatusCode(status).end(body);
     }
 }
 

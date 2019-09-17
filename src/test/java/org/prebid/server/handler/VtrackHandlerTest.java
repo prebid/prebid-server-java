@@ -70,7 +70,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void handleShouldRespondWithBadRequestWhenBodyIsEmpty() {
+    public void shouldRespondWithBadRequestWhenBodyIsEmpty() {
         // given
         given(routingContext.getBody()).willReturn(null);
 
@@ -84,7 +84,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void handleShouldRespondWithBadRequestWhenBodyIsInvalid() {
+    public void shouldRespondWithBadRequestWhenBodyIsInvalid() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("none"));
 
@@ -98,10 +98,24 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void handleShouldTolerateRequestWithoutAccountParameterWhenNotContainsModifiedBidders() {
+    public void shouldRespondWithInternalServerErrorWhenCacheServiceReturnFailure() {
+        // given
+        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("Timeout has been exceeded"));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(500));
+        verify(httpResponse).end(eq("Timeout has been exceeded"));
+    }
+
+    @Test
+    public void shouldTolerateRequestWithoutAccountParameterWhenNotContainsModifiedBidders() {
         // given
         given(httpRequest.getParam("a")).willReturn(null);
-        given(cacheService.cachePutObject(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(Collections.emptyList())));
 
         // when
@@ -113,7 +127,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void handleShouldRespondWithBadRequestWhenRequestAccountParameterIsMissingAndContainsModifiedBidders() {
+    public void shouldRespondWithBadRequestWhenRequestAccountParameterIsMissingAndContainsModifiedBidders() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("" +
                 "{\"puts\":[{\n" +
@@ -134,12 +148,12 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Request must contain 'a'=accountId parameter in request"));
+        verify(httpResponse).end(eq("Request must contain 'a'=accountId parameter"));
         verifyZeroInteractions(cacheService);
     }
 
     @Test
-    public void handleShouldRespondWithExpectedParameters() {
+    public void shouldRespondWithExpectedParameters() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("" +
                 "{\"puts\":[{\n" +
@@ -157,7 +171,7 @@ public class VtrackHandlerTest extends VertxTest {
                 CacheObject.of("uuid1"), CacheObject.of("uuid2")));
 
         given(bidderCatalog.isModifyingVastXmlAllowed("UPDATABLE_BIDDER")).willReturn(true);
-        given(cacheService.cachePutObject(anyList(), anyList(), anyString(), any()))
+        given(cacheService.cachePutObjects(anyList(), anyList(), anyString(), any()))
                 .willReturn(Future.succeededFuture(cacheServiceResult));
 
         // when
@@ -176,7 +190,7 @@ public class VtrackHandlerTest extends VertxTest {
                 .build();
 
         final List<PutObject> expectedPuts = Arrays.asList(expectedFirstPut, expectedSecondPut);
-        verify(cacheService).cachePutObject(eq(expectedPuts), eq(Collections.singletonList("UPDATABLE_BIDDER")),
+        verify(cacheService).cachePutObjects(eq(expectedPuts), eq(Collections.singletonList("UPDATABLE_BIDDER")),
                 eq("accountId"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));

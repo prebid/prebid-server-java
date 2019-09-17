@@ -152,23 +152,11 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals putObjects list size.
      */
-    public Future<BidCacheResponse> cachePutObject(List<PutObject> putObjects, List<String> updatableBidders,
-                                                   String accountId, Timeout timeout) {
-        if (CollectionUtils.isEmpty(putObjects)) {
-            return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
-        }
+    public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, List<String> updatableBidders,
+                                                    String accountId, Timeout timeout) {
         final List<PutObject> updatedVtrackPuts = updatePutObjects(putObjects, updatableBidders, accountId);
-
-        final long remainingTimeout = timeout.remaining();
-        if (remainingTimeout <= 0) {
-            return Future.failedFuture("Timeout has been exceeded");
-        }
-
-        final String url = endpointUrl.toString();
-        final String body = Json.encode(BidCacheRequest.of(updatedVtrackPuts));
-        return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
-                .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(),
-                        updatedVtrackPuts.size()));
+        final int size = updatedVtrackPuts == null ? 0 : updatedVtrackPuts.size();
+        return makeRequest(BidCacheRequest.of(updatedVtrackPuts), size, timeout);
     }
 
     /**
@@ -176,7 +164,7 @@ public class CacheService {
      */
     private List<PutObject> updatePutObjects(List<PutObject> putObjects, List<String> updatableBidders,
                                              String accountId) {
-        if (updatableBidders.isEmpty()) {
+        if (CollectionUtils.isEmpty(updatableBidders)) {
             return putObjects;
         }
 

@@ -794,7 +794,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
-        final Future<BidCacheResponse> future = cacheService.cachePutObject(singletonList(PutObject.builder().build()),
+        final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
                 emptyList(), "", expiredTimeout);
 
         // then
@@ -805,7 +805,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = cacheService.cachePutObject(emptyList(), emptyList(), null, null);
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptyList(), null, null);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -830,7 +830,7 @@ public class CacheServiceTest extends VertxTest {
                 .build();
 
         // when
-        cacheService.cachePutObject(Arrays.asList(firstPutObject, secondPutObject), singletonList("bidder1"), "account", timeout);
+        cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singletonList("bidder1"), "account", timeout);
 
         // then
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
