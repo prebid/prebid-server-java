@@ -1157,8 +1157,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Bid::getPrice).containsExactly(BigDecimal.ONE);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void shouldDropBidIfPrebidExceptionWasThrownDuringCurrencyConversion() throws JsonProcessingException {
+    public void shouldDropBidIfPrebidExceptionWasThrownDuringCurrencyConversion() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
@@ -1174,8 +1175,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
-                ArgumentCaptor.forClass(List.class);
+        final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
@@ -1187,6 +1187,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndPriceAdjustmentFactor() {
         // given
@@ -1206,19 +1207,21 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
-                ArgumentCaptor.forClass(List.class);
+        final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(100);
-        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
-        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBid).containsOnly(expectedBid);
+        assertThat(firstSeatBid.getBids())
+                .extracting(BidderBid::getBid)
+                .flatExtracting(Bid::getPrice)
+                .containsOnly(updatedPrice);
         assertThat(firstSeatBid.getErrors()).isEmpty();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdatePriceForOneBidAndDropAnotherIfPrebidExceptionHappensForSecondBid() {
         // given
@@ -1239,23 +1242,24 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
-                ArgumentCaptor.forClass(List.class);
+        final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), any(), eq("CUR1"));
         verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), any(), eq("CUR2"));
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
+        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
         final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR2 to desired ad" +
                 " server currency USD. no currency conversion available");
-        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
-        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBid).containsOnly(expectedBid);
-        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBidCurrency).containsOnly("CUR1");
+        assertThat(firstSeatBid.getBids()).containsOnly(expectedBidderBid);
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void shouldRespondWithOneResponseWithErrorWhenBidWithUnsupportedCurrency() {
         // given
@@ -1279,8 +1283,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
-                ArgumentCaptor.forClass(List.class);
+        final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), eq("BAD"), eq("USD"));
         verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), eq("BAD"), eq("CUR"));
@@ -1288,10 +1291,11 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(argumentCaptor.getValue()).hasSize(2);
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
-                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+                .containsOnly(expectedBidderBid);
 
         final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad" +
                 " server currency BAD. no currency conversion available");
@@ -1301,6 +1305,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(expectedError);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndAddErrorAboutMultipleCurrency() {
         // given
@@ -1322,18 +1327,19 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<List<BidderResponse>> argumentCaptor =
-                ArgumentCaptor.forClass(List.class);
+        final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
         verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq("CUR1"), eq("USD"));
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
-        final Bid expectedBid = Bid.builder().price(updatedPrice).build();
         final BidderError expectedError = BidderError.badInput("Cur parameter contains more than one currency." +
                 " CUR1 will be used");
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
-        assertThat(firstSeatBid.getBids()).extracting(BidderBid::getBid).containsOnly(expectedBid);
+        assertThat(firstSeatBid.getBids())
+                .extracting(BidderBid::getBid)
+                .flatExtracting(Bid::getPrice)
+                .containsOnly(updatedPrice);
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
