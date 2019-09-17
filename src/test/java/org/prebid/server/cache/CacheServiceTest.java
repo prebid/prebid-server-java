@@ -27,6 +27,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -69,10 +70,15 @@ public class CacheServiceTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     private final CacheTtl mediaTypeCacheTtl = CacheTtl.of(null, null);
 
     @Mock
     private HttpClient httpClient;
+
+    @Mock
+    private EventsService eventsService;
+
     private Clock clock;
 
     private CacheService cacheService;
@@ -89,7 +95,7 @@ public class CacheServiceTest extends VertxTest {
 
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=", ENDPOINT_URL_TEMPLATE, clock);
+                "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -237,7 +243,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=", ENDPOINT_URL_TEMPLATE, clock);
+                "https://cache-service-host:8080/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -529,8 +535,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
-                ENDPOINT_URL_TEMPLATE, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -549,8 +554,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
-                ENDPOINT_URL_TEMPLATE, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -568,8 +572,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
-                ENDPOINT_URL_TEMPLATE, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -741,6 +744,9 @@ public class CacheServiceTest extends VertxTest {
                 .adm("<Impression></Impression>"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
+        given(eventsService.vastUrlTracking(any(), any()))
+                .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
+
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
                 .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1"))
@@ -768,6 +774,9 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
                 .adm("<Impression>http:/test.com</Impression>"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+
+        given(eventsService.vastUrlTracking(any(), any()))
+                .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
@@ -828,6 +837,9 @@ public class CacheServiceTest extends VertxTest {
                 .bidid("biddid2")
                 .bidder("bidder2")
                 .build();
+
+        given(eventsService.vastUrlTracking(any(), any()))
+                .willReturn("https://test-event.com/event?t=imp&b=biddid1&f=b&a=account");
 
         // when
         cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singletonList("bidder1"), "account", timeout);

@@ -64,15 +64,18 @@ public class NotificationEventHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
+        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
         notificationHandler = new NotificationEventHandler(analyticsReporter, timeoutFactory, applicationSettings);
     }
 
     @Test
-    public void shouldReturnBadRequestWhenTypeIsNull() {
+    public void shouldReturnBadRequestWhenTypeIsMissing() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
@@ -80,111 +83,101 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("'type' is required query parameter. Possible values are i and w, but was null");
-    }
-
-    @Test
-    public void shouldReturnBadRequestWhenTypeValueIsInvalid() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("t", "invalid"));
-
-        // when
-        notificationHandler.handle(routingContext);
-
-        // then
-        assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("'type' is required query parameter. Possible values are i and w, but was invalid");
-
         verifyZeroInteractions(analyticsReporter);
-    }
 
-    @Test
-    public void shouldReturnBadRequestWhenBididWasNotDefined() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("t", "w"));
-
-        // when
-        notificationHandler.handle(routingContext);
-
-        // then
         assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("'bidid' is required query parameter and can't be empty");
-
-        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
-    public void shouldReturnUnauthorizedWhenAccountWasNotDefined() {
+    public void shouldReturnBadRequestWhenTypeIsInvalid() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("t", "w").add("b", "id"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
+        verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenBidIdIsMissing() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+    }
+
+    @Test
+    public void shouldReturnUnauthorizedWhenAccountIsMissing() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+
         assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody())
-                .isEqualTo("'account' is required query parameter and can't be empty");
-
-        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
     public void shouldReturnBadRequestWhenFormatValueIsInvalid() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "id")
-                        .add("a", "acc")
-                        .add("f", "invalid"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("f", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("'format' is required query parameter. Possible values are b and i, but was invalid");
-
         verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
 
     @Test
     public void shouldReturnBadRequestWhenAnalyticsValueIsInvalid() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "id")
-                        .add("a", "1233211")
-                        .add("f", "b")
-                        .add("x", "invalid"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("f", "b")
+                .add("x", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("'analytics' is required query parameter. Possible values are 1 and 0, but was invalid");
-
         verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
 
     @Test
-    public void shouldNotPassEventToAnalyticReporterAndRespondUnauthorizedWhenAccountNotFound() {
+    public void shouldNotPassEventToAnalyticsReporterWhenAccountNotFound() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "bidId")
-                        .add("a", "acc"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
@@ -193,90 +186,92 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody()).isEqualTo("Given 'accountId' is not supporting the event");
-
         verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(401);
+        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
     }
 
     @Test
-    public void shouldNotPassEventToAnalyticReporterWhenAccountEventNotEnabled() {
+    public void shouldNotPassEventToAnalyticsReporterWhenAccountEventNotEnabled() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "bidId")
-                        .add("a", "1233213"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(false).build()));
+                .willReturn(Future.succeededFuture(Account.builder().id("accountId").eventsEnabled(false).build()));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody()).isEqualTo("Given 'accountId' is not supporting the event");
-
         verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(401);
+        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
     }
 
     @Test
-    public void shouldPassEventToAnalyticReporterWhenAccountEventEnabled() {
+    public void shouldPassEventToAnalyticsReporterWhenAccountEventEnabled() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "bidId")
-                        .add("a", "1233213"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
+        final Account account = Account.builder().eventsEnabled(true).build();
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+                .willReturn(Future.succeededFuture(account));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("t", "w");
-        headers.put("b", "bidId");
-        headers.put("a", "1233213");
-        final HttpContext expectedHttpContext = HttpContext.builder().queryParams(headers)
+        final Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("t", "win");
+        queryParams.put("b", "bidId");
+        queryParams.put("a", "accountId");
+        final HttpContext expectedHttpContext = HttpContext.builder()
+                .queryParams(queryParams)
                 .headers(Collections.emptyMap())
                 .cookies(Collections.emptyMap())
                 .build();
 
-        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.of(NotificationEvent.Type.win, "bidId", "1233213",
-                expectedHttpContext));
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
+                .type(NotificationEvent.Type.win)
+                .bidId("bidId")
+                .account(account)
+                .httpContext(expectedHttpContext)
+                .build());
     }
 
     @Test
-    public void shouldNotPassEventToAnalyticReporterWhenAnalyticsValueIsZero() {
+    public void shouldNotPassEventToAnalyticsReporterWhenAnalyticsValueIsZero() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "bidId")
-                        .add("a", "1233213")
-                        .add("x", "0"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("x", "0"));
 
         // when
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
         verifyZeroInteractions(applicationSettings);
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test
     public void shouldRespondWithPixelAndContentTypeWhenRequestFormatIsImp() throws IOException {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "bidId")
-                        .add("a", "1233213")
-                        .add("f", "i"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("f", "i"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
@@ -295,11 +290,10 @@ public class NotificationEventHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoContentWhenRequestFormatIsNotDefined() {
         // given
-        given(httpRequest.params())
-                .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "w")
-                        .add("b", "bidId")
-                        .add("a", "1233213"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
@@ -343,4 +337,3 @@ public class NotificationEventHandlerTest extends VertxTest {
         return captor.getValue();
     }
 }
-

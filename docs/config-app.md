@@ -55,9 +55,6 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
 
-## Event
-- `event.url-template` - template string for impression tracking, suffixed to `external-url`, where `BIDID` placeholder is used for Bid's id and `ACCOUNT` - for Account's id
-
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
