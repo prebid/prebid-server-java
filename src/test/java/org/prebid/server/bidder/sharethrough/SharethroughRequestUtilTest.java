@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.json.Json;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.Size;
 import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -22,7 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class SharethroughRequestUtilTest {
+public class SharethroughRequestUtilTest extends VertxTest {
 
     @Test
     public void getPageShouldReturnNullWhenSiteIsNull() {
