@@ -77,18 +77,11 @@ public class TripleliftBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp) throws PreBidException {
-        final ExtImpTriplelift impExt;
-        try {
-            impExt = Json.mapper.<ExtPrebid<?, ExtImpTriplelift>>convertValue(imp.getExt(),
-                    TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException("neither Banner nor Video object specified");
         }
 
+        final ExtImpTriplelift impExt = parseExtImpTriplelift(imp);
         final Imp.ImpBuilder impBuilder = imp.toBuilder().tagid(impExt.getInventoryCode());
         if (impExt.getFloor() != null) {
             impBuilder.bidfloor(impExt.getFloor());
@@ -97,12 +90,21 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         return impBuilder.build();
     }
 
+    private static ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
+        try {
+            return Json.mapper.<ExtPrebid<?, ExtImpTriplelift>>convertValue(imp.getExt(),
+                    TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
         try {
-            bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-        } catch (DecodeException | PreBidException e) {
+            bidResponse = decodeBodyToBidResponse(httpCall);
+        } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
 
@@ -114,12 +116,12 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (SeatBid seatBid : bidResponse.getSeatbid()) {
             for (Bid bid : seatBid.getBid()) {
+                final ObjectNode ext = bid.getExt();
+                if (ext == null) {
+                    errors.add(BidderError.badServerResponse(String.format("Empty ext in bid %s", bid.getId())));
+                    break;
+                }
                 try {
-                    final ObjectNode ext = bid.getExt();
-                    if (ext == null) {
-                        errors.add(BidderError.badServerResponse(String.format("Empty ext in bid %s", bid)));
-                        break;
-                    }
                     final TripleliftResponseExt tripleliftResponseExt = Json.mapper.treeToValue(ext,
                             TripleliftResponseExt.class);
                     final BidderBid bidderBid = BidderBid.of(bid, getBidType(tripleliftResponseExt),
@@ -131,6 +133,14 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             }
         }
         return Result.of(bidderBids, errors);
+    }
+
+    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+        try {
+            return Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private static BidType getBidType(TripleliftResponseExt tripleliftResponseExt) {

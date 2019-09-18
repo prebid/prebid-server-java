@@ -50,31 +50,10 @@ public class TripleliftBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnTwoErrorsIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getErrors().get(1).getMessage()).startsWith("No valid impressions for triplelift");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void creationShouldFailWhenNotBannerOrVideoIsPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTriplelift.of("code", null))))
-                        .build()))
+                .imp(singletonList(Imp.builder().build()))
                 .id("request_id")
                 .build();
 
@@ -84,6 +63,26 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("neither Banner nor Video object specified");
+        assertThat(result.getErrors().get(1).getMessage()).startsWith("No valid impressions for triplelift");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnTwoErrorsIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .banner(Banner.builder().build())
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tripleliftBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getErrors().get(1).getMessage()).startsWith("No valid impressions for triplelift");
         assertThat(result.getValue()).isEmpty();
     }
