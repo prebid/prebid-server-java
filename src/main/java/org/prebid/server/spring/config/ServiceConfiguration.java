@@ -344,8 +344,9 @@ public class ServiceConfiguration {
 
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator) {
-        return new RequestValidator(bidderCatalog, bidderParamValidator);
+                                      BidderParamValidator bidderParamValidator,
+                                      @Value("${blacklisted-apps:#{null}}") String blacklistedApps) {
+        return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
     }
 
     @Bean

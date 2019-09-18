@@ -213,6 +213,6 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
 ## General settings
-- `external-url` - the setting stands for external URL prebid server is reachable by, 
-for example address of the load-balancer e.g. http://prebid.host.com.
+- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
+- `blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
 - `admin.port` - the port to listen on administration requests.
