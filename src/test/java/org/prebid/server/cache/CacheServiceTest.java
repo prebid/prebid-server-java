@@ -51,6 +51,8 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -272,8 +274,10 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(4)
                 .containsOnly(
-                        PutObject.builder().type("json").value(mapper.valueToTree(BannerValue.of("adm1", "nurl1", 200, 100))).build(),
-                        PutObject.builder().type("json").value(mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300))).build(),
+                        PutObject.builder().type("json").value(
+                                mapper.valueToTree(BannerValue.of("adm1", "nurl1", 200, 100))).build(),
+                        PutObject.builder().type("json").value(
+                                mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300))).build(),
                         PutObject.builder().type("xml").value(new TextNode(adm3)).build(),
                         PutObject.builder().type("xml").value(new TextNode(adm4)).build()
                 );
@@ -692,9 +696,10 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder().type("json").value(mapper.valueToTree(bid1)).build(),
                         PutObject.builder().type("json").value(mapper.valueToTree(bid2)).build(),
                         PutObject.builder().type("xml").value(new TextNode("adm1")).build(),
-                        PutObject.builder().type("xml").value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                                "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
-                                "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build());
+                        PutObject.builder().type("xml").value(
+                                new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
+                                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
+                                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build());
     }
 
     @Test
@@ -804,7 +809,7 @@ public class CacheServiceTest extends VertxTest {
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
         final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
-                emptyList(), "", expiredTimeout);
+                emptySet(), "", expiredTimeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -814,7 +819,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptyList(), null, null);
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -842,7 +847,8 @@ public class CacheServiceTest extends VertxTest {
                 .willReturn("https://test-event.com/event?t=imp&b=biddid1&f=b&a=account");
 
         // when
-        cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singletonList("bidder1"), "account", timeout);
+        cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
+                timeout);
 
         // then
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()

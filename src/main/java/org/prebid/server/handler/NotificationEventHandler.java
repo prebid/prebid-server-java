@@ -104,6 +104,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         if (exception instanceof PreBidException) {
             return Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build());
         }
+        logger.warn("Error occurred while fetching account", exception);
         return Future.failedFuture(exception);
     }
 
@@ -132,7 +133,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private void respondWithOkStatus(RoutingContext context, boolean respondWithPixel) {
         if (respondWithPixel) {
-            context.response().putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
+            context.response()
+                    .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
                     .end(Buffer.buffer(trackingPixel.getContent()));
         } else {
             context.response().end();
@@ -140,20 +142,20 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWithBadStatus(RoutingContext context, String message) {
-        respondWithError(context, message, HttpResponseStatus.BAD_REQUEST);
+        respondWithError(context, HttpResponseStatus.BAD_REQUEST, message);
     }
 
     private static void respondWithUnauthorized(RoutingContext context, String message) {
-        respondWithError(context, message, HttpResponseStatus.UNAUTHORIZED);
+        respondWithError(context, HttpResponseStatus.UNAUTHORIZED, message);
     }
 
     private static void respondWithServerError(RoutingContext context, Throwable exception) {
         final String message = "Error occurred while fetching account";
         logger.warn(message, exception);
-        respondWithError(context, message, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        respondWithError(context, HttpResponseStatus.INTERNAL_SERVER_ERROR, message);
     }
 
-    private static void respondWithError(RoutingContext context, String message, HttpResponseStatus status) {
+    private static void respondWithError(RoutingContext context, HttpResponseStatus status, String message) {
         context.response().setStatusCode(status.code()).end(message);
     }
 

@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -146,30 +147,29 @@ public class CacheService {
     /**
      * Makes cache for Vtrack puts.
      * <p>
-     * Modify vast value in putObjects and stores in the cache.
+     * Modify VAST value in putObjects and stores in the cache.
      * <p>
      * The returned result will always have the number of elements equals putObjects list size.
      */
-    public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, List<String> updatableBidders,
+    public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
                                                     String accountId, Timeout timeout) {
-        final List<PutObject> updatedVtrackPuts = updatePutObjects(putObjects, updatableBidders, accountId);
-        final int size = updatedVtrackPuts == null ? 0 : updatedVtrackPuts.size();
-        return makeRequest(BidCacheRequest.of(updatedVtrackPuts), size, timeout);
+        final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate, accountId);
+        return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout);
     }
 
     /**
-     * Modify vast value in putObjects.
+     * Modify VAST value in putObjects.
      */
-    private List<PutObject> updatePutObjects(List<PutObject> putObjects, List<String> updatableBidders,
+    private List<PutObject> updatePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
                                              String accountId) {
-        if (CollectionUtils.isEmpty(updatableBidders)) {
+        if (CollectionUtils.isEmpty(biddersAllowingVastUpdate)) {
             return putObjects;
         }
 
         final List<PutObject> updatedPutObjects = new ArrayList<>();
         for (PutObject putObject : putObjects) {
             final JsonNode value = putObject.getValue();
-            if (updatableBidders.contains(putObject.getBidder()) && value != null) {
+            if (biddersAllowingVastUpdate.contains(putObject.getBidder()) && value != null) {
                 final String updatedVastValue = modifyVastXml(value.asText(), putObject.getBidid(), accountId);
                 final PutObject updatedPutObject = putObject.toBuilder().value(new TextNode(updatedVastValue)).build();
                 updatedPutObjects.add(updatedPutObject);
