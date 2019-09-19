@@ -393,7 +393,7 @@ public class AuctionRequestFactory {
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                    .build()));
+                    .build(), extBidRequest.getRubicon()));
         } else {
             result = null;
         }

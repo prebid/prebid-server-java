@@ -575,8 +575,7 @@ public class ExchangeService {
                 ? ExtRequestPrebidData.of(Collections.singletonList(bidder))
                 : null;
         return Json.mapper.valueToTree(ExtBidRequest.of(requestExt.getPrebid().toBuilder()
-                .data(prebidData)
-                .build()));
+                .data(prebidData).build(), requestExt.getRubicon()));
     }
 
     /**

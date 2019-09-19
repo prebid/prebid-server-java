@@ -30,4 +30,6 @@ public class ExtImpRubicon {
     ObjectNode visitor;
 
     RubiconVideoParams video;
+
+    ExtImpRubiconDebug debug;
 }

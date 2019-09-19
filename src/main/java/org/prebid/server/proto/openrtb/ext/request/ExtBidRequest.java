@@ -14,4 +14,9 @@ public class ExtBidRequest {
      * Defines the contract for bidrequest.ext.prebid
      */
     ExtRequestPrebid prebid;
+
+    /**
+     * Defines the contract for bidrequest.ext.rubicon
+     */
+    ExtRequestRubicon rubicon;
 }

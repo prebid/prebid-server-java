@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestRubicon;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -168,7 +169,8 @@ public class AmpRequestFactory {
             result = bidRequest.toBuilder()
                     .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
                     .test(ObjectUtils.defaultIfNull(updatedTest, test))
-                    .ext(extBidRequestNode(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
+                    .ext(extBidRequestNode(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug,
+                            extBidRequest.getRubicon()))
                     .build();
         } else {
             result = bidRequest;
@@ -422,7 +424,7 @@ public class AmpRequestFactory {
      */
     private static ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
                                                 boolean setDefaultTargeting, boolean setDefaultCache,
-                                                Integer updatedDebug) {
+                                                Integer updatedDebug, ExtRequestRubicon extRequestRubicon) {
         final ObjectNode result;
         if (setDefaultTargeting || setDefaultCache || updatedDebug != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
@@ -440,7 +442,7 @@ public class AmpRequestFactory {
                 prebidBuilder.debug(updatedDebug);
             }
 
-            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder.build()));
+            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder.build(), extRequestRubicon));
         } else {
             result = bidRequest.getExt();
         }

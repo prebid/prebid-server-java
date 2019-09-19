@@ -37,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.RequestValidator;
@@ -443,7 +444,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(new TextNode("low"), null, null, null, null))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         // when
@@ -469,7 +470,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(new TextNode("invalid"),
                                 null, null, null, null))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         // when
@@ -490,7 +491,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(null, null,
                                 null, null, null))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         // when
@@ -515,7 +516,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(null, null,
                                 null, null, null))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         // when
@@ -539,7 +540,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(null, null,
                                 null, null, null))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         // when
@@ -573,7 +574,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .aliases(singletonMap("requestScopedBidderAlias", "bidder1"))
                         .targeting(ExtRequestTargeting.of(null, null, null,
                                 null, null))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         given(bidderCatalog.isAlias("configScopedBidderAlias")).willReturn(true);
@@ -600,8 +601,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .debug(1)
-                        .build())))
+                        .debug(1).build(), null)))
                 .build());
 
         // when
