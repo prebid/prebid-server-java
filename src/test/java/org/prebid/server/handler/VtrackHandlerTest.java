@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,16 +19,24 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+import static java.util.function.Function.identity;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -40,12 +49,15 @@ public class VtrackHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private CacheService cacheService;
+    private ApplicationSettings applicationSettings;
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
+    private CacheService cacheService;
+    @Mock
     private TimeoutFactory timeoutFactory;
 
+    private VtrackHandler handler;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -53,20 +65,29 @@ public class VtrackHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse httpResponse;
 
-    private VtrackHandler handler;
-
     @Before
     public void setUp() {
-        handler = new VtrackHandler(cacheService, bidderCatalog, timeoutFactory, 2000);
-
-        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
-        given(routingContext.response().setStatusCode(anyInt())).willReturn(httpResponse);
-
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
         given(httpRequest.getParam("a")).willReturn("accountId");
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        handler = new VtrackHandler(applicationSettings, bidderCatalog, cacheService, timeoutFactory, 2000);
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestWhenAccountParameterIsMissing() {
+        // given
+        given(httpRequest.getParam("a")).willReturn(null);
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Account 'a' is required query parameter and can't be empty"));
     }
 
     @Test
@@ -78,121 +99,162 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Incoming request has no body"));
-        verifyZeroInteractions(cacheService);
     }
 
     @Test
-    public void shouldRespondWithBadRequestWhenBodyIsInvalid() {
+    public void shouldRespondWithBadRequestWhenBodyCannotBeParsed() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("none"));
+        given(routingContext.getBody()).willReturn(Buffer.buffer("invalid"));
 
         // when
         handler.handle(routingContext);
 
         // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Failed to parse /vtrack request body"));
+        verify(httpResponse).end(eq("Failed to parse request body"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestWhenBidIdIsMissing() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(identity()));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("'bidid' is required field and can't be empty"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestWhenBidderIsMissing() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId")));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("'bidder' is required field and can't be empty"));
+    }
+
+    @Test
+    public void shouldRespondWithInternalServerErrorWhenFetchingAccountFails() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture("error"));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
         verifyZeroInteractions(cacheService);
+
+        verify(httpResponse).setStatusCode(eq(500));
+        verify(httpResponse).end(eq("Error occurred while fetching account: error"));
     }
 
     @Test
     public void shouldRespondWithInternalServerErrorWhenCacheServiceReturnFailure() {
         // given
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
         given(cacheService.cachePutObjects(any(), any(), any(), any()))
-                .willReturn(Future.failedFuture("Timeout has been exceeded"));
+                .willReturn(Future.failedFuture("error"));
 
         // when
         handler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).end(eq("Timeout has been exceeded"));
+        verify(httpResponse).end(eq("Error occurred while sending request to cache: error"));
     }
 
     @Test
-    public void shouldTolerateRequestWithoutAccountParameterWhenNotContainsModifiedBidders() {
+    public void shouldTolerateNotFoundAccount() {
         // given
-        given(httpRequest.getParam("a")).willReturn(null);
+        final List<PutObject> putObjects = singletonList(
+                PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(putObjects));
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("not found")));
         given(cacheService.cachePutObjects(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidCacheResponse.of(Collections.emptyList())));
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(200));
-        verify(httpResponse).end(eq("{\"responses\":[]}"));
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any());
     }
 
     @Test
-    public void shouldRespondWithBadRequestWhenRequestAccountParameterIsMissingAndContainsModifiedBidders() {
+    public void shouldSendToCacheExpectedPutsAndUpdatableBidders() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("" +
-                "{\"puts\":[{\n" +
-                "    \"bidid\": \"BIDID1\",\n" +
-                "    \"bidder\": \"BIDDER\",\n" +
-                "    \"value\": \"<VAST…/VAST>\"\n" +
-                "}," +
-                "{" +
-                "    \"bidid\": \"BIDID2\",\n" +
-                "    \"bidder\": \"UPDATABLE_BIDDER\",\n" +
-                "    \"value\": \"<VAST…/VAST>\"\n" +
-                "}]}"));
-        given(bidderCatalog.isModifyingVastXmlAllowed("UPDATABLE_BIDDER")).willReturn(true);
-        given(httpRequest.getParam("a")).willReturn(null);
+        final List<PutObject> putObjects = asList(
+                PutObject.builder().bidid("bidId1").bidder("bidder").value(new TextNode("value1")).build(),
+                PutObject.builder().bidid("bidId2").bidder("updatable_bidder").value(new TextNode("value2")).build());
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(putObjects));
+
+        given(bidderCatalog.isModifyingVastXmlAllowed("updatable_bidder")).willReturn(true);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(
+                        asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Request must contain 'a'=accountId parameter"));
-        verifyZeroInteractions(cacheService);
-    }
-
-    @Test
-    public void shouldRespondWithExpectedParameters() {
-        // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("" +
-                "{\"puts\":[{\n" +
-                "    \"bidid\": \"BIDID1\",\n" +
-                "    \"bidder\": \"BIDDER\",\n" +
-                "    \"value\": \"<VAST…/VAST>\"\n" +
-                "}," +
-                "{" +
-                "    \"bidid\": \"BIDID2\",\n" +
-                "    \"bidder\": \"UPDATABLE_BIDDER\",\n" +
-                "    \"value\": \"<VAST…/VAST>\"\n" +
-                "}]}"));
-
-        final BidCacheResponse cacheServiceResult = BidCacheResponse.of(Arrays.asList(
-                CacheObject.of("uuid1"), CacheObject.of("uuid2")));
-
-        given(bidderCatalog.isModifyingVastXmlAllowed("UPDATABLE_BIDDER")).willReturn(true);
-        given(cacheService.cachePutObjects(anyList(), anyList(), anyString(), any()))
-                .willReturn(Future.succeededFuture(cacheServiceResult));
-
-        // when
-        handler.handle(routingContext);
-
-        // then
-        final PutObject expectedFirstPut = PutObject.builder()
-                .bidid("BIDID1")
-                .bidder("BIDDER")
-                .value(new TextNode("<VAST…/VAST>"))
-                .build();
-        final PutObject expectedSecondPut = PutObject.builder()
-                .bidid("BIDID2")
-                .bidder("UPDATABLE_BIDDER")
-                .value(new TextNode("<VAST…/VAST>"))
-                .build();
-
-        final List<PutObject> expectedPuts = Arrays.asList(expectedFirstPut, expectedSecondPut);
-        verify(cacheService).cachePutObjects(eq(expectedPuts), eq(Collections.singletonList("UPDATABLE_BIDDER")),
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")),
                 eq("accountId"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
+    }
+
+    @SafeVarargs
+    private static Buffer givenVtrackRequest(
+            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers) {
+
+        final List<PutObject> putObjects;
+        if (customizers != null) {
+            putObjects = new ArrayList<>();
+            for (Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder> customizer : customizers) {
+                putObjects.add(customizer.apply(PutObject.builder()).build());
+            }
+        } else {
+            putObjects = null;
+        }
+
+        return givenVtrackRequest(putObjects);
+    }
+
+    private static Buffer givenVtrackRequest(List<PutObject> putObjects) {
+        return Buffer.buffer(Json.encode(singletonMap("puts", putObjects)));
     }
 }
