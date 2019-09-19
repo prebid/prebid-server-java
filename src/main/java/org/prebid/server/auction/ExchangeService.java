@@ -164,7 +164,8 @@ public class ExchangeService {
                         toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
                                 debugEnabled))
                 .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
+                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
+                                account));
     }
 
     /**
