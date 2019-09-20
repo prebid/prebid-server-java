@@ -47,6 +47,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -65,7 +66,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
-    private static final String BLACKLISTED_ACCTS = "bad_acc";
+    private static final List<String> BLACKLISTED_ACCTS = singletonList("bad_acc");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();

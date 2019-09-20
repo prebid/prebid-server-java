@@ -63,7 +63,7 @@ public class AuctionRequestFactory {
 
     private final long maxRequestSize;
     private final String adServerCurrency;
-    private final String blacklistedAccts;
+    private final List<String> blacklistedAccts;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
@@ -75,7 +75,7 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize, String adServerCurrency, String blacklistedAccts,
+            long maxRequestSize, String adServerCurrency, List<String> blacklistedAccts,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
             UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
             InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
@@ -536,7 +536,7 @@ public class AuctionRequestFactory {
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
 
-        if (StringUtils.isNotBlank(blacklistedAccts) && StringUtils.isNotBlank(accountId)
+        if (CollectionUtils.isNotEmpty(blacklistedAccts) && StringUtils.isNotBlank(accountId)
                 && blacklistedAccts.contains(accountId)) {
             throw new InvalidRequestException(String.format("Prebid-server has blacklisted Account ID: %s, please "
                     + "reach out to the prebid server host.", accountId));
