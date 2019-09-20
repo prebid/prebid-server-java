@@ -59,6 +59,7 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -74,7 +75,7 @@ import static org.mockito.BDDMockito.given;
 public class RequestValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
-    private static final String BLACKLISTED_APPS = "bad_app";
+    private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();

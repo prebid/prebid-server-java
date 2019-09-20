@@ -85,17 +85,17 @@ public class RequestValidator {
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
-    private final String blacklistedApps;
+    private final List<String> blacklistedApps;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest.
      */
     public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator,
-                            String blacklistedApps) {
+                            List<String> blacklistedApps) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
-        this.blacklistedApps = blacklistedApps;
+        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
     }
 
     /**
@@ -365,7 +365,7 @@ public class RequestValidator {
     private void validateApp(App app) throws ValidationException {
         if (app != null) {
             final String appId = app.getId();
-            if (StringUtils.isNotBlank(blacklistedApps) && StringUtils.isNotBlank(appId)
+            if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
                     && blacklistedApps.contains(appId)) {
                 throw new ValidationException("Prebid-server does not process requests from App ID: %s", appId);
             }

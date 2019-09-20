@@ -67,6 +67,8 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
@@ -345,7 +347,10 @@ public class ServiceConfiguration {
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
                                       BidderParamValidator bidderParamValidator,
-                                      @Value("${blacklisted-apps:#{null}}") String blacklistedApps) {
+                                      @Value("${auction.blacklisted-apps}") String blacklistedAppsString) {
+        final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
         return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
     }
 
