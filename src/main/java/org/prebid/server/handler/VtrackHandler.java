@@ -120,7 +120,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             respondWithServerError(context, "Error occurred while fetching account", asyncAccount.cause());
         } else {
             // insert impression tracking if account allows events and bidder allows VAST modification
-            final Set<String> biddersAllowingVastUpdate = asyncAccount.result().getEventsEnabled()
+            final Set<String> biddersAllowingVastUpdate = Objects.equals(asyncAccount.result().getEventsEnabled(), true)
                     ? biddersAllowingVastUpdate(vtrackPuts)
                     : Collections.emptySet();
 
