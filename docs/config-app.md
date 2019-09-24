@@ -185,6 +185,7 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `host-cookie.cookie-name` - set the name value for host cookie.
 - `host-cookie.domain` - set the domain value for host cookie.
 - `host-cookie.ttl-days` - set the cookie ttl in days.
+- `host-cookie.max-cookie-size-bytes` - a size limit for UIDs Cookie. Valid values are `0` (disabled) and `>500`.
 
 ## Google Recaptcha
 - `recaptcha-url` - the url for Google Recaptcha service to submit user verification.
