@@ -37,6 +37,8 @@ public class UidsCookieServiceTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String ADNXS = "adnxs";
+    // Zero means size checking is disabled
+    private static final int MAX_COOKIE_SIZE_BYTES = 0;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,7 +50,8 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
-        uidsCookieService = new UidsCookieService("trp_optout", "true", null, null, "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService("trp_optout", "true", null,
+                null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES);
     }
 
     @Test
@@ -177,7 +180,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieNameNotSpecified() {
         // given
-        uidsCookieService = new UidsCookieService(null, "true", null, null, "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(null, "true", null, null,
+                "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES);
         given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
@@ -190,7 +194,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieValueNotSpecified() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", null, null, null, "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService("trp_optout", null, null, null,
+                "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES);
         given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
@@ -203,7 +208,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon",
+                "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES);
         given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("khaos", "abc123")));
 
         // when
@@ -216,7 +222,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsPresentButDiffers() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon",
+                "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES);
 
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         given(routingContext.cookies()).willReturn(new HashSet<>(asList(
@@ -248,6 +255,33 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(uidsCookie).isNotNull();
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
         assertThat(uidsCookie.uidFrom("audienceNetwork")).isNull();
+    }
+
+
+    @Test
+    public void toCookieShouldEnforceMaxCookieSizeAndRemoveAUidWithCloserExpirationDate() {
+        // given
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build())
+                .updateUid(RUBICON, "rubiconUid")
+                .updateUid("conversant", "conversantUid")
+                .updateUid(ADNXS, "adnxsUid");
+
+        //although this value is not a valid one (a value from 0 to 500 is), it is used only for test purposes, as
+        // the size of uidsCookie above is 218, therefore it is expected to be modified.
+        final int maxCookieSizeBytes = 100;
+        uidsCookieService = new UidsCookieService("trp_optout", "true", null,
+                null, "cookie-domain", 90, maxCookieSizeBytes);
+
+        // when
+        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
+
+        // then
+        final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).getUids();
+
+        assertThat(uids).hasSize(1);
+        assertThat(uids.get(ADNXS).getUid()).isEqualTo("adnxsUid");
+        assertThat(uids.get(ADNXS).getExpires().toInstant())
+                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
     @Test
@@ -313,7 +347,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldParseHostCookie() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", "true", null, "khaos", "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService("trp_optout", "true", null,
+                "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES);
 
         // when
         final String hostCookie = uidsCookieService.parseHostCookie(singletonMap("khaos", "userId"));
