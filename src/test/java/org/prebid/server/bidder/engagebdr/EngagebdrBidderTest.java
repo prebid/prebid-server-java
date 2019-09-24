@@ -27,6 +27,7 @@ import java.util.function.Function;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -52,87 +53,46 @@ public class EngagebdrBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpContainsAudio() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .audio(Audio.builder().build())
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.audio(Audio.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = engagebdrBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Ignoring imp id=impId, invalid MediaType" +
-                " EngageBDR only supports Banner, Video and Native");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                BidderError.badInput("Ignoring imp id=123, invalid MediaType EngageBDR only supports Banner, " +
+                        "Video and Native"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = engagebdrBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Ignoring imp id=null, error while decoding"
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Ignoring imp id=123, error while decoding"
                 + " impExt, err");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpExtSspidIsBlankCouldNotBeParsed() {
+    public void makeHttpRequestsShouldReturnErrorWhenImpExtSspidIsBlank() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEngagebdr.of(""))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEngagebdr.of("")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = engagebdrBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Ignoring imp id=null, no sspid present");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorsForImps() {
-        // given
-        final Imp impWithBlankSspid = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEngagebdr.of(""))))
-                .build();
-        final Imp impWithInvalidSspid = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                .build();
-        final Imp audioImp = Imp.builder().audio(Audio.builder().build()).build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(impWithInvalidSspid, impWithBlankSspid, audioImp, audioImp, impWithBlankSspid))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = engagebdrBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(5);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Ignoring imp id=null, error while decoding"
-                + " impExt, err");
-        assertThat(result.getErrors().get(1).getMessage()).startsWith("Ignoring imp id=null, no sspid present");
-        assertThat(result.getErrors().get(2).getMessage()).isEqualTo("Ignoring imp id=null, invalid MediaType" +
-                " EngageBDR only supports Banner, Video and Native");
-        assertThat(result.getErrors().get(3).getMessage()).isEqualTo("Ignoring imp id=null, invalid MediaType" +
-                " EngageBDR only supports Banner, Video and Native");
-        assertThat(result.getErrors().get(4).getMessage()).startsWith("Ignoring imp id=null, no sspid present");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                BidderError.badInput("Ignoring imp id=123, no sspid present"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -161,7 +121,7 @@ public class EngagebdrBidderTest extends VertxTest {
                 .imp(Arrays.asList(firstimpWithSspidOne, secondImpWithSspidOne))
                 .build();
         final BidRequest expectedSspidTwoBidRequest = bidRequest.toBuilder()
-                .imp(Arrays.asList(impWithSspidTwo))
+                .imp(singletonList(impWithSspidTwo))
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
@@ -190,8 +150,7 @@ public class EngagebdrBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = engagebdrBidder.makeBids(httpCall, null);
@@ -218,9 +177,7 @@ public class EngagebdrBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerWhenNoTypeProvided() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123").build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
@@ -238,9 +195,8 @@ public class EngagebdrBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnXnativeWhenXnativeProvided() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
+
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
@@ -258,9 +214,8 @@ public class EngagebdrBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoWhenVideoProvided() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build()));
+
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
@@ -280,6 +235,26 @@ public class EngagebdrBidderTest extends VertxTest {
         assertThat(engagebdrBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123"))
+                .build();
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
@@ -295,3 +270,4 @@ public class EngagebdrBidderTest extends VertxTest {
                 null);
     }
 }
+

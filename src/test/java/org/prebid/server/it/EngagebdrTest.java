@@ -67,3 +67,4 @@ public class EngagebdrTest extends IntegrationTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
+

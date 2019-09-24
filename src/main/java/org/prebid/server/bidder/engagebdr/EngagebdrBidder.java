@@ -73,10 +73,10 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 validateImp(imp);
-                final ExtImpEngagebdr extImpEngagebdr = parseImpExt(imp);
-                validateExtImp(extImpEngagebdr);
+                final String sspid = parseImpExt(imp).getSspid();
+                validateSspid(sspid);
 
-                sspidToImp.computeIfAbsent(extImpEngagebdr.getSspid(), key -> new ArrayList<>()).add(imp);
+                sspidToImp.computeIfAbsent(sspid, key -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(String.format("Ignoring imp id=%s, %s", imp.getId(), e.getMessage())));
             }
@@ -90,8 +90,8 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void validateExtImp(ExtImpEngagebdr extImpEngagebdr) {
-        if (StringUtils.isBlank(extImpEngagebdr.getSspid())) {
+    private static void validateSspid(String sspid) {
+        if (StringUtils.isBlank(sspid)) {
             throw new PreBidException("no sspid present");
         }
     }
@@ -127,7 +127,9 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
                         DEFAULT_BID_CURRENCY))
