@@ -141,7 +141,7 @@ public class GammaBidder implements Bidder<Void> {
     }
 
     private String makeUri(ExtImpGamma extImpGamma, String impId, Device device, App app) {
-        StringBuilder uri = new StringBuilder(endpointUrl)
+        final StringBuilder uri = new StringBuilder(endpointUrl)
                 .append("?id=").append(extImpGamma.getId())
                 .append("&zid=").append(extImpGamma.getZid())
                 .append("&wid=").append(extImpGamma.getWid())
@@ -242,3 +242,4 @@ public class GammaBidder implements Bidder<Void> {
         return Collections.emptyMap();
     }
 }
+
