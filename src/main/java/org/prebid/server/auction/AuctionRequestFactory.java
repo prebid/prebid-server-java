@@ -471,6 +471,8 @@ public class AuctionRequestFactory {
 
         // go through imps' bidders and figure out preconfigured aliases
         final Map<String, String> resolvedAliases = imps.stream()
+                .filter(Objects::nonNull)
+                .filter(imp -> imp.getExt() != null) // request validator is not called yet
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
                         .filter(bidder -> !aliases.containsKey(bidder))
                         .filter(bidderCatalog::isAlias))
