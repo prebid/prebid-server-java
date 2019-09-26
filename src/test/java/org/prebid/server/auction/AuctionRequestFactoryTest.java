@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -592,6 +593,23 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .containsOnly(
                         tuple("requestScopedBidderAlias", "bidder1"),
                         tuple("configScopedBidderAlias", "bidder2"));
+    }
+
+    @Test
+    public void shouldTolerateMissingImpExtWhenProcessingAliases() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(null).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("alias", "bidder"))
+                        .build())))
+                .build());
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
     }
 
     @Test
