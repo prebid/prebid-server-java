@@ -116,8 +116,9 @@ public class AmpHandlerTest extends VertxTest {
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         httpRequest.headers().add("Origin", "http://example.com");
 
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
@@ -542,8 +543,8 @@ public class AmpHandlerTest extends VertxTest {
 
         // simulate calling exception handler that is supposed to update networkerr timer value
         given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
-            ((Handler<Void>) inv.getArgument(0)).handle(null);
-            return null;
+            ((Handler<RuntimeException>) inv.getArgument(0)).handle(new RuntimeException());
+            return httpResponse;
         });
 
         // when

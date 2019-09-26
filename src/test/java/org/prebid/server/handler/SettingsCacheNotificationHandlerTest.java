@@ -34,7 +34,6 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     private CacheNotificationListener cacheNotificationListener;
 
     private SettingsCacheNotificationHandler handler;
-
     @Mock
     private RoutingContext routingContext;
     @Mock

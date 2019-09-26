@@ -93,8 +93,9 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
@@ -399,8 +400,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         // simulate calling exception handler that is supposed to update networkerr timer value
         given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
-            ((Handler<Void>) inv.getArgument(0)).handle(null);
-            return null;
+            ((Handler<RuntimeException>) inv.getArgument(0)).handle(new RuntimeException());
+            return httpResponse;
         });
 
         // when
