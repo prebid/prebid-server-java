@@ -110,21 +110,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 ? responseResult.result().getRight().getRequestTypeMetric()
                 : MetricName.openrtb2web;
 
-        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
-
-        final int status;
-        final String body;
-
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
+        final int status;
+        final String body;
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
-            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-
             status = HttpResponseStatus.OK.code();
+            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
             body = Json.encode(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
@@ -153,11 +149,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         respondWith(context, status, body, startTime, requestType, metricRequestStatus, auctionEvent);
     }
 
-    private void handleResponseException(Throwable throwable, MetricName requestType) {
-        logger.warn("Failed to send auction response", throwable);
-        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
-    }
-
     private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
                              MetricName metricRequestStatus, AuctionEvent event) {
         // don't send the response if client has gone
@@ -165,11 +156,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
             logger.warn("The client already closed connection, response will be skipped");
             metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
         } else {
-            context.response().setStatusCode(status).end(body);
+            context.response()
+                    .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
+                    .setStatusCode(status)
+                    .end(body);
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
             analyticsReporter.processEvent(event);
         }
+    }
+
+    private void handleResponseException(Throwable throwable, MetricName requestType) {
+        logger.warn("Failed to send auction response: {0}", throwable.getMessage());
+        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 }

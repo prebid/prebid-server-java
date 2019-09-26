@@ -264,17 +264,13 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext context, long startTime) {
-
-        context.response().exceptionHandler(this::handleResponseException);
+        final MetricName metricRequestStatus;
+        final List<String> errorMessages;
+        final int status;
+        final String body;
 
         final String origin = originFrom(context);
         ampEventBuilder.origin(origin);
-
-        final MetricName metricRequestStatus;
-        final List<String> errorMessages;
-
-        final int status;
-        final String body;
 
         // Add AMP headers
         context.response().headers()
@@ -328,11 +324,6 @@ public class AmpHandler implements Handler<RoutingContext> {
         return origin;
     }
 
-    private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send amp response", throwable);
-        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-    }
-
     private void respondWith(RoutingContext context, int status, String body, long startTime,
                              MetricName metricRequestStatus, AmpEvent event) {
         // don't send the response if client has gone
@@ -340,11 +331,19 @@ public class AmpHandler implements Handler<RoutingContext> {
             logger.warn("The client already closed connection, response will be skipped");
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
         } else {
-            context.response().setStatusCode(status).end(body);
+            context.response()
+                    .exceptionHandler(this::handleResponseException)
+                    .setStatusCode(status)
+                    .end(body);
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsReporter.processEvent(event);
         }
+    }
+
+    private void handleResponseException(Throwable throwable) {
+        logger.warn("Failed to send amp response: {0}", throwable.getMessage());
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 }

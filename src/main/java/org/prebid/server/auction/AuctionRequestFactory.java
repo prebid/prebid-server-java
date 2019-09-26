@@ -551,7 +551,6 @@ public class AuctionRequestFactory {
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
 
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
-
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
@@ -561,25 +560,26 @@ public class AuctionRequestFactory {
      * or publisher.id in this respective priority.
      */
     private static String resolvePublisherId(Publisher publisher) {
-        final ObjectNode extPublisherNode = publisher.getExt();
-        if (extPublisherNode != null) {
-            final String parentAccount = getParentAccountFromExt(extPublisherNode);
-            if (StringUtils.isNotBlank(parentAccount)) {
-                return parentAccount;
-            }
-        }
-        return publisher.getId();
+        final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
+        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
     }
 
     /**
      * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
      */
-    private static String getParentAccountFromExt(ObjectNode extPublisher) {
-        try {
-            return Json.mapper.convertValue(extPublisher, ExtPublisher.class).getParentAccount();
-        } catch (IllegalArgumentException e) {
+    private static String parentAccountIdFromExtPublisher(ObjectNode extPublisherNode) {
+        if (extPublisherNode == null) {
             return null;
         }
+
+        final ExtPublisher extPublisher;
+        try {
+            extPublisher = Json.mapper.convertValue(extPublisherNode, ExtPublisher.class);
+        } catch (IllegalArgumentException e) {
+            return null; // not critical
+        }
+
+        return extPublisher != null ? StringUtils.stripToNull(extPublisher.getParentAccount()) : null;
     }
 
     /**

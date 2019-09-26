@@ -28,7 +28,6 @@ public class ImplicitParametersExtractorTest {
     private final PublicSuffixList psl = new PublicSuffixListFactory().build();
 
     private ImplicitParametersExtractor extractor;
-
     @Mock
     private HttpServerRequest httpRequest;
 
