@@ -456,8 +456,9 @@ public class ServiceConfiguration {
                     .setMaxRedirects(httpClientProperties.getMaxRedirects());
 
             final RemoteFileSyncer remoteFileSyncer = RemoteFileSyncer.create(fileSyncerProperties.getDownloadUrl(),
-                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getRetryCount(),
-                    fileSyncerProperties.getRetryIntervalMs(), fileSyncerProperties.getTimeoutMs(),
+                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getTmpFilepath(),
+                    fileSyncerProperties.getRetryCount(), fileSyncerProperties.getRetryIntervalMs(),
+                    fileSyncerProperties.getTimeoutMs(), fileSyncerProperties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions), vertx);
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
