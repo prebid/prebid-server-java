@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class SharethroughBidder implements Bidder<Void> {
 
-    private static final String VERSION = "1.0.2";
+    private static final String VERSION = "1.0.3";
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.xNative;
@@ -128,7 +128,8 @@ public class SharethroughBidder implements Bidder<Void> {
      */
     private MultiMap makeHeaders(Device device, String page) {
         final MultiMap headers = HttpUtil.headers()
-                .add("Origin", SharethroughRequestUtil.getHost(page));
+                .add("Origin", SharethroughRequestUtil.getHost(page))
+                .add("Referer", page);
         final String ip = device.getIp();
         if (ip != null) {
             headers.add("X-Forwarded-For", ip);
