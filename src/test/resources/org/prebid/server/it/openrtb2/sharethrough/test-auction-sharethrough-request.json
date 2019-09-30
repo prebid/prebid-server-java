@@ -87,6 +87,16 @@
   },
   "user": {
     "ext": {
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "id"
+            }
+          ]
+        }
+      ],
       "digitrust": {
         "id": "id",
         "keyv": 123,

@@ -22,5 +22,7 @@ public class StrUriParameters {
     Integer height;
 
     Integer width;
+
+    String theTradeDeskUserId;
 }
 

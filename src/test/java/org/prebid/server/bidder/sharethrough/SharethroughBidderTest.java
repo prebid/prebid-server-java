@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -23,6 +24,9 @@ import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroug
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -141,7 +145,7 @@ public class SharethroughBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=&instant_play_capable=true&stayInIframe=false&height=10&width=20&supplyId=FGMrCMMc&strVersion=1.0.1";
+        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=&instant_play_capable=true&stayInIframe=false&height=10&width=20&supplyId=FGMrCMMc&strVersion=1.0.2";
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -163,6 +167,14 @@ public class SharethroughBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeadersDefaultParameters() {
         // given
+        final List<ExtUserEidUid> uids = Arrays.asList(
+                ExtUserEidUid.of("first", null),
+                ExtUserEidUid.of("second", null));
+        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids);
+        final ExtUser extUser = ExtUser.builder()
+                .consent("consent")
+                .eids(singletonList(extUserEid))
+                .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -170,13 +182,14 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
+                .user(User.builder().ext(Json.mapper.valueToTree(extUser)).build())
                 .build();
 
         // when
         final Result<List<HttpRequest<Void>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=&instant_play_capable=false&stayInIframe=false&height=1&width=1&supplyId=FGMrCMMc&strVersion=1.0.1";
+        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent&instant_play_capable=false&stayInIframe=false&height=1&width=1&supplyId=FGMrCMMc&strVersion=1.0.2&ttduid=first";
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
