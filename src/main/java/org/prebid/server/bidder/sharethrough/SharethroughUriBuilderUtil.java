@@ -35,6 +35,10 @@ class SharethroughUriBuilderUtil {
         if (StringUtils.isNotBlank(ttduid)) {
             uriBuilder.addParameter("ttduid", ttduid);
         }
+        final String stxuid = params.getSharethroughUserId();
+        if (StringUtils.isNotBlank(stxuid)) {
+            uriBuilder.addParameter("stxuid", stxuid);
+        }
 
         return uriBuilder.toString();
     }

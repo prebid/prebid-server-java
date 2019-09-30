@@ -24,5 +24,7 @@ public class StrUriParameters {
     Integer width;
 
     String theTradeDeskUserId;
+
+    String sharethroughUserId;
 }
 
