@@ -89,7 +89,7 @@ public class SharethroughBidder implements Bidder<Void> {
         final UserInfo userInfo = SharethroughRequestUtil.getUserInfo(request.getUser());
         final String ttdUid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
         final String consent = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent);
-        final String buyeruid = SharethroughRequestUtil.getBuyerId(request.getUser());
+        final String stxuid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid);
 
         final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
 
@@ -98,7 +98,7 @@ public class SharethroughBidder implements Bidder<Void> {
             final ExtImpSharethrough extImpStr = Json.mapper.<ExtPrebid<?, ExtImpSharethrough>>convertValue(
                     imp.getExt(), SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
             strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, canAutoPlay, ttdUid,
-                    buyeruid));
+                    stxuid));
         }
         return strUriParameters;
     }

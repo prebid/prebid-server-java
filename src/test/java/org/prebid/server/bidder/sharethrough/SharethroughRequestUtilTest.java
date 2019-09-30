@@ -67,12 +67,13 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void retrieveFromUserInfoShouldReturnEmptyStringWhenUserInfoOrParameterIsNull() {
         // given
-        final UserInfo userInfo = UserInfo.of(null, null);
+        final UserInfo userInfo = UserInfo.of(null, null, null);
 
         // when and then
         assertThat(SharethroughRequestUtil.retrieveFromUserInfo(null, UserInfo::getConsent)).isEmpty();
         assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEmpty();
         assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEmpty();
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEmpty();
     }
 
     @Test
@@ -80,20 +81,22 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // given
         final String consent = "consent";
         final String ttduid = "ttduid";
-        final UserInfo userInfo = UserInfo.of(consent, ttduid);
+        final String stxuid = "stxuid";
+        final UserInfo userInfo = UserInfo.of(consent, ttduid, stxuid);
 
         // when and then
         assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEqualTo(consent);
         assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEqualTo(ttduid);
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEqualTo(stxuid);
     }
 
     @Test
     public void getUserInfoShouldReturnUserInfoWithNullWhenUserOrUserExtIsNull() {
         // given
-        final User user = User.builder().ext(null).build();
+        final User user = User.builder().build();
 
         // when and then
-        final UserInfo expected = UserInfo.of(null, null);
+        final UserInfo expected = UserInfo.of(null, null, null);
         assertThat(SharethroughRequestUtil.getUserInfo(null)).isEqualTo(expected);
         assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
@@ -106,7 +109,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        final UserInfo expected = UserInfo.of(consent, null);
+        final UserInfo expected = UserInfo.of(consent, null, null);
         assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
@@ -123,10 +126,10 @@ public class SharethroughRequestUtilTest extends VertxTest {
                 .consent(consent)
                 .eids(Collections.singletonList(extUserEid))
                 .build();
-        final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().buyeruid("buyerid").ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        final UserInfo expected = UserInfo.of(consent, "first");
+        final UserInfo expected = UserInfo.of(consent, "first", "buyerid");
         assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
@@ -149,7 +152,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        final UserInfo expected = UserInfo.of(null, "firstFromSecond");
+        final UserInfo expected = UserInfo.of(null, "firstFromSecond", null);
         assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 

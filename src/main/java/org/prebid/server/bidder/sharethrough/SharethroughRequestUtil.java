@@ -103,8 +103,10 @@ class SharethroughRequestUtil {
         try {
             final UserExt userExt = extUserNode != null ? Json.mapper.treeToValue(extUserNode, UserExt.class) : null;
             final String consent = userExt != null ? userExt.getConsent() : null;
+            final String stxuid = user != null ? user.getBuyeruid() : null;
+
             final String ttdUid = parseTtdUid(userExt);
-            return UserInfo.of(consent, ttdUid);
+            return UserInfo.of(consent, ttdUid, stxuid);
         } catch (JsonProcessingException e) {
             return null;
         }

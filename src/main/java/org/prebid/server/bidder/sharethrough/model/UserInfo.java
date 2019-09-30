@@ -10,5 +10,7 @@ public class UserInfo {
     String consent;
 
     String ttdUid;
+
+    String stxuid;
 }
 
