@@ -207,6 +207,17 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 - `gdpr.geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
 
+## Remote file syncer
+- `remote-file-syncer.download-url`: - url to external file.
+- `remote-file-syncer.save-filepath`: - full path to the usable file, which will be consumed by internal service.
+- `remote-file-syncer.tmp-filepath`: - full path to the temporary file.
+- `remote-file-syncer.retry-count`: - number of available retries.
+- `remote-file-syncer.retry-interval-ms`: - time interval between retries.
+- `remote-file-syncer.timeout-ms`: - operation timeout for downloading file.
+- `remote-file-syncer.update-interval-ms`: - time interval between updates of the usable file.
+- `remote-file-syncer.http-client.connect-timeout-ms`: - timeout for connecting to the external source. 
+- `remote-file-syncer.http-client.max-redirects`: - number of available redirects.
+
 ## Auction (Legacy)
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
 - `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
