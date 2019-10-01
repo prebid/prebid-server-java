@@ -13,10 +13,8 @@ import java.util.List;
 @Value
 public class ExtImpSharethrough {
 
-    @JsonProperty("pkey")
     String pkey;
 
-    @JsonProperty("iframe")
     Boolean iframe;
 
     @JsonProperty("iframeSize")
