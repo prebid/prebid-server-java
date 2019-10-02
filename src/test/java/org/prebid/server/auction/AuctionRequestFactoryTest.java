@@ -131,9 +131,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
         // given
-        factory = new AuctionRequestFactory(1000, true, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         givenValidBidRequest();
 
@@ -150,12 +150,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() throws JsonProcessingException {
+    public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
 
-        factory = new AuctionRequestFactory(1000, true, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));

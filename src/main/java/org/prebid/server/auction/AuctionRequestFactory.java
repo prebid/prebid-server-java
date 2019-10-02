@@ -77,8 +77,7 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize,boolean enforceValidAccount,
-            String adServerCurrency, List<String> blacklistedAccts,
+            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccts,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
             UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
             InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
@@ -559,8 +558,8 @@ public class AuctionRequestFactory {
      */
     private Future<Account> responseToMissingAccount(String accountId) {
         return enforceValidAccount
-                    ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
-                    : Future.succeededFuture(emptyAccount(accountId));
+                ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
+                : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**
