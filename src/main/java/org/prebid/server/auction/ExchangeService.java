@@ -26,6 +26,7 @@ import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -144,8 +145,8 @@ public class ExchangeService {
 
         return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
-                .compose(impsRequiredRequest -> extractBidderRequests(bidRequest, impsRequiredRequest, requestExt,
-                        uidsCookie, aliases, isGdprEnforced, timeout))
+                .compose(impsRequiredRequest -> extractBidderRequests(context, impsRequiredRequest, requestExt,
+                        aliases, isGdprEnforced))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
                                 requestTypeMetric))
@@ -164,7 +165,8 @@ public class ExchangeService {
                         toBidResponse(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
                                 debugEnabled))
                 .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse));
+                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
+                                account));
     }
 
     /**
@@ -252,10 +254,9 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
-    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, List<Imp> requestedImps,
-                                                              ExtBidRequest requestExt, UidsCookie uidsCookie,
-                                                              Map<String, String> aliases, Boolean isGdprEnforced,
-                                                              Timeout timeout) {
+    private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context, List<Imp> requestedImps,
+                                                              ExtBidRequest requestExt, Map<String, String> aliases,
+                                                              Boolean isGdprEnforced) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
                 .filter(imp -> imp.getExt() != null)
@@ -269,7 +270,7 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return makeBidderRequests(bidders, aliases, bidRequest, requestExt, uidsCookie, imps, isGdprEnforced, timeout);
+        return makeBidderRequests(bidders, context, aliases, requestExt, imps, isGdprEnforced);
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -298,9 +299,10 @@ public class ExchangeService {
      * that don't have first party data allowed.
      */
     private Future<List<BidderRequest>> makeBidderRequests(
-            List<String> bidders, Map<String, String> aliases, BidRequest bidRequest, ExtBidRequest requestExt,
-            UidsCookie uidsCookie, List<Imp> imps, Boolean isGdprEnforced, Timeout timeout) {
+            List<String> bidders, AuctionContext context, Map<String, String> aliases,
+            ExtBidRequest requestExt, List<Imp> imps, Boolean isGdprEnforced) {
 
+        final BidRequest bidRequest = context.getBidRequest();
         final ExtUser extUser = extUser(bidRequest.getUser());
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
@@ -309,11 +311,11 @@ public class ExchangeService {
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
             bidderToUser.put(bidder, prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
-                    uidsCookie, firstPartyDataBidders.contains(bidder)));
+                    context.getUidsCookie(), firstPartyDataBidders.contains(bidder)));
         }
 
         return privacyEnforcementService
-                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, isGdprEnforced, timeout)
+                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, isGdprEnforced, context.getTimeout())
                 .map(bidderToPrivacyEnforcementResult -> getBidderRequests(bidderToPrivacyEnforcementResult,
                         bidRequest, requestExt, imps, firstPartyDataBidders));
     }
@@ -428,13 +430,18 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts UID from uids from body or {@link UidsCookie}. If absent returns null.
+     * Extracts UID from uids from body or {@link UidsCookie}.
      */
     private String extractUid(Map<String, String> uidsBody, UidsCookie uidsCookie, String bidder) {
         final String uid = uidsBody.get(bidder);
-        return StringUtils.isNotBlank(uid)
-                ? uid
-                : uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName());
+        return StringUtils.isNotBlank(uid) ? uid : uidsCookie.uidFrom(resolveCookieFamilyName(bidder));
+    }
+
+    /**
+     * Extract cookie family name from bidder's {@link Usersyncer} if it is enabled. If not - return null.
+     */
+    private String resolveCookieFamilyName(String bidder) {
+        return bidderCatalog.isActive(bidder) ? bidderCatalog.usersyncerByName(bidder).getCookieFamilyName() : null;
     }
 
     /**

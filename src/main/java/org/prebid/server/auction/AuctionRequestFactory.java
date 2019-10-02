@@ -26,6 +26,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -62,6 +63,7 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
     private final long maxRequestSize;
+    private final boolean enforceValidAccount;
     private final String adServerCurrency;
     private final List<String> blacklistedAccts;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -75,13 +77,15 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize, String adServerCurrency, List<String> blacklistedAccts,
+            long maxRequestSize,boolean enforceValidAccount,
+            String adServerCurrency, List<String> blacklistedAccts,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
             UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
             InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
+        this.enforceValidAccount = enforceValidAccount;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.blacklistedAccts = Objects.requireNonNull(blacklistedAccts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -473,6 +477,8 @@ public class AuctionRequestFactory {
 
         // go through imps' bidders and figure out preconfigured aliases
         final Map<String, String> resolvedAliases = imps.stream()
+                .filter(Objects::nonNull)
+                .filter(imp -> imp.getExt() != null) // request validator is not called yet
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
                         .filter(bidder -> !aliases.containsKey(bidder))
                         .filter(bidderCatalog::isAlias))
@@ -543,9 +549,18 @@ public class AuctionRequestFactory {
         }
 
         return StringUtils.isEmpty(accountId)
-                ? Future.succeededFuture(emptyAccount(accountId))
+                ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(exception -> accountFallback(exception, accountId));
+                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));
+    }
+
+    /**
+     * Returns response depending on enforceValidAccount flag.
+     */
+    private Future<Account> responseToMissingAccount(String accountId) {
+        return enforceValidAccount
+                    ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
+                    : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**
@@ -559,7 +574,6 @@ public class AuctionRequestFactory {
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
 
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
-
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
@@ -569,37 +583,36 @@ public class AuctionRequestFactory {
      * or publisher.id in this respective priority.
      */
     private static String resolvePublisherId(Publisher publisher) {
-        final ObjectNode extPublisherNode = publisher.getExt();
-        if (extPublisherNode != null) {
-            final String parentAccount = getParentAccountFromExt(extPublisherNode);
-            if (StringUtils.isNotBlank(parentAccount)) {
-                return parentAccount;
-            }
-        }
-        return publisher.getId();
+        final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
+        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
     }
 
     /**
      * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
      */
-    private static String getParentAccountFromExt(ObjectNode extPublisher) {
-        try {
-            return Json.mapper.convertValue(extPublisher, ExtPublisher.class).getParentAccount();
-        } catch (IllegalArgumentException e) {
+    private static String parentAccountIdFromExtPublisher(ObjectNode extPublisherNode) {
+        if (extPublisherNode == null) {
             return null;
         }
+
+        final ExtPublisher extPublisher;
+        try {
+            extPublisher = Json.mapper.convertValue(extPublisherNode, ExtPublisher.class);
+        } catch (IllegalArgumentException e) {
+            return null; // not critical
+        }
+
+        return extPublisher != null ? StringUtils.stripToNull(extPublisher.getParentAccount()) : null;
     }
 
     /**
-     * Returns empty account if it is not found or any exception occurred.
-     * <p>
-     * Note: account data is not critical, so we don't want to fail whole request in case of error.
+     * Log any not {@link PreBidException} errors. Returns response provided in method parameters.
      */
-    private static Account accountFallback(Throwable exception, String accountId) {
+    private static Future<Account> accountFallback(Throwable exception, Future<Account> response) {
         if (!(exception instanceof PreBidException)) {
             logger.warn("Error occurred while fetching account", exception);
         }
-        return emptyAccount(accountId);
+        return response;
     }
 
     /**

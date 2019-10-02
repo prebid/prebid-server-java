@@ -54,6 +54,7 @@ metrics:
   accounts:
     default-verbosity: none
 settings:
+  enforce-valid-account: false
   database:
     pool-size: 20
   in-memory-cache:

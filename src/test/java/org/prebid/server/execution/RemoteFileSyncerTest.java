@@ -55,22 +55,16 @@ public class RemoteFileSyncerTest extends VertxTest {
 
     @Mock
     private Vertx vertx;
-
     @Mock
     private FileSystem fileSystem;
-
     @Mock
     private HttpClient httpClient;
-
     @Mock
     private Consumer<String> filePathConsumer;
-
     @Mock
     private AsyncFile asyncFile;
-
     @Mock
     private HttpClientRequest httpClientRequest;
-
     @Mock
     private HttpClientResponse httpClientResponse;
 

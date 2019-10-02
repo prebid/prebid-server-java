@@ -301,11 +301,13 @@ public class WebConfiguration {
 
     @Bean
     VtrackHandler vtrackHandler(
-            CacheService cacheService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
+            CacheService cacheService,
             TimeoutFactory timeoutFactory,
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs) {
-        return new VtrackHandler(cacheService, bidderCatalog, timeoutFactory, defaultTimeoutMs);
+
+        return new VtrackHandler(applicationSettings, bidderCatalog, cacheService, timeoutFactory, defaultTimeoutMs);
     }
 
     @Bean

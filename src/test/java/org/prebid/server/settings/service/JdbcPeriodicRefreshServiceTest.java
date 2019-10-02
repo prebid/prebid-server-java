@@ -45,10 +45,8 @@ public class JdbcPeriodicRefreshServiceTest {
 
     @Mock
     private CacheNotificationListener cacheNotificationListener;
-
     @Mock
     private JdbcClient jdbcClient;
-
     @Mock
     private Vertx vertx;
 
