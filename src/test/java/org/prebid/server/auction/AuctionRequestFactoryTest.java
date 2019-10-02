@@ -70,7 +70,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
-    private static final List<String> BLACKLISTED_ACCTS = singletonList("bad_acc");
+    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -108,7 +108,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
 
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, "USD", BLACKLISTED_ACCTS,
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, "USD", BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
     }
@@ -131,7 +131,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
         // given
-        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCTS,
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -153,7 +153,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
 
-        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCTS,
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -183,7 +183,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, false, "USD", BLACKLISTED_ACCTS,
+        factory = new AuctionRequestFactory(1, false, "USD", BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 

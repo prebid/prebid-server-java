@@ -144,7 +144,7 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
-            @Value("${auction.blacklisted-accts}") String blacklistedAcctsString,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
@@ -154,10 +154,10 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        final List<String> blacklistedAccts = Stream.of(blacklistedAcctsString.split(","))
+        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
-        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, adServerCurrency, blacklistedAccts,
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, adServerCurrency, blacklistedAccounts,
                 storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
     }

@@ -65,7 +65,7 @@ public class AuctionRequestFactory {
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
     private final String adServerCurrency;
-    private final List<String> blacklistedAccts;
+    private final List<String> blacklistedAccounts;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
@@ -77,7 +77,7 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccts,
+            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccounts,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
             UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
             InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
@@ -86,7 +86,7 @@ public class AuctionRequestFactory {
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
         this.adServerCurrency = validateCurrency(adServerCurrency);
-        this.blacklistedAccts = Objects.requireNonNull(blacklistedAccts);
+        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -541,8 +541,8 @@ public class AuctionRequestFactory {
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
 
-        if (CollectionUtils.isNotEmpty(blacklistedAccts) && StringUtils.isNotBlank(accountId)
-                && blacklistedAccts.contains(accountId)) {
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
+                && blacklistedAccounts.contains(accountId)) {
             throw new InvalidRequestException(String.format("Prebid-server has blacklisted Account ID: %s, please "
                     + "reach out to the prebid server host.", accountId));
         }
