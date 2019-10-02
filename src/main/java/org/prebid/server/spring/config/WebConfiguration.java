@@ -394,7 +394,7 @@ public class WebConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
-        @Autowired
+        @Autowired(required = false)
         private AdminHandler adminHandler;
 
         @Autowired

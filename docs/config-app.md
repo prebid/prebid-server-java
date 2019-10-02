@@ -72,6 +72,9 @@ There are several typical keys:
 
 But feel free to add additional bidder's specific options.
 
+## Admin
+- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
+
 ## Currency Converter
 - `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
 - `currency-converter.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
