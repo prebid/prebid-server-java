@@ -20,6 +20,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.execution.LoggerLevelModifier;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
@@ -40,14 +41,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
+    private final LoggerLevelModifier errorLoggerLevelSwitch;
 
     public AuctionHandler(AuctionRequestFactory auctionRequestFactory, ExchangeService exchangeService,
-                          AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock) {
+                          AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock,
+                          LoggerLevelModifier errorLoggerLevelSwitch) {
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
+        this.errorLoggerLevelSwitch = Objects.requireNonNull(errorLoggerLevelSwitch);
     }
 
     @Override
@@ -126,8 +130,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
+
                 errorMessages = ((InvalidRequestException) exception).getMessages();
-                logger.info("Invalid request format: {0}", errorMessages);
+                final String logMessage = String.format("Invalid request format: %s", errorMessages);
+                if (errorLoggerLevelSwitch.isLogLevelError()) {
+                    logger.error(logMessage);
+                } else {
+                    logger.info(logMessage);
+                }
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = errorMessages.stream()

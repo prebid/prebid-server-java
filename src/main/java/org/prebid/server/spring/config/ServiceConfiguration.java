@@ -28,6 +28,7 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.execution.LoggerLevelModifier;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
@@ -380,6 +381,9 @@ public class ServiceConfiguration {
     TimeoutFactory timeoutFactory(Clock clock) {
         return new TimeoutFactory(clock);
     }
+
+    @Bean
+    LoggerLevelModifier errorLoggerLevelSwitch()
 
     @Bean
     BidResponsePostProcessor bidResponsePostProcessor() {

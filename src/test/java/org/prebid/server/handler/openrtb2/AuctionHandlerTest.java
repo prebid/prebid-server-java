@@ -10,12 +10,14 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -27,12 +29,15 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.execution.LoggerLevelModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -53,7 +58,9 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -72,6 +79,8 @@ public class AuctionHandlerTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private Clock clock;
+    @Mock
+    private LoggerLevelModifier errorLoggerLevelSwitch;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -100,7 +109,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        auctionHandler = new AuctionHandler(auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock);
+        auctionHandler = new AuctionHandler(auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, errorLoggerLevelSwitch);
     }
 
     @Test
@@ -446,8 +455,17 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
+    public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() throws IllegalAccessException,
+            NoSuchFieldException {
         // given
+        final Logger logger = mock(Logger.class);
+        final Field loggerField = auctionHandler.getClass().getDeclaredField("logger");
+        Field modifiersField = Field.class.getDeclaredField("modifiers");
+        modifiersField.setAccessible(true);
+        modifiersField.setInt(loggerField, loggerField.getModifiers() & ~Modifier.FINAL);
+        FieldSetter.setField(auctionHandler, loggerField, logger);
+
+        given(errorLoggerLevelSwitch.isLogLevelError()).willReturn(true);
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
@@ -455,6 +473,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
+        verify(logger).error(startsWith("Invalid request format:" ));
+
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())

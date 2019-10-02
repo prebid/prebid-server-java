@@ -25,8 +25,11 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.execution.LoggerLevelModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.handler.AdminHandler;
+import org.prebid.server.handler.AdminTestHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -144,6 +147,8 @@ public class WebConfiguration {
                   BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
+                  AdminHandler adminHandler,
+                  AdminTestHandler adminTestHandler,
                   AuctionHandler auctionHandler,
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
@@ -164,6 +169,8 @@ public class WebConfiguration {
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
+        router.get("/admin").handler(adminHandler);
+        router.get("/admin/test").handler(adminTestHandler);
         router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
@@ -225,15 +232,26 @@ public class WebConfiguration {
     }
 
     @Bean
+    AdminHandler adminHandler(LoggerLevelModifier errorLoggerLevelSwitch){
+        return new AdminHandler(errorLoggerLevelSwitch);
+    }
+
+    @Bean
+    AdminTestHandler adminTestHandler(LoggerLevelModifier errorLoggerLevelSwitch){
+        return new AdminTestHandler(errorLoggerLevelSwitch);
+    }
+
+    @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
-            Clock clock) {
+            Clock clock,
+            LoggerLevelModifier errorLoggerLevelSwitch) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(auctionRequestFactory, exchangeService,
-                analyticsReporter, metrics, clock);
+                analyticsReporter, metrics, clock, errorLoggerLevelSwitch);
     }
 
     @Bean
@@ -245,10 +263,11 @@ public class WebConfiguration {
             Clock clock,
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
-            AmpResponsePostProcessor ampResponsePostProcessor) {
+            AmpResponsePostProcessor ampResponsePostProcessor,
+            LoggerLevelModifier errorLoggerLevelSwitch) {
 
         return new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock, bidderCatalog,
-                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor);
+                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor, errorLoggerLevelSwitch);
     }
 
     @Bean
