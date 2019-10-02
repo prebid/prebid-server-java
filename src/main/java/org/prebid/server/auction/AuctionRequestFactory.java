@@ -83,7 +83,7 @@ public class AuctionRequestFactory {
 
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
-        this.blacklistedAccts = blacklistedAccts;
+        this.blacklistedAccts = Objects.requireNonNull(blacklistedAccts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
