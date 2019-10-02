@@ -8,7 +8,5 @@ This endpoint will set the desirable logging level and number of logs for `400` 
 
 ### Query Params
 
-- `logging`: Desirable logging level: `error`, `debug`, `info`, `warn`.
+- `logging`: Desirable logging level: `info`, `warn`, `trace`, `error`, `fatal`, `debug`.
 - `records`: numbers of logs with changed logging level. (0 < n < 100_000)
-
-http://localhost:8060/admin?logging=debug&records=2

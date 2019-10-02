@@ -47,10 +47,14 @@ public class AdminHandler implements Handler<RoutingContext> {
         }
 
         switch (level) {
-            case "error":
-                return Logger::error;
             case "info":
                 return Logger::info;
+            case "warn":
+                return Logger::warn;
+            case "trace":
+                return Logger::trace;
+            case "error":
+                return Logger::error;
             case "fatal":
                 return Logger::fatal;
             case "debug":
