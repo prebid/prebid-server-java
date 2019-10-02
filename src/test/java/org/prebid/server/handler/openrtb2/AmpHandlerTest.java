@@ -21,7 +21,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -36,7 +35,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.LoggerLevelModifier;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
@@ -49,8 +48,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
@@ -99,7 +96,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private LoggerLevelModifier errorLoggerLevelSwitch;
+    private LogModifier logModifier;
 
     private AmpHandler ampHandler;
     @Mock
@@ -130,12 +127,14 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
+        given(logModifier.getLogModifier()).willReturn(Logger::info);
+
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
         ampHandler = new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock,
                 bidderCatalog, singleton("bidder1"), new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
-                errorLoggerLevelSwitch);
+                logModifier);
     }
 
     @Test
@@ -188,16 +187,8 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestIfRequestIsInvalid() throws NoSuchFieldException, IllegalAccessException {
+    public void shouldRespondWithBadRequestIfRequestIsInvalid() {
         // given
-        final Logger logger = mock(Logger.class);
-        final Field loggerField = ampHandler.getClass().getDeclaredField("logger");
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(loggerField, loggerField.getModifiers() & ~Modifier.FINAL);
-        FieldSetter.setField(ampHandler, loggerField, logger);
-
-        given(errorLoggerLevelSwitch.isLogLevelError()).willReturn(true);
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
@@ -207,7 +198,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(logger).error(startsWith("Invalid request format: "));
+        verify(logModifier).getLogModifier();
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(

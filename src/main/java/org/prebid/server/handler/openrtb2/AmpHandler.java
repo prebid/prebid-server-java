@@ -34,7 +34,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.LoggerLevelModifier;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -77,12 +77,12 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final BidderCatalog bidderCatalog;
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
-    private final LoggerLevelModifier errorLoggerLevelSwitch;
+    private final LogModifier logModifier;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
                       AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, BidderCatalog bidderCatalog,
                       Set<String> biddersSupportingCustomTargeting, AmpResponsePostProcessor ampResponsePostProcessor,
-                      LoggerLevelModifier errorLoggerLevelSwitch) {
+                      LogModifier logModifier) {
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
@@ -91,7 +91,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
-        this.errorLoggerLevelSwitch = Objects.requireNonNull(errorLoggerLevelSwitch);
+        this.logModifier = Objects.requireNonNull(logModifier);
     }
 
     @Override
@@ -295,11 +295,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 final String logMessage = String.format("Invalid request format: %s", errorMessages);
-                if (errorLoggerLevelSwitch.isLogLevelError()) {
-                    logger.error(logMessage);
-                } else {
-                    logger.info(logMessage);
-                }
+                logModifier.getLogModifier().accept(logger, logMessage);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = errorMessages.stream().map(

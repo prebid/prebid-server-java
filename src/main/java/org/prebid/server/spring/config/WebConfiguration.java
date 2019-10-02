@@ -25,11 +25,10 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.execution.LoggerLevelModifier;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AdminHandler;
-import org.prebid.server.handler.AdminTestHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -147,8 +146,6 @@ public class WebConfiguration {
                   BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
-                  AdminHandler adminHandler,
-                  AdminTestHandler adminTestHandler,
                   AuctionHandler auctionHandler,
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
@@ -169,8 +166,6 @@ public class WebConfiguration {
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
-        router.get("/admin").handler(adminHandler);
-        router.get("/admin/test").handler(adminTestHandler);
         router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
@@ -232,26 +227,16 @@ public class WebConfiguration {
     }
 
     @Bean
-    AdminHandler adminHandler(LoggerLevelModifier errorLoggerLevelSwitch){
-        return new AdminHandler(errorLoggerLevelSwitch);
-    }
-
-    @Bean
-    AdminTestHandler adminTestHandler(LoggerLevelModifier errorLoggerLevelSwitch){
-        return new AdminTestHandler(errorLoggerLevelSwitch);
-    }
-
-    @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
-            LoggerLevelModifier errorLoggerLevelSwitch) {
+            LogModifier logModifier) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(auctionRequestFactory, exchangeService,
-                analyticsReporter, metrics, clock, errorLoggerLevelSwitch);
+                analyticsReporter, metrics, clock, logModifier);
     }
 
     @Bean
@@ -264,10 +249,10 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
-            LoggerLevelModifier errorLoggerLevelSwitch) {
+            LogModifier logModifier) {
 
         return new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock, bidderCatalog,
-                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor, errorLoggerLevelSwitch);
+                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor, logModifier);
     }
 
     @Bean
@@ -410,6 +395,9 @@ public class WebConfiguration {
         private VersionHandler versionHandler;
 
         @Autowired
+        private AdminHandler adminHandler;
+
+        @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
 
         @Autowired(required = false)
@@ -441,6 +429,12 @@ public class WebConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "logger-level-modifier", name = "enabled", havingValue = "true")
+        AdminHandler adminHandler(LogModifier logModifier) {
+            return new AdminHandler(logModifier);
+        }
+
+        @Bean
         @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
             return new CurrencyRatesHandler(currencyConversionRates);
@@ -453,6 +447,9 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            if (adminHandler != null) {
+                router.route("/admin").handler(adminHandler);
+            }
             if (currencyRatesHandler != null) {
                 router.route("/currency-rates").handler(currencyRatesHandler);
             }

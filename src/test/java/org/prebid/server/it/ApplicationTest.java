@@ -552,6 +552,15 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
+    public void adminHandlerShouldRespondWithOk() {
+        given(adminSpec)
+                .get("/admin?logging=error&records=1200")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
     public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
         // given
         final Instant currentTime = Instant.now();
