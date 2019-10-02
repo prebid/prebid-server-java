@@ -432,6 +432,24 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
+    public void vtrackShouldReturnJsonWithUids() throws JSONException, IOException {
+        // given and when
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("vtrack/test-cache-request.json"), true, false))
+                .willReturn(aResponse().withBody(jsonFrom("vtrack/test-vtrack-response.json"))));
+
+        final Response response = given(spec)
+                .when()
+                .body(jsonFrom("vtrack/test-vtrack-request.json"))
+                .queryParam("a", "14062")
+                .post("/vtrack");
+
+        // then
+        JSONAssert.assertEquals("{\"responses\":[{\"uuid\":\"94531ab8-c662-4fc7-904e-6b5d3be43b1a\"}]}",
+                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
     public void optionsRequestShouldRespondWithOriginalPolicyHeaders() {
         // when
         final Response response = given(spec)
