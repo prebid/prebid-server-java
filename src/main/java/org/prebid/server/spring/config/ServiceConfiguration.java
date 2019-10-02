@@ -140,6 +140,7 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
@@ -150,7 +151,7 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency,
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, adServerCurrency,
                 storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
     }

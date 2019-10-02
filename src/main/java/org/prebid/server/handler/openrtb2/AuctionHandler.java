@@ -20,6 +20,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
@@ -133,6 +134,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 body = errorMessages.stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.joining("\n"));
+            } else if (exception instanceof UnauthorizedAccountException) {
+                metricRequestStatus = MetricName.badinput;
+                final String errorMessage = exception.getMessage();
+                logger.info("Unauthorized: {0}", errorMessage);
+
+                errorMessages = Collections.singletonList(errorMessage);
+
+                status = HttpResponseStatus.UNAUTHORIZED.code();
+                body = String.format("Unauthorised: %s", errorMessage);
             } else {
                 metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);
