@@ -58,12 +58,15 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -622,8 +625,11 @@ public class ExchangeService {
         if (targeting != null && cache != null) {
             final boolean shouldCacheBids = cache.getBids() != null;
             final boolean shouldCacheVideoBids = cache.getVastxml() != null;
+            final boolean shouldCacheWinningBidsOnly = targeting.getIncludebidderkeys()
+                    ? false // ext.prebid.targeting.includebidderkeys takes precedence
+                    : ObjectUtils.defaultIfNull(cache.getWinningonly(), false);
 
-            if (shouldCacheBids || shouldCacheVideoBids) {
+            if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
 
@@ -642,6 +648,7 @@ public class ExchangeService {
                         .cacheVideoBidsTtl(cacheVideoBidsTtl)
                         .returnCreativeBids(returnCreativeBid)
                         .returnCreativeVideoBids(returnCreativeVideoBid)
+                        .shouldCacheWinningBidsOnly(shouldCacheWinningBidsOnly)
                         .build();
             }
         }
@@ -880,10 +887,7 @@ public class ExchangeService {
     private Future<CacheServiceResult> toBidsWithCacheIds(List<BidderResponse> bidderResponses, List<Imp> imps,
                                                           BidRequestCacheInfo cacheInfo, Account account,
                                                           Timeout timeout) {
-        final Set<Bid> bids = bidderResponses.stream()
-                .flatMap(ExchangeService::getBids)
-                .collect(Collectors.toSet());
-
+        final Set<Bid> bids = getBids(bidderResponses, cacheInfo.isShouldCacheWinningBidsOnly());
         final Future<CacheServiceResult> result;
 
         if (!cacheInfo.isDoCaching()) {
@@ -914,6 +918,31 @@ public class ExchangeService {
         }
 
         return result;
+    }
+
+    /**
+     * Resolves what {@link Bid}s should be cached.
+     * <p>
+     * If {@link BidRequestCacheInfo#isShouldCacheWinningBidsOnly()} is true - group ImpIds to corresponding Bid
+     * with max price (e.i. winningBid) and return all winning bids;
+     * <p>
+     * Otherwise - return all bids as usual.
+     */
+    private static Set<Bid> getBids(List<BidderResponse> bidderResponses, boolean shouldCacheWinningBidsOnly) {
+        final Set<Bid> bids = bidderResponses.stream()
+                .flatMap(ExchangeService::getBids)
+                .collect(Collectors.toSet());
+
+        if (!shouldCacheWinningBidsOnly) {
+            return bids;
+        }
+
+        final HashSet<Bid> bids1 = new HashSet<>(bids.stream()
+                .collect(Collectors.groupingBy(Bid::getImpid,
+                        Collectors.reducing(Bid.builder().price(BigDecimal.ZERO).build(),
+                                BinaryOperator.maxBy(Comparator.comparing(Bid::getPrice))))).values());
+
+        return bids1;
     }
 
     private static Stream<Bid> getBids(BidderResponse bidderResponse) {

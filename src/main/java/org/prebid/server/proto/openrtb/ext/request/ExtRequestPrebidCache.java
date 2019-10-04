@@ -19,4 +19,6 @@ public class ExtRequestPrebidCache {
      * Defines the contract for bidrequest.ext.prebid.cache.vastxml
      */
     ExtRequestPrebidCacheVastxml vastxml;
+
+    Boolean winningonly;
 }

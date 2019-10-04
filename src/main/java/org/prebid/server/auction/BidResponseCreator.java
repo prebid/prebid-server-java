@@ -285,7 +285,6 @@ public class BidResponseCreator {
         winningBidsByBidder.addAll(bidsByBidder);
     }
 
-
     /**
      * Tries to add a winning bid for each impId.
      */

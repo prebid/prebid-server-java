@@ -1014,7 +1014,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting())
-                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, null))
                         .build()))));
 
         // when
@@ -1028,19 +1028,21 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRequestCacheServiceWithExpectedArguments() {
+    public void shouldRequestCacheServiceWithExpectedArgumentsAndIgnoreWinningOnly() {
         // given
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
-        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid1))));
-        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid2))));
+        final Bid bid3 = Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(3.74)).build();
+        final Bid bid4 = Bid.builder().id("bidId4").impid("impId2").price(BigDecimal.valueOf(6.74)).build();
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(asList(givenBid(bid1), givenBid(bid3))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(asList(givenBid(bid2), givenBid(bid4))));
 
         final Imp imp1 = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
         final Imp imp2 = givenImp(singletonMap("bidder2", 2), builder -> builder.id("impId2"));
         final BidRequest bidRequest = givenBidRequest(asList(imp1, imp2),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting())
-                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, true))
                         .build()))));
 
         // when
@@ -1048,7 +1050,37 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(
-                argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
+                argThat(t -> t.containsAll(asList(bid1, bid4, bid3, bid2))), eq(asList(imp1, imp2)),
+                eq(CacheContext.builder().shouldCacheBids(true).videoBidIdsToModify(emptyList()).build()),
+                eq(Account.builder().id("accountId").eventsEnabled(false).build()), eq(timeout));
+    }
+
+    @Test
+    public void shouldRequestCacheServiceWithWinningBidsOnlyWhenIncludeBidderKeysIfFalse() {
+        // given
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
+        final Bid bid3 = Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(3.74)).build();
+        final Bid bid4 = Bid.builder().id("bidId4").impid("impId2").price(BigDecimal.valueOf(6.74)).build();
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(asList(givenBid(bid1), givenBid(bid3))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(asList(givenBid(bid2), givenBid(bid4))));
+
+        final Imp imp1 = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
+        final Imp imp2 = givenImp(singletonMap("bidder2", 2), builder -> builder.id("impId2"));
+        final BidRequest bidRequest = givenBidRequest(asList(imp1, imp2),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(Json.mapper.valueToTree(
+                                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, null, true, false))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, true))
+                        .build()))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(
+                argThat(t -> t.containsAll(asList(bid1, bid2)) && t.size() == 2), eq(asList(imp1, imp2)),
                 eq(CacheContext.builder().shouldCacheBids(true).videoBidIdsToModify(emptyList()).build()),
                 eq(Account.builder().id("accountId").eventsEnabled(false).build()), eq(timeout));
     }
@@ -1071,7 +1103,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                                ExtRequestPrebidCacheVastxml.of(null, true)))
+                                ExtRequestPrebidCacheVastxml.of(null, true), null))
                         .build()))));
 
         // when
@@ -1097,7 +1129,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp1),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting())
-                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, null))
                         .build()))));
 
         // when
