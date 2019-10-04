@@ -65,6 +65,7 @@ public class AuctionRequestFactory {
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
     private final String adServerCurrency;
+    private final List<String> blacklistedAccounts;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
@@ -76,15 +77,16 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize, boolean enforceValidAccount,
-            String adServerCurrency, StoredRequestProcessor storedRequestProcessor,
-            ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
-            BidderCatalog bidderCatalog, RequestValidator requestValidator, InterstitialProcessor interstitialProcessor,
-            TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory, ApplicationSettings applicationSettings) {
+            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccounts,
+            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
+            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
+            InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
+            ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
         this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -538,6 +540,13 @@ public class AuctionRequestFactory {
      */
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
+
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
+                && blacklistedAccounts.contains(accountId)) {
+            throw new InvalidRequestException(String.format("Prebid-server has blacklisted Account ID: %s, please "
+                    + "reach out to the prebid server host.", accountId));
+        }
+
         return StringUtils.isEmpty(accountId)
                 ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
@@ -549,8 +558,8 @@ public class AuctionRequestFactory {
      */
     private Future<Account> responseToMissingAccount(String accountId) {
         return enforceValidAccount
-                    ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
-                    : Future.succeededFuture(emptyAccount(accountId));
+                ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
+                : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**

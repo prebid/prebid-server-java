@@ -75,13 +75,13 @@ public class CircuitBreaker {
         vertx.executeBlocking(this::ensureState, false, ensureStateFuture);
 
         return ensureStateFuture
-                .compose(ignored -> { // ensuring state succeeded
-                    future.fail(exception);
-                    return future;
-                })
                 .recover(throwable -> {
                     logger.warn("Resetting circuit breaker state failed", throwable);
                     future.fail(throwable);
+                    return future;
+                })
+                .compose(ignored -> { // ensuring state succeeded, propagate real error
+                    future.fail(exception);
                     return future;
                 });
     }

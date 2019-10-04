@@ -171,7 +171,7 @@ public class WebConfiguration {
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
         router.get("/getuids").handler(getuidsHandler);
-        router.get("/vtrack").handler(vtrackHandler);
+        router.post("/vtrack").handler(vtrackHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
         router.get("/bidders/params").handler(bidderParamHandler);

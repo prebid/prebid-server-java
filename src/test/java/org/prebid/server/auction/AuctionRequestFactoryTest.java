@@ -50,6 +50,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -68,6 +69,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
+
+    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -105,9 +108,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
 
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
     }
 
     @Test
@@ -128,9 +131,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
         // given
-        factory = new AuctionRequestFactory(1000, true, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         givenValidBidRequest();
 
@@ -147,12 +150,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() throws JsonProcessingException {
+    public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
 
-        factory = new AuctionRequestFactory(1000, true, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -180,9 +183,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, false, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1, false, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -753,6 +756,25 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         verify(timeoutFactory).create(eq(startTime), anyLong());
         assertThat(timeout).isNotNull();
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenAccountIdIsBlacklisted() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("bad_acc").build()).build())
+                .build());
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                        + "server host.");
     }
 
     @Test

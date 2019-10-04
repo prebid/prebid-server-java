@@ -450,7 +450,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb_bidder1", "5.00"),
                         tuple("hb_bidder", "bidder1"),
                         tuple("hb_bidder_bidder1", "bidder1"),
-                        tuple("hb_winurl", "http://win-url"),
+                        tuple("hb_winurl", "http%3A%2F%2Fwin-url"),
                         tuple("hb_bidid", "bidId1"),
                         tuple("hb_bidid_bidder1", "bidId1"));
     }
