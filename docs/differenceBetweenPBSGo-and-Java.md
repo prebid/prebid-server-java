@@ -17,6 +17,7 @@ and not the other for an interim period. This page tracks known differences that
 1) PBS-Java supports InfluxDB, Graphite and Prometheus, PBS-Go supports InfluxDB and Prometheus as metrics backend.
 1) PBS-Java has Circuit Breaker mechanism for database, http and geolocation requests. This can protect the server in scenarios where an external service becomes unavailable.
 1) PBS-Java supports `ext.prebid.cache.{bids,vastxml}.returnCreative` field to control creative presence in response (`true` by default).
+1) PBS-Java support caching winning bids only through `auction.cache.only-winning-bids` configuration property or request field `request.ext.prebid.cache.winningonly`. PBS-Java [issue 279](https://github.com/rubicon-project/prebid-server-java/issues/279), [PR 484](https://github.com/rubicon-project/prebid-server-java/pull/484).
 1) PBS-Java has a specific `host-cookie` and `uids` cookie processing for all endpoints, that sets `uids.HOST-BIDDER` from `host-cookie` if first is absent or not equal to second.
 1) PBS-Java has a specific `/cookie-sync` behaviour, that sets `/setuid` as usersync-url for host-bidder if `host-cookie` specified but `uids.HOST-BIDDER` undefined or differs.
 1) PBS-Java has `/event` endpoint to allow Web browsers and mobile applications to notify about different ad events (win, view etc). Filling new bid extensions `response.seatbid.bid.ext.prebid.events.{win,view}` with events url after successful auction completing makes it possible. Also new targeting parameter `hb_winurl` with win event url is supported.

@@ -387,6 +387,12 @@ They may not exist if the host company's cache is full, having connection proble
 
 This is mainly intended for certain limited Prebid Mobile setups, where bids cannot be cached client-side.
 
+##### Cache winning bids only
+
+There's an option to cache only winning bids. It can be enabled through configuration property `auction.cache.only-winning-bids` or request field `request.ext.prebid.cache.winningonly`, where the request field has higher priority. Configuration property has `false` value by default, meaning than on server-level all bids should be cached.
+
+This feature will not be available (config and/or request values will be ignored) if `ext.prebid.targeting.includebidderkeys` is `true` as it will invalidate `includebidderkeys` feature.
+
 #### GDPR
 
 Prebid Server supports the IAB's GDPR recommendations, which can be found [here](https://iabtechlab.com/wp-content/uploads/2018/02/OpenRTB_Advisory_GDPR_2018-02.pdf).
