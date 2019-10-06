@@ -92,6 +92,11 @@
         "cur": [
           "USD"
         ],
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
         "ext": {
           "prebid": {
             "targeting": {
@@ -116,12 +121,10 @@
               },
               "includewinners": true,
               "includebidderkeys": true
+            },
+            "cache": {
+              "winningonly": false
             }
-          }
-        },
-        "regs": {
-          "ext": {
-            "gdpr": 0
           }
         }
       }

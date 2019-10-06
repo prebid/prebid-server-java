@@ -32,6 +32,7 @@ auction:
   max-request-size: 262144
   cache:
     expected-request-time-ms: 10
+    only-winning-bids: false
 amp:
   default-timeout-ms: 900
   max-timeout-ms: 5000

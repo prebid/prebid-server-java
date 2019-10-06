@@ -80,7 +80,8 @@
         "includebidderkeys": true
       },
       "cache": {
-        "bids": {}
+        "bids": {},
+        "winningonly": false
       }
     }
   }
