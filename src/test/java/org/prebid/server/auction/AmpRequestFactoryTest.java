@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -512,6 +513,76 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
                 .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
+    }
+
+
+    @Test
+    public void shouldReturnBidRequestWithSitePublisherIdOverriddenWithAccountParamValue() {
+        // given
+        given(httpRequest.getParam("account")).willReturn("accountId");
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(Site.builder().publisher(Publisher.builder().id("will-be-overridden").build()).build()),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher, Site::getExt)
+                .containsOnly(tuple(
+                        Publisher.builder().id("accountId").build(),
+                        mapper.valueToTree(ExtSite.of(1, null))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithSitePublisherIdFromAccountParamWhenSiteDoesNotExist() {
+        // given
+        given(httpRequest.getParam("account")).willReturn("accountId");
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(null),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher, Site::getExt)
+                .containsOnly(tuple(
+                        Publisher.builder().id("accountId").build(),
+                        mapper.valueToTree(ExtSite.of(1, null))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithSitePublisherIdFromAccountParamWhenSitePublisherDoesNotExist() {
+        // given
+        given(httpRequest.getParam("account")).willReturn("accountId");
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(Site.builder().build()),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher, Site::getExt)
+                .containsOnly(tuple(
+                        Publisher.builder().id("accountId").build(),
+                        mapper.valueToTree(ExtSite.of(1, null))));
     }
 
     @Test
