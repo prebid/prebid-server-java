@@ -30,6 +30,7 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -37,6 +38,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
@@ -46,10 +48,12 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -384,7 +388,9 @@ public class AuctionRequestFactory {
         final ExtBidRequest extBidRequest = extBidRequest(extNode);
         final ExtRequestPrebid prebid = extBidRequest.getPrebid();
 
-        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid);
+        final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
+
         final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
 
         final ObjectNode result;
@@ -417,9 +423,42 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Iterates through impressions to check what media types each impression has and add them to the resulting set.
+     * If all four media types are present - no point to look any further.
+     */
+    private static Set<BidType> getImpMediaTypes(List<Imp> imps) {
+        final Set<BidType> impMediaTypes = new HashSet<>();
+        for (Imp imp : imps) {
+            checkImpMediaTypes(imp, impMediaTypes);
+            if (impMediaTypes.size() > 3) {
+                break;
+            }
+        }
+        return impMediaTypes;
+    }
+
+    /**
+     * Adds an existing media type to a set.
+     */
+    private static void checkImpMediaTypes(Imp imp, Set<BidType> impsMediaTypes) {
+        if (imp.getBanner() != null) {
+            impsMediaTypes.add(BidType.banner);
+        }
+        if (imp.getVideo() != null) {
+            impsMediaTypes.add(BidType.video);
+        }
+        if (imp.getAudio() != null) {
+            impsMediaTypes.add(BidType.audio);
+        }
+        if (imp.getXNative() != null) {
+            impsMediaTypes.add(BidType.xNative);
+        }
+    }
+
+    /**
      * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
      */
-    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid) {
+    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid, Set<BidType> impMediaTypes) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
@@ -431,8 +470,8 @@ public class AuctionRequestFactory {
         final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             result = ExtRequestTargeting.of(
-                    populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
-                            isPriceGranularityTextual),
+                    populatePriceGranularity(targeting, isPriceGranularityNull, isPriceGranularityTextual,
+                            impMediaTypes),
                     targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
@@ -446,15 +485,21 @@ public class AuctionRequestFactory {
     /**
      * Populates priceGranularity with converted value.
      * <p>
+     * In case of missing Json node and missing media type price granularities - sets default custom value.
      * In case of valid string price granularity replaced it with appropriate custom view.
      * In case of invalid string value throws {@link InvalidRequestException}.
-     * In case of missing Json node sets default custom value.
      */
-    private static JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
-                                                     boolean isPriceGranularityTextual) {
-        if (isPriceGranularityNull) {
+    private static JsonNode populatePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
+                                                     boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
+        final JsonNode priceGranularityNode = targeting.getPricegranularity();
+
+        final boolean hasAllMediaTypes = checkExistingMediaTypes(targeting.getMediatypepricegranularity())
+                .containsAll(impMediaTypes);
+
+        if (isPriceGranularityNull && !hasAllMediaTypes) {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
-        } else if (isPriceGranularityTextual) {
+        }
+        if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
                 priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
@@ -464,6 +509,30 @@ public class AuctionRequestFactory {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
         return priceGranularityNode;
+    }
+
+    /**
+     * Checks {@link ExtMediaTypePriceGranularity} object for present media types and returns a set of existing ones.
+     */
+    private static Set<BidType> checkExistingMediaTypes(ExtMediaTypePriceGranularity mediaTypePriceGranularity) {
+        if (mediaTypePriceGranularity == null) {
+            return Collections.emptySet();
+        }
+        final Set<BidType> priceGranularityTypes = new HashSet<>();
+
+        final JsonNode banner = mediaTypePriceGranularity.getBanner();
+        if (banner != null && !banner.isNull()) {
+            priceGranularityTypes.add(BidType.banner);
+        }
+        final JsonNode video = mediaTypePriceGranularity.getVideo();
+        if (video != null && !video.isNull()) {
+            priceGranularityTypes.add(BidType.video);
+        }
+        final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+        if (xNative != null && !xNative.isNull()) {
+            priceGranularityTypes.add(BidType.xNative);
+        }
+        return priceGranularityTypes;
     }
 
     /**
