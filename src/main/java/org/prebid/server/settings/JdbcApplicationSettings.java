@@ -144,8 +144,19 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(selectQuery, requestIds, impIds, timeout);
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
+        return fetchStoredData(selectQuery, accountId, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Runs a process to get stored requests by a collection of amp ids from database
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
+     */
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return fetchStoredData(selectAmpQuery, accountId, requestIds, Collections.emptySet(), timeout);
     }
 
     /**
@@ -166,19 +177,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Runs a process to get stored requests by a collection of amp ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
-     */
-    @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(selectAmpQuery, requestIds, Collections.emptySet(), timeout);
-    }
-
-    /**
      * Fetches stored requests from database for the given query.
      */
-    private Future<StoredDataResult> fetchStoredData(String query, Set<String> requestIds, Set<String> impIds,
-                                                     Timeout timeout) {
+    private Future<StoredDataResult> fetchStoredData(String query, String accountId, Set<String> requestIds,
+                                                     Set<String> impIds, Timeout timeout) {
         final Future<StoredDataResult> future;
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
@@ -193,7 +195,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
             final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
             future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> JdbcStoredDataResultMapper.map(result, requestIds, impIds),
+                    result -> JdbcStoredDataResultMapper.map(result, accountId, requestIds, impIds),
                     timeout);
         }
 

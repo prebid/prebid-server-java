@@ -136,7 +136,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .app(App.builder().build())
                 .imp(singletonList(Imp.builder().build()))
                 .build();
-        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(storedRequestProcessor.processAmpRequest(any(), anyString()))
+                .willReturn(Future.succeededFuture(bidRequest));
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -1085,7 +1086,8 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder().imp(impList)).build();
 
-        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(storedRequestProcessor.processAmpRequest(any(), anyString()))
+                .willReturn(Future.succeededFuture(bidRequest));
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());

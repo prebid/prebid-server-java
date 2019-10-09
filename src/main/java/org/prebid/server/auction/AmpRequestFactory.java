@@ -83,7 +83,7 @@ public class AmpRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> createBidRequest(RoutingContext context, String tagId) {
-        return storedRequestProcessor.processAmpRequest(tagId)
+        return storedRequestProcessor.processAmpRequest(StringUtils.EMPTY, tagId) // FIXME: merge with AMP+Account PR
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request()))

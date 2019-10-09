@@ -92,8 +92,19 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
+    }
+
+    /**
+     * Runs a process to get stored requests by a collection of amp ids from http service
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
+     */
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
     /**
@@ -102,15 +113,6 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
-    }
-
-    /**
-     * Runs a process to get stored requests by a collection of amp ids from http service
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
-     */
-    @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,

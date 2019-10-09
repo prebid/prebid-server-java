@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * Adds caching functionality for {@link ApplicationSettings} implementation
+ * Adds caching functionality for {@link ApplicationSettings} implementation.
  */
 public class CachingApplicationSettings implements ApplicationSettings {
 
@@ -63,8 +63,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * Retrieves stored data from cache or delegates it to original fetcher.
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getFromCacheOrDelegate(cache, requestIds, impIds, timeout, delegate::getStoredData);
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
+        return getFromCacheOrDelegate(cache, accountId, requestIds, impIds, timeout, delegate::getStoredData);
     }
 
     /**
@@ -79,8 +80,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * Retrieves amp stored data from cache or delegates it to original fetcher.
      */
     @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getFromCacheOrDelegate(ampCache, requestIds, impIds, timeout, delegate::getAmpStoredData);
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return getFromCacheOrDelegate(ampCache, accountId, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,
@@ -112,8 +114,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * with all found stored requests and error from origin source id call was made.
      */
     private static Future<StoredDataResult> getFromCacheOrDelegate(
-            SettingsCache cache, Set<String> requestIds, Set<String> impIds, Timeout timeout,
-            TriFunction<Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
+            SettingsCache cache, String accountId, Set<String> requestIds, Set<String> impIds, Timeout timeout,
+            TriFunction<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
 
         final Map<String, String> requestCache = cache.getRequestCache();
         final Map<String, String> impCache = cache.getImpCache();
@@ -131,7 +133,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         }
 
         // delegate call to original source for missed ids and update cache with it
-        return retriever.apply(missedRequestIds, missedImpIds, timeout).compose(result -> {
+        return retriever.apply(accountId, missedRequestIds, missedImpIds, timeout).compose(result -> {
             final Map<String, String> storedIdToRequestFromDelegate = result.getStoredIdToRequest();
             final Map<String, String> storedIdToImpFromDelegate = result.getStoredIdToImp();
 

@@ -97,14 +97,21 @@ public class FileApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link StoredDataResult }&gt;} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                  Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
                 ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
                 : StoredDataResult.of(storedIdToRequest, storedIdToImp, Stream.of(
-                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
-                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toList())));
+                errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
+                errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList())));
+    }
+
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
     }
 
     /**
@@ -118,11 +125,6 @@ public class FileApplicationSettings implements ApplicationSettings {
                 ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
                 : StoredResponseDataResult.of(storedIdToSeatBid, errorsForMissedIds(responseIds,
                 storedIdToSeatBid, StoredDataType.seatbid)));
-    }
-
-    @Override
-    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getStoredData(requestIds, Collections.emptySet(), timeout);
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
@@ -211,32 +212,33 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getStoredData(eq(singleton("reqid")), eq(singleton("impid")), same(timeout)))
+        given(applicationSettings.getStoredData(any(), eq(singleton("reqid")), eq(singleton("impid")), same(timeout)))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
                         singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData(singleton("reqid"), singleton("impid"), timeout);
-        cachingApplicationSettings.getStoredData(singleton("reqid"), singleton("impid"), timeout); // second call
+                cachingApplicationSettings.getStoredData(null, singleton("reqid"), singleton("impid"), timeout);
+        cachingApplicationSettings.getStoredData(null, singleton("reqid"), singleton("impid"), timeout); // second call
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(StoredDataResult.of(
                 singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList()));
-        verify(applicationSettings).getStoredData(eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
+        verify(applicationSettings)
+                .getStoredData(isNull(), eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
 
     @Test
     public void getStoredDataShouldPropagateFailure() {
         // given
-        given(applicationSettings.getStoredData(anySet(), anySet(), any()))
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData(singleton("id"), emptySet(), timeout);
+                cachingApplicationSettings.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -248,13 +250,13 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
         // given
-        given(applicationSettings.getStoredData(eq(singleton("id")), eq(emptySet()), any()))
+        given(applicationSettings.getStoredData(any(), eq(singleton("id")), eq(emptySet()), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
                         emptyMap(), emptyMap(), singletonList("error"))));
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData(singleton("id"), emptySet(), timeout);
+                cachingApplicationSettings.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();

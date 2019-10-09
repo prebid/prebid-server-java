@@ -8,7 +8,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -35,6 +34,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CompositeApplicationSettingsTest {
+
+    private static final String ACCOUNT_ID = null;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -160,14 +161,14 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultFromFirstDelegateIfPresent() {
         // given
-        given(delegate1.getStoredData(anySet(), anySet(), any()))
+        given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
                                 emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(singleton("key1"), singleton("key2"), null);
+                compositeApplicationSettings.getStoredData(ACCOUNT_ID, singleton("key1"), singleton("key2"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -183,18 +184,18 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
         // given
-        given(delegate1.getStoredData(anySet(), anySet(), any()))
+        given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
-        given(delegate2.getStoredData(anySet(), anySet(), any()))
+        given(delegate2.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
                                 emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(singleton("key1"), singleton("key2"), null);
+                compositeApplicationSettings.getStoredData(ACCOUNT_ID, singleton("key1"), singleton("key2"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -209,17 +210,17 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnEmptyResultIfAllDelegatesFail() {
         // given
-        given(delegate1.getStoredData(anySet(), anySet(), any()))
+        given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
-        given(delegate2.getStoredData(anySet(), anySet(), any()))
+        given(delegate2.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -231,20 +232,20 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getStoredDataShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
         // given
-        given(delegate1.getStoredData(anySet(), anySet(), any()))
+        given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
                                 singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredData(new HashSet<>(asList("key1", "key2")),
+        compositeApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("key1", "key2")),
                 new HashSet<>(asList("key3", "key4")), null);
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> requestCaptor = ArgumentCaptor.forClass(
                 Set.class);
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> impCaptor = ArgumentCaptor.forClass(Set.class);
-        verify(delegate2).getStoredData(requestCaptor.capture(), impCaptor.capture(), any());
+        verify(delegate2).getStoredData(any(), requestCaptor.capture(), impCaptor.capture(), any());
 
         assertThat(requestCaptor.getValue()).hasSize(1)
                 .containsOnly("key2");
@@ -255,19 +256,19 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultConsequentlyFromAllDelegates() {
         // given
-        given(delegate1.getStoredData(anySet(), anySet(), any()))
+        given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
                                 asList("key2 not found", "key4 not found"))));
 
-        given(delegate2.getStoredData(anySet(), anySet(), any()))
+        given(delegate2.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key2", "value2"), singletonMap("key4", "value4"),
                                 emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(new HashSet<>(asList("key1", "key2")),
+                compositeApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("key1", "key2")),
                         new HashSet<>(asList("key3", "key4")), null);
 
         // then
@@ -286,13 +287,13 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnResultFromFirstDelegateIfPresent() {
         // given
-        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate1.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -306,17 +307,17 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
         // given
-        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate1.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
-        given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate2.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -329,17 +330,17 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnEmptyResultIfAllDelegatesFail() {
         // given
-        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate1.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
-        given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate2.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -351,17 +352,18 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
         // given
-        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate1.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getAmpStoredData(new HashSet<>(asList("key1", "key2")), emptySet(), null);
+        compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("key1", "key2")), emptySet(),
+                null);
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> requestCaptor = ArgumentCaptor.forClass(
                 Set.class);
-        verify(delegate2).getAmpStoredData(requestCaptor.capture(), anySet(), any());
+        verify(delegate2).getAmpStoredData(any(), requestCaptor.capture(), anySet(), any());
 
         assertThat(requestCaptor.getValue()).hasSize(1)
                 .containsOnly("key2");
@@ -370,18 +372,18 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnResultConsequentlyFromAllDelegates() {
         // given
-        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate1.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(),
                                 singletonList("key2 not found"))));
 
-        given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
+        given(delegate2.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("key2", "value2"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(new HashSet<>(asList("key1", "key2")), emptySet(), null);
+        final Future<StoredDataResult> future = compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID,
+                new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();

@@ -4,7 +4,10 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 
@@ -13,11 +16,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Utility class that maps {@link ResultSet} to {@link StoredDataResult}.
+ * Utility class for mapping {@link ResultSet} to {@link StoredDataResult}.
  */
 public class JdbcStoredDataResultMapper {
 
@@ -27,24 +31,29 @@ public class JdbcStoredDataResultMapper {
     }
 
     /**
-     * Maps {@link ResultSet} to {@link StoredDataResult} and creates an error for each missing id and add it to result.
+     * Maps {@link ResultSet} to {@link StoredDataResult} and creates an error for each missing ID and add it to result.
      *
      * @param resultSet  - incoming Result Set representing a result of SQL query
-     * @param requestIds - a specified set of stored requests' ids. Adds error for each ID missing in result set
-     * @param impIds     - a specified set of stored imps' ids. Adds error for each ID missing in result set
+     * @param accountId  - an account ID extracted from request
+     * @param requestIds - a specified set of stored requests' IDs. Adds error for each ID missing in result set
+     * @param impIds     - a specified set of stored imps' IDs. Adds error for each ID missing in result set
      * @return - a {@link StoredDataResult} object
      * <p>
      * Note: mapper should never throws exception in case of using
      * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
      */
-    public static StoredDataResult map(ResultSet resultSet, Set<String> requestIds, Set<String> impIds) {
-        final Map<String, String> storedIdToRequest = new HashMap<>(requestIds.size());
-        final Map<String, String> storedIdToImp = new HashMap<>(impIds.size());
+    public static StoredDataResult map(ResultSet resultSet, String accountId, Set<String> requestIds,
+                                       Set<String> impIds) {
+        final Map<String, String> storedIdToRequest;
+        final Map<String, String> storedIdToImp;
         final List<String> errors = new ArrayList<>();
 
         if (resultSet == null || CollectionUtils.isEmpty(resultSet.getResults())) {
+            storedIdToRequest = Collections.emptyMap();
+            storedIdToImp = Collections.emptyMap();
+
             if (requestIds.isEmpty() && impIds.isEmpty()) {
-                errors.add("No stored requests or imps found");
+                errors.add("No stored requests or imps were found");
             } else {
                 final String errorRequests = requestIds.isEmpty() ? ""
                         : String.format("stored requests for ids %s", requestIds);
@@ -54,16 +63,23 @@ public class JdbcStoredDataResultMapper {
                 errors.add(String.format("No %s%s%s were found", errorRequests, separator, errorImps));
             }
         } else {
+            final List<StoredItem> requestStoredItems = new ArrayList<>();
+            final List<StoredItem> impStoredItems = new ArrayList<>();
+
             for (JsonArray result : resultSet.getResults()) {
+                final String fetchedAccountId;
                 final String id;
-                final String json;
+                final String data;
                 final String typeAsString;
                 try {
-                    id = result.getString(0);
-                    json = result.getString(1);
-                    typeAsString = result.getString(2);
-                } catch (IndexOutOfBoundsException e) {
-                    errors.add("Result set column number is less than expected");
+                    fetchedAccountId = result.getString(0);
+                    id = result.getString(1);
+                    data = result.getString(2);
+                    typeAsString = result.getString(3);
+                } catch (IndexOutOfBoundsException | ClassCastException e) {
+                    final String message = "Error occurred while mapping stored request data";
+                    logger.error(message, e);
+                    errors.add(message);
                     return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
                 }
 
@@ -71,20 +87,23 @@ public class JdbcStoredDataResultMapper {
                 try {
                     type = StoredDataType.valueOf(typeAsString);
                 } catch (IllegalArgumentException e) {
-                    logger.error("Result set with id={0} has invalid type: {1}. This will be ignored.", e, id,
+                    logger.error("Stored request data with id={0} has invalid type: ''{1}'' and will be ignored.", e,
+                            id,
                             typeAsString);
                     continue;
                 }
 
+                final StoredItem storedItem = StoredItem.of(fetchedAccountId, id, data);
                 if (type == StoredDataType.request) {
-                    storedIdToRequest.put(id, json);
+                    requestStoredItems.add(storedItem);
                 } else {
-                    storedIdToImp.put(id, json);
+                    impStoredItems.add(storedItem);
                 }
             }
 
-            errors.addAll(errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request));
-            errors.addAll(errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp));
+            storedIdToRequest = storedItemsOrAddError(StoredDataType.request, accountId, requestIds, requestStoredItems,
+                    errors);
+            storedIdToImp = storedItemsOrAddError(StoredDataType.imp, accountId, impIds, impStoredItems, errors);
         }
 
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
@@ -97,20 +116,76 @@ public class JdbcStoredDataResultMapper {
      * @return - a {@link StoredDataResult} object
      */
     public static StoredDataResult map(ResultSet resultSet) {
-        return map(resultSet, Collections.emptySet(), Collections.emptySet());
+        return map(resultSet, null, Collections.emptySet(), Collections.emptySet());
     }
 
     /**
-     * Return errors for missed IDs.
+     * Tries to find stored item which belongs to appropriate account.
+     * <p>
+     * Additional processing involved because incoming prebid request may not have account defined,
+     * so there are two cases:
+     * <p>
+     * - account is present in request - find stored items of this account or skip it otherwise.
+     * <p>
+     * - account is not present in request - if were found many items - add error, otherwise use found item.
+     *
+     * @return map of stored ID -> value or populate error.
      */
-    private static List<String> errorsForMissedIds(Set<String> ids, Map<String, String> storedIdToJson,
-                                                   StoredDataType type) {
-        final List<String> missedIds = ids.stream()
-                .filter(id -> !storedIdToJson.containsKey(id))
-                .collect(Collectors.toList());
+    private static Map<String, String> storedItemsOrAddError(StoredDataType type, String accountId,
+                                                             Set<String> searchIds, List<StoredItem> foundStoredItems,
+                                                             List<String> errors) {
+        final Map<String, String> result = new HashMap<>(foundStoredItems.size());
 
-        return missedIds.isEmpty() ? Collections.emptyList() : missedIds.stream()
-                .map(id -> String.format("No stored %s found for id: %s", type, id))
-                .collect(Collectors.toList());
+        if (searchIds.isEmpty()) {
+            foundStoredItems.forEach(storedItem -> result.put(storedItem.getId(), storedItem.getData()));
+        } else {
+            final Map<String, List<StoredItem>> idToStoredItems = foundStoredItems.stream()
+                    .collect(Collectors.groupingBy(StoredItem::getId));
+
+            for (String searchId : searchIds) {
+                final List<StoredItem> storedItems = idToStoredItems.get(searchId);
+                if (storedItems == null) {
+                    errors.add(String.format("No stored %s found for id: %s", type, searchId));
+                } else {
+                    if (StringUtils.isNotEmpty(accountId)) {
+                        final StoredItem storedItem = storedItems.stream()
+                                .filter(item -> Objects.equals(item.getAccountId(), accountId))
+                                .findAny()
+                                .orElse(null);
+
+                        if (storedItem == null) {
+                            errors.add(String.format(
+                                    "No stored %s found for id: %s for account: %s", type, searchId, accountId));
+                        } else {
+                            result.put(storedItem.getId(), storedItem.getData());
+                        }
+                    } else {
+                        if (storedItems.size() > 1) {
+                            errors.add(String.format(
+                                    "Multiple stored %ss found for id: %s but no account ID specified in request",
+                                    type, searchId));
+                        } else {
+                            final StoredItem storedItem = storedItems.get(0);
+                            result.put(storedItem.getId(), storedItem.getData());
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * The model helps to reduce multiple rows found for single stored request/imp ID.
+     */
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class StoredItem {
+
+        String accountId;
+
+        String id;
+
+        String data;
     }
 }

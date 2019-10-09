@@ -17,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -50,24 +49,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(VertxUnitRunner.class)
 public class JdbcApplicationSettingsTest {
 
+    private static final String ACCOUNT_ID = null;
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private static final String JDBC_URL = "jdbc:h2:mem:test";
 
     private static final String selectQuery =
-            "SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
+            "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
-                    + "SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)";
+                    + "SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)";
 
     private static final String selectUnionQuery =
-            "SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
+            "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
-                    + "SELECT reqid, requestData, 'request' as dataType FROM stored_requests2 WHERE reqid IN (%REQUEST_ID_LIST%) "
+                    + "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests2 WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
-                    + "SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%) "
+                    + "SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%) "
                     + "UNION ALL "
-                    + "SELECT impid, impData, 'imp' as dataType FROM stored_imps2 WHERE impid IN (%IMP_ID_LIST%)";
+                    + "SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps2 WHERE impid IN (%IMP_ID_LIST%)";
 
     private static final String selectFromOneColumnTableQuery = "SELECT reqid FROM one_column_table WHERE reqid IN " +
             "(%REQUEST_ID_LIST%)";
@@ -98,16 +99,17 @@ public class JdbcApplicationSettingsTest {
                 "video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, analytics_sampling_factor INT);");
         connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) " +
                 "NOT NULL, config varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
-                + "NOT NULL, requestData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, reqid varchar(40) "
-                + "NOT NULL, requestData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_imps (id SERIAL PRIMARY KEY, impid varchar(40) "
-                + "NOT NULL, impData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, impid varchar(40) "
-                + "NOT NULL, impData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) "
-                + "NOT NULL, responseData varchar(512));");
+        connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, " +
+                "accountId varchar(40) NOT NULL, reqid varchar(40) NOT NULL, requestData varchar(512));");
+        connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, " +
+                "accountId varchar(40) NOT NULL, reqid varchar(40) NOT NULL, requestData varchar(512));");
+        connection.createStatement().execute("CREATE TABLE stored_imps (id SERIAL PRIMARY KEY, " +
+                "accountId varchar(40) NOT NULL, impid varchar(40) NOT NULL, impData varchar(512));");
+        connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, " +
+                "accountId varchar(40) NOT NULL, impid varchar(40) NOT NULL, impData varchar(512));");
+        connection.createStatement().execute(
+                "CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) "
+                        + "NOT NULL, responseData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
         connection.createStatement().execute("insert into accounts_account " +
@@ -115,15 +117,22 @@ public class JdbcApplicationSettingsTest {
                 " values ('accountId','med', 100, 100, TRUE, TRUE, 1);");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)" +
                 " values ('adUnitConfigId', 'config');");
-        connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
-        connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('2','value2');");
         connection.createStatement().execute(
-                "insert into stored_requests2 (reqid, requestData) values ('3','value3');");
-        connection.createStatement().execute("insert into stored_imps (impid, impData) values ('4','value4');");
-        connection.createStatement().execute("insert into stored_imps (impid, impData) values ('5','value5');");
-        connection.createStatement().execute("insert into stored_imps2 (impid, impData) values ('6','value6');");
-        connection.createStatement().execute("insert into stored_responses (responseId, responseData) values ('1','response1');");
-        connection.createStatement().execute("insert into stored_responses (responseId, responseData) values ('2','response2');");
+                "insert into stored_requests (accountId, reqid, requestData) values ('accountId', '1','value1');");
+        connection.createStatement().execute(
+                "insert into stored_requests (accountId, reqid, requestData) values ('accountId', '2','value2');");
+        connection.createStatement().execute(
+                "insert into stored_requests2 (accountId, reqid, requestData) values ('accountId', '3','value3');");
+        connection.createStatement().execute(
+                "insert into stored_imps (accountId, impid, impData) values ('accountId', '4','value4');");
+        connection.createStatement().execute(
+                "insert into stored_imps (accountId, impid, impData) values ('accountId', '5','value5');");
+        connection.createStatement().execute(
+                "insert into stored_imps2 (accountId, impid, impData) values ('accountId', '6','value6');");
+        connection.createStatement().execute(
+                "insert into stored_responses (responseId, responseData) values ('1','response1');");
+        connection.createStatement().execute(
+                "insert into stored_responses (responseId, responseData) values ('2','response2');");
         connection.createStatement().execute("insert into one_column_table (reqid) values ('3');");
     }
 
@@ -137,7 +146,8 @@ public class JdbcApplicationSettingsTest {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery, selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery,
+                selectResponseQuery);
     }
 
     @After
@@ -209,7 +219,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredDataShouldReturnExpectedResult(TestContext context) {
         // when
         final Future<StoredDataResult> future = jdbcApplicationSettings.getStoredData(
-                new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
+                ACCOUNT_ID, new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
 
         // then
         final Async async = context.async();
@@ -230,7 +240,7 @@ public class JdbcApplicationSettingsTest {
     public void getAmpStoredDataShouldReturnExpectedResult(TestContext context) {
         // when
         final Future<StoredDataResult> future = jdbcApplicationSettings.getAmpStoredData(
-                new HashSet<>(asList("1", "2")), new HashSet<>(asList("3", "4")), timeout);
+                ACCOUNT_ID, new HashSet<>(asList("1", "2")), new HashSet<>(asList("3", "4")), timeout);
 
         // then
         final Async async = context.async();
@@ -252,7 +262,7 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(new HashSet<>(asList("1", "2", "3")),
+                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")),
                         new HashSet<>(asList("4", "5", "6")), timeout);
 
         // then
@@ -280,7 +290,7 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("1", "2", "3")),
+                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")),
                         new HashSet<>(asList("4", "5", "6")), timeout);
 
         // then
@@ -300,7 +310,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredDataShouldReturnResultWithErrorIfNoStoredRequestFound(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(new HashSet<>(asList("1", "3")), emptySet(), timeout);
+                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
@@ -315,7 +325,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredDataShouldReturnResultWithErrorIfNoStoredImpFound(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(emptySet(), new HashSet<>(asList("4", "6")), timeout);
+                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, emptySet(), new HashSet<>(asList("4", "6")), timeout);
 
         // then
         final Async async = context.async();
@@ -330,7 +340,8 @@ public class JdbcApplicationSettingsTest {
     public void getAmpStoredDataShouldReturnResultWithErrorIfNoStoredRequestFound(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("1", "3")), emptySet(), timeout);
+                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "3")), emptySet(),
+                        timeout);
 
         // then
         final Async async = context.async();
@@ -349,13 +360,14 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(new HashSet<>(asList("1", "2", "3")), emptySet(), timeout);
+                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")), emptySet(),
+                        timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("Result set column number is less than expected")));
+                    singletonList("Error occurred while mapping stored request data")));
             async.complete();
         }));
     }
@@ -368,13 +380,14 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("1", "2", "3")), emptySet(), timeout);
+                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")), emptySet(),
+                        timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("Result set column number is less than expected")));
+                    singletonList("Error occurred while mapping stored request data")));
             async.complete();
         }));
     }
@@ -383,7 +396,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredDataShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(new HashSet<>(asList("3", "4")),
+                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("3", "4")),
                         new HashSet<>(asList("6", "7")), timeout);
 
         // then
@@ -399,7 +412,8 @@ public class JdbcApplicationSettingsTest {
     public void getAmpStoredDataShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("3", "4")), emptySet(), timeout);
+                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("3", "4")), emptySet(),
+                        timeout);
 
         // then
         final Async async = context.async();
@@ -414,7 +428,7 @@ public class JdbcApplicationSettingsTest {
     public void getAmpStoredDataShouldIgnoreImpIdsArgument(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(singleton("1"), singleton("4"), timeout);
+                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("1"), singleton("4"), timeout);
 
         // then
         final Async async = context.async();
