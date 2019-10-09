@@ -10,7 +10,10 @@
         "crid": "crid91",
         "dealid": "dealId91",
         "w": 300,
-        "h": 600
+        "h": 600,
+        "ext": {
+          "BidType": 1
+        }
       }
     },
     {
