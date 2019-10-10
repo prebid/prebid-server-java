@@ -185,12 +185,12 @@ MediaType PriceGranularity - when a single OpenRTB request contains multiple imp
                     "targeting": {
                         "mediatypepricegranularity": {
                             "banner": { "ranges": [
-                                {"min": 0, "max": 20, "increment": 0.5}
+                                {"max": 20, "increment": 0.5}
                             ]},
                             "video": { "ranges": [
-                                {"min": 0, "max": 10, "increment": 1},
-                                {"min": 10, "max": 20, "increment": 2},
-                                {"min": 20, "max": 50, "increment": 5}
+                                {"max": 10, "increment": 1},
+                                {"max": 20, "increment": 2},
+                                {"max": 50, "increment": 5}
                             ]}
                         }
                     }
