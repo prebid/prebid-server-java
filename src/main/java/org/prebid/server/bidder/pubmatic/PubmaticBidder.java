@@ -92,57 +92,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
-        final List<String> eachKv = new ArrayList<>();
-        for (ExtImpPubmaticKeyVal keyVal : keywords) {
-            if (CollectionUtils.isEmpty(keyVal.getValue())) {
-                logger.error(String.format("No values present for key = %s", keyVal.getKey()));
-            } else {
-                eachKv.add(String.format("\"%s\":\"%s\"", keyVal.getKey(),
-                        String.join(",", keyVal.getValue())));
-            }
-        }
-        final String keywordsString = "{" + String.join(",", eachKv) + "}";
-        try {
-            return Json.mapper.readValue(keywordsString, ObjectNode.class);
-        } catch (IOException e) {
-            throw new PreBidException(String.format("Failed to create keywords with error: %s", e.getMessage()), e);
-        }
-    }
-
-    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps,
-                                                List<ExtImpPubmatic> extImpPubmatics) {
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder().imp(imps);
-
-        extImpPubmatics.stream()
-                .map(ExtImpPubmatic::getWrapper)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .ifPresent(wrapExt -> requestBuilder.ext(Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt))));
-
-        final String pubId = extImpPubmatics.stream()
-                .map(ExtImpPubmatic::getPublisherId)
-                .filter(Objects::nonNull)
-                .findFirst().orElse(null);
-
-        if (bidRequest.getSite() != null) {
-            modifySite(pubId, bidRequest, requestBuilder);
-        } else if (bidRequest.getApp() != null) {
-            modifyApp(pubId, bidRequest, requestBuilder);
-        }
-
-        final BidRequest modifiedRequest = requestBuilder.build();
-        final String body = Json.encode(modifiedRequest);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(body)
-                .headers(HttpUtil.headers())
-                .payload(modifiedRequest)
-                .build();
-    }
-
     private static Imp modifyImp(Imp imp, ExtImpPubmatic extImpPubmatic) throws PreBidException {
         // validate Impression
         if (imp.getBanner() == null && imp.getVideo() == null) {
@@ -213,6 +162,57 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             modifiedImp.ext(null);
         }
         return modifiedImp.build();
+    }
+
+    private static ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
+        final List<String> eachKv = new ArrayList<>();
+        for (ExtImpPubmaticKeyVal keyVal : keywords) {
+            if (CollectionUtils.isEmpty(keyVal.getValue())) {
+                logger.error(String.format("No values present for key = %s", keyVal.getKey()));
+            } else {
+                eachKv.add(String.format("\"%s\":\"%s\"", keyVal.getKey(),
+                        String.join(",", keyVal.getValue())));
+            }
+        }
+        final String keywordsString = "{" + String.join(",", eachKv) + "}";
+        try {
+            return Json.mapper.readValue(keywordsString, ObjectNode.class);
+        } catch (IOException e) {
+            throw new PreBidException(String.format("Failed to create keywords with error: %s", e.getMessage()), e);
+        }
+    }
+
+    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps,
+                                                List<ExtImpPubmatic> extImpPubmatics) {
+        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder().imp(imps);
+
+        extImpPubmatics.stream()
+                .map(ExtImpPubmatic::getWrapper)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .ifPresent(wrapExt -> requestBuilder.ext(Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt))));
+
+        final String pubId = extImpPubmatics.stream()
+                .map(ExtImpPubmatic::getPublisherId)
+                .filter(Objects::nonNull)
+                .findFirst().orElse(null);
+
+        if (bidRequest.getSite() != null) {
+            modifySite(pubId, bidRequest, requestBuilder);
+        } else if (bidRequest.getApp() != null) {
+            modifyApp(pubId, bidRequest, requestBuilder);
+        }
+
+        final BidRequest modifiedRequest = requestBuilder.build();
+        final String body = Json.encode(modifiedRequest);
+
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(body)
+                .headers(HttpUtil.headers())
+                .payload(modifiedRequest)
+                .build();
     }
 
     private static void modifySite(String pubId, BidRequest bidRequest,
