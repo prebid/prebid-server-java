@@ -232,7 +232,7 @@ public class GdprService {
             return geoLocationService.lookup(ipAddress, timeout)
                     .map(GeoInfo::getCountry)
                     .map(resolvedCountry -> createGdprInfoWithCountry(gdprConsent, resolvedCountry))
-                    .otherwise(throwable -> updateMetricsAndReturnDefault(gdprConsent));
+                    .otherwise(updateMetricsAndReturnDefault(gdprConsent));
         }
 
         // use default
