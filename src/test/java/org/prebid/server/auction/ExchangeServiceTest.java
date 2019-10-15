@@ -116,6 +116,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
@@ -1261,7 +1262,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void shouldRespondWithOneResponseWithErrorWhenBidWithUnsupportedCurrency() {
+    public void shouldRespondWithOneBidAndErrorWhenBidResponseContainsOneUnsupportedCurrency() {
         // given
         final BigDecimal firstBidderPrice = BigDecimal.valueOf(2.0);
         final BigDecimal secondBidderPrice = BigDecimal.valueOf(10.0);
@@ -1271,7 +1272,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(10.0)).build(), "CUR"))));
 
         final BidRequest bidRequest = BidRequest.builder().cur(Collections.singletonList("BAD"))
-                .imp(Arrays.asList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
+                .imp(singletonList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
                         identity()))).build();
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(20);
@@ -1315,10 +1316,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 singletonList(givenImp(singletonMap("bidder", 2), identity())),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .aliases(emptyMap())
-                        .build())))
-                        .cur(Arrays.asList("CUR1", "CUR2", "CUR2")));
+                builder -> builder.cur(Arrays.asList("CUR1", "CUR2", "CUR2")));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
@@ -1341,6 +1339,51 @@ public class ExchangeServiceTest extends VertxTest {
                 .flatExtracting(Bid::getPrice)
                 .containsOnly(updatedPrice);
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldUpdateBidPriceWithCurrencyConversionForMultipleBid() {
+        // given
+        final BigDecimal bidder1Price = BigDecimal.valueOf(1.5);
+        final BigDecimal bidder2Price = BigDecimal.valueOf(2);
+        final BigDecimal bidder3Price = BigDecimal.valueOf(3);
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(bidder1Price).build(), "EUR"))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(bidder2Price).build(), "GBP"))));
+        givenBidder("bidder3", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(bidder3Price).build(), "USD"))));
+
+        final Map<String, Integer> impBidders = new HashMap<>();
+        impBidders.put("bidder1", 1);
+        impBidders.put("bidder2", 2);
+        impBidders.put("bidder3", 3);
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(impBidders, identity())), builder -> builder.cur(singletonList("USD")));
+
+        final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
+        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), eq("USD"))).willReturn(bidder3Price);
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), any(), anyBoolean());
+        verify(currencyService).convertCurrency(eq(bidder1Price), eq(null), eq("USD"), eq("EUR"));
+        verify(currencyService).convertCurrency(eq(bidder2Price), eq(null), eq("USD"), eq("GBP"));
+        verify(currencyService).convertCurrency(eq(bidder3Price), eq(null), eq("USD"), eq("USD"));
+        verifyNoMoreInteractions(currencyService);
+
+        assertThat(argumentCaptor.getValue())
+                .hasSize(3)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsOnly(bidder3Price, updatedPrice, updatedPrice);
     }
 
     @Test
