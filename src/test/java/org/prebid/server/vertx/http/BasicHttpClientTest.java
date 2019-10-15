@@ -50,7 +50,6 @@ public class BasicHttpClientTest {
     private io.vertx.core.http.HttpClient wrappedHttpClient;
 
     private BasicHttpClient httpClient;
-
     @Mock
     private HttpClientRequest httpClientRequest;
     @Mock

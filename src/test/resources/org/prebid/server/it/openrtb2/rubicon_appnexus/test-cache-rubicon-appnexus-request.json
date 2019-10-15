@@ -145,7 +145,7 @@
     },
     {
       "type": "xml",
-      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8000/event?t=imp&b=880290288&f=b&a=5001]]></Impression>",
+      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8000/event?t=imp&b=880290288&a=5001&f=b]]></Impression>",
       "expiry": 120
     }
   ]

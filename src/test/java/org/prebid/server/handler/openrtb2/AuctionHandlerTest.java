@@ -27,6 +27,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
@@ -56,6 +57,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionHandlerTest extends VertxTest {
 
@@ -93,8 +95,9 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
@@ -163,6 +166,21 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+    }
+
+    @Test
+    public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(401));
+        verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
     }
 
     @Test
@@ -399,8 +417,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         // simulate calling exception handler that is supposed to update networkerr timer value
         given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
-            ((Handler<Void>) inv.getArgument(0)).handle(null);
-            return null;
+            ((Handler<RuntimeException>) inv.getArgument(0)).handle(new RuntimeException());
+            return httpResponse;
         });
 
         // when

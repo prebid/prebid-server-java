@@ -40,6 +40,7 @@ import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
 import org.prebid.server.handler.VersionHandler;
+import org.prebid.server.handler.VtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
@@ -150,6 +151,7 @@ public class WebConfiguration {
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
                   GetuidsHandler getuidsHandler,
+                  VtrackHandler vtrackHandler,
                   OptoutHandler optoutHandler,
                   BidderParamHandler bidderParamHandler,
                   BiddersHandler biddersHandler,
@@ -169,6 +171,7 @@ public class WebConfiguration {
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
         router.get("/getuids").handler(getuidsHandler);
+        router.post("/vtrack").handler(vtrackHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
@@ -294,6 +297,17 @@ public class WebConfiguration {
     @Bean
     GetuidsHandler getuidsHandler(UidsCookieService uidsCookieService) {
         return new GetuidsHandler(uidsCookieService);
+    }
+
+    @Bean
+    VtrackHandler vtrackHandler(
+            ApplicationSettings applicationSettings,
+            BidderCatalog bidderCatalog,
+            CacheService cacheService,
+            TimeoutFactory timeoutFactory,
+            @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs) {
+
+        return new VtrackHandler(applicationSettings, bidderCatalog, cacheService, timeoutFactory, defaultTimeoutMs);
     }
 
     @Bean

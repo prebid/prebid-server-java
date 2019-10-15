@@ -64,15 +64,18 @@ public class NotificationEventHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
+        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
         notificationHandler = new NotificationEventHandler(analyticsReporter, timeoutFactory, applicationSettings);
     }
 
     @Test
-    public void shouldReturnBadRequestWhenTypeIsNull() {
+    public void shouldReturnBadRequestWhenTypeIsMissing() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
@@ -83,12 +86,10 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("Type 't' is required query parameter. Possible values are win and imp, but was null");
     }
 
     @Test
-    public void shouldReturnBadRequestWhenTypeValueIsInvalid() {
+    public void shouldReturnBadRequestWhenTypeIsInvalid() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "invalid"));
@@ -100,12 +101,10 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("Type 't' is required query parameter. Possible values are win and imp, but was invalid");
     }
 
     @Test
-    public void shouldReturnBadRequestWhenBidIdWasNotDefined() {
+    public void shouldReturnBadRequestWhenBidIdIsMissing() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win"));
@@ -117,12 +116,10 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("BidId 'b' is required query parameter and can't be empty");
     }
 
     @Test
-    public void shouldReturnUnauthorizedWhenAccountWasNotDefined() {
+    public void shouldReturnUnauthorizedWhenAccountIsMissing() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
@@ -135,8 +132,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody())
-                .isEqualTo("Account 'a' is required query parameter and can't be empty");
     }
 
     @Test
@@ -155,8 +150,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("Format 'f' query parameter is invalid. Possible values are b and i, but was invalid");
     }
 
     @Test
@@ -176,8 +169,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
-        assertThat(captureResponseBody())
-                .isEqualTo("Analytics 'x' query parameter is invalid. Possible values are 1 and 0, but was invalid");
     }
 
     @Test
@@ -198,7 +189,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't not support events");
+        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
     }
 
     @Test
@@ -210,7 +201,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(false).build()));
+                .willReturn(Future.succeededFuture(Account.builder().id("accountId").eventsEnabled(false).build()));
 
         // when
         notificationHandler.handle(routingContext);
@@ -219,7 +210,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         verifyZeroInteractions(analyticsReporter);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
-        assertThat(captureResponseBody()).isEqualTo("Account 'null' doesn't not support events");
+        assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
     }
 
     @Test
@@ -238,11 +229,12 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        final Map<String, String> headers = new HashMap<>();
-        headers.put("t", "win");
-        headers.put("b", "bidId");
-        headers.put("a", "accountId");
-        final HttpContext expectedHttpContext = HttpContext.builder().queryParams(headers)
+        final Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("t", "win");
+        queryParams.put("b", "bidId");
+        queryParams.put("a", "accountId");
+        final HttpContext expectedHttpContext = HttpContext.builder()
+                .queryParams(queryParams)
                 .headers(Collections.emptyMap())
                 .cookies(Collections.emptyMap())
                 .build();
@@ -268,8 +260,8 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporter);
         verifyZeroInteractions(applicationSettings);
+        verifyZeroInteractions(analyticsReporter);
     }
 
     @Test

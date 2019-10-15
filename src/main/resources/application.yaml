@@ -24,6 +24,7 @@ default-timeout-ms: 900
 max-timeout-ms: 5000
 timeout-adjustment-ms: 30
 auction:
+  blacklisted-accounts:
   default-timeout-ms: 900
   max-timeout-ms: 5000
   timeout-adjustment-ms: 30
@@ -37,12 +38,12 @@ amp:
   timeout-adjustment-ms: 30
 setuid:
   default-timeout-ms: 2000
+vtrack:
+  default-timeout-ms: 2000
 cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
-event:
-  url-template: /event?t=imp&b=BIDID&f=b&a=ACCOUNT
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
@@ -53,6 +54,7 @@ metrics:
   accounts:
     default-verbosity: none
 settings:
+  enforce-valid-account: false
   database:
     pool-size: 20
   in-memory-cache:

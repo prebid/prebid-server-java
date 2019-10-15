@@ -34,6 +34,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -264,17 +265,13 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext context, long startTime) {
-
-        context.response().exceptionHandler(this::handleResponseException);
+        final MetricName metricRequestStatus;
+        final List<String> errorMessages;
+        final int status;
+        final String body;
 
         final String origin = originFrom(context);
         ampEventBuilder.origin(origin);
-
-        final MetricName metricRequestStatus;
-        final List<String> errorMessages;
-
-        final int status;
-        final String body;
 
         // Add AMP headers
         context.response().headers()
@@ -299,6 +296,15 @@ public class AmpHandler implements Handler<RoutingContext> {
                 body = errorMessages.stream().map(
                         msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.joining("\n"));
+            } else if (exception instanceof UnauthorizedAccountException) {
+                metricRequestStatus = MetricName.badinput;
+                final String errorMessage = exception.getMessage();
+                logger.info("Unauthorized: {0}", errorMessage);
+
+                errorMessages = Collections.singletonList(errorMessage);
+
+                status = HttpResponseStatus.UNAUTHORIZED.code();
+                body = String.format("Unauthorised: %s", errorMessage);
             } else {
                 final String message = exception.getMessage();
 
@@ -328,11 +334,6 @@ public class AmpHandler implements Handler<RoutingContext> {
         return origin;
     }
 
-    private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send amp response", throwable);
-        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-    }
-
     private void respondWith(RoutingContext context, int status, String body, long startTime,
                              MetricName metricRequestStatus, AmpEvent event) {
         // don't send the response if client has gone
@@ -340,11 +341,19 @@ public class AmpHandler implements Handler<RoutingContext> {
             logger.warn("The client already closed connection, response will be skipped");
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
         } else {
-            context.response().setStatusCode(status).end(body);
+            context.response()
+                    .exceptionHandler(this::handleResponseException)
+                    .setStatusCode(status)
+                    .end(body);
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsReporter.processEvent(event);
         }
+    }
+
+    private void handleResponseException(Throwable throwable) {
+        logger.warn("Failed to send amp response: {0}", throwable.getMessage());
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 }

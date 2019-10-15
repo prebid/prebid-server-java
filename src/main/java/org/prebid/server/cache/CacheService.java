@@ -1,5 +1,6 @@
 package org.prebid.server.cache;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
@@ -23,6 +24,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
@@ -41,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,23 +58,20 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private static final String BID_ID_PLACEHOLDER = "BIDID";
-    private static final String ACCOUNT_PLACEHOLDER = "ACCOUNT";
-
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
-    private final String eventsUrlTemplate;
+    private final EventsService eventsService;
     private final Clock clock;
 
     public CacheService(CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
-                        String cachedAssetUrlTemplate, String eventsUrlTemplate, Clock clock) {
+                        String cachedAssetUrlTemplate, EventsService eventsService, Clock clock) {
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
-        this.eventsUrlTemplate = Objects.requireNonNull(eventsUrlTemplate);
+        this.eventsService = Objects.requireNonNull(eventsService);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -142,6 +142,42 @@ public class CacheService {
     private static Future<BidCacheResponse> failResponse(Throwable exception) {
         logger.warn("Error occurred while interacting with cache service", exception);
         return Future.failedFuture(exception);
+    }
+
+    /**
+     * Makes cache for Vtrack puts.
+     * <p>
+     * Modify VAST value in putObjects and stores in the cache.
+     * <p>
+     * The returned result will always have the number of elements equals putObjects list size.
+     */
+    public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
+                                                    String accountId, Timeout timeout) {
+        final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate, accountId);
+        return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout);
+    }
+
+    /**
+     * Modify VAST value in putObjects.
+     */
+    private List<PutObject> updatePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
+                                             String accountId) {
+        if (CollectionUtils.isEmpty(biddersAllowingVastUpdate)) {
+            return putObjects;
+        }
+
+        final List<PutObject> updatedPutObjects = new ArrayList<>();
+        for (PutObject putObject : putObjects) {
+            final JsonNode value = putObject.getValue();
+            if (biddersAllowingVastUpdate.contains(putObject.getBidder()) && value != null) {
+                final String updatedVastValue = modifyVastXml(value.asText(), putObject.getBidid(), accountId);
+                final PutObject updatedPutObject = putObject.toBuilder().value(new TextNode(updatedVastValue)).build();
+                updatedPutObjects.add(updatedPutObject);
+            } else {
+                updatedPutObjects.add(putObject);
+            }
+        }
+        return updatedPutObjects;
     }
 
     /**
@@ -330,7 +366,11 @@ public class CacheService {
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
     private static PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
-        return PutObject.of("json", Json.mapper.valueToTree(cacheBid.getBid()), cacheBid.getTtl());
+        return PutObject.builder()
+                .type("json")
+                .value(Json.mapper.valueToTree(cacheBid.getBid()))
+                .expiry(cacheBid.getTtl())
+                .build();
     }
 
     /**
@@ -355,7 +395,11 @@ public class CacheService {
             vastXml = modifyVastXml(vastXml, bidId, accountId);
         }
 
-        return PutObject.of("xml", new TextNode(vastXml), cacheBid.getTtl());
+        return PutObject.builder()
+                .type("xml")
+                .value(new TextNode(vastXml))
+                .expiry(cacheBid.getTtl())
+                .build();
     }
 
     private String modifyVastXml(String stringValue, String bidId, String accountId) {
@@ -367,9 +411,7 @@ public class CacheService {
             return stringValue;
         }
 
-        final String impressionUrl = "<![CDATA["
-                + eventsUrlTemplate.replace(BID_ID_PLACEHOLDER, bidId).replace(ACCOUNT_PLACEHOLDER, accountId)
-                + "]]>";
+        final String impressionUrl = "<![CDATA[" + eventsService.vastUrlTracking(bidId, accountId) + "]]>";
         final String openTag = "<Impression>";
 
         // empty impression tag - just insert the link
@@ -503,15 +545,20 @@ public class CacheService {
      * Creates video {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
      */
     private static PutObject videoPutObject(Bid bid) {
-        return PutObject.of("xml", new TextNode(bid.getAdm()), null);
+        return PutObject.builder()
+                .type("xml")
+                .value(new TextNode(bid.getAdm()))
+                .build();
     }
 
     /**
      * Creates banner {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
      */
     private static PutObject bannerPutObject(Bid bid) {
-        return PutObject.of("json",
-                Json.mapper.valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(), bid.getHeight())),
-                null);
+        return PutObject.builder()
+                .type("json")
+                .value(Json.mapper.valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(),
+                        bid.getHeight())))
+                .build();
     }
 }

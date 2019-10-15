@@ -27,6 +27,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -43,12 +44,15 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,10 +73,12 @@ public class CacheServiceTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    private final CacheTtl mediaTypeCacheTtl = CacheTtl.of(null, null);
+
     @Mock
     private HttpClient httpClient;
-
-    private final CacheTtl mediaTypeCacheTtl = CacheTtl.of(null, null);
+    @Mock
+    private EventsService eventsService;
 
     private Clock clock;
 
@@ -90,7 +96,7 @@ public class CacheServiceTest extends VertxTest {
 
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=", ENDPOINT_URL_TEMPLATE, clock);
+                "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -238,7 +244,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=", ENDPOINT_URL_TEMPLATE, clock);
+                "https://cache-service-host:8080/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -267,10 +273,12 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(4)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(BannerValue.of("adm1", "nurl1", 200, 100)), null),
-                        PutObject.of("json", mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300)), null),
-                        PutObject.of("xml", new TextNode(adm3), null),
-                        PutObject.of("xml", new TextNode(adm4), null)
+                        PutObject.builder().type("json").value(
+                                mapper.valueToTree(BannerValue.of("adm1", "nurl1", 200, 100))).build(),
+                        PutObject.builder().type("json").value(
+                                mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300))).build(),
+                        PutObject.builder().type("xml").value(new TextNode(adm3)).build(),
+                        PutObject.builder().type("xml").value(new TextNode(adm4)).build()
                 );
     }
 
@@ -296,7 +304,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .containsOnly(PutObject.of("xml", new TextNode("adm2"), null));
+                .containsOnly(PutObject.builder().type("xml").value(new TextNode("adm2")).build());
     }
 
     @Test
@@ -478,9 +486,9 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(3)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(bid1), null),
-                        PutObject.of("json", mapper.valueToTree(bid2), null),
-                        PutObject.of("xml", new TextNode(bid2.getAdm()), null));
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid1)).build(),
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid2)).build(),
+                        PutObject.builder().type("xml").value(new TextNode(bid2.getAdm())).build());
     }
 
     @Test
@@ -530,8 +538,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
-                ENDPOINT_URL_TEMPLATE, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -550,8 +557,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
-                ENDPOINT_URL_TEMPLATE, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -569,8 +575,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=",
-                ENDPOINT_URL_TEMPLATE, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -687,12 +692,13 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(4)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(bid1), null),
-                        PutObject.of("json", mapper.valueToTree(bid2), null),
-                        PutObject.of("xml", new TextNode("adm1"), null),
-                        PutObject.of("xml", new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                                "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
-                                "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"), null));
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid1)).build(),
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid2)).build(),
+                        PutObject.builder().type("xml").value(new TextNode("adm1")).build(),
+                        PutObject.builder().type("xml").value(
+                                new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
+                                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
+                                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build());
     }
 
     @Test
@@ -711,8 +717,8 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("adm"), null));
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
+                        PutObject.builder().type("xml").value(new TextNode("adm")).build());
     }
 
     @Test
@@ -731,8 +737,8 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("no impression tag"), null));
+                        PutObject.builder().type("json").value(mapper.valueToTree(bid)).build(),
+                        PutObject.builder().type("xml").value(new TextNode("no impression tag")).build());
     }
 
     @Test
@@ -741,6 +747,9 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
                 .adm("<Impression></Impression>"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+
+        given(eventsService.vastUrlTracking(any(), any()))
+                .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
@@ -751,9 +760,15 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml", new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&" +
-                                "b=bid1&f=b&a=accountId]]></Impression>"), null));
+                        PutObject.builder()
+                                .type("json")
+                                .value(mapper.valueToTree(bid))
+                                .build(),
+                        PutObject.builder()
+                                .type("xml")
+                                .value(new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&" +
+                                        "b=bid1&f=b&a=accountId]]></Impression>"))
+                                .build());
     }
 
     @Test
@@ -763,6 +778,9 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
                 .adm("<Impression>http:/test.com</Impression>"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+
+        given(eventsService.vastUrlTracking(any(), any()))
+                .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
@@ -774,11 +792,72 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(bid), null),
-                        PutObject.of("xml",
-                                new TextNode("<Impression>http:/test.com</Impression><Impression>" +
+                        PutObject.builder()
+                                .type("json")
+                                .value(mapper.valueToTree(bid))
+                                .build(),
+                        PutObject.builder()
+                                .type("xml")
+                                .value(new TextNode("<Impression>http:/test.com</Impression><Impression>" +
                                         "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
-                                        + "</Impression>"), null));
+                                        + "</Impression>"))
+                                .build());
+    }
+
+    @Test
+    public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
+        // when
+        final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
+                emptySet(), "", expiredTimeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isNotNull().hasMessage("Timeout has been exceeded");
+    }
+
+    @Test
+    public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
+        // when
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null);
+
+        // then
+        verifyZeroInteractions(httpClient);
+        assertThat(result.result().getResponses()).isEmpty();
+    }
+
+    @Test
+    public void cachePutObjectsShouldModifyVastAndCachePutObjects() throws IOException {
+        // given
+        final PutObject firstPutObject = PutObject.builder()
+                .type("xml")
+                .bidid("biddid1")
+                .bidder("bidder1")
+                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
+                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
+                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build();
+        final PutObject secondPutObject = PutObject.builder()
+                .type("xml")
+                .value(new TextNode("VAST"))
+                .bidid("biddid2")
+                .bidder("bidder2")
+                .build();
+
+        given(eventsService.vastUrlTracking(any(), any()))
+                .willReturn("https://test-event.com/event?t=imp&b=biddid1&f=b&a=account");
+
+        // when
+        cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
+                timeout);
+
+        // then
+        final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
+                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
+                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>" +
+                        "<Impression><![CDATA[https://test-event.com/event?t=imp&b=biddid1&f=b&a=account]]>" +
+                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
+                .build();
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2).containsOnly(modifiedSecondPutObject, secondPutObject);
     }
 
     private static List<Bid> singleBidList() {
@@ -803,7 +882,7 @@ public class CacheServiceTest extends VertxTest {
         if (bids != null) {
             putObjects = new ArrayList<>();
             for (com.iab.openrtb.response.Bid bid : bids) {
-                putObjects.add(PutObject.of("json", mapper.valueToTree(bid), null));
+                putObjects.add(PutObject.builder().type("json").value(mapper.valueToTree(bid)).build());
             }
         } else {
             putObjects = null;

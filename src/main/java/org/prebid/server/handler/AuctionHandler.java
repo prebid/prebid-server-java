@@ -428,9 +428,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
             return;
         }
 
-        context.response().exceptionHandler(this::handleResponseException);
-
         context.response()
+                .exceptionHandler(this::handleResponseException)
                 .putHeader(HttpUtil.DATE_HEADER, date())
                 .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
@@ -439,7 +438,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send auction response", throwable);
+        logger.warn("Failed to send auction response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 
