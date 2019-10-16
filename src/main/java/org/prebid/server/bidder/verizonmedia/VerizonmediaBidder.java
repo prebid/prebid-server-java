@@ -50,106 +50,74 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Imp firstImp = request.getImp().get(0);
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
-        final BidRequest outgoingRequest;
-        try {
-            final ExtImpVerizonmedia extImpVerizonmedia = parseAndValidateImpExt(firstImp.getExt());
-            outgoingRequest = modifyRequest(request, firstImp, extImpVerizonmedia);
-        } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+        final List<Imp> impList = bidRequest.getImp();
+        for (int i = 0; i < impList.size(); i++) {
+            try {
+                final Imp imp = impList.get(i);
+                final ExtImpVerizonmedia extImpVerizonmedia = parseAndValidateImpExt(imp.getExt(), i);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpVerizonmedia);
+                bidRequests.add(makeHttpRequest(modifiedRequest));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
-        final String body = Json.encode(outgoingRequest);
-        final MultiMap headers = makeHeaders(request.getDevice());
-
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(body)
-                        .headers(headers)
-                        .payload(outgoingRequest)
-                        .build()),
-                Collections.emptyList());
+        return Result.of(bidRequests, errors);
     }
 
-    private static ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode) {
+    private static ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode, int index) {
         final ExtImpVerizonmedia extImpVerizonmedia;
         try {
             extImpVerizonmedia = Json.mapper.<ExtPrebid<?, ExtImpVerizonmedia>>convertValue(impExtNode,
                     VERIZON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
         }
 
         final String dcn = extImpVerizonmedia.getDcn();
         if (StringUtils.isBlank(dcn)) {
-            throw new PreBidException("Missing param dcn");
+            throw new PreBidException(String.format("imp #%s: missing param dcn", index));
         }
 
         final String pos = extImpVerizonmedia.getPos();
         if (StringUtils.isBlank(pos)) {
-            throw new PreBidException("Missing param pos");
+            throw new PreBidException(String.format("imp #%s: missing param pos", index));
         }
 
         return extImpVerizonmedia;
     }
 
-    private static MultiMap makeHeaders(Device device) {
-        final String deviceUa = device != null ? device.getUa() : null;
-
-        final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", deviceUa);
-
-        return headers;
-    }
-
-    private static BidRequest modifyRequest(BidRequest request, Imp firstImp, ExtImpVerizonmedia extImpVerizonmedia) {
-        final Site site = request.getSite();
-        final String siteId = site != null ? site.getId() : null;
-        final Banner banner = firstImp.getBanner();
+    private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpVerizonmedia extImpVerizonmedia) {
+        final Banner banner = imp.getBanner();
         final boolean hasBanner = banner != null;
-        final boolean hasTagId = StringUtils.isNotBlank(firstImp.getTagid());
-        final boolean hasSiteId = StringUtils.isNotBlank(siteId);
-
-        if (hasTagId && hasSiteId && !hasBanner) {
-            return request;
-        }
 
         final Integer bannerWidth = hasBanner ? banner.getW() : null;
         final Integer bannerHeight = hasBanner ? banner.getH() : null;
         final boolean hasBannerWidthAndHeight = bannerWidth != null && bannerHeight != null;
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         if (hasBannerWidthAndHeight && (bannerWidth == 0 || bannerHeight == 0)) {
             throw new PreBidException(String.format(
                     "Invalid sizes provided for Banner %sx%s", bannerWidth, bannerHeight));
         }
 
-        if (!hasTagId || !hasBannerWidthAndHeight) {
-            final Imp.ImpBuilder firstImpBuilder = firstImp.toBuilder();
-            if (!hasTagId) {
-                firstImpBuilder.tagid(extImpVerizonmedia.getPos());
-            }
+        final Imp.ImpBuilder impBuilder = imp.toBuilder()
+                .tagid(extImpVerizonmedia.getPos());
 
-            if (hasBanner && !hasBannerWidthAndHeight) {
-                firstImpBuilder.banner(modifyBanner(banner));
-            }
-
-            final List<Imp> imps = new ArrayList<>(request.getImp());
-            imps.set(0, firstImpBuilder.build());
-            requestBuilder.imp(imps);
+        if (hasBanner && !hasBannerWidthAndHeight) {
+            impBuilder.banner(modifyBanner(banner));
         }
 
-        if (StringUtils.isBlank(siteId)) {
-            final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-            requestBuilder.site(siteBuilder.id(extImpVerizonmedia.getDcn()).build());
-        }
+        final Site site = request.getSite();
+        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
 
-        return requestBuilder.build();
+        return request.toBuilder()
+                .imp(Collections.singletonList(impBuilder.build()))
+                .site(siteBuilder.id(extImpVerizonmedia.getDcn()).build())
+                .build();
     }
 
     private static Banner modifyBanner(Banner banner) {
@@ -163,6 +131,26 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
                 .w(firstFormat.getW())
                 .h(firstFormat.getH())
                 .build();
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest outgoingRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(Json.encode(outgoingRequest))
+                .headers(makeHeaders(outgoingRequest.getDevice()))
+                .payload(outgoingRequest)
+                .build();
+    }
+
+    private static MultiMap makeHeaders(Device device) {
+        final String deviceUa = device != null ? device.getUa() : null;
+
+        final MultiMap headers = HttpUtil.headers()
+                .add("x-openrtb-version", "2.5");
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", deviceUa);
+
+        return headers;
     }
 
     @Override

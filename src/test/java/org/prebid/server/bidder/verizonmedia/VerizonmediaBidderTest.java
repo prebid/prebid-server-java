@@ -65,7 +65,7 @@ public class VerizonmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -82,7 +82,7 @@ public class VerizonmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Missing param dcn"));
+                .containsOnly(BidderError.badInput("imp #0: missing param dcn"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -99,29 +99,38 @@ public class VerizonmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Missing param pos"));
+                .containsOnly(BidderError.badInput("imp #0: missing param pos"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequestIfFirstImpTagIdAndSiteIdArePresent() {
+    public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithErrors() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), identity());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.id("imp1")),
+                        givenImp(impBuilder -> impBuilder.id("imp2")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", ""))))),
+                        givenImp(impBuilder -> impBuilder.id("imp3"))))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("imp #1: missing param pos"));
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(bidRequest);
+                .flatExtracting(BidRequest::getImp).hasSize(2)
+                .extracting(Imp::getId)
+                .containsOnly("imp1", "imp3");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteIdFromExtIfInitiallyMissing() {
+    public void makeHttpRequestsShouldAlwaysSetSiteIdAndImpTagIdFromImpExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), requestBuilder -> requestBuilder.site(null));
+        final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
@@ -133,21 +142,9 @@ public class VerizonmediaBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
                 .containsOnly("dcn");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetImpTagIdFromExtIfInitiallyMissing() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.tagid(null), identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
+                .flatExtracting(BidRequest::getImp).hasSize(1)
                 .extracting(Imp::getTagid)
                 .containsOnly("pos");
     }
