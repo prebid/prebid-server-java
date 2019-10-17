@@ -16,14 +16,6 @@ public class ExtImpSharethroughResponse {
     @JsonProperty("bidId")
     String bidId;
 
-    @JsonProperty("cookieSyncUrls")
-    List<String> cookieSyncUrls;
-
     List<ExtImpSharethroughCreative> creatives;
-
-    ExtImpSharethroughPlacement placement;
-
-    @JsonProperty("stxUserId")
-    String stxUserId;
 }
 

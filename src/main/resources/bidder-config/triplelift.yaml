@@ -1,0 +1,24 @@
+adapters:
+  triplelift:
+    enabled: false
+    endpoint: https://tlx.3lift.com/s2s/auction?supplier_id=19
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@triplelift.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - video
+        - banner
+      supported-vendors:
+      vendor-id: 28
+    usersync:
+      url: https://eb2.3lift.com/sync?gpdr={{gdpr}}&cmp_cs={{gdpr_consent}}
+      redirect-url:
+      cookie-family-name: triplelift
+      type: redirect
+      support-cors: false

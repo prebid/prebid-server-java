@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.sharethrough;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
@@ -17,7 +18,7 @@ class SharethroughUriBuilderUtil {
      * Creates uri with parameters for sharethrough request
      */
     static String buildSharethroughUrl(String baseUri, String supplyId, String strVersion, StrUriParameters params) {
-        return new URIBuilder()
+        final URIBuilder uriBuilder = new URIBuilder()
                 .setPath(baseUri)
                 .addParameter("placement_key", params.getPkey())
                 .addParameter("bidId", params.getBidID())
@@ -28,8 +29,18 @@ class SharethroughUriBuilderUtil {
                 .addParameter("height", String.valueOf(params.getHeight()))
                 .addParameter("width", String.valueOf(params.getWidth()))
                 .addParameter("supplyId", supplyId)
-                .addParameter("strVersion", strVersion)
-                .toString();
+                .addParameter("strVersion", strVersion);
+
+        final String ttduid = params.getTheTradeDeskUserId();
+        if (StringUtils.isNotBlank(ttduid)) {
+            uriBuilder.addParameter("ttduid", ttduid);
+        }
+        final String stxuid = params.getSharethroughUserId();
+        if (StringUtils.isNotBlank(stxuid)) {
+            uriBuilder.addParameter("stxuid", stxuid);
+        }
+
+        return uriBuilder.toString();
     }
 
     private static String getBooleanStringValue(Boolean bool) {

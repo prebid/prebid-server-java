@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -370,7 +371,9 @@ public class BidResponseCreator {
             final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
                     keywordsCreatorByBidType(targeting, isApp);
             final boolean isWinningBid = winningBids.contains(bid);
-            final String winUrl = eventsEnabled ? eventsService.winUrlTargeting(account.getId()) : null;
+            final String winUrl = eventsEnabled
+                    ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(account.getId()))
+                    : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
                     .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl);
 

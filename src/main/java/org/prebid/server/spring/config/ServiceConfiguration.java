@@ -67,6 +67,8 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
@@ -140,7 +142,9 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
@@ -150,7 +154,10 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency,
+        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, adServerCurrency, blacklistedAccounts,
                 storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
     }

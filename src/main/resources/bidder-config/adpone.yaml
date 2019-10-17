@@ -1,0 +1,22 @@
+adapters:
+  adpone:
+    enabled: false
+    endpoint: http://rtb.adpone.com/bid-request?src=prebid_server
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: tech@adpone.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 16
+    usersync:
+      url: https://usersync.adpone.com/csync?redir=
+      redirect-url: /setuid?bidder=adpone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={uid}
+      cookie-family-name: adpone
+      type: redirect
+      support-cors: false

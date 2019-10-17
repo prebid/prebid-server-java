@@ -211,6 +211,28 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldSendToCacheEmptyUpdatableBiddersIfAccountEventsEnabledIsNull() {
+        // given
+        final List<PutObject> putObjects = singletonList(
+                PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(putObjects));
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(bidderCatalog);
+
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any());
+    }
+
+    @Test
     public void shouldSendToCacheExpectedPutsAndUpdatableBidders() {
         // given
         final List<PutObject> putObjects = asList(

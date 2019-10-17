@@ -33,6 +33,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
 ## Auction (OpenRTB)
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
@@ -158,6 +159,9 @@ For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 
+For account processing rules available next options:
+- `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
@@ -213,6 +217,5 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
 ## General settings
-- `external-url` - the setting stands for external URL prebid server is reachable by, 
-for example address of the load-balancer e.g. http://prebid.host.com.
+- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
 - `admin.port` - the port to listen on administration requests.

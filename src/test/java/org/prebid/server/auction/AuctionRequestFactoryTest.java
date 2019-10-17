@@ -1,7 +1,9 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -19,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -26,6 +29,7 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -47,6 +51,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -60,10 +65,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
+
+    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -101,9 +109,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
 
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
     }
 
     @Test
@@ -122,11 +130,63 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
+        // given
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        givenValidBidRequest();
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        verify(applicationSettings, never()).getAccountById(any(), any());
+
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Unauthorised account id ");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
+        // given
+
+        factory = new AuctionRequestFactory(1000, true, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().id("absentId").build())
+                        .build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        verify(applicationSettings).getAccountById(eq("absentId"), any());
+
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Unauthorised account id absentId");
+    }
+
+    @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1, false, "USD", BLACKLISTED_ACCOUNTS,
+                storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -596,6 +656,23 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldTolerateMissingImpExtWhenProcessingAliases() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(null).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("alias", "bidder"))
+                        .build())))
+                .build());
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+    }
+
+    @Test
     public void shouldPassExtPrebidDebugFlagIfPresent() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -679,6 +756,25 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         verify(timeoutFactory).create(eq(startTime), anyLong());
         assertThat(timeout).isNotNull();
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenAccountIdIsBlacklisted() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("bad_acc").build()).build())
+                .build());
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                        + "server host.");
     }
 
     @Test
@@ -815,11 +911,15 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
+        try {
+            given(routingContext.getBody()).willReturn(Buffer.buffer(Json.mapper.writeValueAsString(bidRequest)));
 
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
+            given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
 
-        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+            given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 
     private void givenValidBidRequest() {

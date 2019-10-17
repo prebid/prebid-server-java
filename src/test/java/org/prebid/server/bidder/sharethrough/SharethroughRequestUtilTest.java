@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.sharethrough;
 
 import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
@@ -9,9 +8,13 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.json.Json;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.Size;
+import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 
 import java.util.Arrays;
@@ -20,7 +23,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class SharethroughRequestUtilTest {
+public class SharethroughRequestUtilTest extends VertxTest {
 
     @Test
     public void getPageShouldReturnNullWhenSiteIsNull() {
@@ -62,45 +65,95 @@ public class SharethroughRequestUtilTest {
 
 
     @Test
-    public void getConsentShouldReturnEmptyStringWhenExtUserOrConsentIsNull() {
+    public void retrieveFromUserInfoShouldReturnEmptyStringWhenUserInfoOrParameterIsNull() {
         // given
-        final ExtUser extUser = ExtUser.builder().consent(null).build();
+        final UserInfo userInfo = UserInfo.of(null, null, null);
 
         // when and then
-        assertThat(SharethroughRequestUtil.getConsent(null)).isEmpty();
-        assertThat(SharethroughRequestUtil.getConsent(extUser)).isEmpty();
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(null, UserInfo::getConsent)).isEmpty();
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEmpty();
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEmpty();
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEmpty();
     }
 
     @Test
-    public void getConsentShouldReturnConsentWhenExtUserContainsConsent() {
+    public void retrieveFromUserInfoShouldReturnConsentWhenExtUserContainsParameter() {
         // given
         final String consent = "consent";
+        final String ttduid = "ttduid";
+        final String stxuid = "stxuid";
+        final UserInfo userInfo = UserInfo.of(consent, ttduid, stxuid);
+
+        // when and then
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEqualTo(consent);
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEqualTo(ttduid);
+        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEqualTo(stxuid);
+    }
+
+    @Test
+    public void getUserInfoShouldReturnUserInfoWithNullWhenUserOrUserExtIsNull() {
+        // given
+        final User user = User.builder().build();
+
+        // when and then
+        final UserInfo expected = UserInfo.of(null, null, null);
+        assertThat(SharethroughRequestUtil.getUserInfo(null)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+    }
+
+    @Test
+    public void getUserInfoShouldReturnUserInfoWithConsentWhenUserExtContainsConsent() {
+        // given
+        final String consent = "con";
         final ExtUser extUser = ExtUser.builder().consent(consent).build();
+        final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        assertThat(SharethroughRequestUtil.getConsent(extUser)).isEqualTo(consent);
+        final UserInfo expected = UserInfo.of(consent, null, null);
+        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
-    public void getExtUserShouldReturnNullWhenUserOrUserExtIsNull() {
+    public void getUserInfoShouldReturnUserInfoWithTtdUidFromFirstExtUserEidUid() {
         // given
-        final User user = User.builder().ext(null).build();
+        final String consent = "con";
+        final List<ExtUserEidUid> uids = Arrays.asList(
+                ExtUserEidUid.of("first", null),
+                ExtUserEidUid.of("second", null));
+        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids);
+
+        final ExtUser extUser = ExtUser.builder()
+                .consent(consent)
+                .eids(Collections.singletonList(extUserEid))
+                .build();
+        final User user = User.builder().buyeruid("buyerid").ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        assertThat(SharethroughRequestUtil.getExtUser(null)).isNull();
-        assertThat(SharethroughRequestUtil.getExtUser(user)).isNull();
+        final UserInfo expected = UserInfo.of(consent, "first", "buyerid");
+        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
-    public void getExtUserShouldReturnExtUserWhenUserContainsUserExt() {
+    public void getUserInfoShouldReturnUserInfoWithTtdUidFromFirstExtUserEidUidFromSecondExtUserEid() {
         // given
-        final ExtUser extUser = ExtUser.builder().consent("con")
-                .data(Json.mapper.createObjectNode().put("key", "value"))
+        final List<ExtUserEidUid> uidsFromFirst = Arrays.asList(
+                ExtUserEidUid.of("firstFromFirst", null),
+                ExtUserEidUid.of("secondFromFirst", null));
+        final ExtUserEid firstExtUserEid = ExtUserEid.of("badSource", null, uidsFromFirst);
+
+        final List<ExtUserEidUid> uidsFromSecond = Arrays.asList(
+                ExtUserEidUid.of("firstFromSecond", null),
+                ExtUserEidUid.of("secondFromSecond", null));
+        final ExtUserEid secondExtUserEid = ExtUserEid.of("adserver.org", null, uidsFromSecond);
+
+        final ExtUser extUser = ExtUser.builder()
+                .eids(Arrays.asList(firstExtUserEid, secondExtUserEid))
                 .build();
         final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
 
         // when and then
-        assertThat(SharethroughRequestUtil.getExtUser(user)).isEqualTo(extUser);
+        final UserInfo expected = UserInfo.of(null, "firstFromSecond", null);
+        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
