@@ -1,0 +1,32 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "seat": "958",
+      "bid": [
+        {
+          "id": "7706636740145184841",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adid": "29681110",
+          "adm": "some-test-ad",
+          "adomain": [
+            "triplelift.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+          "cid": "958",
+          "crid": "29681110",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "triplelift_pb": {
+              "format": 2
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "bidid": "5778926625248726496",
+  "cur": "USD"
+}

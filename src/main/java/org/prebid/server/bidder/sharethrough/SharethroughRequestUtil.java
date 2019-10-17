@@ -12,14 +12,16 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.sharethrough.model.Size;
+import org.prebid.server.bidder.sharethrough.model.UserExt;
+import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 
 class SharethroughRequestUtil {
 
@@ -79,23 +81,48 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves consent from user.ext.consent and in case of any exception or invalid values return empty string.
+     * Retrieves page from user.buyeruid or null when user is null.
      */
-    static String getConsent(ExtUser extUser) {
-        final String gdprConsent = extUser != null ? extUser.getConsent() : "";
+    static String getBuyerId(User user) {
+        return user != null ? user.getBuyeruid() : null;
+    }
+
+    /**
+     * Retrieves {@link String} parameter from {@link UserInfo} and return empty string if value is blank.
+     */
+    static String retrieveFromUserInfo(UserInfo userInfo, Function<UserInfo, String> retrieve) {
+        final String gdprConsent = userInfo != null ? retrieve.apply(userInfo) : "";
         return ObjectUtils.firstNonNull(gdprConsent, "");
     }
 
     /**
-     * Retrieves {@link ExtUser} from user.ext or returns null in case of exception or when user or user.ext null.
+     * Retrieves {@link UserInfo} from user.ext or returns null in case of exception.
      */
-    static ExtUser getExtUser(User user) {
+    static UserInfo getUserInfo(User user) {
         final ObjectNode extUserNode = user != null ? user.getExt() : null;
         try {
-            return extUserNode != null ? Json.mapper.treeToValue(extUserNode, ExtUser.class) : null;
+            final UserExt userExt = extUserNode != null ? Json.mapper.treeToValue(extUserNode, UserExt.class) : null;
+            final String consent = userExt != null ? userExt.getConsent() : null;
+            final String stxuid = user != null ? user.getBuyeruid() : null;
+
+            final String ttdUid = parseTtdUid(userExt);
+            return UserInfo.of(consent, ttdUid, stxuid);
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    private static String parseTtdUid(UserExt userExt) {
+        if (userExt == null || CollectionUtils.isEmpty(userExt.getEids())) {
+            return null;
+        }
+        return userExt.getEids().stream()
+                .filter(extUserEid -> StringUtils.equals(extUserEid.getSource(), "adserver.org"))
+                .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
+                .map(extUserEid -> extUserEid.getUids().get(0).getId())
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse(null);
     }
 
     /**

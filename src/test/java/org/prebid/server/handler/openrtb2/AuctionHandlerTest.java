@@ -32,8 +32,17 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -233,6 +242,37 @@ public class AuctionHandlerTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{}"));
+    }
+
+    @Test
+    public void shouldRespondWithCorrectResolvedRequestMediaTypePriceGranularity() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final BidRequest resolvedRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(null,
+                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE)))),
+                                        null, mapper.createObjectNode()), null, null, null))
+                        .build())))
+                .build();
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder()
+                        .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
+                                null, null, null, null)))
+                        .build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(exchangeService).holdAuction(any());
+
+        verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":" +
+                "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":" +
+                "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
     }
 
     @Test

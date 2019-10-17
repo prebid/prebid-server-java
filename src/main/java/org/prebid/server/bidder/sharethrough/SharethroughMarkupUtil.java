@@ -1,7 +1,5 @@
 package org.prebid.server.bidder.sharethrough;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
@@ -13,14 +11,13 @@ class SharethroughMarkupUtil {
     private SharethroughMarkupUtil() {
     }
 
-    static String getAdMarkup(ExtImpSharethroughResponse strResponse, StrUriParameters strUriParameters)
-            throws JsonProcessingException {
+    static String getAdMarkup(String jsonResponse, ExtImpSharethroughResponse strResponse,
+                              StrUriParameters strUriParameters) {
         final StringBuilder tmplBody = new StringBuilder();
 
         final String strRespId = String.format("str_response_%s", strResponse.getBidId());
         final String arId = strResponse.getAdserverRequestId();
-        final String jsonStrResponse = Json.mapper.writeValueAsString(strResponse);
-        final String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonStrResponse.getBytes());
+        final String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonResponse.getBytes());
 
         tmplBody.append("<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=").append(arId).append("\" />\n")
                 .append("\t\t<div data-str-native-key=\"").append(strUriParameters.getPkey()).append("\" ")

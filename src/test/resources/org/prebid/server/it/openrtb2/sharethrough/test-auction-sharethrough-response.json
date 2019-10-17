@@ -24,8 +24,8 @@
                 "hb_cache_host_sharethrough": "{{ cache.host }}",
                 "hb_cache_id": "a03927f1-86e1-48fb-9efc-da9104a44e39",
                 "hb_cache_id_sharethrough": "a03927f1-86e1-48fb-9efc-da9104a44e39",
-                "hb_cache_path":  "{{ cache.path }}",
-                "hb_cache_path_sharethrough":  "{{ cache.path }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_sharethrough": "{{ cache.path }}",
                 "hb_deal": "dealId",
                 "hb_deal_sharethrough": "dealId",
                 "hb_pb": "10.00",
@@ -63,7 +63,7 @@
           {
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\",\"deal_id\":\"dealId\"},\"version\":0}]}",
             "status": 200,
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&supplyId=FGMrCMMc&strVersion=1.0.1"
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&supplyId=FGMrCMMc&strVersion=4&ttduid=id&stxuid=STR-UID"
           }
         ]
       },
@@ -127,6 +127,16 @@
         "tmax": 1000,
         "user": {
           "ext": {
+            "eids": [
+              {
+                "source": "adserver.org",
+                "uids": [
+                  {
+                    "id": "id"
+                  }
+                ]
+              }
+            ],
             "consent": "consentValue",
             "digitrust": {
               "id": "id",

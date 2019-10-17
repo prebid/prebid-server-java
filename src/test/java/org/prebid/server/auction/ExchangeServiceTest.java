@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -301,6 +302,55 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
         assertThat(capturedBidRequest2.getImp()).hasSize(1)
                 .element(0).returns(2, imp -> imp.getExt().get("bidder").asInt());
+    }
+
+    @Test
+    public void shouldPassRequestWithExtPrebidToDefinedBidder() {
+        // given
+        final String bidder1Name = "bidder1";
+        final String bidder2Name = "bidder2";
+        final Bidder<?> bidder1 = mock(Bidder.class);
+        final Bidder<?> bidder2 = mock(Bidder.class);
+        givenBidder(bidder1Name, bidder1, givenEmptySeatBid());
+        givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
+
+        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(
+                ExtRequestPrebid.builder()
+                        .bidders(mapper.createObjectNode()
+                                .putPOJO(bidder1Name, mapper.createObjectNode().put("test1", "test1"))
+                                .putPOJO(bidder2Name, mapper.createObjectNode().put("test2", "test2"))
+                                .putPOJO("spam", mapper.createObjectNode().put("spam", "spam")))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(singletonMap(bidder1Name, 1), identity()),
+                givenImp(singletonMap(bidder2Name, 2), identity())),
+               reqBuilder -> reqBuilder.ext(ext));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue();
+        final JsonNode prebid1 = capturedBidRequest1.getExt().get("prebid");
+        assertThat(prebid1).isNotNull();
+        final JsonNode bidders1 = prebid1.get("bidders");
+        assertThat(bidders1).isNotNull();
+        assertThat(bidders1.fields()).hasSize(1)
+                .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
+
+        final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
+        final JsonNode prebid2 = capturedBidRequest2.getExt().get("prebid");
+        assertThat(prebid2).isNotNull();
+        final JsonNode bidders2 = prebid2.get("bidders");
+        assertThat(bidders2).isNotNull();
+        assertThat(bidders2.fields()).hasSize(1)
+                .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 
     @Test
