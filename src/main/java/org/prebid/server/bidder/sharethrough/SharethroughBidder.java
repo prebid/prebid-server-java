@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.sharethrough;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -15,14 +14,13 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.sharethrough.model.Size;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
+import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -37,7 +35,7 @@ import java.util.stream.Collectors;
 
 public class SharethroughBidder implements Bidder<Void> {
 
-    private static final String VERSION = "1.0.1";
+    private static final String VERSION = "4";
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.xNative;
@@ -88,9 +86,10 @@ public class SharethroughBidder implements Bidder<Void> {
      */
     private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request) {
         final boolean consentRequired = SharethroughRequestUtil.isConsentRequired(request.getRegs());
-
-        final ExtUser extUser = SharethroughRequestUtil.getExtUser(request.getUser());
-        final String consent = SharethroughRequestUtil.getConsent(extUser);
+        final UserInfo userInfo = SharethroughRequestUtil.getUserInfo(request.getUser());
+        final String ttdUid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
+        final String consent = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent);
+        final String stxuid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid);
 
         final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
 
@@ -98,8 +97,8 @@ public class SharethroughBidder implements Bidder<Void> {
         for (Imp imp : request.getImp()) {
             final ExtImpSharethrough extImpStr = Json.mapper.<ExtPrebid<?, ExtImpSharethrough>>convertValue(
                     imp.getExt(), SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
-
-            strUriParameters.add(createStrUriParameters(consentRequired, consent, canAutoPlay, imp, extImpStr));
+            strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, canAutoPlay, ttdUid,
+                    stxuid));
         }
         return strUriParameters;
     }
@@ -107,9 +106,9 @@ public class SharethroughBidder implements Bidder<Void> {
     /**
      * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values.
      */
-    private StrUriParameters createStrUriParameters(boolean isConsentRequired, String consentString,
-                                                    boolean canBrowserAutoPlayVideo, Imp imp,
-                                                    ExtImpSharethrough extImpStr) {
+    private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpStr, Imp imp, boolean isConsentRequired,
+                                                    String consentString, boolean canBrowserAutoPlayVideo,
+                                                    String ttdUid, String buyeruid) {
         final Size size = SharethroughRequestUtil.getSize(imp, extImpStr);
         return StrUriParameters.builder()
                 .pkey(extImpStr.getPkey())
@@ -120,6 +119,8 @@ public class SharethroughBidder implements Bidder<Void> {
                 .iframe(extImpStr.getIframe())
                 .height(size.getHeight())
                 .width(size.getWidth())
+                .theTradeDeskUserId(ttdUid)
+                .sharethroughUserId(buyeruid)
                 .build();
     }
 
@@ -128,7 +129,8 @@ public class SharethroughBidder implements Bidder<Void> {
      */
     private MultiMap makeHeaders(Device device, String page) {
         final MultiMap headers = HttpUtil.headers()
-                .add("Origin", SharethroughRequestUtil.getHost(page));
+                .add("Origin", SharethroughRequestUtil.getHost(page))
+                .add("Referer", page);
         final String ip = device.getIp();
         if (ip != null) {
             headers.add("X-Forwarded-For", ip);
@@ -156,12 +158,12 @@ public class SharethroughBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final HttpResponse httpResponse = httpCall.getResponse();
-
-        final ExtImpSharethroughResponse sharethroughBid;
         try {
-            sharethroughBid = Json.mapper.readValue(httpResponse.getBody(), ExtImpSharethroughResponse.class);
-            return Result.of(toBidderBid(sharethroughBid, httpCall.getRequest()), Collections.emptyList());
+            final String responseBody = httpCall.getResponse().getBody();
+            final ExtImpSharethroughResponse sharethroughBid = Json.mapper.readValue(responseBody,
+                    ExtImpSharethroughResponse.class);
+            return Result.of(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()),
+                    Collections.emptyList());
         } catch (IOException | IllegalArgumentException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -170,8 +172,8 @@ public class SharethroughBidder implements Bidder<Void> {
     /**
      * Converts {@link ExtImpSharethroughResponse} to {@link List} of {@link BidderBid}.
      */
-    private List<BidderBid> toBidderBid(ExtImpSharethroughResponse sharethroughBid, HttpRequest request)
-            throws IOException {
+    private List<BidderBid> toBidderBid(String responseBody, ExtImpSharethroughResponse sharethroughBid,
+                                        HttpRequest request) {
         if (sharethroughBid.getCreatives().isEmpty()) {
             throw new IllegalArgumentException("No creative provided");
         }
@@ -179,12 +181,7 @@ public class SharethroughBidder implements Bidder<Void> {
         final StrUriParameters strUriParameters = SharethroughUriBuilderUtil
                 .buildSharethroughUrlParameters(request.getUri());
 
-        final String adMarkup;
-        try {
-            adMarkup = SharethroughMarkupUtil.getAdMarkup(sharethroughBid, strUriParameters);
-        } catch (JsonProcessingException e) {
-            throw new IOException("Cant parse markup", e);
-        }
+        final String adMarkup = SharethroughMarkupUtil.getAdMarkup(responseBody, sharethroughBid, strUriParameters);
 
         final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
         return Collections.singletonList(
