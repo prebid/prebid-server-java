@@ -29,6 +29,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
@@ -41,6 +42,10 @@ import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebid;
+import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBidders;
+import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBiddersBidder;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
@@ -73,6 +78,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -91,6 +97,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
+    private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String ADSERVER_EID = "adserver.org";
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -123,7 +130,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(endpointUrl)
+                        .uri(makeUri(bidRequest))
                         .body(body)
                         .headers(headers)
                         .payload(singleRequest)
@@ -214,6 +221,34 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private String makeUri(BidRequest bidRequest) {
+        final String tkXint = tkXintValue(bidRequest);
+        if (StringUtils.isNotBlank(tkXint)) {
+            try {
+                return new URIBuilder(endpointUrl)
+                        .setParameter(TK_XINT_QUERY_PARAMETER, tkXint)
+                        .build().toString();
+            } catch (URISyntaxException e) {
+                logger.warn("Cant add the tk_xint value for url");
+            }
+        }
+        return endpointUrl;
+    }
+
+    private static String tkXintValue(BidRequest bidRequest) {
+        try {
+            final RubiconExt rubiconExt = Json.mapper.convertValue(bidRequest.getExt(), RubiconExt.class);
+            final RubiconExtPrebid prebid = rubiconExt == null ? null : rubiconExt.getPrebid();
+            final RubiconExtPrebidBidders bidders = prebid == null ? null : prebid.getBidders();
+            final RubiconExtPrebidBiddersBidder rubiconBidder = bidders == null ? null : bidders.getBidder();
+            final String integration = rubiconBidder == null ? null : rubiconBidder.getIntegration();
+
+            return StringUtils.isBlank(integration) ? null : integration;
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 

@@ -92,7 +92,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RubiconBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
+    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
@@ -131,6 +131,27 @@ public class RubiconBidderTest extends VertxTest {
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "prebid-server/1.0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceDefaultParametersWithExtPrebidBiddersBidder() {
+        // given
+        final ObjectNode prebidExt = (ObjectNode) Json.mapper.createObjectNode().set("prebid", Json.mapper.createObjectNode()
+                .set("bidders", Json.mapper.createObjectNode()
+                        .set("bidder", Json.mapper.createObjectNode().put("integration", "test"))));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(prebidExt),
+                builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
+                        .build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = "http://rubiconproject.com/exchange.json?tk_xint=test";
+        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+                .returns(HttpMethod.POST, HttpRequest::getMethod)
+                .returns(expectedUrl, HttpRequest::getUri);
     }
 
     @Test
