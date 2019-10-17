@@ -22,7 +22,7 @@ import static java.util.Collections.singletonList;
 public class AdponeTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromTheMediaAdpone() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromAdpone() throws IOException, JSONException {
         // given
         // Adpone bid response for imp 001
         wireMockRule.stubFor(post(urlPathEqualTo("/adpone-exchange"))
