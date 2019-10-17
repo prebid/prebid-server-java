@@ -33,6 +33,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
 ## Auction (OpenRTB)
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
@@ -158,6 +159,9 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+
+For account processing rules available next options:
+- `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
 
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.

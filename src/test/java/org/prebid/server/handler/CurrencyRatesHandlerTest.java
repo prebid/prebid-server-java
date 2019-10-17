@@ -28,7 +28,6 @@ public class CurrencyRatesHandlerTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private HttpServerResponse httpResponse;
-
     @Mock
     private CurrencyConversionService currencyConversionService;
 

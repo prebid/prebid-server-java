@@ -1,0 +1,187 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid02",
+          "impid": "impId001",
+          "price": 2.25,
+          "adm": "<!-- admarkup -->",
+          "adid": "2002",
+          "adomain": [
+            "tag-example.com"
+          ],
+          "cid": "1001",
+          "crid": "2002",
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "2.20",
+                "hb_bidder_adkernel": "adkernel",
+                "hb_cache_id_adkernel": "71615e3d-8a18-4099-a807-3952199b532a",
+                "hb_pb_adkernel": "2.20",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "69c0e0c9-ce20-4d91-99d1-d821afd75727",
+                "hb_cache_host_adkernel": "{{ cache.host }}",
+                "hb_bidder": "adkernel",
+                "hb_cache_id": "71615e3d-8a18-4099-a807-3952199b532a",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_uuid_adkernel": "69c0e0c9-ce20-4d91-99d1-d821afd75727",
+                "hb_cache_path_adkernel": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}71615e3d-8a18-4099-a807-3952199b532a",
+                  "cacheId": "71615e3d-8a18-4099-a807-3952199b532a"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}69c0e0c9-ce20-4d91-99d1-d821afd75727",
+                  "cacheId": "69c0e0c9-ce20-4d91-99d1-d821afd75727"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "adkernel",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "adkernel": [
+          {
+            "uri": "{{ adkernel.exchange_uri }}?zone=101",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId001\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"AK-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid02\",\"impid\":\"impId001\",\"price\":2.25,\"cid\":\"1001\",\"crid\":\"2002\",\"adid\":\"2002\",\"adm\":\"<!-- admarkup -->\",\"adomain\":[\"tag-example.com\"]}]}],\"bidid\":\"wehM-93KGr0\"}",
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid02\",\"impid\":\"impId001\",\"price\":2.25,\"adm\":\"<!-- admarkup -->\",\"adid\":\"2002\",\"adomain\":[\"tag-example.com\"],\"cid\":\"1001\",\"crid\":\"2002\"}},{\"type\":\"xml\",\"value\":\"<!-- admarkup -->\",\"expiry\":120}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"71615e3d-8a18-4099-a807-3952199b532a\"},{\"uuid\":\"69c0e0c9-ce20-4d91-99d1-d821afd75727\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId001",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "video": {
+              "mimes": [
+                "video/mp4"
+              ],
+              "w": 640,
+              "h": 480,
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "ext": {
+              "adkernel": {
+                "zoneId": 101,
+                "host": "localhost:8090"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "consent": "consentValue",
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            }
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "adkernel": "{{ adkernel.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}

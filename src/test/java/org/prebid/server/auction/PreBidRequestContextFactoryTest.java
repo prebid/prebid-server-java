@@ -74,7 +74,6 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     private UidsCookie uidsCookie;
 
     private PreBidRequestContextFactory factory;
-
     @Mock
     private RoutingContext routingContext;
     @Mock

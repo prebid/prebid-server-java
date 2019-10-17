@@ -18,5 +18,5 @@ adapters:
       url: https://usermatch.targeting.unrulymedia.com/pbsync?gdpr={{gdpr}}&consent={{gdpr_consent}}&rurl=
       redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
       cookie-family-name: unruly
-      type: redirect
+      type: iframe
       support-cors: false

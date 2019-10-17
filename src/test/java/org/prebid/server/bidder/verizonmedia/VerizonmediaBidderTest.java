@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
@@ -29,6 +30,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -53,46 +55,63 @@ public class VerizonmediaBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenDcnIsEmpty() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("", null))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("", null)))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Missing param dcn"));
+                .containsOnly(BidderError.badInput("imp #0: missing param dcn"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenPosIsEmpty() {
         // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "")))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("imp #0: missing param pos"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithErrors() {
+        // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", ""))))
-                        .build()))
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.id("imp1")),
+                        givenImp(impBuilder -> impBuilder.id("imp2")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", ""))))),
+                        givenImp(impBuilder -> impBuilder.id("imp3"))))
                 .build();
 
         // when
@@ -100,41 +119,18 @@ public class VerizonmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Missing param pos"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequestIfFirstImpTagIdAndSiteIdArePresent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().id("site_id").build())
-                .imp(singletonList(Imp.builder()
-                        .tagid("tagId")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "pos"))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+                .containsOnly(BidderError.badInput("imp #1: missing param pos"));
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(bidRequest);
+                .flatExtracting(BidRequest::getImp).hasSize(2)
+                .extracting(Imp::getId)
+                .containsOnly("imp1", "imp3");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteIdFromExtIfInitiallyMissing() {
+    public void makeHttpRequestsShouldAlwaysSetSiteIdAndImpTagIdFromImpExt() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().build())
-                .imp(singletonList(Imp.builder()
-                        .tagid("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "pos"))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
@@ -146,17 +142,67 @@ public class VerizonmediaBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
                 .containsOnly("dcn");
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(1)
+                .extracting(Imp::getTagid)
+                .containsOnly("pos");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpTagIdFromExtIfInitiallyMissing() {
+    public void makeHttpRequestsShouldReturnErrorWhenBannerWidthIsZero() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().id("123").build())
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "pos"))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().w(0).h(100).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid sizes provided for Banner 0x100"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBannerHeightIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().w(100).h(0).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid sizes provided for Banner 100x0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBannerHasNoFormats() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("No sizes provided for Banner"));
+    }
+
+    @Test
+    public void makeHttpRequestsSetFirstImpressionBannerWidthAndHeightWhenFromFirstFormatIfTheyAreNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(250).h(300).build())).build()),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
@@ -166,20 +212,16 @@ public class VerizonmediaBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getTagid)
-                .containsOnly("pos");
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsOnly(tuple(250, 300));
     }
 
     @Test
     public void makeHttpRequestsShouldSetExpectedHeaders() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().build())
-                .device(Device.builder().ua("UA").build())
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "pos"))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.site(null).device(Device.builder().ua("UA").build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
@@ -300,6 +342,23 @@ public class VerizonmediaBidderTest extends VertxTest {
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(verizonmediaBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+        return requestCustomizer.apply(BidRequest.builder()
+                .site(Site.builder().id("123").build())
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .tagid("tagId")
+                .banner(Banner.builder().w(100).h(100).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "pos")))))
+                .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

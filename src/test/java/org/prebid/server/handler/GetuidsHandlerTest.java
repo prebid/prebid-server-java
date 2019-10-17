@@ -36,13 +36,10 @@ public class GetuidsHandlerTest extends VertxTest {
     private UidsCookieService uidsCookieService;
 
     private GetuidsHandler getuidsHandler;
-
     @Mock
     private RoutingContext routingContext;
-
     @Mock
     private HttpServerRequest httpServerRequest;
-
     @Mock
     private HttpServerResponse httpServerResponse;
 
