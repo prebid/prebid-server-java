@@ -26,6 +26,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -62,7 +63,9 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
     private final long maxRequestSize;
+    private final boolean enforceValidAccount;
     private final String adServerCurrency;
+    private final List<String> blacklistedAccounts;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
@@ -74,14 +77,16 @@ public class AuctionRequestFactory {
     private final ApplicationSettings applicationSettings;
 
     public AuctionRequestFactory(
-            long maxRequestSize,
-            String adServerCurrency, StoredRequestProcessor storedRequestProcessor,
-            ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
-            BidderCatalog bidderCatalog, RequestValidator requestValidator, InterstitialProcessor interstitialProcessor,
-            TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory, ApplicationSettings applicationSettings) {
+            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccounts,
+            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
+            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
+            InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
+            ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
+        this.enforceValidAccount = enforceValidAccount;
         this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -536,10 +541,25 @@ public class AuctionRequestFactory {
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
 
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
+                && blacklistedAccounts.contains(accountId)) {
+            throw new InvalidRequestException(String.format("Prebid-server has blacklisted Account ID: %s, please "
+                    + "reach out to the prebid server host.", accountId));
+        }
+
         return StringUtils.isEmpty(accountId)
-                ? Future.succeededFuture(emptyAccount(accountId))
+                ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(exception -> accountFallback(exception, accountId));
+                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));
+    }
+
+    /**
+     * Returns response depending on enforceValidAccount flag.
+     */
+    private Future<Account> responseToMissingAccount(String accountId) {
+        return enforceValidAccount
+                ? Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id " + accountId))
+                : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**
@@ -585,15 +605,13 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns empty account if it is not found or any exception occurred.
-     * <p>
-     * Note: account data is not critical, so we don't want to fail whole request in case of error.
+     * Log any not {@link PreBidException} errors. Returns response provided in method parameters.
      */
-    private static Account accountFallback(Throwable exception, String accountId) {
+    private static Future<Account> accountFallback(Throwable exception, Future<Account> response) {
         if (!(exception instanceof PreBidException)) {
             logger.warn("Error occurred while fetching account", exception);
         }
-        return emptyAccount(accountId);
+        return response;
     }
 
     /**

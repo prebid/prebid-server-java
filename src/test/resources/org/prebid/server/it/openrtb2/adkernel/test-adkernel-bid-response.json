@@ -1,0 +1,22 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid02",
+          "impid": "impId001",
+          "price": 2.25,
+          "cid": "1001",
+          "crid": "2002",
+          "adid": "2002",
+          "adm": "<!-- admarkup -->",
+          "adomain": [
+            "tag-example.com"
+          ]
+        }
+      ]
+    }
+  ],
+  "bidid": "wehM-93KGr0"
+}
