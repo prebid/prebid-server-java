@@ -256,7 +256,7 @@ public class AuctionHandlerTest extends VertxTest {
                                 ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(1,
                                         singletonList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE)))),
                                         null, mapper.createObjectNode()), null, null, null))
-                        .build())))
+                        .build(), null)))
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()

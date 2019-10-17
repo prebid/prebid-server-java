@@ -326,7 +326,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .putPOJO(bidder1Name, mapper.createObjectNode().put("test1", "test1"))
                                 .putPOJO(bidder2Name, mapper.createObjectNode().put("test2", "test2"))
                                 .putPOJO("spam", mapper.createObjectNode().put("spam", "spam")))
-                        .build()));
+                        .build(), null));
 
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap(bidder1Name, 1), identity()),

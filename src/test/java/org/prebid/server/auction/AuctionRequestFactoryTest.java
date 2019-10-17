@@ -662,7 +662,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .imp(singletonList(Imp.builder().ext(null).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("alias", "bidder"))
-                        .build())))
+                        .build(), null)))
                 .build());
 
         // when
