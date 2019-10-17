@@ -650,7 +650,7 @@ public class ExchangeService {
             final boolean shouldCacheVideoBids = cache.getVastxml() != null;
             final boolean shouldCacheWinningBidsOnly = targeting.getIncludebidderkeys()
                     ? false // ext.prebid.targeting.includebidderkeys takes precedence
-                    : cache.getWinningonly();
+                    : ObjectUtils.defaultIfNull(cache.getWinningonly(), false);
 
             if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;

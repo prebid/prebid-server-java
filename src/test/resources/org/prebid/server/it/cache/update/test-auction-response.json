@@ -121,9 +121,6 @@
               },
               "includewinners": true,
               "includebidderkeys": true
-            },
-            "cache": {
-              "winningonly": false
             }
           }
         }

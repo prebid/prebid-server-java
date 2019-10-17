@@ -507,7 +507,7 @@ public class AuctionRequestFactory {
     private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
         final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
         final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
-        if (cacheWinningOnly == null) {
+        if (cacheWinningOnly == null && shouldCacheOnlyWinningBids) {
             return ExtRequestPrebidCache.of(
                     getIfNotNull(cache, ExtRequestPrebidCache::getBids),
                     getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),

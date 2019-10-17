@@ -733,6 +733,29 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNullAndConfigValueIsFalse() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        final ObjectNode extBidRequest = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .cache(ExtRequestPrebidCache.of(null, null, null))
+                .build()));
+
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(extBidRequest)
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getExt()).isSameAs(extBidRequest);
+    }
+
+    @Test
     public void shouldAddMissingAliases() {
         // given
         final Imp imp1 = Imp.builder()

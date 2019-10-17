@@ -325,7 +325,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap(bidder1Name, 1), identity()),
                 givenImp(singletonMap(bidder2Name, 2), identity())),
-               reqBuilder -> reqBuilder.ext(ext));
+                reqBuilder -> reqBuilder.ext(ext));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -575,6 +575,37 @@ public class ExchangeServiceTest extends VertxTest {
                 eq(targeting),
                 eq(BidRequestCacheInfo.builder().doCaching(true).shouldCacheWinningBidsOnly(true).build()),
                 any(), any(), eq(false));
+    }
+
+    @Test
+    public void shouldCallBidResponseCreatorWithWinningOnlyFalseWhenWinningOnlyIsNull() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenEmptySeatBid());
+
+        final Bid thirdBid = Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(7.89)).build();
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(singletonList(givenBid(thirdBid))));
+
+        final ExtRequestTargeting targeting = givenTargeting(false);
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(targeting)
+                        .cache(ExtRequestPrebidCache.of(null, null, null))
+                        .build()))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        verify(bidResponseCreator).create(
+                anyList(),
+                any(),
+                eq(targeting),
+                eq(BidRequestCacheInfo.builder().build()),
+                any(), any(), anyBoolean());
     }
 
     @Test

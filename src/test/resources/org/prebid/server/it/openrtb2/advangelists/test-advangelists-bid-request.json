@@ -94,8 +94,7 @@
         "bids": {},
         "vastxml": {
           "ttlseconds": 120
-        },
-        "winningonly": false
+        }
       }
     }
   }

@@ -47,7 +47,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -55,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -159,31 +157,6 @@ public class BidResponseCreator {
         }
 
         return result;
-    }
-
-    /**
-     * Resolves what {@link Bid}s should be cached.
-     * <p>
-     * If {@link BidRequestCacheInfo#isShouldCacheWinningBidsOnly()} is true - group ImpIds to corresponding Bid
-     * with max price (e.i. winningBid) and return all winning bids;
-     * <p>
-     * Otherwise - return all bids as usual.
-     */
-    private static Set<Bid> getBids(List<BidderResponse> bidderResponses, boolean shouldCacheWinningBidsOnly) {
-        final Set<Bid> bids = bidderResponses.stream()
-                .flatMap(BidResponseCreator::getBids)
-                .collect(Collectors.toSet());
-
-        if (!shouldCacheWinningBidsOnly) {
-            return bids;
-        }
-
-        final HashSet<Bid> bids1 = new HashSet<>(bids.stream()
-                .collect(Collectors.groupingBy(Bid::getImpid,
-                        Collectors.reducing(Bid.builder().price(BigDecimal.ZERO).build(),
-                                BinaryOperator.maxBy(Comparator.comparing(Bid::getPrice))))).values());
-
-        return bids1;
     }
 
     private static Stream<Bid> getBids(BidderResponse bidderResponse) {
@@ -451,11 +424,11 @@ public class BidResponseCreator {
     /**
      * Adds a Bid Response extension and returns {@link CacheServiceResult}
      */
-    private CacheServiceResult setBidResponseExt(
-            BidResponse.BidResponseBuilder bidResponseBuilder, List<BidderResponse> bidderResponses,
-            BidRequest bidRequest, CacheServiceResult cacheResult, boolean debugEnabled) {
-        bidResponseBuilder.ext(
-                Json.mapper.valueToTree(toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled)));
+    private CacheServiceResult setBidResponseExt(BidResponse.BidResponseBuilder bidResponseBuilder,
+                                                 List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                                                 CacheServiceResult cacheResult, boolean debugEnabled) {
+        final JsonNode extBidResponse = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
+        bidResponseBuilder.ext(Json.mapper.valueToTree(extBidResponse));
         return cacheResult;
     }
 
