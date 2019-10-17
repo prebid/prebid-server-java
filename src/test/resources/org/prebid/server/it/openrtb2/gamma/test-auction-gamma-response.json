@@ -1,0 +1,179 @@
+{
+  "id": "bidid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "7706636740145184841",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adid": "29681110",
+          "adomain": [
+            "sample.com"
+          ],
+          "cid": "958",
+          "crid": "29681110",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "0.50",
+                "hb_cache_path_gamma": "{{ cache.path }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "300x250",
+                "hb_bidder_gamma": "gamma",
+                "hb_pb_gamma": "0.50",
+                "hb_bidder": "gamma",
+                "hb_cache_id": "7e703396-6b75-4a10-9ef3-bc61ca7ce437",
+                "hb_cache_host_gamma": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_size_gamma": "300x250",
+                "hb_cache_id_gamma": "7e703396-6b75-4a10-9ef3-bc61ca7ce437"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}7e703396-6b75-4a10-9ef3-bc61ca7ce437",
+                  "cacheId": "7e703396-6b75-4a10-9ef3-bc61ca7ce437"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "gamma",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "gamma": [
+          {
+            "uri": "{{ gamma.exchange_uri }}/?id=id&zid=zid&wid=wid&bidid=bid&hb=pbmobile&device_ip=123.123.123.12&device_ua=Android+Chrome%2F60&device_ifa=ifaId",
+            "responsebody": "{\"id\":\"test-request-id\",\"seatbid\":[{\"seat\":\"958\",\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"sample.com\"],\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"sample.com\"],\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"7e703396-6b75-4a10-9ef3-bc61ca7ce437\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "bidid",
+        "imp": [
+          {
+            "id": "bid",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "gamma": {
+                "id": "id",
+                "zid": "zid",
+                "wid": "wid"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "Android Chrome/60",
+          "dnt": 2,
+          "ip": "123.123.123.12",
+          "language": "fr",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "gamma": "{{ gamma.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 1000
+  }
+}
