@@ -112,13 +112,14 @@ public class BidResponseCreator {
             populateWinningBids(bidderResponses, winningBids, winningBidsByBidder);
         }
 
-        return toBidsWithCacheIds(bidderResponses, cacheInfo.isShouldCacheWinningBidsOnly() ? winningBids : bids,
-                bidRequest.getImp(), cacheInfo, account, timeout)
-                .map(cacheResult ->
-                        setBidResponseExt(bidResponseBuilder, bidderResponses, bidRequest, cacheResult, debugEnabled))
-                .map(cacheResult -> getSeatBids(bidderResponses, targeting, bidRequest.getApp() != null,
-                        winningBids, winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), account))
-                .map(seatBids -> bidResponseBuilder.seatbid(seatBids).build());
+        final Set<Bid> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly() ? winningBids : bids;
+
+        return toBidsWithCacheIds(bidderResponses, bidsToCache, bidRequest.getImp(), cacheInfo, account, timeout)
+                .map(cacheResult -> populateBidResponseExt(bidResponseBuilder, bidderResponses, bidRequest, cacheResult,
+                        debugEnabled))
+                .map(cacheBids -> populateSeatBids(bidResponseBuilder, bidderResponses, targeting,
+                        bidRequest.getApp() != null, winningBids, winningBidsByBidder, cacheInfo, cacheBids, account))
+                .map(BidResponse.BidResponseBuilder::build);
     }
 
     /**
@@ -213,11 +214,11 @@ public class BidResponseCreator {
     }
 
     /**
-     * Returns {@link JsonNode} from {@link ExtBidResponse} object, populated with response time, errors and
-     * debug info (if requested) from all bidders.
+     * Returns {@link ExtBidResponse} object, populated with response time, errors and debug info (if requested)
+     * from all bidders.
      */
-    private JsonNode toExtBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                      CacheServiceResult cacheResult, boolean debugEnabled) {
+    private ExtBidResponse toExtBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                                            CacheServiceResult cacheResult, boolean debugEnabled) {
 
         final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled ? toExtHttpCalls(bidderResponses, cacheResult)
                 : null;
@@ -227,8 +228,7 @@ public class BidResponseCreator {
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
 
-        return Json.mapper.valueToTree(
-                ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null));
+        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null);
     }
 
     private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponse> bidderResponses,
@@ -424,25 +424,28 @@ public class BidResponseCreator {
     /**
      * Adds a Bid Response extension and returns {@link CacheServiceResult}
      */
-    private CacheServiceResult setBidResponseExt(BidResponse.BidResponseBuilder bidResponseBuilder,
-                                                 List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                                 CacheServiceResult cacheResult, boolean debugEnabled) {
-        final JsonNode extBidResponse = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
+    private Map<Bid, CacheIdInfo> populateBidResponseExt(BidResponse.BidResponseBuilder bidResponseBuilder,
+                                                         List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                                                         CacheServiceResult cacheResult, boolean debugEnabled) {
+        final ExtBidResponse extBidResponse = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
         bidResponseBuilder.ext(Json.mapper.valueToTree(extBidResponse));
-        return cacheResult;
+        return cacheResult.getCacheBids();
     }
 
     /**
      * Creates a list of {@link SeatBid}s from all non-bid-empty bidder responses
      */
-    private List<SeatBid> getSeatBids(List<BidderResponse> bidderResponses, ExtRequestTargeting targeting,
-                                      boolean isApp, Set<Bid> winningBids, Set<Bid> winningBidsByBidder,
-                                      BidRequestCacheInfo cacheInfo, Map<Bid, CacheIdInfo> cacheBids, Account account) {
-        return bidderResponses.stream()
+    private BidResponse.BidResponseBuilder populateSeatBids(
+            BidResponse.BidResponseBuilder bidResponseBuilder, List<BidderResponse> bidderResponses,
+            ExtRequestTargeting targeting, boolean isApp, Set<Bid> winningBids, Set<Bid> winningBidsByBidder,
+            BidRequestCacheInfo cacheInfo, Map<Bid, CacheIdInfo> cacheBids, Account account) {
+
+        final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse -> toSeatBid(bidderResponse, targeting, isApp, winningBids, winningBidsByBidder,
                         cacheInfo, cacheBids, account))
                 .collect(Collectors.toList());
+        return bidResponseBuilder.seatbid(seatBids);
     }
 
     /**

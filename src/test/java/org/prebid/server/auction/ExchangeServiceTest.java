@@ -1120,6 +1120,34 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToBidResponseCreator() {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
+                httpBidderRequester, responseBidValidator, currencyService, bidResponseCreator,
+                bidResponsePostProcessor, metrics, clock, 100);
+
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenBidder(givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(true))
+                        .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, null))
+                        .build()))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
+        verify(httpBidderRequester).requestBids(any(), any(), timeoutCaptor.capture(), anyBoolean());
+        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(400L);
+        verify(bidResponseCreator).create(anyList(), any(), any(), any(), any(), same(timeout), anyBoolean());
+    }
+
+    @Test
     public void shouldReturnBidsWithUpdatedPriceCurrencyConversion() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);

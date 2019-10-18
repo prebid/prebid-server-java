@@ -10,6 +10,8 @@ import lombok.Value;
 @Value
 public class ExtRequestPrebidCache {
 
+    public static final ExtRequestPrebidCache EMPTY = new ExtRequestPrebidCache(null, null, null);
+
     /**
      * Defines the contract for bidrequest.ext.prebid.cache.bids
      */
