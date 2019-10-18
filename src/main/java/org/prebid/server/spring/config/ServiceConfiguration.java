@@ -143,6 +143,7 @@ public class ServiceConfiguration {
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
@@ -157,9 +158,10 @@ public class ServiceConfiguration {
         final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
-        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, adServerCurrency, blacklistedAccounts,
-                storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
-                new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
+                adServerCurrency, blacklistedAccounts, storedRequestProcessor, implicitParametersExtractor,
+                uidsCookieService, bidderCatalog, requestValidator, new InterstitialProcessor(), timeoutResolver,
+                timeoutFactory, applicationSettings);
     }
 
     @Bean
@@ -289,12 +291,11 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService,
-            CacheService cacheService) {
+            EventsService eventsService) {
 
-        return new BidResponseCreator(bidderCatalog, eventsService, cacheService.getEndpointHost(),
-                cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
     }
 
     @Bean
@@ -305,7 +306,6 @@ public class ServiceConfiguration {
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
-            CacheService cacheService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
@@ -313,8 +313,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyConversionService, cacheService,
-                bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
+                httpBidderRequester, responseBidValidator, currencyConversionService, bidResponseCreator,
+                bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean

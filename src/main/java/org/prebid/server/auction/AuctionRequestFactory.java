@@ -33,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -75,16 +76,18 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final boolean shouldCacheOnlyWinningBids;
 
     public AuctionRequestFactory(
-            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccounts,
-            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
-            InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings) {
+            long maxRequestSize, boolean enforceValidAccount, boolean shouldCacheOnlyWinningBids,
+            String adServerCurrency, List<String> blacklistedAccounts, StoredRequestProcessor storedRequestProcessor,
+            ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
+            BidderCatalog bidderCatalog, RequestValidator requestValidator, InterstitialProcessor interstitialProcessor,
+            TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory, ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
+        this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -386,9 +389,10 @@ public class AuctionRequestFactory {
 
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid);
         final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
 
         final ObjectNode result;
-        if (updatedTargeting != null || updatedAliases != null) {
+        if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
@@ -398,6 +402,8 @@ public class AuctionRequestFactory {
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .cache(ObjectUtils.defaultIfNull(updatedCache,
+                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
                     .build()));
         } else {
             result = null;
@@ -454,7 +460,8 @@ public class AuctionRequestFactory {
                                                      boolean isPriceGranularityTextual) {
         if (isPriceGranularityNull) {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
-        } else if (isPriceGranularityTextual) {
+        }
+        if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
                 priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
@@ -492,6 +499,21 @@ public class AuctionRequestFactory {
             result.putAll(resolvedAliases);
         }
         return result;
+    }
+
+    /**
+     * Returns populated {@link ExtRequestPrebidCache} or null if no changes were applied.
+     */
+    private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+        final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
+        if (cacheWinningOnly == null && shouldCacheOnlyWinningBids) {
+            return ExtRequestPrebidCache.of(
+                    getIfNotNull(cache, ExtRequestPrebidCache::getBids),
+                    getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
+                    shouldCacheOnlyWinningBids);
+        }
+        return null;
     }
 
     /**

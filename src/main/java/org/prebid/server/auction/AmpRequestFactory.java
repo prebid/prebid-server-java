@@ -148,7 +148,7 @@ public class AmpRequestFactory {
                     || targeting.getIncludebidderkeys() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
-            setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
+            setDefaultCache = cache == null || cache.equals(ExtRequestPrebidCache.EMPTY);
         }
 
         final Integer debugQueryParam = debugFromQueryStringParam(context);
@@ -434,7 +434,7 @@ public class AmpRequestFactory {
             }
             if (setDefaultCache) {
                 prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                        ExtRequestPrebidCacheVastxml.of(null, null)));
+                        ExtRequestPrebidCacheVastxml.of(null, null), null));
             }
             if (updatedDebug != null) {
                 prebidBuilder.debug(updatedDebug);

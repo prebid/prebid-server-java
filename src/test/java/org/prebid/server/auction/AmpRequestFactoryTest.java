@@ -201,7 +201,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
                                         BigDecimal.valueOf(0.1))))), null, null, true, true))
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                                ExtRequestPrebidCacheVastxml.of(null, null)))
+                                ExtRequestPrebidCacheVastxml.of(null, null), null))
                         .build());
     }
 
