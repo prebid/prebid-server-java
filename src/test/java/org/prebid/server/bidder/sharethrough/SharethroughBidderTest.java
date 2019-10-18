@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.tuple;
 public class SharethroughBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-    private static final String TEST_FORMATED_TIME = "2020-11-04T04:07:59+02:00";
+    private static final String TEST_FORMATED_TIME = "2020-11-04T04:08:08+02:00";
 
     private SharethroughBidder sharethroughBidder;
 
@@ -125,7 +125,7 @@ public class SharethroughBidderTest extends VertxTest {
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=" +
                 "&instant_play_capable=true&stayInIframe=false&height=10&width=20" +
                 "&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=4";
-        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 10L, TEST_FORMATED_TIME, true);
+        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 10000L, TEST_FORMATED_TIME, true);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -174,7 +174,7 @@ public class SharethroughBidderTest extends VertxTest {
         final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent" +
                 "&instant_play_capable=false&stayInIframe=false&height=1&width=1&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00" +
                 "&supplyId=FGMrCMMc&strVersion=4&ttduid=first&stxuid=buyer";
-        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 10L, TEST_FORMATED_TIME, true);
+        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 10000L, TEST_FORMATED_TIME, true);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
