@@ -251,9 +251,9 @@ public class RequestValidator {
     private static void validateMediaTypePriceGranularity(ExtMediaTypePriceGranularity mediaTypePriceGranularity)
             throws ValidationException {
         if (mediaTypePriceGranularity != null) {
-            final JsonNode banner = mediaTypePriceGranularity.getBanner();
-            final JsonNode video = mediaTypePriceGranularity.getVideo();
-            final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+            final ObjectNode banner = mediaTypePriceGranularity.getBanner();
+            final ObjectNode video = mediaTypePriceGranularity.getVideo();
+            final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
             final boolean isBannerNull = banner == null || banner.isNull();
             final boolean isVideoNull = video == null || video.isNull();
             final boolean isNativeNull = xNative == null || xNative.isNull();

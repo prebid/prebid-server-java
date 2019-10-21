@@ -56,6 +56,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -1418,49 +1419,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Media type price granularity error: must have at least one media type present");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenMediaTypePriceGranularityTypeNodesAreNull() {
-        // given
-        final NullNode nullNode = NullNode.getInstance();
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(nullNode, nullNode, nullNode),
-                                null, null, null))
-                        .build())))
-                .build();
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Media type price granularity error: must have at least one media type present");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenAnyPresentMediaTypePriceGranularityIsInvalid() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                                BigDecimal.valueOf(1))))), null, new TextNode("pricegranularity")),
-                                null, null, null))
-                        .build())))
-                .build();
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error while parsing request.ext.prebid.targeting.mediatypepricegranularity.xNative");
     }
 
     @Test
