@@ -480,39 +480,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt,
-                                                     Map<String, List<ExtUserEid>> sourceToUserEidExt) {
-        final ObjectNode impExtVisitor = rubiconImpExt.getVisitor();
-        final ObjectNode visitor = impExtVisitor != null && impExtVisitor.size() != 0 ? impExtVisitor : null;
-
-        final boolean hasUser = user != null;
-        final String gender = hasUser ? user.getGender() : null;
-        final Integer yob = hasUser ? user.getYob() : null;
-        final Geo geo = hasUser ? user.getGeo() : null;
-
-        final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, visitor);
-
-        return target != null || gender != null || yob != null || geo != null
-                ? RubiconUserExtRp.of(target, gender, yob, geo)
-                : null;
-    }
-
-    private static JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt,
-                                                   ObjectNode visitor) {
-        if (sourceToUserEidExt == null || CollectionUtils.isEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
-            return visitor;
-        }
-        final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
-        final JsonNode segment = ext != null ? ext.get("segments") : null;
-
-        if (segment == null) {
-            return visitor;
-        }
-        final ObjectNode result = visitor != null ? visitor : Json.mapper.createObjectNode();
-
-        return result.set("LIseq", segment);
-    }
-
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
         if (CollectionUtils.isEmpty(eids)) {
             return null;
@@ -559,6 +526,39 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static ExtUserTpIdRubicon extUserTpIdForLiveintent(ExtUserEidUid adServerEidUid) {
         final String id = adServerEidUid != null ? adServerEidUid.getId() : null;
         return id != null ? ExtUserTpIdRubicon.of(LIVEINTENT_EID, id) : null;
+    }
+
+    private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt,
+                                                     Map<String, List<ExtUserEid>> sourceToUserEidExt) {
+        final ObjectNode impExtVisitor = rubiconImpExt.getVisitor();
+        final ObjectNode visitor = impExtVisitor != null && impExtVisitor.size() != 0 ? impExtVisitor : null;
+
+        final boolean hasUser = user != null;
+        final String gender = hasUser ? user.getGender() : null;
+        final Integer yob = hasUser ? user.getYob() : null;
+        final Geo geo = hasUser ? user.getGeo() : null;
+
+        final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, visitor);
+
+        return target != null || gender != null || yob != null || geo != null
+                ? RubiconUserExtRp.of(target, gender, yob, geo)
+                : null;
+    }
+
+    private static JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt,
+                                                   ObjectNode visitor) {
+        if (sourceToUserEidExt == null || CollectionUtils.isEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
+            return visitor;
+        }
+        final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
+        final JsonNode segment = ext != null ? ext.get("segments") : null;
+
+        if (segment == null) {
+            return visitor;
+        }
+        final ObjectNode result = visitor != null ? visitor : Json.mapper.createObjectNode();
+
+        return result.set("LIseq", segment);
     }
 
     private static Device makeDevice(Device device) {
