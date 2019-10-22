@@ -425,7 +425,7 @@ public class AuctionRequestFactory {
     /**
      * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
      */
-    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid) {
+    private ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
@@ -442,11 +442,19 @@ public class AuctionRequestFactory {
                     targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
-                    isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
+                    isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
         } else {
             result = null;
         }
         return result;
+    }
+
+    /**
+     * Returns winning only flag value.
+     */
+    private boolean isWinningOnly(ExtRequestPrebidCache cache) {
+        final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
+        return ObjectUtils.defaultIfNull(cacheWinningOnly, shouldCacheOnlyWinningBids);
     }
 
     /**
@@ -511,7 +519,7 @@ public class AuctionRequestFactory {
             return ExtRequestPrebidCache.of(
                     getIfNotNull(cache, ExtRequestPrebidCache::getBids),
                     getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
-                    shouldCacheOnlyWinningBids);
+                    true);
         }
         return null;
     }
