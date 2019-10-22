@@ -81,7 +81,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (isBidderBlank || !bidderCatalog.isActive(bidder)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String body = "\"bidder\" query param is ";
-            respondWith(context, status, isBidderBlank ? body + "required" : body + "invalid");
+            respondWith(context, status, body + (isBidderBlank ? "required" : "invalid"));
             metrics.updateUserSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
