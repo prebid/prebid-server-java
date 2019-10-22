@@ -10,6 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -42,6 +43,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
+    private final BidderCatalog bidderCatalog;
     private final GdprService gdprService;
     private final Set<Integer> gdprVendorIds;
     private final boolean useGeoLocation;
@@ -49,11 +51,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
 
-    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, GdprService gdprService,
-                         Integer gdprHostVendorId, boolean useGeoLocation, AnalyticsReporter analyticsReporter,
-                         Metrics metrics, TimeoutFactory timeoutFactory) {
+    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, BidderCatalog bidderCatalog,
+                         GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
+                         AnalyticsReporter analyticsReporter, Metrics metrics, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprVendorIds = Collections.singleton(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
@@ -74,9 +77,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final String bidder = context.request().getParam(BIDDER_PARAM);
-        if (StringUtils.isBlank(bidder)) {
+        final boolean isBidderBlank = StringUtils.isBlank(bidder);
+        if (isBidderBlank || !bidderCatalog.isActive(bidder)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
-            respondWith(context, status, "\"bidder\" query param is required");
+            final String body = "\"bidder\" query param is ";
+            respondWith(context, status, isBidderBlank ? body + "required" : body + "invalid");
             metrics.updateUserSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
