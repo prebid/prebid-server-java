@@ -16,6 +16,8 @@ import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -145,103 +147,59 @@ public class VideoRequestFactory {
                 errors.add(new InvalidRequestException("request missing required field: PodConfig.Pods"));
             }
 
-            final List<Object> podErrors = new ArrayList<>();
+            final List<PodError> podErrors = validateEachPod(pods);
             final Map<Integer, Boolean> podsIdToFlag = new HashMap<>();
 
-         validateEachPod(pods)
 
         }
 
-
-        if (req.App == nil && req.Site == nil) {
-            errors.add(new InvalidRequestException("request missing required field: site or app"));
-        } else if (req.App != nil && req.Site != nil) {
-            errors.add(new InvalidRequestException("request.site or request.app must be defined, but not both"));
-        } else if (req.Site != nil && req.Site.ID == "" && req.Site.Page == "") {
-            errors.add(new InvalidRequestException("request.site missing required field: id or page"));
-        } else if (req.App != nil) {
-            if (req.App.ID != "") {
-                if (_, found := deps.cfg.BlacklistedAppMap[req.App.ID]; found) {
-                    err := &errortypes.BlacklistedApp{Message: fmt.Sprintf("Prebid-server does not process requests from App ID: %s", req.App.ID)}
-                    errL = append(errL, err)
-                    return errL, podErrors
-                }
-            } else {
-                if (req.App.Bundle == "") {
-                    errors.add(new InvalidRequestException("request.app missing required field: id or bundle"));
-                }
-            }
-        }
-
-        if (len(req.Video.Mimes) == 0) {
-            errors.add(new InvalidRequestException("request missing required field: Video.Mimes"));
-        } else {
-            mimes := make([]string, 0, 0)
-            for _, mime := range req.Video.Mimes {
-                if (mime != "") {
-                    mimes = append(mimes, mime)
-                }
-            }
-            if (len(mimes) == 0) {
-                errors.add(new InvalidRequestException("request missing required field: Video.Mimes, mime types contains empty strings only"));
-            }
-            if (len(mimes) > 0) {
-                req.Video.Mimes = mimes
-            }
-        }
-
-        if (len(req.Video.Protocols) == 0) {
-            errors.add(new InvalidRequestException("request missing required field: Video.Protocols"));
-        }
-
-        return errL, podErrors
     }
 
-    private static List<InvalidRequestException> validateEachPod(List<Pod> pods){
+    private static List<PodError> validateEachPod(List<Pod> pods) {
+        final List<PodError> podErrorsResult = new ArrayList<>();
 
         final Map<Integer, Boolean> podIdToFlag = new HashMap<>();
         for (int i = 0; i < pods.size(); i++) {
-            final List<InvalidRequestException> podError = new ArrayList<>();
+            final List<InvalidRequestException> podErrors = new ArrayList<>();
             final Pod pod = pods.get(i);
 
-            if (podIdToFlag.get(pod.getPodId()))
-
-            podsIdToFlag.get(pod.)
-
-        }
-
-        for ind, pod := range req.PodConfig.Pods {
-            podErr := PodError{}
-
-            if (podIdsSet[pod.PodId]) {
-                err := fmt.Sprintf("request duplicated required field: PodConfig.Pods.PodId, Pod id: %d", pod.PodId)
-                podErr.ErrMsgs = append(podErr.ErrMsgs, err)
+            final Integer podId = pod.getPodId();
+            if (podIdToFlag.get(podId)) {
+                podErrors.add(new InvalidRequestException(
+                        "request duplicated required field: PodConfig.Pods.PodId, Pod id: " + podId));
             } else {
-                podIdsSet[pod.PodId] = true
+                podIdToFlag.put(podId, true);
             }
-            if (pod.PodId <= 0) {
-                err := fmt.Sprintf("request missing required field: PodConfig.Pods.PodId, Pod index: %d", ind)
-                podErr.ErrMsgs = append(podErr.ErrMsgs, err)
+            if (podId == null || podId <= 0) {
+                podErrors.add(new InvalidRequestException(
+                        "request missing required field: PodConfig.Pods.PodId, Pod index: " + i));
             }
-            if (pod.AdPodDurationSec == 0) {
-                err := fmt.Sprintf("request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: %d", ind)
-                podErr.ErrMsgs = append(podErr.ErrMsgs, err)
+            final Integer adpodDurationSec = pod.getAdpodDurationSec();
+            if (adpodDurationSec != null) {
+                if (adpodDurationSec == 0) {
+                    podErrors.add(new InvalidRequestException(
+                            "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: "
+                                    + i));
+                }
+                if (adpodDurationSec < 0) {
+                    podErrors.add(new InvalidRequestException(
+                            "request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: "
+                                    + i));
+                }
+            } else {
+                podErrors.add(new InvalidRequestException(
+                        "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: "
+                                + i));
             }
-            if (pod.AdPodDurationSec < 0) {
-                err := fmt.Sprintf("request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: %d", ind)
-                podErr.ErrMsgs = append(podErr.ErrMsgs, err)
+            if (StringUtils.isBlank(pod.getConfigId())) {
+                podErrors.add(new InvalidRequestException(
+                        "request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: " + i));
             }
-            if (pod.ConfigId == "") {
-                err := fmt.Sprintf("request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: %d", ind)
-                podErr.ErrMsgs = append(podErr.ErrMsgs, err)
-            }
-            if (len(podErr.ErrMsgs) > 0) {
-                podErr.PodId = pod.PodId
-                podErr.PodIndex = ind
-                podErrors = append(podErrors, podErr)
+            if (!podErrors.isEmpty()) {
+                podErrorsResult.add(PodError.of(podId, i, podErrors));
             }
         }
-
+        return podErrorsResult;
     }
 
     private static boolean isZeroOrNegativeDuration(List<Integer> durationRangeSec) {
@@ -609,5 +567,13 @@ public class VideoRequestFactory {
 
         return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
                 includeWinners, includeBidderKeys);
+    }
+
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class PodError {
+        Integer podId;
+        Integer podIndex;
+        List<InvalidRequestException> podErrors;
     }
 }

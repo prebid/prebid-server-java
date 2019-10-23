@@ -7,6 +7,7 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.video.BidRequestVideo;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
@@ -107,7 +108,6 @@ public class StoredRequestProcessor {
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
     }
 
-
     /**
      * Fetches Video request from the source.
      */
@@ -117,9 +117,9 @@ public class StoredRequestProcessor {
                 applicationSettings.getVideoStoredData(
                         Collections.singleton(videoRequestId), Collections.emptySet(), timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(
-                                storedDataResult, Collections.singleton(videoRequestId), Collections.emptySet()));
-
-        return storedRequestsToBidRequest(videoStoredDataFuture, bidRequest, videoRequestId, Collections.emptyMap());
+                                storedDataResult, Collections.singleton(videoRequestId), Collections.emptySet()))
+                .map(storedDataResult -> merge(storedDataResult.getStoredIdToRequest().get(videoRequestId)))
+//        return storedRequestsToBidRequest(videoStoredDataFuture, bidRequest, videoRequestId, Collections.emptyMap());
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
