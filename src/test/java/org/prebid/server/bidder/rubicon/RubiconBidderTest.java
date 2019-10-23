@@ -570,7 +570,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldCreateUserExtTpIdForLiveintentAndAdserver() {
+    public void shouldCreateUserExtTpIdForFirstLiveintentAndAdserver() {
         // given
         final ObjectNode uidExt = mapper.createObjectNode();
         uidExt.putArray("segments").add("999").add("888");
@@ -604,8 +604,7 @@ public class RubiconBidderTest extends VertxTest {
                         .eids(Arrays.asList(liveintentUid1, liveintentUid2, adserverUid, notSpecialSource))
                         .tpid(Arrays.asList(
                                 ExtUserTpIdRubicon.of("tdid", "adServerUid"),
-                                ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid1"),
-                                ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid2")))
+                                ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid1")))
                         .rp(RubiconUserExtRp.of(expectedRp, null, null, null))
                         .build());
     }

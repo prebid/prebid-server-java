@@ -505,7 +505,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         specialExtUserEids.getOrDefault(LIVEINTENT_EID, Collections.emptyList()).stream()
                 .map(extUserEid -> extUserTpIdForLiveintent(extUserEid.getUids().get(0)))
                 .filter(Objects::nonNull)
-                .forEach(result::add);
+                .findFirst()
+                .ifPresent(result::add);
 
         return result.isEmpty() ? null : result;
     }
