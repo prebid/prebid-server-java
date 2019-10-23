@@ -107,6 +107,21 @@ public class StoredRequestProcessor {
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
     }
 
+
+    /**
+     * Fetches Video request from the source.
+     */
+    Future<BidRequestVideo> processVideoRequest(String videoRequestId) {
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final Future<StoredDataResult> videoStoredDataFuture =
+                applicationSettings.getVideoStoredData(
+                        Collections.singleton(videoRequestId), Collections.emptySet(), timeout(bidRequest))
+                        .compose(storedDataResult -> updateMetrics(
+                                storedDataResult, Collections.singleton(videoRequestId), Collections.emptySet()));
+
+        return storedRequestsToBidRequest(videoStoredDataFuture, bidRequest, videoRequestId, Collections.emptyMap());
+    }
+
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
                                                           BidRequest bidRequest, String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
