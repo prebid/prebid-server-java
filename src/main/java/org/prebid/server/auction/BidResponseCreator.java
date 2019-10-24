@@ -495,7 +495,8 @@ public class BidResponseCreator {
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(account.getId()))
                     : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
-                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl);
+                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl,
+                            bidType == BidType.video);
 
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
