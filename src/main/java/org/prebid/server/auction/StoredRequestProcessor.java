@@ -108,20 +108,6 @@ public class StoredRequestProcessor {
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
     }
 
-    /**
-     * Fetches Video request from the source.
-     */
-    Future<BidRequestVideo> processVideoRequest(String videoRequestId) {
-        final BidRequest bidRequest = BidRequest.builder().build();
-        final Future<StoredDataResult> videoStoredDataFuture =
-                applicationSettings.getVideoStoredData(
-                        Collections.singleton(videoRequestId), Collections.emptySet(), timeout(bidRequest))
-                        .compose(storedDataResult -> updateMetrics(
-                                storedDataResult, Collections.singleton(videoRequestId), Collections.emptySet()))
-                .map(storedDataResult -> merge(storedDataResult.getStoredIdToRequest().get(videoRequestId)))
-//        return storedRequestsToBidRequest(videoStoredDataFuture, bidRequest, videoRequestId, Collections.emptyMap());
-    }
-
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
                                                           BidRequest bidRequest, String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
@@ -136,11 +122,36 @@ public class StoredRequestProcessor {
     }
 
     /**
+     * Fetches Video request from the source.
+     */
+    Future<BidRequestVideo> processVideoRequest(String videoRequestId, BidRequestVideo recived) {
+        final Future<StoredDataResult> videoStoredDataFuture = applicationSettings.getVideoStoredData(
+                Collections.singleton(videoRequestId), Collections.emptySet(), timeoutFactory.create(defaultTimeout))
+                .compose(storedDataResult -> updateMetrics(
+                        storedDataResult, Collections.singleton(videoRequestId), Collections.emptySet()));
+//                .map(storedDataResult -> merge(context, storedDataResult.getStoredIdToRequest(), videoRequestId, BidRequestVideo.class))
+
+        return storedRequestsToBidRequestVideo(videoStoredDataFuture, recived, videoRequestId);
+    }
+
+    private Future<BidRequestVideo> storedRequestsToBidRequestVideo(Future<StoredDataResult> storedDataFuture,
+                                                                    BidRequestVideo bidRequestVideo,
+                                                                    String storedBidRequestId) {
+        return storedDataFuture
+                .recover(exception -> Future.failedFuture(new InvalidRequestException(
+                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
+                .compose(result -> !result.getErrors().isEmpty()
+                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
+                        : Future.succeededFuture(result))
+                .map(result -> mergeBidRequest(bidRequestVideo, storedBidRequestId, result, BidRequestVideo.class));
+    }
+
+    /**
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
                                               Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
-        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult), impToStoredId,
+        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult, BidRequest.class), impToStoredId,
                 storedDataResult);
     }
 
@@ -148,10 +159,10 @@ public class StoredRequestProcessor {
      * Merges {@link BidRequest} from original request with request from stored request source. Values from
      * original request has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequest(BidRequest bidRequest, String storedRequestId,
-                                       StoredDataResult storedDataResult) {
+    private <T> T mergeBidRequest(T bidRequest, String storedRequestId,
+                                  StoredDataResult storedDataResult, Class<T> classToCast) {
         return storedRequestId != null
-                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, BidRequest.class)
+                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, classToCast)
                 : bidRequest;
     }
 

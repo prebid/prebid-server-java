@@ -3,13 +3,17 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.video.BidRequestVideo;
+import com.iab.openrtb.request.video.IncludeBrandCategory;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
@@ -19,10 +23,13 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -58,6 +65,7 @@ public class VideoRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
+    private static final Long DEFAULT_TMAX = 5000L;
 
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
@@ -93,40 +101,132 @@ public class VideoRequestFactory {
      * updated by values derived from headers and other request attributes.
      */
     private Future<BidRequest> createBidRequest(RoutingContext context, String storedVideoId) {
-        return storedRequestProcessor.processVideoRequest(storedVideoId)
-                .map(bidRequest -> validateStoredBidRequest(storedVideoId, bidRequest))
+        return storedRequestProcessor.processVideoRequest(storedVideoId, context)
+                .map(this::validateStoredBidRequest)
+                //TODO HANDLE ERROR
+                .map(bidRequestVideo -> Tuple2.of(bidRequestVideo, mergeWithDefaultBidRequest(bidRequestVideo)))
+
+
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request()))
+
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
                 .map(auctionRequestFactory::validateRequest);
+    }
+
+    //Should be called only after validat
+    private static BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest().toBuilder();
+
+        final Site site = videoRequest.getSite();
+        if (site != null) {
+            final Site.SiteBuilder siteBuilder = site.toBuilder();
+            final Content content = videoRequest.getContent();
+            if (content != null) {
+                siteBuilder.content(content);
+            }
+            siteBuilder.content(content);
+            bidRequestBuilder.site(siteBuilder.build());
+        }
+
+        final App app = videoRequest.getApp();
+        if (app != null) {
+            final App.AppBuilder appBuilder = app.toBuilder();
+            final Content content = videoRequest.getContent();
+            if (content != null) {
+                appBuilder.content(content);
+            }
+            appBuilder.content(content);
+            bidRequestBuilder.app(appBuilder.build());
+        }
+
+        final Device device = videoRequest.getDevice();
+        if (device != null) {
+            bidRequestBuilder.device(device);
+        }
+
+        final User user = videoRequest.getUser();
+        if (user != null) {
+            final User updatedUser = User.builder()
+                    .buyeruid("appnexus")
+                    .yob(user.getYob())
+                    .gender(user.getGender())
+                    .keywords(user.getKeywords())
+                    .build();
+            bidRequestBuilder.user(updatedUser);
+        }
+
+        final List<String> bcat = videoRequest.getBcat();
+        if (CollectionUtils.isNotEmpty(bcat)) {
+            bidRequestBuilder.bcat(bcat);
+        }
+
+        final List<String> badv = videoRequest.getBadv();
+        if (CollectionUtils.isNotEmpty(badv)) {
+            bidRequestBuilder.badv(badv);
+        }
+
+
+        final ObjectNode ext = createBidExtension(videoRequest);
+        bidRequestBuilder
+                .ext(ext)
+                .test(videoRequest.getTest());
+
+
+        final Long videoTmax = videoRequest.getTmax();
+        if (videoTmax == null || videoTmax == 0  ) {
+            bidRequestBuilder.tmax(DEFAULT_TMAX);
+        } else{
+            bidRequestBuilder.tmax(videoRequest.getTmax());
+        }
+        //TODO
+        return bidRequestBuilder.build();
+    }
+
+
+
+    private static ObjectNode createBidExtension(BidRequestVideo videoRequest) {
+        final IncludeBrandCategory includebrandcategory = videoRequest.getIncludebrandcategory();
+        final ExtIncludeBrandCategory extIncludeBrandCategory;
+        if (includebrandcategory != null) {
+            extIncludeBrandCategory = ExtIncludeBrandCategory.of(
+                    includebrandcategory.getPrimaryAdserver(), includebrandcategory.getPublisher(), true);
+        } else {
+            extIncludeBrandCategory = ExtIncludeBrandCategory.of(null, null, false);
+        }
+
+
+        List<Integer> durationRangeSec = null;
+        if (BooleanUtils.isFalse(videoRequest.getPodconfig().getRequireExactDuration())) {
+            durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
+        }
+
+        PriceGranularity priceGranularity = PriceGranularity.createFromString("med");
+        final Integer precision = videoRequest.getPriceGranularity().getPrecision();
+        if (precision != null && precision != 0) {
+            priceGranularity = videoRequest.getPriceGranularity();
+        }
+
+        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(priceGranularity), null, null, true, extIncludeBrandCategory, durationRangeSec, null);
+
+        final ExtRequestPrebidCache extReqPrebidCache = ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null);
+
+        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
+                .cache(extReqPrebidCache)
+                .targeting(targeting)
+                .build();
+
+        return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebid));
+    }
+
+    private static BidRequest defaultBidRequest() {
+        return BidRequest.builder().build();
     }
 
     /**
      * Throws {@link InvalidRequestException} in case of invalid {@link BidRequest}.
      */
-    private BidRequest validateStoredBidRequest(String tagId, BidRequestVideo bidRequest) {
-//        final List<Imp> imps = bidRequest.getImp();
-//        if (CollectionUtils.isEmpty(imps)) {
-//            throw new InvalidRequestException(
-//                    String.format("data for tag_id='%s' does not define the required imp array.", tagId));
-//        }
-//
-//        final int impSize = imps.size();
-//        if (impSize > 1) {
-//            throw new InvalidRequestException(
-//                    String.format("data for tag_id '%s' includes %d imp elements. Only one is allowed", tagId,
-//                            impSize));
-//        }
-//
-//        if (bidRequest.getApp() != null) {
-//            throw new InvalidRequestException("request.app must not exist in AMP stored requests.");
-//        }
-//
-//        if (bidRequest.getExt() == null) {
-//            throw new InvalidRequestException("AMP requests require Ext to be set");
-//        }
-//        return bidRequest;
-
+    private BidRequest validateStoredBidRequest(BidRequestVideo bidRequest) {
         final List<InvalidRequestException> errors = new ArrayList<>();
 
         if (videoStoredRequestRequired && StringUtils.isBlank(bidRequest.getStoredrequestid())) {
@@ -148,10 +248,54 @@ public class VideoRequestFactory {
             }
 
             final List<PodError> podErrors = validateEachPod(pods);
-            final Map<Integer, Boolean> podsIdToFlag = new HashMap<>();
 
 
-        }
+
+
+            final Site site = bidRequest.getSite();
+            final App app = bidRequest.getApp();
+            if (app == null && site == null) {
+                errors.add(new InvalidRequestException("request missing required field: site or app"));
+            } else if (app != null && site != null) {
+                errors.add(new InvalidRequestException("request.site or request.app must be defined, but not both"));
+            } else if (site != null && StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
+                errors.add(new InvalidRequestException("request.site missing required field: id or page"));
+            } else if (app != null) {
+                if (StringUtils.isBlank(app.getId())) {
+                    if _, found := deps.cfg.BlacklistedAppMap[req.App.ID]; found {
+                        err := &errortypes.BlacklistedApp{Message: fmt.Sprintf("Prebid-server does not process requests from App ID: %s", req.App.ID)}
+                        return errL, podErrors
+                    }
+                } else {
+                    if req.App.Bundle == "" {
+                        err := errors.New("request.app missing required field: id or bundle")
+                    }
+                }
+            }
+
+            if len(req.Video.Mimes) == 0 {
+                err := errors.New("request missing required field: Video.Mimes")
+                errL = append(errL, err)
+            } else {
+                mimes := make([]string, 0, 0)
+                for _, mime := range req.Video.Mimes {
+                    if mime != "" {
+                        mimes = append(mimes, mime)
+                    }
+                }
+                if len(mimes) == 0 {
+                    err := errors.New("request missing required field: Video.Mimes, mime types contains empty strings only")
+                    errL = append(errL, err)
+                }
+                if len(mimes) > 0 {
+                    req.Video.Mimes = mimes
+                }
+            }
+
+            if len(req.Video.Protocols) == 0 {
+                err := errors.New("request missing required field: Video.Protocols")
+                errL = append(errL, err)
+            }
 
     }
 
@@ -292,7 +436,7 @@ public class VideoRequestFactory {
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
     private static BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
-        final Site updatedSite = overrideSite(bidRequest.getSite(), request);
+        final Site updatedSite = overrideSite(site, request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
         final User updatedUser = overrideUser(bidRequest.getUser(), request);
@@ -300,7 +444,7 @@ public class VideoRequestFactory {
         final BidRequest result;
         if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null) {
             result = bidRequest.toBuilder()
-                    .site(updatedSite != null ? updatedSite : bidRequest.getSite())
+                    .site(updatedSite != null ? updatedSite : site)
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
                     .user(updatedUser != null ? updatedUser : bidRequest.getUser())

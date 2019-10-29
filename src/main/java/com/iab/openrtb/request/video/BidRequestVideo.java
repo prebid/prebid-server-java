@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.PriceGranularity;
 
+import java.util.List;
+
 @Builder(toBuilder = true)
 @Value
 public class BidRequestVideo {
@@ -27,6 +29,16 @@ public class BidRequestVideo {
     IncludeBrandCategory includebrandcategory;
 
     Content content;
+
+    Cacheconfig cacheconfig;
+
+    Integer test;
+
+    Long tmax;
+
+    List<String> bcat;
+
+    List<String> badv;
 
     // Add GDPR
     User user;
