@@ -407,12 +407,14 @@ public class MetricsTest {
     public void updateRequestTypeMetricShouldIncrementMetric() {
         // when
         metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blacklisted);
         metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("requests.blacklisted.openrtb2-web").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isEqualTo(1);

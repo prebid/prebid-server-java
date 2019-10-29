@@ -38,6 +38,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.exception.BlacklistedAccountOrApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
@@ -68,6 +69,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -1038,7 +1040,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAppIdIsInABlacklist() {
+    public void validateShouldThrowBlacklistedAccountOrAppException() {
         // given
         final BidRequest bidRequest = overwriteApp(
                 BidRequest.builder()
@@ -1047,12 +1049,10 @@ public class RequestValidatorTest extends VertxTest {
                         .imp(singletonList(validImpBuilder().build())),
                 appBuilder -> App.builder().id("bad_app")).build();
 
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Prebid-server does not process requests from App ID: bad_app");
+        // when and then
+        assertThatThrownBy(() -> requestValidator.validate(bidRequest))
+                .isInstanceOf(BlacklistedAccountOrApp.class)
+                .hasMessage("Prebid-server does not process requests from App ID: bad_app");
     }
 
     @Test

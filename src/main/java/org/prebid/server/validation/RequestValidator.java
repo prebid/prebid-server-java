@@ -37,6 +37,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.exception.BlacklistedAccountOrApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -367,7 +368,9 @@ public class RequestValidator {
             final String appId = app.getId();
             if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
                     && blacklistedApps.contains(appId)) {
-                throw new ValidationException("Prebid-server does not process requests from App ID: %s", appId);
+                // propagate BlacklistedAccOrApp instantly
+                throw new BlacklistedAccountOrApp(String.format(
+                        "Prebid-server does not process requests from App ID: %s", appId));
             }
 
             if (app.getExt() != null) {

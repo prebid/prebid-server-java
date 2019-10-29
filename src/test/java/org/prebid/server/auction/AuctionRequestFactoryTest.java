@@ -27,6 +27,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.BlacklistedAccountOrApp;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -772,7 +773,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .isInstanceOf(InvalidRequestException.class)
+                .isInstanceOf(BlacklistedAccountOrApp.class)
                 .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
                         + "server host.");
     }

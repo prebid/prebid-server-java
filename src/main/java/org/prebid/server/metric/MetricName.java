@@ -45,6 +45,7 @@ public enum MetricName {
     nobid,
     gotbids,
     badinput,
+    blacklisted,
     badserverresponse,
     failedtorequestbids,
     timeout,

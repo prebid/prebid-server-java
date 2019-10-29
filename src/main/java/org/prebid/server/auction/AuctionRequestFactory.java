@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.exception.BlacklistedAccountOrApp;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -543,7 +544,7 @@ public class AuctionRequestFactory {
 
         if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
                 && blacklistedAccounts.contains(accountId)) {
-            throw new InvalidRequestException(String.format("Prebid-server has blacklisted Account ID: %s, please "
+            throw new BlacklistedAccountOrApp(String.format("Prebid-server has blacklisted Account ID: %s, please "
                     + "reach out to the prebid server host.", accountId));
         }
 
