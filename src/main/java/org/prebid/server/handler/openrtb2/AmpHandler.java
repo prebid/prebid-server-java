@@ -32,6 +32,7 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.BlacklistedAccountOrApp;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -287,7 +288,17 @@ public class AmpHandler implements Handler<RoutingContext> {
             body = Json.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof BlacklistedAccountOrApp) {
+                metricRequestStatus = ((BlacklistedAccountOrApp) exception).isAccount()
+                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                final String errorMessage = exception.getMessage();
+                logger.info("Blacklisted: {0}", errorMessage);
+
+                errorMessages = Collections.singletonList(errorMessage);
+                status = HttpResponseStatus.FORBIDDEN.code();
+                body = String.format("Blacklisted: %s", errorMessage);
+
+            } else if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 logger.info("Invalid request format: {0}", errorMessages);

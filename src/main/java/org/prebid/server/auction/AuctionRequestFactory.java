@@ -541,14 +541,15 @@ public class AuctionRequestFactory {
      */
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
+        final boolean blankAccountId = StringUtils.isBlank(accountId);
 
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && !blankAccountId
                 && blacklistedAccounts.contains(accountId)) {
             throw new BlacklistedAccountOrApp(String.format("Prebid-server has blacklisted Account ID: %s, please "
                     + "reach out to the prebid server host.", accountId), true);
         }
 
-        return StringUtils.isEmpty(accountId)
+        return blankAccountId
                 ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));

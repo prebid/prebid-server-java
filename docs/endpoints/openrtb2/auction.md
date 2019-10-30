@@ -55,7 +55,10 @@ The following is a "hello world" request which fetches the [Prebid sample ad](ht
 This endpoint will respond with either:
 
 - An OpenRTB 2.5 BidResponse, or
-- An HTTP 400 status code if the request is malformed
+- HTTP 400 status code if the request is malformed
+- HTTP 403 status code if request contains blacklisted account or app
+- HTTP 401 status code if account is not present in request and `settings.enforce-valid-account` configuration is `true`
+- HTTP 500 status code in case of any other error
 
 See below for a "hello world" response.
 
