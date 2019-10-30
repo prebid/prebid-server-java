@@ -165,19 +165,35 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithServiceUnavailableIfBidRequestIsBlacklisted() {
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted account or app")));
+                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted account", true)));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(503));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted account or app"));
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+    }
+
+    @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted app", false)));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
     }
 
     @Test

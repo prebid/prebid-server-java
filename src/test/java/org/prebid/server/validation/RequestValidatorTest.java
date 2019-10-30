@@ -1052,7 +1052,8 @@ public class RequestValidatorTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> requestValidator.validate(bidRequest))
                 .isInstanceOf(BlacklistedAccountOrApp.class)
-                .hasMessage("Prebid-server does not process requests from App ID: bad_app");
+                .hasMessage("Prebid-server does not process requests from App ID: bad_app")
+                .hasFieldOrPropertyWithValue("isAccount", false);
     }
 
     @Test

@@ -370,7 +370,7 @@ public class RequestValidator {
                     && blacklistedApps.contains(appId)) {
                 // propagate BlacklistedAccOrApp instantly
                 throw new BlacklistedAccountOrApp(String.format(
-                        "Prebid-server does not process requests from App ID: %s", appId));
+                        "Prebid-server does not process requests from App ID: %s", appId), false);
             }
 
             if (app.getExt() != null) {

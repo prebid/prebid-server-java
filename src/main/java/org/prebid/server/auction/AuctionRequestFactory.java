@@ -545,7 +545,7 @@ public class AuctionRequestFactory {
         if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
                 && blacklistedAccounts.contains(accountId)) {
             throw new BlacklistedAccountOrApp(String.format("Prebid-server has blacklisted Account ID: %s, please "
-                    + "reach out to the prebid server host.", accountId));
+                    + "reach out to the prebid server host.", accountId), true);
         }
 
         return StringUtils.isEmpty(accountId)

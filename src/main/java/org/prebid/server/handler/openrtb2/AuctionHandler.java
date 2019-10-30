@@ -127,12 +127,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof BlacklistedAccountOrApp) {
-                metricRequestStatus = MetricName.blacklisted;
+                metricRequestStatus = ((BlacklistedAccountOrApp) exception).isAccount()
+                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
                 final String errorMessage = exception.getMessage();
                 logger.info("Blacklisted: {0}", errorMessage);
 
                 errorMessages = Collections.singletonList(errorMessage);
-                status = HttpResponseStatus.SERVICE_UNAVAILABLE.code();
+                status = HttpResponseStatus.FORBIDDEN.code();
                 body = String.format("Blacklisted: %s", errorMessage);
 
             } else if (exception instanceof InvalidRequestException) {
