@@ -36,6 +36,7 @@
   },
   "user": {
     "buyeruid": "YM-UID",
+    "id": "YM-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {

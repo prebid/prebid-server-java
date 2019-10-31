@@ -41,6 +41,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "AT-UID",
     "buyeruid": "AT-UID",
     "ext": {
       "digitrust": {

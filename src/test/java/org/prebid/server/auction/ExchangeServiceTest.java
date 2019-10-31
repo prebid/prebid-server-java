@@ -860,7 +860,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotModifyUserFromRequestIfNoBuyeridInCookie() {
+    public void shouldModifyUserIdFromRequestIfUserIdIsPresentAndNoBuyeridInCookie() {
         // given
         givenBidder(givenEmptySeatBid());
 
@@ -869,6 +869,29 @@ public class ExchangeServiceTest extends VertxTest {
         given(uidsCookie.uidFrom(any())).willReturn(null);
 
         final User user = User.builder().id("userId").build();
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.user(user));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        verify(uidsCookie).uidFrom(isNull());
+
+        final BidRequest capturedBidRequest = captureBidRequest();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().build());
+    }
+
+    @Test
+    public void shouldNotModifyUserFromRequestIfNoUserIdAndNoBuyeridInCookie() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        // this is not required but stated for clarity's sake. The case when bidder is disabled.
+        given(bidderCatalog.isActive(anyString())).willReturn(false);
+        given(uidsCookie.uidFrom(any())).willReturn(null);
+
+        final User user = User.builder().build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(user));
 
@@ -903,6 +926,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
+                .id("buyeridFromRequest")
                 .buyeruid("buyeridFromRequest")
                 .ext(mapper.valueToTree(ExtUser.builder().build()))
                 .build());
@@ -949,6 +973,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
+                .id("uidval")
                 .buyeruid("uidval")
                 .ext(mapper.valueToTree(ExtUser.builder().build()))
                 .build());
@@ -1072,7 +1097,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldAddBuyeridToUserFromRequest() {
+    public void shouldAddBuyeridToUserIdAndBuyerIdFromRequest() {
         // given
         givenBidder(givenEmptySeatBid());
         given(uidsCookie.uidFrom(eq("cookieFamily"))).willReturn("buyerid");
@@ -1085,7 +1110,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final User capturedUser = captureBidRequest().getUser();
-        assertThat(capturedUser).isEqualTo(User.builder().id("userId").buyeruid("buyerid").build());
+        assertThat(capturedUser).isEqualTo(User.builder().id("buyerid").buyeruid("buyerid").build());
     }
 
     @Test
@@ -1102,7 +1127,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final User capturedUser = captureBidRequest().getUser();
-        assertThat(capturedUser).isEqualTo(User.builder().buyeruid("buyerid").build());
+        assertThat(capturedUser).isEqualTo(User.builder().id("buyerid").buyeruid("buyerid").build());
     }
 
     @Test

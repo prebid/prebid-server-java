@@ -39,6 +39,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "BR-UID",
     "buyeruid": "BR-UID",
     "ext": {
       "digitrust": {

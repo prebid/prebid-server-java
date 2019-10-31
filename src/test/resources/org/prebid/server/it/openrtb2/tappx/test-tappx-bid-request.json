@@ -39,6 +39,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "TX-UID",
     "buyeruid": "TX-UID",
     "ext": {
       "consent": "consentValue",

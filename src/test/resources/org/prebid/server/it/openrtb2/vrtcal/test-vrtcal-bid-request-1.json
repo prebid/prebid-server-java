@@ -28,6 +28,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "VR-UID",
     "buyeruid": "VR-UID",
     "ext": {
       "consent": "consentValue",

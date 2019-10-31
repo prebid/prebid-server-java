@@ -45,6 +45,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "VISX-UID",
     "buyeruid": "VISX-UID",
     "ext": {
       "consent": "consentValue",

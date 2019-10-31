@@ -60,6 +60,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "RO-UID",
     "buyeruid": "RO-UID",
     "ext": {
       "digitrust": {

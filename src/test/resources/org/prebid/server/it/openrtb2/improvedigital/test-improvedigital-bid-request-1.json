@@ -41,6 +41,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "ID-UID",
     "buyeruid": "ID-UID",
     "ext": {
       "consent": "consentValue",

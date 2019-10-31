@@ -351,22 +351,28 @@ public class ExchangeService {
     }
 
     /**
-     * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
-     * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
+     * Returns original {@link User} if user.buyeruid already contains uid value for bidder and equals to user.id
+     * Otherwise, returns new {@link User} containing updated {@link ExtUser}, user.buyeruid and user.id.
      */
     private User prepareUser(User user, ExtUser extUser, String bidder, Map<String, String> aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData) {
         final ObjectNode updatedExt = updateUserExt(extUser, useFirstPartyData);
-        final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
-
-        if (updatedBuyerUid != null || updatedExt != null) {
+        final String updatedBuyerUid = updatedUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
+        final boolean isUpdateUserId = isUpdateUserId(user);
+        if (updatedBuyerUid != null || updatedExt != null || isUpdateUserId) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedExt != null) {
                 userBuilder.ext(updatedExt);
             }
 
+            if (isUpdateUserId) {
+                userBuilder.id(user.getBuyeruid());
+            }
+
             if (updatedBuyerUid != null) {
-                userBuilder.buyeruid(updatedBuyerUid);
+                userBuilder
+                        .buyeruid(updatedBuyerUid)
+                        .id(updatedBuyerUid);
             }
             return userBuilder.build();
         }
@@ -406,14 +412,21 @@ public class ExchangeService {
     /**
      * Returns updated buyerUid or null if it doesn't need to be updated.
      */
-    private String updateUserBuyerUid(User user, String bidder, Map<String, String> aliases,
-                                      Map<String, String> uidsBody, UidsCookie uidsCookie) {
+    private String updatedUserBuyerUid(User user, String bidder, Map<String, String> aliases,
+                                       Map<String, String> uidsBody, UidsCookie uidsCookie) {
         final String buyerUidFromBodyOrCookie = extractUid(uidsBody, uidsCookie, resolveBidder(bidder, aliases));
         final String buyerUidFromUser = user != null ? user.getBuyeruid() : null;
 
         return StringUtils.isBlank(buyerUidFromUser) && StringUtils.isNotBlank(buyerUidFromBodyOrCookie)
                 ? buyerUidFromBodyOrCookie
                 : null;
+    }
+
+    /**
+     * Returns updated {@link User} with user.userId.
+     */
+    private boolean isUpdateUserId(User user) {
+        return user != null && !Objects.equals(user.getId(), user.getBuyeruid());
     }
 
     /**

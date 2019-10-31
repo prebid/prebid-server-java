@@ -40,6 +40,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "IE-UID",
     "buyeruid": "IE-UID",
     "ext": {
       "digitrust": {

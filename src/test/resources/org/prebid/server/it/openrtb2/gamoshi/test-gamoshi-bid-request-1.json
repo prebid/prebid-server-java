@@ -60,6 +60,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "GM-UID",
     "buyeruid": "GM-UID",
     "ext": {
       "consent": "consentValue",

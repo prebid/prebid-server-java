@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.User;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -88,7 +89,7 @@ public class PreBidRequestContextFactory {
             return Future.failedFuture(new PreBidException("No ad units specified"));
         }
 
-        final PreBidRequest adjustedRequest = adjustRequestTimeout(preBidRequest);
+        final PreBidRequest adjustedRequest = updatePrebidRequest(preBidRequest);
         final Timeout timeout = timeout(adjustedRequest);
 
         return extractBidders(adjustedRequest, timeout)
@@ -218,15 +219,46 @@ public class PreBidRequestContextFactory {
         return result;
     }
 
-    private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
+    private PreBidRequest updatePrebidRequest(PreBidRequest preBidRequest) {
+        final Long updatedTimeout = updatedTimeout(preBidRequest);
+        final User updatedUser = updatedUser(preBidRequest);
+
+        if (updatedTimeout != null || updatedUser != null) {
+            final PreBidRequest.PreBidRequestBuilder preBidRequestBuilder = preBidRequest.toBuilder();
+
+            if (updatedTimeout != null) {
+                preBidRequestBuilder.timeoutMillis(updatedTimeout);
+            }
+
+            if (updatedUser != null) {
+                preBidRequestBuilder.user(updatedUser);
+            }
+            return preBidRequestBuilder.build();
+        }
+        return preBidRequest;
+    }
+
+    private Long updatedTimeout(PreBidRequest preBidRequest) {
         final Long requestTimeout = preBidRequest.getTimeoutMillis();
         final long resolvedTimeout = timeoutResolver.resolve(requestTimeout);
         final long timeout = timeoutResolver.adjustTimeout(resolvedTimeout);
 
-        // check, do we really need to update request?
         return !Objects.equals(requestTimeout, timeout)
-                ? preBidRequest.toBuilder().timeoutMillis(timeout).build()
-                : preBidRequest;
+                ? timeout
+                : null;
+    }
+
+    private User updatedUser(PreBidRequest preBidRequest) {
+        final User user = preBidRequest.getUser();
+        if (user == null) {
+            return null;
+        }
+        final String buyeruid = user.getBuyeruid();
+        final String id = user.getId();
+
+        return !Objects.equals(buyeruid, id)
+                ? user.toBuilder().id(buyeruid).build()
+                : null;
     }
 
     private Timeout timeout(PreBidRequest preBidRequest) {

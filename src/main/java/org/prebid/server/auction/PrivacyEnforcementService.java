@@ -191,19 +191,20 @@ public class PrivacyEnforcementService {
      */
     private static User maskUser(User user, boolean coppaMaskingRequired, boolean gdprMaskingRequired) {
         if (user != null && (coppaMaskingRequired || gdprMaskingRequired)) {
-            final User.UserBuilder builder = user.toBuilder();
+            final User.UserBuilder userBuilder = user.toBuilder();
             if (coppaMaskingRequired) {
-                builder
+                userBuilder
                         .id(null)
                         .yob(null)
                         .gender(null);
             }
 
-            builder
+            userBuilder
+                    .id(null)
                     .buyeruid(null)
                     .geo(coppaMaskingRequired ? maskGeoForCoppa(user.getGeo()) : maskGeoForGdpr(user.getGeo()));
 
-            return nullIfEmpty(builder.build());
+            return nullIfEmpty(userBuilder.build());
         }
         return user;
     }

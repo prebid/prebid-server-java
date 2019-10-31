@@ -42,6 +42,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "CV-UID",
     "buyeruid": "CV-UID",
     "ext": {
       "digitrust": {

@@ -38,6 +38,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "TL-UID",
     "buyeruid": "TL-UID",
     "ext": {
       "digitrust": {

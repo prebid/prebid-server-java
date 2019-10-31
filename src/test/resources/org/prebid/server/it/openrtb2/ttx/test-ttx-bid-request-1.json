@@ -39,6 +39,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "TTX-UID",
     "buyeruid": "TTX-UID",
     "ext": {
       "consent": "consentValue",

@@ -33,6 +33,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "EG-UID",
     "buyeruid": "EG-UID",
     "ext": {
       "consent": "consentValue",

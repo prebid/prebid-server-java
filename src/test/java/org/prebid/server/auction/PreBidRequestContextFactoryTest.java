@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -411,6 +412,20 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .extracting(AdUnitBid::getBidId)
                 .element(0)
                 .matches(id -> isDigits(id) && toLong(id) >= 0);
+    }
+
+    @Test
+    public void shouldSetUserIdFromUserBuyerId() {
+        // given
+        final User user = User.builder().buyeruid("123").build();
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.user(user)));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        final User expectedUser = User.builder().id("123").buyeruid("123").build();
+        assertThat(preBidRequestContext.getPreBidRequest().getUser()).isEqualTo(expectedUser);
     }
 
     @Test

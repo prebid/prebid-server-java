@@ -35,6 +35,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "RTBH-UID",
     "buyeruid": "RTBH-UID",
     "ext": {
       "consent": "consentValue",

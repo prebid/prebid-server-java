@@ -38,6 +38,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "SM-UID",
     "buyeruid": "SM-UID",
     "ext": {
       "digitrust": {

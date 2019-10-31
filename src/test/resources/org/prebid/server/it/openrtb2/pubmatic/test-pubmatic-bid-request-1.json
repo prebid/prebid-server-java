@@ -54,6 +54,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "id": "PM-UID",
     "buyeruid": "PM-UID",
     "ext": {
       "digitrust": {
