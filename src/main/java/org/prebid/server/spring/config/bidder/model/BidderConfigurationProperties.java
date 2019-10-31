@@ -36,4 +36,6 @@ public class BidderConfigurationProperties {
 
     @NotNull
     private UsersyncConfigurationProperties usersync;
+
+    private String extraInfo;
 }
