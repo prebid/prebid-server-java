@@ -473,6 +473,6 @@ public class AmpRequestFactory {
                 || targeting.getIncludebidderkeys();
 
         return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
-                includeWinners, includeBidderKeys);
+                includeWinners, null, null, includeBidderKeys);
     }
 }

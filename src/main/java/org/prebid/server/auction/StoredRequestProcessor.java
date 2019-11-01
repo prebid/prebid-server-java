@@ -21,6 +21,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.ParsedStoredDataResult;
 import org.prebid.server.settings.model.StoredDataResult;
 
 import java.io.IOException;
@@ -122,28 +123,36 @@ public class StoredRequestProcessor {
     }
 
     /**
-     * Fetches Video request from the source.
+     * Fetches ParsedStoredDataResult<BidRequestVideo, Imp> request from the source.
      */
-    Future<BidRequestVideo> processVideoRequest(String videoRequestId, BidRequestVideo recived) {
-        final Future<StoredDataResult> videoStoredDataFuture = applicationSettings.getVideoStoredData(
-                Collections.singleton(videoRequestId), Collections.emptySet(), timeoutFactory.create(defaultTimeout))
+    Future<ParsedStoredDataResult<BidRequestVideo, Imp>> processVideoRequest(String storedBidRequestId,
+                                                                             Set<String> podIds,
+                                                                             BidRequestVideo recievedRequest) {
+        return applicationSettings.getVideoStoredData(
+                Collections.singleton(storedBidRequestId), Collections.emptySet(), timeoutFactory.create(defaultTimeout))
                 .compose(storedDataResult -> updateMetrics(
-                        storedDataResult, Collections.singleton(videoRequestId), Collections.emptySet()));
-//                .map(storedDataResult -> merge(context, storedDataResult.getStoredIdToRequest(), videoRequestId, BidRequestVideo.class))
-
-        return storedRequestsToBidRequestVideo(videoStoredDataFuture, recived, videoRequestId);
+                        storedDataResult, Collections.singleton(storedBidRequestId), podIds))
+                .map(result -> parsedStoredDataResult(result, recievedRequest, storedBidRequestId))
+                .recover(exception -> Future.failedFuture(new InvalidRequestException(
+                        String.format("Stored request fetching failed: %s", exception.getMessage()))));
     }
 
-    private Future<BidRequestVideo> storedRequestsToBidRequestVideo(Future<StoredDataResult> storedDataFuture,
-                                                                    BidRequestVideo bidRequestVideo,
-                                                                    String storedBidRequestId) {
-        return storedDataFuture
-                .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
-                .compose(result -> !result.getErrors().isEmpty()
-                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
-                        : Future.succeededFuture(result))
-                .map(result -> mergeBidRequest(bidRequestVideo, storedBidRequestId, result, BidRequestVideo.class));
+    private ParsedStoredDataResult<BidRequestVideo, Imp> parsedStoredDataResult(StoredDataResult storedDataResult,
+                                                                                BidRequestVideo receivedRequest, String storedBidRequestId) {
+        final Map<String, Imp> idToImps = new HashMap<>();
+        final List<String> errors = storedDataResult.getErrors();
+
+        final BidRequestVideo mergedRequest = mergeBidRequest(receivedRequest, storedBidRequestId, storedDataResult, BidRequestVideo.class);
+        for (Map.Entry<String, String> idToImp : storedDataResult.getStoredIdToImp().entrySet()) {
+            final String impString = idToImp.getValue();
+            final JsonNode jsonNode = Json.mapper.valueToTree(impString);
+            try {
+                idToImps.put(idToImp.getKey(), Json.mapper.treeToValue(jsonNode, Imp.class));
+            } catch (JsonProcessingException e) {
+                errors.add(e.getMessage());
+            }
+        }
+        return ParsedStoredDataResult.of(mergedRequest, idToImps, errors);
     }
 
     /**

@@ -442,6 +442,8 @@ public class AuctionRequestFactory {
                     targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
+                    null,
+                    null,
                     isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
         } else {
             result = null;

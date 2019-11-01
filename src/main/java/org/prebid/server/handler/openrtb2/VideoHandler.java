@@ -2,9 +2,7 @@ package org.prebid.server.handler.openrtb2;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -22,13 +20,13 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.HttpContext;
+import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
@@ -39,16 +37,18 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
-import org.prebid.server.proto.response.AmpResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
+import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -90,7 +90,8 @@ public class VideoHandler implements Handler<RoutingContext> {
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
-    private static final MetricName REQUEST_TYPE_METRIC = MetricName.amp;
+
+    private static final MetricName REQUEST_TYPE_METRIC = MetricName.video;
 
     private final VideoRequestFactory videoRequestFactory;
     private final ExchangeService exchangeService;
@@ -125,13 +126,8 @@ public class VideoHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(routingContext.request().headers().get(HttpUtil.USER_AGENT_HEADER));
         metrics.updateSafariRequestsMetric(isSafari);
-
-
-
-
-
-
-
+        final VideoEvent.VideoEventBuilder videoEventBuilder = VideoEvent.builder()
+                .httpContext(HttpContext.from(routingContext));
 
 // Should be changable
         videoRequestFactory.fromRequest(routingContext, startTime)
@@ -139,21 +135,16 @@ public class VideoHandler implements Handler<RoutingContext> {
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
 
-                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
-                .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
+                .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
 
+                .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
                 .compose(context -> exchangeService.holdAuction(context)
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
-                .map(result -> addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
-                .map(result -> Tuple3.of(result.getLeft(), result.getRight(),
-                        toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
+                .map(result -> toVideoResponse(result.getRight().getBidRequest(), result.getLeft()))
 
-                .compose(result -> ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(),
-                        result.getLeft(), result.getRight(), routingContext))
-
-                .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+                .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
+                .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -174,18 +165,40 @@ public class VideoHandler implements Handler<RoutingContext> {
         return context;
     }
 
-    private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        // Fetch targeting information from response bids
-        final List<SeatBid> seatBids = bidResponse.getSeatbid();
+    private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final List<ExtAdPod> adPods = new ArrayList<>();
+        boolean anyBidsReturned = false;
+        for (SeatBid seatBid : bidResponse.getSeatbid()) {
+            for (Bid bid : seatBid.getBid()) {
+                anyBidsReturned = true;
+                final Map<String, String> targeting = targeting(bid);
+                if (targeting.get("hb_uuid") == null) {
+                    continue;
+                }
+                final String impId = bid.getImpid();
+                final Integer podId = Integer.parseInt(impId.split("_")[0]);
 
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
-                .filter(Objects::nonNull)
-                .filter(seatBid -> seatBid.getBid() != null)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight));
+                final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
+                        targeting.get("hb_pb"),
+                        targeting.get("hb_pb_cat_dur"),
+                        targeting.get("hb_uuid"));
+
+                ExtAdPod adPod = adPods.stream()
+                        .filter(extAdPod -> extAdPod.getPodId().equals(podId))
+                        .findFirst()
+                        .orElse(null);
+
+                if (adPod == null) {
+                    adPod = ExtAdPod.of(podId, new ArrayList<>(), null);
+                    adPods.add(adPod);
+                }
+                adPod.getTargeting().add(videoTargeting);
+            }
+        }
+
+        if (anyBidsReturned && CollectionUtils.isEmpty(adPods)) {
+            throw new PreBidException("caching failed for all bids");
+        }
 
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;
@@ -200,54 +213,30 @@ public class VideoHandler implements Handler<RoutingContext> {
             errors = null;
         }
 
-        return AmpResponse.of(targeting, extResponseDebug, errors);
+//  // If there were incorrect pods, we put them back to response with error message
+//        if len(podErrors) > 0 {
+//            for _, podEr := range podErrors {
+//                adPodEr := &openrtb_ext.AdPod{
+//                    PodId:  int64(podEr.PodId),
+//                            Errors: podEr.ErrMsgs,
+//                }
+//                adPods = append(adPods, adPodEr)
+//            }
+//        }
+        return VideoResponse.of(adPods, extResponseDebug, errors, null);
     }
 
-    private Map<String, String> targetingFrom(Bid bid, String bidder) {
+    private Map<String, String> targeting(Bid bid) {
         final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
         try {
             extBid = Json.mapper.convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
-        }
-
-        if (extBid != null) {
-            final ExtBidPrebid extBidPrebid = extBid.getPrebid();
-
-            // Need to extract the targeting parameters from the response, as those are all that
-            // go in the AMP response
-            final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
-            if (targeting != null && targeting.keySet().stream()
-                    .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
-
-                return enrichWithCustomTargeting(targeting, extBid, bidder);
-            }
-        }
-
-        return Collections.emptyMap();
-    }
-
-    private Map<String, String> enrichWithCustomTargeting(
-            Map<String, String> targeting, ExtPrebid<ExtBidPrebid, ObjectNode> extBid, String bidder) {
-
-        final Map<String, String> customTargeting = customTargetingFrom(extBid.getBidder(), bidder);
-        if (!customTargeting.isEmpty()) {
-            final Map<String, String> enrichedTargeting = new HashMap<>(targeting);
-            enrichedTargeting.putAll(customTargeting);
-            return enrichedTargeting;
-        }
-        return targeting;
-    }
-
-    private Map<String, String> customTargetingFrom(ObjectNode extBidBidder, String bidder) {
-        if (extBidBidder != null && biddersSupportingCustomTargeting.contains(bidder)
-                && bidderCatalog.isValidName(bidder)) {
-
-            return bidderCatalog.bidderByName(bidder).extractTargeting(extBidBidder);
-        } else {
             return Collections.emptyMap();
         }
+
+        final ExtBidPrebid extBidPrebid = extBid != null ? extBid.getPrebid() : null;
+        final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
+        return targeting != null ? targeting : Collections.emptyMap();
     }
 
     /**
@@ -292,22 +281,15 @@ public class VideoHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 
-    private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
+    private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,
                               RoutingContext context, long startTime) {
+        final boolean responseSucceeded = responseResult.succeeded();
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
         final int status;
         final String body;
 
-        final String origin = originFrom(context);
-        ampEventBuilder.origin(origin);
-
-        // Add AMP headers
-        context.response().headers()
-                .add("AMP-Access-Control-Allow-Source-Origin", origin)
-                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-
-        if (responseResult.succeeded()) {
+        if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
@@ -322,8 +304,8 @@ public class VideoHandler implements Handler<RoutingContext> {
                 logger.info("Invalid request format: {0}", errorMessages);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
-                body = errorMessages.stream().map(
-                        msg -> String.format("Invalid request format: %s", msg))
+                body = errorMessages.stream()
+                        .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.joining("\n"));
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
@@ -335,19 +317,18 @@ public class VideoHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = String.format("Unauthorised: %s", errorMessage);
             } else {
-                final String message = exception.getMessage();
-
                 metricRequestStatus = MetricName.err;
-                errorMessages = Collections.singletonList(message);
                 logger.error("Critical error while running the auction", exception);
+
+                final String message = exception.getMessage();
+                errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
-
-        final AmpEvent ampEvent = ampEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(context, status, body, startTime, metricRequestStatus, ampEvent);
+            final VideoEvent auctionEvent = videoEventBuilder.status(status).errors(errorMessages).build();
+            respondWith(context, status, body, startTime, metricRequestStatus);
     }
 
     private static String originFrom(RoutingContext context) {
@@ -364,7 +345,7 @@ public class VideoHandler implements Handler<RoutingContext> {
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, AmpEvent event) {
+                             MetricName metricRequestStatus) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -377,7 +358,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-            analyticsReporter.processEvent(event);
+//            analyticsReporter.processEvent(event);
         }
     }
 
