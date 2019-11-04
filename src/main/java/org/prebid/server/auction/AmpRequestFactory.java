@@ -472,7 +472,12 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
-                includeWinners, null, null, includeBidderKeys);
+        return ExtRequestTargeting.builder()
+                .pricegranularity(outgoingPriceGranularityNode)
+                .mediatypepricegranularity(mediaTypePriceGranularity)
+                .currency(currency)
+                .includewinners(includeWinners)
+                .includebidderkeys(includeBidderKeys)
+                .build();
     }
 }

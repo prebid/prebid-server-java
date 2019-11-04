@@ -10,7 +10,9 @@ import lombok.Value;
 @Value
 public class ExtResponseVideoTargeting {
 
-  String hbPb;
-  String hbPbCatDur;
-  String hbCacheID;
+    String hbPb;
+
+    String hbPbCatDur;
+
+    String hbCacheID;
 }

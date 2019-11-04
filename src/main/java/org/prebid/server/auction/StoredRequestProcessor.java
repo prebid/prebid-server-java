@@ -11,6 +11,7 @@ import com.iab.openrtb.request.video.BidRequestVideo;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -127,22 +128,26 @@ public class StoredRequestProcessor {
      */
     Future<ParsedStoredDataResult<BidRequestVideo, Imp>> processVideoRequest(String storedBidRequestId,
                                                                              Set<String> podIds,
-                                                                             BidRequestVideo recievedRequest) {
-        return applicationSettings.getVideoStoredData(
-                Collections.singleton(storedBidRequestId), Collections.emptySet(), timeoutFactory.create(defaultTimeout))
-                .compose(storedDataResult -> updateMetrics(
-                        storedDataResult, Collections.singleton(storedBidRequestId), podIds))
-                .map(result -> parsedStoredDataResult(result, recievedRequest, storedBidRequestId))
+                                                                             BidRequestVideo receivedRequest) {
+        final Set<String> storedRequestIds = new HashSet<>();
+        if (StringUtils.isNotBlank(storedBidRequestId)) {
+            storedRequestIds.add(storedBidRequestId);
+        }
+        return applicationSettings.getVideoStoredData(storedRequestIds, podIds, timeoutFactory.create(defaultTimeout))
+                .compose(storedDataResult -> updateMetrics(storedDataResult, storedRequestIds, podIds))
+                .map(result -> parsedStoredDataResult(result, receivedRequest, storedBidRequestId))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed: %s", exception.getMessage()))));
     }
 
     private ParsedStoredDataResult<BidRequestVideo, Imp> parsedStoredDataResult(StoredDataResult storedDataResult,
-                                                                                BidRequestVideo receivedRequest, String storedBidRequestId) {
+                                                                                BidRequestVideo receivedRequest,
+                                                                                String storedBidRequestId) {
         final Map<String, Imp> idToImps = new HashMap<>();
         final List<String> errors = storedDataResult.getErrors();
 
-        final BidRequestVideo mergedRequest = mergeBidRequest(receivedRequest, storedBidRequestId, storedDataResult, BidRequestVideo.class);
+        final BidRequestVideo mergedRequest = mergeBidRequest(receivedRequest, storedBidRequestId, storedDataResult,
+                BidRequestVideo.class);
         for (Map.Entry<String, String> idToImp : storedDataResult.getStoredIdToImp().entrySet()) {
             final String impString = idToImp.getValue();
             final JsonNode jsonNode = Json.mapper.valueToTree(impString);
@@ -160,8 +165,8 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
                                               Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
-        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult, BidRequest.class), impToStoredId,
-                storedDataResult);
+        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult, BidRequest.class),
+                impToStoredId, storedDataResult);
     }
 
     /**
@@ -170,7 +175,7 @@ public class StoredRequestProcessor {
      */
     private <T> T mergeBidRequest(T bidRequest, String storedRequestId,
                                   StoredDataResult storedDataResult, Class<T> classToCast) {
-        return storedRequestId != null
+        return StringUtils.isNotBlank(storedRequestId)
                 ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, classToCast)
                 : bidRequest;
     }

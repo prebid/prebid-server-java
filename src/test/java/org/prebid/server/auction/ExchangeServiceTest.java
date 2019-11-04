@@ -1611,9 +1611,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static ExtRequestTargeting givenTargeting(boolean includebidderkeys) {
-        return ExtRequestTargeting.of(Json.mapper.valueToTree(
+        return ExtRequestTargeting.builder().pricegranularity(Json.mapper.valueToTree(
                 ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))), null, null, true, includebidderkeys);
+                        BigDecimal.valueOf(0.5))))))
+                .includewinners(true)
+                .includebidderkeys(includebidderkeys)
+                .build();
     }
 
     private void givenBidResponseCreator(List<Bid> bids) {

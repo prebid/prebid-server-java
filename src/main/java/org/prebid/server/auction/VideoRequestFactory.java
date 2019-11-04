@@ -51,25 +51,29 @@ public class VideoRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final TimeoutResolver timeoutResolver;
+    private final BidRequest defaultBidRequest;
+    private final int maxRequestSize;
     private boolean videoStoredRequestRequired;
 
     public VideoRequestFactory(List<String> blacklistedAccounts, StoredRequestProcessor storedRequestProcessor,
                                AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver,
-                               boolean videoStoredRequestRequired) {
+                               boolean videoStoredRequestRequired, BidRequest defaultBidRequest, int maxRequestSize) {
         this.blacklistedAccounts = blacklistedAccounts;
 
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.videoStoredRequestRequired = videoStoredRequestRequired;
+        this.defaultBidRequest = Objects.requireNonNull(defaultBidRequest);
+        this.maxRequestSize = maxRequestSize;
     }
 
     /**
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
-        final String tagId = routingContext.request().getParam(STORED_ID_REQUEST_PARAM);
-        if (StringUtils.isBlank(tagId)) {
+        final String storedRequestId = routingContext.request().getParam(STORED_ID_REQUEST_PARAM);
+        if (StringUtils.isBlank(storedRequestId) && videoStoredRequestRequired) {
             return Future.failedFuture(new InvalidRequestException("Unable to find required stored request id"));
         }
 
@@ -81,7 +85,7 @@ public class VideoRequestFactory {
         }
         final Set<String> podIds = podIds(incomingBidRequest);
 
-        return createBidRequest(routingContext, incomingBidRequest, tagId, podIds)
+        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podIds)
                 .compose(bidRequest ->
                         auctionRequestFactory.toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
     }
@@ -132,9 +136,9 @@ public class VideoRequestFactory {
         return storedRequestProcessor.processVideoRequest(storedVideoId, podIds, bidRequestVideo)
                 .map(storedData -> doAndReturn(() -> validateStoredBidRequest(storedData.getStoredData()), storedData))
                 .map(storedData -> mergeWithDefaultBidRequest(storedData.getStoredData(), createImps(storedData)))
-                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, routingContext, timeoutResolver))
-                .map(auctionRequestFactory::validateRequest)
-                .recover();
+                .map(bidRequest -> auctionRequestFactory
+                        .fillImplicitParameters(bidRequest, routingContext, timeoutResolver))
+                .map(auctionRequestFactory::validateRequest);
     }
 
     private static List<Imp> createImps(ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
@@ -145,12 +149,10 @@ public class VideoRequestFactory {
         final List<PodError> podErrors = validPodsToPodErrors.getRight();
 
         if (CollectionUtils.isEmpty(validPods)) {
-
             final String errorMessage = podErrors.stream()
                     .map(PodError::getPodErrors)
                     .map(errorsForPod -> String.join(", ", errorsForPod))
                     .collect(Collectors.joining("; "));
-
             throw new InvalidRequestException("all pods are incorrect:  " + errorMessage);
         }
 
@@ -166,7 +168,7 @@ public class VideoRequestFactory {
             final Integer adpodDurationSec = pod.getAdpodDurationSec();
             int numImps = adpodDurationSec / maxMin.getLeft();
 
-            if (requireExactDuration) {
+            if (BooleanUtils.isTrue(requireExactDuration) || numImps == 0) {
                 // In case of impressions number is less than durations array, we bump up impressions number up to duration array size
                 // with this handler we will have one impression per specified duration
                 numImps = Math.max(numImps, durationRangeSec.size());
@@ -176,7 +178,7 @@ public class VideoRequestFactory {
             for (int i = 0; i < numImps; i++) {
                 Integer maxDuration;
                 Integer minDuration = null;
-                if (requireExactDuration) {
+                if (BooleanUtils.isTrue(requireExactDuration)) {
                     int durationIndex = (i + 1) / impDivNumber;
                     if (durationIndex > durationRangeSec.size() - 1) {
                         durationIndex = durationRangeSec.size() - 1;
@@ -201,7 +203,76 @@ public class VideoRequestFactory {
                 imps.add(imp);
             }
         }
-        return Tuple2.of(imps, podErrors);
+        return imps;
+    }
+
+    private static Tuple2<List<Pod>, List<PodError>> validPods(BidRequestVideo bidRequestVideo,
+                                                               Set<String> validPodIds) {
+        final List<Pod> pods = bidRequestVideo.getPodconfig().getPods();
+        final List<PodError> podErrors = validateEachPod(pods);
+        final List<Integer> errorPodIds = podErrors.stream()
+                .map(PodError::getPodId)
+                .collect(Collectors.toList());
+
+        final List<Pod> validPods = new ArrayList<>();
+        for (int i = 0; i < pods.size(); i++) {
+            final Pod pod = pods.get(i);
+            final Integer podId = pod.getPodId();
+            if (!errorPodIds.contains(podId)) {
+                if (validPodIds.contains(String.valueOf(podId))) {
+                    validPods.add(pod);
+                } else {
+                    podErrors.add(PodError.of(podId, i, Collections.singletonList("unable to load Pod id: " + podId)));
+                }
+            }
+        }
+
+        return Tuple2.of(validPods, podErrors);
+    }
+
+    // Need to be called after Validation
+    private static List<PodError> validateEachPod(List<Pod> pods) {
+        final List<PodError> podErrorsResult = new ArrayList<>();
+
+        final Map<Integer, Boolean> podIdToFlag = new HashMap<>();
+        for (int i = 0; i < pods.size(); i++) {
+            final List<String> podErrors = new ArrayList<>();
+            final Pod pod = pods.get(i);
+
+            final Integer podId = pod.getPodId();
+            if (BooleanUtils.isTrue(podIdToFlag.get(podId))) {
+                podErrors.add("request duplicated required field: PodConfig.Pods.PodId, Pod id: " + podId);
+            } else {
+                podIdToFlag.put(podId, true);
+            }
+            if (podId == null || podId <= 0) {
+                podErrors.add("request missing required field: PodConfig.Pods.PodId, Pod index: " + i);
+            }
+            final Integer adpodDurationSec = pod.getAdpodDurationSec();
+            if (adpodDurationSec != null) {
+                if (adpodDurationSec == 0) {
+                    podErrors.add(
+                            "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: "
+                                    + i);
+                }
+                if (adpodDurationSec < 0) {
+                    podErrors.add(
+                            "request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: "
+                                    + i);
+                }
+            } else {
+                podErrors.add(
+                        "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: "
+                                + i);
+            }
+            if (StringUtils.isBlank(pod.getConfigId())) {
+                podErrors.add("request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: " + i);
+            }
+            if (!podErrors.isEmpty()) {
+                podErrorsResult.add(PodError.of(podId, i, podErrors));
+            }
+        }
+        return podErrorsResult;
     }
 
     private static Video createVideo(Video video, Integer maxDuration, Integer minDuration) {
@@ -225,36 +296,9 @@ public class VideoRequestFactory {
         return Tuple2.of(max, min);
     }
 
-    private static Tuple2<List<Pod>, List<PodError>> validPods(BidRequestVideo bidRequestVideo,
-                                                               Set<String> validPodIds) {
-        final List<Pod> pods = bidRequestVideo.getPodconfig().getPods();
-        final List<PodError> podErrors = validateEachPod(pods);
-        if (CollectionUtils.isNotEmpty(podErrors)) {
-            final List<Integer> errorPodIds = podErrors.stream()
-                    .map(PodError::getPodId)
-                    .collect(Collectors.toList());
-
-            final List<Pod> validPods = new ArrayList<>();
-            for (int i = 0; i < pods.size(); i++) {
-                final Pod pod = pods.get(i);
-                final Integer podId = pod.getPodId();
-                if (!errorPodIds.contains(podId)) {
-                    if (validPodIds.contains(String.valueOf(podId))) {
-                        validPods.add(pod);
-                    } else {
-                        podErrors.add(PodError.of(podId, i, Collections.singletonList("unable to load Pod id: " + podId)));
-                    }
-                }
-            }
-
-            return Tuple2.of(validPods, podErrors);
-        }
-        return Tuple2.of(pods, Collections.emptyList());
-    }
-
     //Should be called only after validation
-    private static BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest, List<Imp> imps) {
-        final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest().toBuilder();
+    private BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest, List<Imp> imps) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest.toBuilder();
 
         final Site site = videoRequest.getSite();
         if (site != null) {
@@ -333,15 +377,24 @@ public class VideoRequestFactory {
             durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
         }
 
-        PriceGranularity priceGranularity = PriceGranularity.createFromString("med");
-        final Integer precision = videoRequest.getPriceGranularity().getPrecision();
-        if (precision != null && precision != 0) {
-            priceGranularity = videoRequest.getPriceGranularity();
+        PriceGranularity updatedPriceGranularity = PriceGranularity.createFromString("med");
+        final PriceGranularity priceGranularity = videoRequest.getPriceGranularity();
+        if (priceGranularity != null) {
+            final Integer precision = priceGranularity.getPrecision();
+            if (precision != null && precision != 0) {
+                updatedPriceGranularity = priceGranularity;
+            }
         }
 
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(priceGranularity), null, null, true, extIncludeBrandCategory, durationRangeSec, null);
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(Json.mapper.valueToTree(updatedPriceGranularity))
+                .includebidderkeys(true)
+                .includebrandcategory(extIncludeBrandCategory)
+                .durationrangeSec(durationRangeSec)
+                .build();
 
-        final ExtRequestPrebidCache extReqPrebidCache = ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null);
+        final ExtRequestPrebidCache extReqPrebidCache = ExtRequestPrebidCache.of(null,
+                ExtRequestPrebidCacheVastxml.of(null, null), null);
 
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .cache(extReqPrebidCache)
@@ -349,11 +402,6 @@ public class VideoRequestFactory {
                 .build();
 
         return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebid));
-    }
-
-    //TODO
-    private static BidRequest defaultBidRequest() {
-        return BidRequest.builder().build();
     }
 
     private static <T> T doAndReturn(Runnable runnable, T returned) {
@@ -372,13 +420,11 @@ public class VideoRequestFactory {
         if (podconfig == null) {
             throw new InvalidRequestException("request missing required field: PodConfig");
         } else {
+            final List<Integer> durationRangeSec = podconfig.getDurationRangeSec();
+            if (CollectionUtils.isEmpty(durationRangeSec) || isZeroOrNegativeDuration(durationRangeSec)) {
+                throw new InvalidRequestException("duration array require only positive numbers");
+            }
             final List<Pod> pods = podconfig.getPods();
-            if (CollectionUtils.isEmpty(pods)) {
-                throw new InvalidRequestException("request missing required field: PodConfig.DurationRangeSec");
-            }
-            if (isZeroOrNegativeDuration(podconfig.getDurationRangeSec())) {
-                throw new InvalidRequestException("duration array cannot contain negative or zero values");
-            }
             if (CollectionUtils.sizeIsEmpty(pods)) {
                 throw new InvalidRequestException("request missing required field: PodConfig.Pods");
             }
@@ -400,7 +446,8 @@ public class VideoRequestFactory {
 
             if (StringUtils.isNotBlank(appId)) {
                 if (blacklistedAccounts.contains(appId)) {
-                    throw new InvalidRequestException("Prebid-server does not process requests from App ID: %s" + appId);
+                    throw new InvalidRequestException("Prebid-server does not process requests from App ID: "
+                            + appId);
                 }
             } else {
                 if (StringUtils.isBlank(app.getBundle())) {
@@ -421,8 +468,9 @@ public class VideoRequestFactory {
             final List<String> notBlankMimes = mimes.stream()
                     .filter(StringUtils::isNotBlank)
                     .collect(Collectors.toList());
-            if (CollectionUtils.isNotEmpty(notBlankMimes)) {
-                throw new InvalidRequestException("request missing required field: Video.Mimes, mime types contains empty strings only");
+            if (CollectionUtils.isEmpty(notBlankMimes)) {
+                throw new InvalidRequestException(
+                        "request missing required field: Video.Mimes, mime types contains empty strings only");
             }
         }
 
@@ -431,56 +479,7 @@ public class VideoRequestFactory {
         }
     }
 
-    // Need to be called after Validation
-    private static List<PodError> validateEachPod(List<Pod> pods) {
-        final List<PodError> podErrorsResult = new ArrayList<>();
-
-        final Map<Integer, Boolean> podIdToFlag = new HashMap<>();
-        for (int i = 0; i < pods.size(); i++) {
-            final List<String> podErrors = new ArrayList<>();
-            final Pod pod = pods.get(i);
-
-            final Integer podId = pod.getPodId();
-            if (podIdToFlag.get(podId)) {
-                podErrors.add("request duplicated required field: PodConfig.Pods.PodId, Pod id: " + podId);
-            } else {
-                podIdToFlag.put(podId, true);
-            }
-            if (podId == null || podId <= 0) {
-                podErrors.add("request missing required field: PodConfig.Pods.PodId, Pod index: " + i);
-            }
-            final Integer adpodDurationSec = pod.getAdpodDurationSec();
-            if (adpodDurationSec != null) {
-                if (adpodDurationSec == 0) {
-                    podErrors.add(
-                            "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: "
-                                    + i);
-                }
-                if (adpodDurationSec < 0) {
-                    podErrors.add(
-                            "request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: "
-                                    + i);
-                }
-            } else {
-                podErrors.add(
-                        "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: "
-                                + i);
-            }
-            if (StringUtils.isBlank(pod.getConfigId())) {
-                podErrors.add("request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: " + i);
-            }
-            if (!podErrors.isEmpty()) {
-                podErrorsResult.add(PodError.of(podId, i, podErrors));
-            }
-        }
-        return podErrorsResult;
-    }
-
     private static boolean isZeroOrNegativeDuration(List<Integer> durationRangeSec) {
-        if (durationRangeSec == null) {
-            return false;
-        }
-
         return durationRangeSec.stream()
                 .anyMatch(duration -> duration <= 0);
     }

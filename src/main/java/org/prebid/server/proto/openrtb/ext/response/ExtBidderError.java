@@ -9,6 +9,8 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtBidderError {
+
     private int code;
+
     private String message;
 }

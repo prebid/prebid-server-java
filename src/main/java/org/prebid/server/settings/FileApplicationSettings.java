@@ -125,6 +125,11 @@ public class FileApplicationSettings implements ApplicationSettings {
         return getStoredData(requestIds, Collections.emptySet(), timeout);
     }
 
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return getStoredData(requestIds, Collections.emptySet(), timeout);
+    }
+
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {
         return list != null ? list.stream().collect(Collectors.toMap(keyMapper, valueMapper)) : Collections.emptyMap();
     }

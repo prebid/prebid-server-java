@@ -17,17 +17,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -52,34 +48,37 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /*
 1. Parse "storedrequestid" field from simplified endpoint request body.
-2. If config flag to require that field is set (which it will be for us) and this field is not given then error out here.
+2. If config flag to require that field is set (which it will be for us) and this field is not given then error
+ out here.
 3. Load the stored request JSON for the given storedrequestid, if the id was invalid then error out here.
 4. Use "json-patch" 3rd party library to merge the request body JSON data into the stored request JSON data.
 5. Unmarshal the merged JSON data into a Go structure.
 6. Add fields from merged JSON data that correspond to an OpenRTB request into the OpenRTB bid request we are building.
-	a. Unmarshal certain OpenRTB defined structs directly into the OpenRTB bid request.
-	b. In cases where customized logic is needed just copy/fill the fields in directly.
-7. Call setFieldsImplicitly from auction.go to get basic data from the HTTP request into an OpenRTB bid request to start building the OpenRTB bid request.
+    a. Unmarshal certain OpenRTB defined structs directly into the OpenRTB bid request.
+    b. In cases where customized logic is needed just copy/fill the fields in directly.
+7. Call setFieldsImplicitly from auction.go to get basic data from the HTTP request into an OpenRTB bid request to
+start building the OpenRTB bid request.
 8. Loop through ad pods to build array of Imps into OpenRTB request, for each pod:
-	a. Load the stored impression to use as the basis for impressions generated for this pod from the configid field.
-	b. NumImps = adpoddurationsec / MIN_VALUE(allowedDurations)
-	c. Build impression array for this pod:
-		I.Create array of NumImps entries initialized to the base impression loaded from the configid.
-			1. If requireexactdurations = true, iterate over allowdDurations and for (NumImps / len(allowedDurations)) number of Imps set minduration = maxduration = allowedDurations[i]
-			2. If requireexactdurations = false, set maxduration = MAX_VALUE(allowedDurations)
-		II. Set Imp.id field to "podX_Y" where X is the pod index and Y is the impression index within this pod.
-	d. Append impressions for this pod to the overall list of impressions in the OpenRTB bid request.
+    a. Load the stored impression to use as the basis for impressions generated for this pod from
+    the configid field.
+   b. NumImps = adpoddurationsec / MIN_VALUE(allowedDurations)
+   c. Build impression array for this pod:
+      I.Create array of NumImps entries initialized to the base impression loaded from the
+      configid.
+         1. If requireexactdurations = true, iterate over allowdDurations and for (NumImps / len(allowedDurations))
+         number of Imps set minduration = maxduration = allowedDurations[i]
+         2. If requireexactdurations = false, set maxduration = MAX_VALUE(allowedDurations)
+      II. Set Imp.id field to "podX_Y" where X is the pod index and Y is the impression index within this pod.
+   d. Append impressions for this pod to the overall list of impressions in the OpenRTB bid request.
 9. Call validateRequest() function from auction.go to validate the generated request.
 10. Call HoldAuction() function to run the auction for the OpenRTB bid request that was built in the previous step.
 11. Build proper response format.
 */
-
 public class VideoHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VideoHandler.class);
@@ -98,22 +97,14 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
-    private final BidderCatalog bidderCatalog;
-    private final Set<String> biddersSupportingCustomTargeting;
-    private final AmpResponsePostProcessor ampResponsePostProcessor;
 
     public VideoHandler(VideoRequestFactory videoRequestFactory, ExchangeService exchangeService,
-                        AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, BidderCatalog bidderCatalog,
-                        Set<String> biddersSupportingCustomTargeting, AmpResponsePostProcessor ampResponsePostProcessor,
-                        boolean isVideoStoredIdRequired) {
+                        AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, boolean isStoredRequired) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
-        this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
     }
 
     @Override
@@ -129,12 +120,11 @@ public class VideoHandler implements Handler<RoutingContext> {
         final VideoEvent.VideoEventBuilder videoEventBuilder = VideoEvent.builder()
                 .httpContext(HttpContext.from(routingContext));
 
-// Should be changable
+        // Should be changable
         videoRequestFactory.fromRequest(routingContext, startTime)
                 .map(context -> context.toBuilder()
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
-
                 .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
 
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
@@ -144,7 +134,8 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .map(result -> toVideoResponse(result.getRight().getBidRequest(), result.getLeft()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
-                .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext, startTime));
+                .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
+                        startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -168,31 +159,33 @@ public class VideoHandler implements Handler<RoutingContext> {
     private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final List<ExtAdPod> adPods = new ArrayList<>();
         boolean anyBidsReturned = false;
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            for (Bid bid : seatBid.getBid()) {
-                anyBidsReturned = true;
-                final Map<String, String> targeting = targeting(bid);
-                if (targeting.get("hb_uuid") == null) {
-                    continue;
+        if (CollectionUtils.isNotEmpty(bidResponse.getSeatbid())) {
+            for (SeatBid seatBid : bidResponse.getSeatbid()) {
+                for (Bid bid : seatBid.getBid()) {
+                    anyBidsReturned = true;
+                    final Map<String, String> targeting = targeting(bid);
+                    if (targeting.get("hb_uuid") == null) {
+                        continue;
+                    }
+                    final String impId = bid.getImpid();
+                    final Integer podId = Integer.parseInt(impId.split("_")[0]);
+
+                    final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
+                            targeting.get("hb_pb"),
+                            targeting.get("hb_pb_cat_dur"),
+                            targeting.get("hb_uuid"));
+
+                    ExtAdPod adPod = adPods.stream()
+                            .filter(extAdPod -> extAdPod.getPodId().equals(podId))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (adPod == null) {
+                        adPod = ExtAdPod.of(podId, new ArrayList<>(), null);
+                        adPods.add(adPod);
+                    }
+                    adPod.getTargeting().add(videoTargeting);
                 }
-                final String impId = bid.getImpid();
-                final Integer podId = Integer.parseInt(impId.split("_")[0]);
-
-                final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
-                        targeting.get("hb_pb"),
-                        targeting.get("hb_pb_cat_dur"),
-                        targeting.get("hb_uuid"));
-
-                ExtAdPod adPod = adPods.stream()
-                        .filter(extAdPod -> extAdPod.getPodId().equals(podId))
-                        .findFirst()
-                        .orElse(null);
-
-                if (adPod == null) {
-                    adPod = ExtAdPod.of(podId, new ArrayList<>(), null);
-                    adPods.add(adPod);
-                }
-                adPod.getTargeting().add(videoTargeting);
             }
         }
 
@@ -213,16 +206,16 @@ public class VideoHandler implements Handler<RoutingContext> {
             errors = null;
         }
 
-//  // If there were incorrect pods, we put them back to response with error message
-//        if len(podErrors) > 0 {
-//            for _, podEr := range podErrors {
-//                adPodEr := &openrtb_ext.AdPod{
-//                    PodId:  int64(podEr.PodId),
-//                            Errors: podEr.ErrMsgs,
-//                }
-//                adPods = append(adPods, adPodEr)
-//            }
-//        }
+        //  // If there were incorrect pods, we put them back to response with error message
+        //        if len(podErrors) > 0 {
+        //            for _, podEr := range podErrors {
+        //                adPodEr := &openrtb_ext.AdPod{
+        //                    PodId:  int64(podEr.PodId),
+        //                            Errors: podEr.ErrMsgs,
+        //                }
+        //                adPods = append(adPods, adPodEr)
+        //            }
+        //        }
         return VideoResponse.of(adPods, extResponseDebug, errors, null);
     }
 
@@ -327,25 +320,12 @@ public class VideoHandler implements Handler<RoutingContext> {
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
-            final VideoEvent auctionEvent = videoEventBuilder.status(status).errors(errorMessages).build();
-            respondWith(context, status, body, startTime, metricRequestStatus);
-    }
-
-    private static String originFrom(RoutingContext context) {
-        String origin = null;
-        final List<String> ampSourceOrigin = context.queryParam("__amp_source_origin");
-        if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
-            origin = ampSourceOrigin.get(0);
-        }
-        if (origin == null) {
-            // Just to be safe
-            origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
-        }
-        return origin;
+        final VideoEvent auctionEvent = videoEventBuilder.status(status).errors(errorMessages).build();
+        respondWith(context, status, body, startTime, metricRequestStatus, auctionEvent);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus) {
+                             MetricName metricRequestStatus, VideoEvent event) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -358,7 +338,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             metrics.updateRequestTimeMetric(clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
-//            analyticsReporter.processEvent(event);
+            analyticsReporter.processEvent(event);
         }
     }
 

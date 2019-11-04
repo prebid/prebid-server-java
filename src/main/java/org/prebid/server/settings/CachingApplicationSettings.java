@@ -83,6 +83,11 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(ampCache, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return Future.failedFuture("Not supported");
+    }
+
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,
                                                         String key, Timeout timeout,
                                                         BiFunction<String, Timeout, Future<T>> retriever) {

@@ -113,6 +113,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return Future.failedFuture(new PreBidException("Not supported"));
+    }
+
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
                                                      Timeout timeout) {
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {

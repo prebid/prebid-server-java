@@ -15,7 +15,7 @@ import java.util.List;
 @Value
 public class BidRequestVideo {
 
-    // 	Optional (Required for Xandr PBS)
+    //Optional (Required for Xandr PBS)
     String storedrequestid;
 
     Podconfig podconfig;

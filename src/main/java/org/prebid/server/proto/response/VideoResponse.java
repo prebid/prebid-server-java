@@ -19,6 +19,7 @@ public class VideoResponse {
     List<ExtAdPod> adPods;
 
     ExtResponseDebug extResponseDebug;
+
     Map<String, List<ExtBidderError>> errors;
 
     ObjectNode ext;
