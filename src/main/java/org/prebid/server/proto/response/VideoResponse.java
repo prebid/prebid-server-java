@@ -1,7 +1,7 @@
 package org.prebid.server.proto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jdk.nashorn.internal.ir.ObjectNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;

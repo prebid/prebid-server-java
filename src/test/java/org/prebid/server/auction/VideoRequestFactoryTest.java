@@ -9,6 +9,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
+import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -22,21 +23,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
-import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.ParsedStoredDataResult;
-import org.prebid.server.validation.RequestValidator;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,7 +43,6 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,18 +62,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
-    @Mock
-    private ImplicitParametersExtractor paramsExtractor;
-    @Mock
-    private UidsCookieService uidsCookieService;
-    @Mock
-    private BidderCatalog bidderCatalog;
-    @Mock
-    private RequestValidator requestValidator;
-    @Mock
-    private InterstitialProcessor interstitialProcessor;
-    @Mock
-    private ApplicationSettings applicationSettings;
+
     @Mock
     private AuctionRequestFactory auctionRequestFactory;
 
@@ -88,18 +74,11 @@ public class VideoRequestFactoryTest extends VertxTest {
     private HttpServerRequest httpServerRequest;
     @Mock
     private TimeoutResolver timeoutResolver;
-    @Mock
-    private TimeoutFactory timeoutFactory;
 
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.getParam(anyString())).willReturn("test");
-
-        given(interstitialProcessor.process(any())).will(invocationOnMock -> invocationOnMock.getArgument(0));
-
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
         factory = new VideoRequestFactory(BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
                 false, BidRequest.builder().build(), Integer.MAX_VALUE);
@@ -429,7 +408,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 Arrays.asList(podWithoutId, podWithoutDurationSec, podWithBadDurationSec, podWithoutConfigId, podWithDuplicatedId)));
 
         // when
-        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0L);
+        final Future<Tuple2<AuctionContext, List<PodError>>> result = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -443,6 +422,30 @@ public class VideoRequestFactoryTest extends VertxTest {
                         " Pod index: 3; request duplicated required field: PodConfig.Pods.PodId, Pod id: 222");
     }
 
+    @Test
+    public void shouldReturnAllPodErrors() {
+        // given
+        final Pod podWithoutId = Pod.of(3, 2, null);
+        final Pod podWithBadDurationSec = Pod.of(222, -4, "cnf");
+        final Pod pod = Pod.of(1, 4, "cnf");
+        givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.pods(
+                Arrays.asList(podWithoutId, podWithBadDurationSec, pod)));
+
+        given(auctionRequestFactory.toAuctionContext(any(), any(), anyLong(), any()))
+                .willReturn(Future.succeededFuture());
+
+        // when
+        final Future<Tuple2<AuctionContext, List<PodError>>> result = factory.fromRequest(routingContext, 0L);
+
+        // then
+        final PodError expectedPod1 =
+                PodError.of(3, 0, singletonList("request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: 0"));
+        final PodError expectedPod2 =
+                PodError.of(222, 1, singletonList("request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: 1"));
+
+        assertThat(result.result().getRight())
+                .isEqualTo(Arrays.asList(expectedPod1, expectedPod2));
+    }
 
     @Test
     public void shouldFailWhenThereAreNoStoredImpsFound() {
@@ -452,7 +455,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.pods(Arrays.asList(pod1, pod2)));
 
         // when
-        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0L);
+        final Future<Tuple2<AuctionContext, List<PodError>>> result = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -462,7 +465,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldCreateImpsFromStoredRequestAndReceivedVideoRequestPods() {
+    public void shouldCreateImpsFromStoredRequestAndFromReceivedVideoRequestPods() {
         // given
         final Pod pod1 = Pod.of(123, 20, "cnf");
         final Pod pod2 = Pod.of(321, 30, "cnf");
@@ -529,15 +532,15 @@ public class VideoRequestFactoryTest extends VertxTest {
                     ParsedStoredDataResult.of(bidRequestVideo, idToImp, emptyList());
             given(storedRequestProcessor.processVideoRequest(anyString(), any(), any()))
                     .willReturn(Future.succeededFuture(dataResult));
-
-            given(auctionRequestFactory.validateRequest(any())).will(invocation -> invocation.getArgument(1));
+            given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
+            given(auctionRequestFactory.validateRequest(any())).will(answerWithFirstArgument());
 
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
     }
 
-    private void givenDataResult(BidRequestVideo bidRequestVideo) {
-        givenDataResult(bidRequestVideo, emptyMap());
+    private Answer<Object> answerWithFirstArgument() {
+        return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 }

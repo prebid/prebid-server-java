@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /*
@@ -120,22 +122,32 @@ public class VideoHandler implements Handler<RoutingContext> {
         final VideoEvent.VideoEventBuilder videoEventBuilder = VideoEvent.builder()
                 .httpContext(HttpContext.from(routingContext));
 
-        // Should be changable
         videoRequestFactory.fromRequest(routingContext, startTime)
-                .map(context -> context.toBuilder()
+                .map(contextToErrors -> doAndTupleRight(context -> context.toBuilder()
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
-                        .build())
-                .map(context -> addToEvent(context, videoEventBuilder::auctionContext, context))
+                        .build(),
+                        contextToErrors))
+                .map(contextToErrors -> doAndTupleRight(
+                        context -> addToEvent(context, videoEventBuilder::auctionContext, context),
+                        contextToErrors))
 
-                .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
-                .compose(context -> exchangeService.holdAuction(context)
-                        .map(bidResponse -> Tuple2.of(bidResponse, context)))
+//                .map(contextToErrors -> doAndTupleRight(context ->
+//                                updateAppAndNoCookieAndImpsMetrics(context, isSafari), contextToErrors))
+                .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getLeft())
+                        .map(bidResponse -> Tuple2.of(
+                                Tuple2.of(bidResponse, contextToErrors.getLeft()),
+                                contextToErrors.getRight())))
 
-                .map(result -> toVideoResponse(result.getRight().getBidRequest(), result.getLeft()))
+                .map(result -> toVideoResponse(result.getLeft().getRight().getBidRequest(), result.getLeft().getLeft(),
+                        result.getRight()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
                         startTime));
+    }
+
+    private static <T, R, E> Tuple2<R, E> doAndTupleRight(Function<T, R> consumer, Tuple2<T, E> tuple2) {
+        return Tuple2.of(consumer.apply(tuple2.getLeft()), tuple2.getRight());
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -156,7 +168,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         return context;
     }
 
-    private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
         final List<ExtAdPod> adPods = new ArrayList<>();
         boolean anyBidsReturned = false;
         if (CollectionUtils.isNotEmpty(bidResponse.getSeatbid())) {
@@ -193,6 +205,8 @@ public class VideoHandler implements Handler<RoutingContext> {
             throw new PreBidException("caching failed for all bids");
         }
 
+        adPods.addAll(transformToAdPod(podErrors));
+
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;
         // Fetch debug and errors information from response if requested
@@ -205,17 +219,6 @@ public class VideoHandler implements Handler<RoutingContext> {
             extResponseDebug = null;
             errors = null;
         }
-
-        //  // If there were incorrect pods, we put them back to response with error message
-        //        if len(podErrors) > 0 {
-        //            for _, podEr := range podErrors {
-        //                adPodEr := &openrtb_ext.AdPod{
-        //                    PodId:  int64(podEr.PodId),
-        //                            Errors: podEr.ErrMsgs,
-        //                }
-        //                adPods = append(adPods, adPodEr)
-        //            }
-        //        }
         return VideoResponse.of(adPods, extResponseDebug, errors, null);
     }
 
@@ -262,7 +265,7 @@ public class VideoHandler implements Handler<RoutingContext> {
             return Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
+                    String.format("Critical error while unpacking Video bid response: %s", e.getMessage()), e);
         }
     }
 
@@ -272,6 +275,12 @@ public class VideoHandler implements Handler<RoutingContext> {
 
     private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
+    }
+
+    private static List<ExtAdPod> transformToAdPod(List<PodError> podErrors) {
+        return podErrors.stream()
+                .map(podError -> ExtAdPod.of(podError.getPodId(), null, podError.getPodErrors()))
+                .collect(Collectors.toList());
     }
 
     private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,
@@ -343,7 +352,7 @@ public class VideoHandler implements Handler<RoutingContext> {
     }
 
     private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send amp response: {0}", throwable.getMessage());
+        logger.warn("Failed to send video response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 }

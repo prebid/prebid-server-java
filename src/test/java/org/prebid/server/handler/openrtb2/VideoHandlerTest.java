@@ -1,12 +1,16 @@
 package org.prebid.server.handler.openrtb2;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.video.PodError;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -17,25 +21,34 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
+import org.prebid.server.proto.response.VideoResponse;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -92,6 +105,8 @@ public class VideoHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
+        given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
+
         videoHandler = new VideoHandler(videoRequestFactory, exchangeService, analyticsReporter, metrics, clock, false);
     }
 
@@ -99,21 +114,20 @@ public class VideoHandlerTest extends VertxTest {
     public void shouldSetRequestTypeMetricToAuctionContext() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
         // when
         videoHandler.handle(routingContext);
 
         // then
-        final AuctionContext videoContext = captureAuctionContext();
-        assertThat(videoContext.getRequestTypeMetric()).isNotNull();
+        assertThat(captureAuctionContext().getRequestTypeMetric()).isNotNull();
     }
 
     @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
@@ -129,7 +143,7 @@ public class VideoHandlerTest extends VertxTest {
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
@@ -177,7 +191,7 @@ public class VideoHandlerTest extends VertxTest {
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
         given(exchangeService.holdAuction(any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
@@ -209,7 +223,7 @@ public class VideoHandlerTest extends VertxTest {
     public void shouldRespondWithBidResponse() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
@@ -222,43 +236,61 @@ public class VideoHandlerTest extends VertxTest {
         assertThat(httpResponse.headers()).hasSize(1)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json"));
-        verify(httpResponse).end(eq("{}"));
+        verify(httpResponse).end(eq("{\"adPods\":[]}"));
     }
 
-//    @Test
-//    public void shouldRespondWithCorrectResolvedRequestMediaTypePriceGranularity() {
-//        // given
-//        given(videoRequestFactory.fromRequest(any(), anyLong()()))
-//                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
-//
-//        final ExtGranularityRange granularityRange = ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE);
-//        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(granularityRange));
-//        final ExtMediaTypePriceGranularity priceGranuality = ExtMediaTypePriceGranularity.of(
-//                mapper.valueToTree(priceGranularity), null, mapper.createObjectNode());
-//
-//        final BidRequest resolvedRequest = BidRequest.builder()
-//                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-//                        .targeting(ExtRequestTargeting.builder().mediatypepricegranularity(priceGranuality).build())
-//                        .build())))
-//                .build();
-//        given(exchangeService.holdAuction(any()))
-//                .willReturn(Future.succeededFuture(BidResponse.builder()
-//                        .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-//                                null, null, null, null)))
-//                        .build()));
-//
-//        // when
-//        auctionHandler.handle(routingContext);
-//
-//        // then
-//        verify(exchangeService).holdAuction(any());
-//
-//        verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":" +
-//                "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":" +
-//                "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
-//    }
+    //TODO caching failed for all bids
+    // No Send with errors
 
+    @Test
+    public void shouldRespondWithCorrectVideoResponseWithPodsError() {
+        // given
+        final Map<String, String> targeting1 = new HashMap<>();
+        targeting1.put("hb_uuid", "value1");
+        targeting1.put("hb_pb", "hb_pb");
+        targeting1.put("hb_pb_cat_dur", "hb_pb_cat_dur");
 
+        final Bid bid0 = Bid.builder()
+                .impid("0_0")
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(ExtBidPrebid.of(null, targeting1, null, null), mapper.createObjectNode())))
+                .build();
+        final Bid bid1 = Bid.builder()
+                .impid("1_1")
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(ExtBidPrebid.of(null, targeting1, null, null), mapper.createObjectNode())))
+                .build();
+        final Bid bid2 = Bid.builder()
+                .impid("2_1")
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), mapper.createObjectNode())))
+                .build();
+
+        final PodError podError = PodError.of(3, 0, singletonList("Bad pod"));
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), singletonList(podError))));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("bidder1")
+                                .bid(Arrays.asList(bid0, bid1, bid2))
+                                .build()))
+                        .build()));
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        final ExtAdPod expectedExtAdPod0 = ExtAdPod.of(0,
+                singletonList(ExtResponseVideoTargeting.of("hb_pb", "hb_pb_cat_dur", "value1")), null);
+        final ExtAdPod expectedExtAdPod1 = ExtAdPod.of(
+                1, singletonList(ExtResponseVideoTargeting.of("hb_pb", "hb_pb_cat_dur", "value1")), null);
+        final ExtAdPod expectedErroredExtAdPod3 = ExtAdPod.of(3, null, singletonList("Bad pod"));
+        final List<ExtAdPod> expectedAdPodResponse = Arrays.asList(expectedExtAdPod0, expectedExtAdPod1, expectedErroredExtAdPod3);
+
+        verify(httpResponse).end(eq(Json.encode(VideoResponse.of(expectedAdPodResponse, null, null, null))));
+    }
 
     private AuctionContext captureAuctionContext() {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -266,22 +298,17 @@ public class VideoHandlerTest extends VertxTest {
         return captor.getValue();
     }
 
-    private AuctionEvent captureAuctionEvent() {
-        final ArgumentCaptor<AuctionEvent> captor = ArgumentCaptor.forClass(AuctionEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
-        return captor.getValue();
-    }
-
-    private AuctionContext givenAuctionContext(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
+    private Tuple2<AuctionContext, List<PodError>> givenAuctionContext(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
+            List<PodError> errors) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
                 .imp(emptyList())).build();
 
-        return AuctionContext.builder()
+        return Tuple2.of(AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
-                .build();
+                .build(), errors);
     }
 
     private static HttpContext givenHttpContext() {

@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.response;
+package com.iab.openrtb.request.video;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -7,11 +7,11 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtAdPod {
+public class PodError {
 
     Integer podId;
 
-    List<ExtResponseVideoTargeting> targeting;
+    Integer podIndex;
 
-    List<String> errors;
+    List<String> podErrors;
 }

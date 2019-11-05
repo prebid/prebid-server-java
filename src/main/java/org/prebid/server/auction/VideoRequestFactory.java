@@ -12,14 +12,13 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.IncludeBrandCategory;
 import com.iab.openrtb.request.video.Pod;
+import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -71,7 +70,7 @@ public class VideoRequestFactory {
     /**
      * Creates {@link AuctionContext} based on {@link RoutingContext}.
      */
-    public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
+    public Future<Tuple2<AuctionContext, List<PodError>>> fromRequest(RoutingContext routingContext, long startTime) {
         final String storedRequestId = routingContext.request().getParam(STORED_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(storedRequestId) && videoStoredRequestRequired) {
             return Future.failedFuture(new InvalidRequestException("Unable to find required stored request id"));
@@ -86,8 +85,9 @@ public class VideoRequestFactory {
         final Set<String> podIds = podIds(incomingBidRequest);
 
         return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podIds)
-                .compose(bidRequest ->
-                        auctionRequestFactory.toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
+                .compose(bidRequestToPodError -> auctionRequestFactory
+                        .toAuctionContext(routingContext, bidRequestToPodError.getLeft(), startTime, timeoutResolver)
+                        .map(auctionContext -> Tuple2.of(auctionContext, bidRequestToPodError.getRight())));
     }
 
     /**
@@ -131,17 +131,21 @@ public class VideoRequestFactory {
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> createBidRequest(RoutingContext routingContext, BidRequestVideo bidRequestVideo,
-                                                String storedVideoId, Set<String> podIds) {
+    private Future<Tuple2<BidRequest, List<PodError>>> createBidRequest(RoutingContext routingContext,
+                                                                        BidRequestVideo bidRequestVideo,
+                                                                        String storedVideoId, Set<String> podIds) {
         return storedRequestProcessor.processVideoRequest(storedVideoId, podIds, bidRequestVideo)
                 .map(storedData -> doAndReturn(() -> validateStoredBidRequest(storedData.getStoredData()), storedData))
-                .map(storedData -> mergeWithDefaultBidRequest(storedData.getStoredData(), createImps(storedData)))
-                .map(bidRequest -> auctionRequestFactory
-                        .fillImplicitParameters(bidRequest, routingContext, timeoutResolver))
-                .map(auctionRequestFactory::validateRequest);
+                .map(this::mergeWithDefaultBidRequest)
+                .map(bidRequestToErrors -> Tuple2.of(auctionRequestFactory
+                                .fillImplicitParameters(bidRequestToErrors.getLeft(), routingContext, timeoutResolver),
+                        bidRequestToErrors.getRight()))
+                .map(requestToPodErrors ->
+                        Tuple2.of(auctionRequestFactory.validateRequest(requestToPodErrors.getLeft()),
+                                requestToPodErrors.getRight()));
     }
 
-    private static List<Imp> createImps(ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
+    private static Tuple2<List<Imp>, List<PodError>> createImps(ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
         final BidRequestVideo videoRequest = storedData.getStoredData();
         final Map<String, Imp> idToImps = storedData.getIdToimps();
         final Tuple2<List<Pod>, List<PodError>> validPodsToPodErrors = validPods(videoRequest, idToImps.keySet());
@@ -203,7 +207,7 @@ public class VideoRequestFactory {
                 imps.add(imp);
             }
         }
-        return imps;
+        return Tuple2.of(imps, podErrors);
     }
 
     private static Tuple2<List<Pod>, List<PodError>> validPods(BidRequestVideo bidRequestVideo,
@@ -296,10 +300,15 @@ public class VideoRequestFactory {
         return Tuple2.of(max, min);
     }
 
-    //Should be called only after validation
-    private BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest, List<Imp> imps) {
+    // Should be called only after validation
+    private Tuple2<BidRequest, List<PodError>> mergeWithDefaultBidRequest(
+            ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
+
+        // We should create imps first. We avoid Tupple for PodError
+        final Tuple2<List<Imp>, List<PodError>> impsToErrors = createImps(storedData);
         final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest.toBuilder();
 
+        final BidRequestVideo videoRequest = storedData.getStoredData();
         final Site site = videoRequest.getSite();
         if (site != null) {
             final Site.SiteBuilder siteBuilder = site.toBuilder();
@@ -354,12 +363,14 @@ public class VideoRequestFactory {
             bidRequestBuilder.tmax(videoRequest.getTmax());
         }
 
-        return bidRequestBuilder
+        final List<Imp> imps = impsToErrors.getLeft();
+        final BidRequest bidRequest = bidRequestBuilder
                 .id("bid_id")
                 .imp(imps)
                 .ext(createBidExtension(videoRequest))
                 .test(videoRequest.getTest())
                 .build();
+        return Tuple2.of(bidRequest, impsToErrors.getRight());
     }
 
     private static ObjectNode createBidExtension(BidRequestVideo videoRequest) {
@@ -482,13 +493,5 @@ public class VideoRequestFactory {
     private static boolean isZeroOrNegativeDuration(List<Integer> durationRangeSec) {
         return durationRangeSec.stream()
                 .anyMatch(duration -> duration <= 0);
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class PodError {
-        Integer podId;
-        Integer podIndex;
-        List<String> podErrors;
     }
 }
