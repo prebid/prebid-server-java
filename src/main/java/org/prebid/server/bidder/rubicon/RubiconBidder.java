@@ -295,6 +295,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ObjectNode contextDataNode = context != null ? context.getData() : null;
             if (contextDataNode != null) {
                 inventoryNode.setAll(contextDataNode);
+
+                // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
+                // leading slash
+                final JsonNode adSlotNode = contextDataNode.get("adslot");
+                if (adSlotNode != null && adSlotNode.isTextual()) {
+                    final String adSlot = adSlotNode.textValue();
+                    final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+                    inventoryNode.put("dfp_ad_unit_code", adUnitCode);
+                }
             }
 
             // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords

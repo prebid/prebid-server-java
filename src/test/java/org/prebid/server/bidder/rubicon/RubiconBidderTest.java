@@ -828,15 +828,43 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyImpExtContextDataFieldsToRubiconImpExtRpTarget() {
+    public void makeHttpRequestsShouldCopyAndModifyImpExtContextDataFieldsToRubiconImpExtRpTarget() {
         // given
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value");
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value")
+                .put("adslot", "/test");
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotCopyAndModifyImpExtContextDataAdslotToRubiconImpExtRpTargetDfpAdUnitCode() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("adslot", 123);
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
 
         // when
