@@ -351,8 +351,12 @@ public class ServiceConfiguration {
 
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator) {
-        return new RequestValidator(bidderCatalog, bidderParamValidator);
+                                      BidderParamValidator bidderParamValidator,
+                                      @Value("${auction.blacklisted-apps}") String blacklistedAppsString) {
+        final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
     }
 
     @Bean

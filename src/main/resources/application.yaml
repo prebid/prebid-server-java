@@ -25,6 +25,7 @@ max-timeout-ms: 5000
 timeout-adjustment-ms: 30
 auction:
   blacklisted-accounts:
+  blacklisted-apps:
   default-timeout-ms: 900
   max-timeout-ms: 5000
   timeout-adjustment-ms: 30
