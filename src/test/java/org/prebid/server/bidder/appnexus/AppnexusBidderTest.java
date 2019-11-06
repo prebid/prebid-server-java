@@ -55,11 +55,12 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class AppnexusBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://appnexus.com/openrtb2d";
+    private static final String ENDPOINT_URL = "http://test/auction";
+
     private static final Integer BANNER_TYPE = 0;
     private static final Integer VIDEO_TYPE = 1;
     private static final Integer AUDIO_TYPE = 2;
-    private static final Integer xNATIVE_TYPE = 3;
+    private static final Integer NATIVE_TYPE = 3;
 
     private AppnexusBidder appnexusBidder;
 
@@ -298,7 +299,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .hasSize(1)
-                .element(0).returns("http://appnexus.com/openrtb2d?member_id=member_param", HttpRequest::getUri);
+                .element(0).returns("http://test/auction?member_id=member_param", HttpRequest::getUri);
     }
 
     @Test
@@ -315,7 +316,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .hasSize(1)
-                .element(0).returns("http://appnexus.com/openrtb2d", HttpRequest::getUri);
+                .element(0).returns(ENDPOINT_URL, HttpRequest::getUri);
     }
 
     @Test
@@ -596,9 +597,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
-                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n at " +
-                        "[Source: (String)\"invalid\"; line: 1, column: 15]"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -654,7 +655,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(xNATIVE_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(NATIVE_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -663,7 +664,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        AppnexusBidExtAppnexus.of(xNATIVE_TYPE)))).impid("impId").build(), BidType.xNative, null));
+                        AppnexusBidExtAppnexus.of(NATIVE_TYPE)))).impid("impId").build(), BidType.xNative, null));
     }
 
     @Test
