@@ -41,7 +41,7 @@ public class AdponeTest extends IntegrationTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"adpone":"AP-UID"}}}
+                // this uids cookie value stands for {"uids":{"adpone":"AP-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImFkcG9uZSI6IkFQLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/adpone/test-auction-adpone-request.json"))
                 .post("/openrtb2/auction");

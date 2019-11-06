@@ -5,6 +5,7 @@ import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
 import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
 
 import java.util.Base64;
+import java.util.Date;
 
 class SharethroughMarkupUtil {
 
@@ -12,14 +13,15 @@ class SharethroughMarkupUtil {
     }
 
     static String getAdMarkup(String jsonResponse, ExtImpSharethroughResponse strResponse,
-                              StrUriParameters strUriParameters) {
+                              StrUriParameters strUriParameters, Date date) {
         final StringBuilder tmplBody = new StringBuilder();
 
         final String strRespId = String.format("str_response_%s", strResponse.getBidId());
         final String arId = strResponse.getAdserverRequestId();
         final String encodedJsonResponse = Base64.getEncoder().encodeToString(jsonResponse.getBytes());
 
-        tmplBody.append("<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=").append(arId).append("\" />\n")
+        tmplBody.append("<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=").append(arId)
+                .append("&adReceivedAt=").append(date.getTime()).append("\" />\n")
                 .append("\t\t<div data-str-native-key=\"").append(strUriParameters.getPkey()).append("\" ")
                 .append("data-stx-response-name=\"").append(strRespId).append("\"></div>\n")
                 .append("\t\t<script>var ").append(strRespId).append(" = ")

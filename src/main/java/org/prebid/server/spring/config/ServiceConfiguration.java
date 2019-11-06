@@ -266,12 +266,13 @@ public class ServiceConfiguration {
     @Bean
     GdprService gdprService(
             @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics,
             VendorListService vendorListService,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(geoLocationService, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(geoLocationService, metrics, vendorListService, eeaCountries, defaultValue);
     }
 
     @Bean
@@ -351,8 +352,12 @@ public class ServiceConfiguration {
 
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator) {
-        return new RequestValidator(bidderCatalog, bidderParamValidator);
+                                      BidderParamValidator bidderParamValidator,
+                                      @Value("${auction.blacklisted-apps}") String blacklistedAppsString) {
+        final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
     }
 
     @Bean

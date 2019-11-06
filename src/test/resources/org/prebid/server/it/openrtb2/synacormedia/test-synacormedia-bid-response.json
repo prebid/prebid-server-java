@@ -1,0 +1,33 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "impId001",
+          "price": 7.77,
+          "adid": "adid001",
+          "crid": "crid001",
+          "cid": "cid001",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300
+        },
+        {
+          "id": "bid002",
+          "impid": "impId002",
+          "price": 9.99,
+          "crid": "crid002",
+          "cid": "cid002",
+          "adomain": [
+            "psacentral.org"
+          ],
+          "h": 250,
+          "w": 300
+        }
+      ],
+      "seat": "synacormedia"
+    }
+  ]
+}
