@@ -1638,7 +1638,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static <T> Imp givenImp(T ext, Function<ImpBuilder, ImpBuilder> impBuilderCustomizer) {
-        return impBuilderCustomizer.apply(Imp.builder().ext(mapper.valueToTree(ext))).build();
+        return impBuilderCustomizer.apply(Imp.builder().ext(ext == null ? null : mapper.valueToTree(ext))).build();
     }
 
     private static <T> List<Imp> givenSingleImp(T ext) {
@@ -1725,7 +1725,7 @@ public class ExchangeServiceTest extends VertxTest {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(givenSeatBid(bids, identity())))
-                .ext(mapper.valueToTree(extBidResponse))
+                .ext(extBidResponse == null ? null : mapper.valueToTree(extBidResponse))
                 .build();
     }
 
