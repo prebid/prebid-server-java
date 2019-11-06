@@ -13,9 +13,9 @@ public class Podconfig {
     @JsonProperty("durationrangesec")
     List<Integer> durationRangeSec;
 
-    //Op
     @JsonProperty("requireexactduration")
     Boolean requireExactDuration;
 
     List<Pod> pods;
 }
+

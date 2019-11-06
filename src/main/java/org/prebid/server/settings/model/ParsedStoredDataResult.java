@@ -8,11 +8,11 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ParsedStoredDataResult<R, I> {
+public class ParsedStoredDataResult<S, I> {
 
-    R storedData;
+    S storedData;
 
-    Map<String, I> idToimps;
+    Map<String, I> idToImps;
 
     List<String> errors;
 }

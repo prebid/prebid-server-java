@@ -127,7 +127,7 @@ public class FileApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getStoredData(requestIds, Collections.emptySet(), timeout);
+        return getStoredData(requestIds, impIds, timeout);
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

@@ -13,5 +13,6 @@ public class Gdpr {
 
     @JsonProperty("consentstring")
     String consentString;
-
 }
+
+

@@ -107,7 +107,7 @@ public class VideoHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        videoHandler = new VideoHandler(videoRequestFactory, exchangeService, analyticsReporter, metrics, clock, false);
+        videoHandler = new VideoHandler(videoRequestFactory, exchangeService, analyticsReporter, metrics, clock);
     }
 
     @Test

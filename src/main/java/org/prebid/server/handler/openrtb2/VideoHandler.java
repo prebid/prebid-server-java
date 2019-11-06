@@ -101,7 +101,7 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final Clock clock;
 
     public VideoHandler(VideoRequestFactory videoRequestFactory, ExchangeService exchangeService,
-                        AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, boolean isStoredRequired) {
+                        AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
@@ -131,8 +131,6 @@ public class VideoHandler implements Handler<RoutingContext> {
                         context -> addToEvent(context, videoEventBuilder::auctionContext, context),
                         contextToErrors))
 
-//                .map(contextToErrors -> doAndTupleRight(context ->
-//                                updateAppAndNoCookieAndImpsMetrics(context, isSafari), contextToErrors))
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getLeft())
                         .map(bidResponse -> Tuple2.of(
                                 Tuple2.of(bidResponse, contextToErrors.getLeft()),

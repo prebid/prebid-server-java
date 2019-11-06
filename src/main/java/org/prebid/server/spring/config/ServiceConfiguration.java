@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
@@ -19,6 +20,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.HttpAdapterConnector;
@@ -171,6 +173,28 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver) {
 
         return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver);
+    }
+
+    @Bean
+    VideoRequestFactory videoRequestFactory(
+            @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            StoredRequestProcessor storedRequestProcessor,
+            AuctionRequestFactory auctionRequestFactory,
+            TimeoutResolver timeoutResolver,
+            BidRequest defaultVideoBidRequest) {
+
+        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, blacklistedAccounts,
+                storedRequestProcessor, auctionRequestFactory, timeoutResolver, defaultVideoBidRequest);
+    }
+
+    @Bean
+    BidRequest defaultVideoBidRequest() {
+        return BidRequest.builder().build();
     }
 
     @Bean

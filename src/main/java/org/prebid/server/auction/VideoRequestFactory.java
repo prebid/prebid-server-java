@@ -14,6 +14,8 @@ import com.iab.openrtb.request.video.IncludeBrandCategory;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
+import com.iab.openrtb.request.video.VideoUser;
+import com.iab.openrtb.request.video.VideoVideo;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.DecodeException;
@@ -45,6 +47,7 @@ import java.util.stream.Collectors;
 public class VideoRequestFactory {
 
     private static final String STORED_ID_REQUEST_PARAM = "storedrequestid";
+    private static final String DEFAULT_BUYERUID = "appnexus";
     private static final Long DEFAULT_TMAX = 5000L;
     private final List<String> blacklistedAccounts;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -52,19 +55,19 @@ public class VideoRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final BidRequest defaultBidRequest;
     private final int maxRequestSize;
-    private boolean videoStoredRequestRequired;
+    private boolean enforceStoredRequest;
 
-    public VideoRequestFactory(List<String> blacklistedAccounts, StoredRequestProcessor storedRequestProcessor,
+    public VideoRequestFactory(int maxRequestSize, boolean enforceStoredRequest, List<String> blacklistedAccounts,
+                               StoredRequestProcessor storedRequestProcessor,
                                AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver,
-                               boolean videoStoredRequestRequired, BidRequest defaultBidRequest, int maxRequestSize) {
+                               BidRequest defaultBidRequest) {
+        this.maxRequestSize = maxRequestSize;
+        this.enforceStoredRequest = enforceStoredRequest;
         this.blacklistedAccounts = blacklistedAccounts;
-
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
-        this.videoStoredRequestRequired = videoStoredRequestRequired;
         this.defaultBidRequest = Objects.requireNonNull(defaultBidRequest);
-        this.maxRequestSize = maxRequestSize;
     }
 
     /**
@@ -72,7 +75,7 @@ public class VideoRequestFactory {
      */
     public Future<Tuple2<AuctionContext, List<PodError>>> fromRequest(RoutingContext routingContext, long startTime) {
         final String storedRequestId = routingContext.request().getParam(STORED_ID_REQUEST_PARAM);
-        if (StringUtils.isBlank(storedRequestId) && videoStoredRequestRequired) {
+        if (StringUtils.isBlank(storedRequestId) && enforceStoredRequest) {
             return Future.failedFuture(new InvalidRequestException("Unable to find required stored request id"));
         }
 
@@ -124,13 +127,8 @@ public class VideoRequestFactory {
         } else {
             return Collections.emptySet();
         }
-
     }
 
-    /**
-     * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
-     * updated by values derived from headers and other request attributes.
-     */
     private Future<Tuple2<BidRequest, List<PodError>>> createBidRequest(RoutingContext routingContext,
                                                                         BidRequestVideo bidRequestVideo,
                                                                         String storedVideoId, Set<String> podIds) {
@@ -145,9 +143,11 @@ public class VideoRequestFactory {
                                 requestToPodErrors.getRight()));
     }
 
-    private static Tuple2<List<Imp>, List<PodError>> createImps(ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
+    private static Tuple2<List<Imp>, List<PodError>> createImps(
+            ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
+
         final BidRequestVideo videoRequest = storedData.getStoredData();
-        final Map<String, Imp> idToImps = storedData.getIdToimps();
+        final Map<String, Imp> idToImps = storedData.getIdToImps();
         final Tuple2<List<Pod>, List<PodError>> validPodsToPodErrors = validPods(videoRequest, idToImps.keySet());
         final List<Pod> validPods = validPodsToPodErrors.getLeft();
         final List<PodError> podErrors = validPodsToPodErrors.getRight();
@@ -164,7 +164,7 @@ public class VideoRequestFactory {
         final List<Integer> durationRangeSec = podconfig.getDurationRangeSec();
         final Tuple2<Integer, Integer> maxMin = maxMin(durationRangeSec);
         final Boolean requireExactDuration = podconfig.getRequireExactDuration();
-        final Video video = videoRequest.getVideo();
+        final VideoVideo video = videoRequest.getVideo();
 
         final List<Imp> imps = new ArrayList<>();
         for (Pod pod : validPods) {
@@ -173,7 +173,8 @@ public class VideoRequestFactory {
             int numImps = adpodDurationSec / maxMin.getLeft();
 
             if (BooleanUtils.isTrue(requireExactDuration) || numImps == 0) {
-                // In case of impressions number is less than durations array, we bump up impressions number up to duration array size
+                // In case of impressions number is less than durations array,
+                // we bump up impressions number up to duration array size
                 // with this handler we will have one impression per specified duration
                 numImps = Math.max(numImps, durationRangeSec.size());
             }
@@ -234,7 +235,7 @@ public class VideoRequestFactory {
         return Tuple2.of(validPods, podErrors);
     }
 
-    // Need to be called after Validation
+    // Should be called only after validation
     private static List<PodError> validateEachPod(List<Pod> pods) {
         final List<PodError> podErrorsResult = new ArrayList<>();
 
@@ -279,7 +280,7 @@ public class VideoRequestFactory {
         return podErrorsResult;
     }
 
-    private static Video createVideo(Video video, Integer maxDuration, Integer minDuration) {
+    private static Video createVideo(VideoVideo video, Integer maxDuration, Integer minDuration) {
         return Video.builder()
                 .w(video.getW())
                 .h(video.getH())
@@ -304,7 +305,7 @@ public class VideoRequestFactory {
     private Tuple2<BidRequest, List<PodError>> mergeWithDefaultBidRequest(
             ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
 
-        // We should create imps first. We avoid Tupple for PodError
+        // We should create imps first. We avoiding too much Tuples for PodError
         final Tuple2<List<Imp>, List<PodError>> impsToErrors = createImps(storedData);
         final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest.toBuilder();
 
@@ -335,10 +336,10 @@ public class VideoRequestFactory {
             bidRequestBuilder.device(device);
         }
 
-        final User user = videoRequest.getUser();
+        final VideoUser user = videoRequest.getUser();
         if (user != null) {
             final User updatedUser = User.builder()
-                    .buyeruid("appnexus")
+                    .buyeruid(DEFAULT_BUYERUID)
                     .yob(user.getYob())
                     .gender(user.getGender())
                     .keywords(user.getKeywords())
@@ -424,7 +425,7 @@ public class VideoRequestFactory {
      * Throws {@link InvalidRequestException} in case of invalid {@link BidRequestVideo}.
      */
     private void validateStoredBidRequest(BidRequestVideo bidRequestVideo) {
-        if (videoStoredRequestRequired && StringUtils.isBlank(bidRequestVideo.getStoredrequestid())) {
+        if (enforceStoredRequest && StringUtils.isBlank(bidRequestVideo.getStoredrequestid())) {
             throw new InvalidRequestException("request missing required field: storedrequestid");
         }
         final Podconfig podconfig = bidRequestVideo.getPodconfig();
@@ -468,7 +469,7 @@ public class VideoRequestFactory {
         }
     }
 
-    private static void validateVideo(Video video) {
+    private static void validateVideo(VideoVideo video) {
         if (video == null) {
             throw new InvalidRequestException("request missing required field: Video");
         }

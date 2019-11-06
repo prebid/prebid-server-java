@@ -9,3 +9,4 @@ public class Cacheconfig {
 
     Integer ttl;
 }
+

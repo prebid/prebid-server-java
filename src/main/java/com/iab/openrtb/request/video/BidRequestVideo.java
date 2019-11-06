@@ -4,7 +4,6 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.PriceGranularity;
@@ -15,7 +14,6 @@ import java.util.List;
 @Value
 public class BidRequestVideo {
 
-    //Optional (Required for Xandr PBS)
     String storedrequestid;
 
     Podconfig podconfig;
@@ -24,7 +22,7 @@ public class BidRequestVideo {
 
     App app;
 
-    com.iab.openrtb.request.Video video;
+    VideoVideo video;
 
     IncludeBrandCategory includebrandcategory;
 
@@ -40,8 +38,7 @@ public class BidRequestVideo {
 
     List<String> badv;
 
-    // Add GDPR
-    User user;
+    VideoUser user;
 
     Device device;
 

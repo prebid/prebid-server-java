@@ -36,6 +36,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
@@ -524,39 +525,44 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
     }
 
-//    @Test
-//    public void shouldPopulateTargetingKeywordsFromMediaTypePriceGranularities() {
-//        // given
-//        final BidRequest bidRequest = givenBidRequest();
-//        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
-//                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-//                        BigDecimal.valueOf(0.5))))), ExtMediaTypePriceGranularity.of(Json.mapper.valueToTree(
-//                ExtPriceGranularity.of(3, singletonList(
-//                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null),
-//                null, true, true);
-//
-//        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
-//        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
-//                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
-//
-//        // when
-//        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
-//                targeting, CACHE_INFO, ACCOUNT, timeout, false).result();
-//
-//        // then
-//        assertThat(bidResponse.getSeatbid())
-//                .flatExtracting(SeatBid::getBid)
-//                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
-//                .flatExtracting(Map::entrySet)
-//                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-//                .containsOnly(
-//                        tuple("hb_pb", "5.000"),
-//                        tuple("hb_bidder", "bidder1"),
-//                        tuple("hb_pb_bidder1", "5.000"),
-//                        tuple("hb_bidder_bidder1", "bidder1"));
-//
-//        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
-//    }
+    @Test
+    public void shouldPopulateTargetingKeywordsFromMediaTypePriceGranularities() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                BigDecimal.valueOf(0.5))));
+        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(Json.mapper.valueToTree(
+                ExtPriceGranularity.of(3, singletonList(
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null);
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(Json.mapper.valueToTree(priceGranularity))
+                .mediatypepricegranularity(mediaTypePriceGranuality)
+                .includewinners(true)
+                .includebidderkeys(true)
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
+                targeting, CACHE_INFO, ACCOUNT, timeout, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.000"),
+                        tuple("hb_bidder", "bidder1"),
+                        tuple("hb_pb_bidder1", "5.000"),
+                        tuple("hb_bidder_bidder1", "bidder1"));
+
+        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
+    }
 
     @Test
     public void shouldPopulateCacheIdHostPathAndUuidTargetingKeywords() {
@@ -935,8 +941,8 @@ public class BidResponseCreatorTest extends VertxTest {
     private static ExtRequestTargeting givenTargeting() {
         return ExtRequestTargeting.builder()
                 .pricegranularity(Json.mapper.valueToTree(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))))
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
                 .includebidderkeys(true)
                 .build();

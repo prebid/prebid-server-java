@@ -8,12 +8,13 @@ import lombok.Value;
 @Value
 public class Pod {
 
-    @JsonProperty("podId")
+    @JsonProperty("podid")
     Integer podId;
 
     @JsonProperty("adpoddurationsec")
     Integer adpodDurationSec;
 
-    @JsonProperty("configId")
+    @JsonProperty("configid")
     String configId;
 }
+

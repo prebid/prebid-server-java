@@ -294,12 +294,14 @@ public class SettingsConfiguration {
                 CompositeApplicationSettings compositeApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
+                @Qualifier("ampSettingsCache") SettingsCache ampCache,
+                @Qualifier("videoSettingCache") SettingsCache videoCache) {
 
             return new CachingApplicationSettings(
                     compositeApplicationSettings,
                     cache,
                     ampCache,
+                    videoCache,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize());
         }
@@ -329,6 +331,12 @@ public class SettingsConfiguration {
         @Bean
         @Qualifier("ampSettingsCache")
         SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
+        }
+
+        @Bean
+        @Qualifier("videoSettingCache")
+        SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
         }
     }
