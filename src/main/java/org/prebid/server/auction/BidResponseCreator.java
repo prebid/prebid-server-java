@@ -514,11 +514,14 @@ public class BidResponseCreator {
 
     /**
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
-     * instance if they are present.
+     * instance if it is present.
      * <p>
      */
     private static TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
-        return TargetingKeywordsCreator.create(parsePriceGranularity(targeting.getPricegranularity()),
+        final JsonNode pricegranularity = targeting.getPricegranularity();
+        return pricegranularity == null || pricegranularity.isNull()
+                ? null
+                : TargetingKeywordsCreator.create(parsePriceGranularity(pricegranularity),
                 targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp);
     }
 
