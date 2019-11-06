@@ -363,7 +363,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenBeachfrontImpExtIsOk() {
         // given
-        final ExtImpBeachfront ext = ExtImpBeachfront.of("appId", 1f);
+        final ExtImpBeachfront ext = ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "adm");
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
