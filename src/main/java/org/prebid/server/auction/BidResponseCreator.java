@@ -539,21 +539,21 @@ public class BidResponseCreator {
 
         final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
 
-        final JsonNode banner = mediaTypePriceGranularity.getBanner();
+        final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
             result.put(BidType.banner, TargetingKeywordsCreator.create(parsePriceGranularity(banner),
                     targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
         }
 
-        final JsonNode video = mediaTypePriceGranularity.getVideo();
+        final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
             result.put(BidType.video, TargetingKeywordsCreator.create(parsePriceGranularity(video),
                     targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
         }
 
-        final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+        final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
             result.put(BidType.xNative, TargetingKeywordsCreator.create(parsePriceGranularity(xNative),
