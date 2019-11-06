@@ -23,6 +23,9 @@
       }
     }
   ],
+  "badv": [
+    "testblocked"
+  ],
   "device": {
     "pxratio": 4.2,
     "dnt": 2,

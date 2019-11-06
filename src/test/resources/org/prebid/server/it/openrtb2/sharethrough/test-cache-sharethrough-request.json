@@ -7,7 +7,7 @@
         "impid": "bid",
         "price": 10,
         "adid": "arid",
-        "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
+        "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
         "cid": "cmpKey",
         "crid": "creaKey",
         "dealid": "dealId",
