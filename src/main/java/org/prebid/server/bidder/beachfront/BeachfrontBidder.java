@@ -113,10 +113,12 @@ public class BeachfrontBidder implements Bidder<Void> {
                     .build());
         }
 
+        final MultiMap videoHeaders = MultiMap.caseInsensitiveMultiMap().addAll(headers);
+
         final User user = bidRequest.getUser();
         final String buyerUid = user != null ? user.getBuyeruid() : null;
         if (!videoRequests.isEmpty() && StringUtils.isNotBlank(buyerUid)) {
-            headers.add("Cookie", "__io_cid=" + buyerUid);
+            videoHeaders.add("Cookie", "__io_cid=" + buyerUid);
         }
 
         videoRequests.stream()
@@ -124,7 +126,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                         .method(HttpMethod.POST)
                         .uri(resolveVideoUri(videoRequest.getAppId(), videoRequest.getIsPrebid()))
                         .body(Json.encode(videoRequest))
-                        .headers(headers)
+                        .headers(videoHeaders)
                         .build())
                 .forEach(requests::add);
 

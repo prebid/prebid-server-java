@@ -1,22 +1,25 @@
 {
   "id": "tid",
-  "seatbid": [
+  "seatBid": [
     {
       "bid": [
         {
-          "id": "62016038043",
-          "impid": "impId18",
-          "price": 8.43,
-          "adm": "adm18",
-          "nurl": "nurl181\"nurl182\"nurl183",
-          "crid": "crid18",
-          "dealid": "dealId18",
+          "id": "bid1",
+          "impid": "impId01",
+          "price": 7.77,
+          "nurl": "https://useast.bfmio.com/getBids?aid=bid:70b99087-1b92-4e81-bc42-05c940fd6014:11bc5dd5-7421-4dd8-c926-40fa653bec76:20.0:20.0&v=1&dsp=5d8391a85f35945a70c9ddf0,0.01&i_type=pre",
+          "crid": "70b99087-1b92-4e81-bc42-05c940fd6014",
           "w": 300,
-          "h": 250
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "video"
+            },
+            "bidder": {}
+          }
         }
       ],
-      "seat": "seatId18",
-      "group": 0
+      "seat": "beachfront"
     }
   ]
 }
