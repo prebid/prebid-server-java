@@ -5,7 +5,7 @@
       "bid": [
         {
           "adid": "arid",
-          "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
+          "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
           "cid": "cmpKey",
           "crid": "creaKey",
           "dealid": "dealId",
@@ -53,7 +53,7 @@
       "httpcalls": {
         "cache": [
           {
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"dealid\":\"dealId\",\"w\":50,\"h\":50}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"dealid\":\"dealId\",\"w\":50,\"h\":50}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"a03927f1-86e1-48fb-9efc-da9104a44e39\"}]}",
             "status": 200,
             "uri": "{{ cache.endpoint }}"
@@ -61,9 +61,10 @@
         ],
         "sharethrough": [
           {
+            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":1000,\"deadline\":\"2020-11-04T04:07:59+02:00\"}",
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\",\"deal_id\":\"dealId\"},\"version\":0}]}",
             "status": 200,
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&supplyId=FGMrCMMc&strVersion=4&ttduid=id&stxuid=STR-UID"
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=4&ttduid=id&stxuid=STR-UID"
           }
         ]
       },
@@ -91,6 +92,9 @@
               }
             }
           }
+        ],
+        "badv": [
+          "testblocked"
         ],
         "regs": {
           "ext": {

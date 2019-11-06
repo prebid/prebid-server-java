@@ -35,6 +35,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withQueryParam("height", equalTo("50"))
                 .withQueryParam("width", equalTo("50"))
                 .withQueryParam("supplyId", equalTo("FGMrCMMc"))
+                .withQueryParam("adRequestAt", equalTo("2020-11-04T04:07:58+02:00"))
                 .withQueryParam("ttduid", equalTo("id"))
                 .withQueryParam("stxuid", equalTo("STR-UID"))
                 .withQueryParam("strVersion", equalTo("4"))
@@ -44,7 +45,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withHeader("X-Forwarded-For", equalTo("127.0.0.1"))
                 .withHeader("Origin", equalTo("http://www.example.com"))
                 .withHeader("Referer", equalTo("http://www.example.com"))
-                .withRequestBody(equalTo(""))
+                .withRequestBody(equalTo(jsonFrom("openrtb2/sharethrough/test-sharethrough-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response-1.json"))));
 
         // pre-bid cache

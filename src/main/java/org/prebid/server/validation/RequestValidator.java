@@ -85,14 +85,17 @@ public class RequestValidator {
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
+    private final List<String> blacklistedApps;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest.
      */
-    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
+    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator,
+                            List<String> blacklistedApps) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
+        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
     }
 
     /**
@@ -251,9 +254,9 @@ public class RequestValidator {
     private static void validateMediaTypePriceGranularity(ExtMediaTypePriceGranularity mediaTypePriceGranularity)
             throws ValidationException {
         if (mediaTypePriceGranularity != null) {
-            final JsonNode banner = mediaTypePriceGranularity.getBanner();
-            final JsonNode video = mediaTypePriceGranularity.getVideo();
-            final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+            final ObjectNode banner = mediaTypePriceGranularity.getBanner();
+            final ObjectNode video = mediaTypePriceGranularity.getVideo();
+            final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
             final boolean isBannerNull = banner == null || banner.isNull();
             final boolean isVideoNull = video == null || video.isNull();
             final boolean isNativeNull = xNative == null || xNative.isNull();
@@ -360,11 +363,19 @@ public class RequestValidator {
     }
 
     private void validateApp(App app) throws ValidationException {
-        if (app != null && app.getExt() != null) {
-            try {
-                Json.mapper.treeToValue(app.getExt(), ExtApp.class);
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
+        if (app != null) {
+            final String appId = app.getId();
+            if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
+                    && blacklistedApps.contains(appId)) {
+                throw new ValidationException("Prebid-server does not process requests from App ID: %s", appId);
+            }
+
+            if (app.getExt() != null) {
+                try {
+                    Json.mapper.treeToValue(app.getExt(), ExtApp.class);
+                } catch (JsonProcessingException e) {
+                    throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
+                }
             }
         }
     }
