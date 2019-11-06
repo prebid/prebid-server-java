@@ -303,7 +303,7 @@ public class SovrnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
-                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                "Failed to decode: Unrecognized token 'invalid': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
                         " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
