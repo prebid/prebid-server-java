@@ -28,7 +28,7 @@ public class BidRequestVideo {
 
     Content content;
 
-    Cacheconfig cacheconfig;
+    CacheConfig cacheconfig;
 
     Integer test;
 

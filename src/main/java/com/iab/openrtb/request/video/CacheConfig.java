@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class Cacheconfig {
+public class CacheConfig {
 
     Integer ttl;
 }

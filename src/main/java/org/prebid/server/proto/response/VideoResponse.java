@@ -24,3 +24,4 @@ public class VideoResponse {
 
     ObjectNode ext;
 }
+

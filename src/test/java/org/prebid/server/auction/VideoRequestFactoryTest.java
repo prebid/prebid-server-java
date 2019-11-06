@@ -9,7 +9,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
-import com.iab.openrtb.request.video.Cacheconfig;
+import com.iab.openrtb.request.video.CacheConfig;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
@@ -173,7 +173,6 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFailWhenRequestPodConfigDurationRangeSecContainsNegative() {
         // given
-
         givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.durationRangeSec(singletonList(-1)));
 
         // when
@@ -364,7 +363,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .build();
         givenValidDataResult(requestBuilder -> requestBuilder.user(user)
                 .content(content)
-                .cacheconfig(Cacheconfig.of(42))
+                .cacheconfig(CacheConfig.of(42))
                 .bcat(singletonList("bcat"))
                 .badv(singletonList("badv")),
                 UnaryOperator.identity());

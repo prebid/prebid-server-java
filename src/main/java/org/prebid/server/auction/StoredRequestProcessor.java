@@ -11,6 +11,7 @@ import com.iab.openrtb.request.video.BidRequestVideo;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -124,7 +125,7 @@ public class StoredRequestProcessor {
     }
 
     /**
-     * Fetches ParsedStoredDataResult<BidRequestVideo, Imp> request from the source.
+     * Fetches ParsedStoredDataResult&lt;BidRequestVideo, Imp&gt; from stored request.
      */
     Future<ParsedStoredDataResult<BidRequestVideo, Imp>> processVideoRequest(String storedBidRequestId,
                                                                              Set<String> podIds,
@@ -148,13 +149,16 @@ public class StoredRequestProcessor {
 
         final BidRequestVideo mergedRequest = mergeBidRequest(receivedRequest, storedBidRequestId, storedDataResult,
                 BidRequestVideo.class);
-        for (Map.Entry<String, String> idToImp : storedDataResult.getStoredIdToImp().entrySet()) {
-            final String impString = idToImp.getValue();
-            final JsonNode jsonNode = Json.mapper.valueToTree(impString);
-            try {
-                idToImps.put(idToImp.getKey(), Json.mapper.treeToValue(jsonNode, Imp.class));
-            } catch (JsonProcessingException e) {
-                errors.add(e.getMessage());
+        final Map<String, String> storedIdToImp = storedDataResult.getStoredIdToImp();
+        if (MapUtils.isNotEmpty(storedIdToImp)) {
+            for (Map.Entry<String, String> idToImp : storedIdToImp.entrySet()) {
+                final String impString = idToImp.getValue();
+                final JsonNode impJson = Json.mapper.valueToTree(impString);
+                try {
+                    idToImps.put(idToImp.getKey(), Json.mapper.treeToValue(impJson, Imp.class));
+                } catch (JsonProcessingException e) {
+                    errors.add(e.getMessage());
+                }
             }
         }
         return ParsedStoredDataResult.of(mergedRequest, idToImps, errors);
@@ -170,14 +174,14 @@ public class StoredRequestProcessor {
     }
 
     /**
-     * Merges {@link BidRequest} from original request with request from stored request source. Values from
-     * original request has higher priority than stored request values.
+     * Merges original request with request from stored request source. Values from original request
+     * has higher priority than stored request values.
      */
-    private <T> T mergeBidRequest(T bidRequest, String storedRequestId,
+    private <T> T mergeBidRequest(T originalRequest, String storedRequestId,
                                   StoredDataResult storedDataResult, Class<T> classToCast) {
         return StringUtils.isNotBlank(storedRequestId)
-                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, classToCast)
-                : bidRequest;
+                ? merge(originalRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, classToCast)
+                : originalRequest;
     }
 
     /**

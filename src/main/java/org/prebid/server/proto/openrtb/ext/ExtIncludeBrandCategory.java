@@ -15,3 +15,4 @@ public class ExtIncludeBrandCategory {
 
     Boolean withCategory;
 }
+

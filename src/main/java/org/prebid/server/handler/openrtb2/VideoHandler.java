@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -23,9 +22,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -124,8 +121,8 @@ public class VideoHandler implements Handler<RoutingContext> {
 
         videoRequestFactory.fromRequest(routingContext, startTime)
                 .map(contextToErrors -> doAndTupleRight(context -> context.toBuilder()
-                        .requestTypeMetric(REQUEST_TYPE_METRIC)
-                        .build(),
+                                .requestTypeMetric(REQUEST_TYPE_METRIC)
+                                .build(),
                         contextToErrors))
                 .map(contextToErrors -> doAndTupleRight(
                         context -> addToEvent(context, videoEventBuilder::auctionContext, context),
@@ -151,19 +148,6 @@ public class VideoHandler implements Handler<RoutingContext> {
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
         consumer.accept(field);
         return result;
-    }
-
-    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context, boolean isSafari) {
-        final BidRequest bidRequest = context.getBidRequest();
-        final UidsCookie uidsCookie = context.getUidsCookie();
-
-        final List<Imp> imps = bidRequest.getImp();
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                isSafari, imps.size());
-
-        metrics.updateImpTypesMetrics(imps);
-
-        return context;
     }
 
     private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {

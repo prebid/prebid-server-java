@@ -37,14 +37,14 @@ public class ExtRequestTargeting {
     Boolean includewinners;
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.includeBrandCategory
+     * Defines the contract for bidrequest.ext.prebid.targeting.includebrandcategory
      */
     ExtIncludeBrandCategory includebrandcategory;
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.durationRangeSec
+     * Defines the contract for bidrequest.ext.prebid.targeting.durationrangesec
      */
-    List<Integer> durationrangeSec;
+    List<Integer> durationrangesec;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.includebidderkeys

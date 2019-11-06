@@ -16,3 +16,4 @@ public class ParsedStoredDataResult<S, I> {
 
     List<String> errors;
 }
+

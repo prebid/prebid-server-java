@@ -15,4 +15,3 @@ public class Gdpr {
     String consentString;
 }
 
-
