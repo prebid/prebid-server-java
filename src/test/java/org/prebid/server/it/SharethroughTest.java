@@ -35,12 +35,15 @@ public class SharethroughTest extends IntegrationTest {
                 .withQueryParam("height", equalTo("50"))
                 .withQueryParam("width", equalTo("50"))
                 .withQueryParam("supplyId", equalTo("FGMrCMMc"))
-                .withQueryParam("strVersion", equalTo("1.0.1"))
+                .withQueryParam("ttduid", equalTo("id"))
+                .withQueryParam("stxuid", equalTo("STR-UID"))
+                .withQueryParam("strVersion", equalTo("4"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("Android Chrome/60"))
                 .withHeader("X-Forwarded-For", equalTo("127.0.0.1"))
                 .withHeader("Origin", equalTo("http://www.example.com"))
+                .withHeader("Referer", equalTo("http://www.example.com"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response-1.json"))));
 

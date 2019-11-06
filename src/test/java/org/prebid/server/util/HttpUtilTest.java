@@ -145,6 +145,6 @@ public class HttpUtilTest {
         final String setCookieHeaderValue = HttpUtil.toSetCookieHeaderValue(cookie);
 
         // then
-        assertThat(setCookieHeaderValue).isEqualTo("cookie=value; Path=/; Domain=rubicon.com; SameSite=none");
+        assertThat(setCookieHeaderValue).isEqualTo("cookie=value; Path=/; Domain=rubicon.com; SameSite=None; Secure");
     }
 }

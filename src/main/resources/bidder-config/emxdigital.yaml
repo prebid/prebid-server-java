@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 183
     usersync:
-      url: https://biddr.brealtime.com/check_pbs.html?redir=
-      redirect-url: /setuid?bidder=emx_digital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={UID}
+      url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect=
+      redirect-url: /setuid?bidder=emx_digital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
       cookie-family-name: emx_digital
       type: redirect
       support-cors: false

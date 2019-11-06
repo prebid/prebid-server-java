@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.22.0-SNAPSHOT</version>
+    <version>1.24.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -29,11 +29,11 @@
         <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <hibernate-validator.version>6.0.7.Final</hibernate-validator.version>
-        <vertx.version>3.6.2</vertx.version>
+        <vertx.version>3.7.1</vertx.version>
         <lombok.version>1.18.4</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
-        <commons.compress.version>1.18</commons.compress.version>
+        <commons.compress.version>1.19</commons.compress.version>
         <jackson.version>2.9.10</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.9</jsonpatch.version>

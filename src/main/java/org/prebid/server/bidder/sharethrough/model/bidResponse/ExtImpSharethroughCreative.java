@@ -17,7 +17,5 @@ public class ExtImpSharethroughCreative {
 
     @JsonProperty("creative")
     ExtImpSharethroughCreativeMetadata metadata;
-
-    Integer version;
 }
 

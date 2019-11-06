@@ -35,6 +35,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
@@ -138,8 +139,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final HttpResponse response = httpCall.getResponse();
+        if (response.getStatusCode() == 204) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        }
+
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = Json.decodeValue(response.getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -289,6 +295,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ObjectNode contextDataNode = context != null ? context.getData() : null;
             if (contextDataNode != null) {
                 inventoryNode.setAll(contextDataNode);
+
+                // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
+                // leading slash
+                final JsonNode adSlotNode = contextDataNode.get("adslot");
+                if (adSlotNode != null && adSlotNode.isTextual()) {
+                    final String adSlot = adSlotNode.textValue();
+                    final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+                    inventoryNode.put("dfp_ad_unit_code", adUnitCode);
+                }
             }
 
             // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords

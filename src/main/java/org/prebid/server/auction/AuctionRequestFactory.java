@@ -34,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -41,7 +42,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -79,16 +79,18 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final boolean shouldCacheOnlyWinningBids;
 
     public AuctionRequestFactory(
-            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccounts,
-            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
-            InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings) {
+            long maxRequestSize, boolean enforceValidAccount, boolean shouldCacheOnlyWinningBids,
+            String adServerCurrency, List<String> blacklistedAccounts, StoredRequestProcessor storedRequestProcessor,
+            ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
+            BidderCatalog bidderCatalog, RequestValidator requestValidator, InterstitialProcessor interstitialProcessor,
+            TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory, ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
+        this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -200,7 +202,7 @@ public class AuctionRequestFactory {
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
-        final User populatedUser = populateUser(bidRequest.getUser(), context);
+        final User populatedUser = populateUser(bidRequest.getUser());
         final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
         final boolean updateAt = at == null || at == 0;
@@ -300,36 +302,12 @@ public class AuctionRequestFactory {
     /**
      * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
-    private User populateUser(User user, RoutingContext context) {
-        final String id = userIdOrNull(user, context);
+    private User populateUser(User user) {
         final ObjectNode ext = userExtOrNull(user);
 
-        if (id != null || ext != null) {
+        if (ext != null) {
             final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-
-            if (id != null) {
-                builder.id(id);
-            }
-            if (ext != null) {
-                builder.ext(ext);
-            }
-
-            return builder.build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns new user ID from host cookie if no request.user.id
-     * or null in case of request.user.id is already presented  or no host cookie passed in request.
-     */
-    private String userIdOrNull(User user, RoutingContext context) {
-        final String id = user != null ? user.getId() : null;
-        if (StringUtils.isBlank(id)) {
-            final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
-            if (StringUtils.isNotBlank(parsedId)) {
-                return parsedId;
-            }
+            return builder.ext(ext).build();
         }
         return null;
     }
@@ -392,9 +370,10 @@ public class AuctionRequestFactory {
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
 
         final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
 
         final ObjectNode result;
-        if (updatedTargeting != null || updatedAliases != null) {
+        if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
@@ -404,6 +383,8 @@ public class AuctionRequestFactory {
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .cache(ObjectUtils.defaultIfNull(updatedCache,
+                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
                     .build()));
         } else {
             result = null;
@@ -458,7 +439,7 @@ public class AuctionRequestFactory {
     /**
      * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
      */
-    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid, Set<BidType> impMediaTypes) {
+    private ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid, Set<BidType> impMediaTypes) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
@@ -475,11 +456,19 @@ public class AuctionRequestFactory {
                     targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
-                    isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
+                    isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
         } else {
             result = null;
         }
         return result;
+    }
+
+    /**
+     * Returns winning only flag value.
+     */
+    private boolean isWinningOnly(ExtRequestPrebidCache cache) {
+        final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
+        return ObjectUtils.defaultIfNull(cacheWinningOnly, shouldCacheOnlyWinningBids);
     }
 
     /**
@@ -561,6 +550,21 @@ public class AuctionRequestFactory {
             result.putAll(resolvedAliases);
         }
         return result;
+    }
+
+    /**
+     * Returns populated {@link ExtRequestPrebidCache} or null if no changes were applied.
+     */
+    private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+        final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
+        if (cacheWinningOnly == null && shouldCacheOnlyWinningBids) {
+            return ExtRequestPrebidCache.of(
+                    getIfNotNull(cache, ExtRequestPrebidCache::getBids),
+                    getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
+                    true);
+        }
+        return null;
     }
 
     /**

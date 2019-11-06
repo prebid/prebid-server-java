@@ -1,0 +1,23 @@
+adapters:
+  engagebdr:
+    enabled: false
+    endpoint: http://dsp.bnmla.com/hb
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: admin@engagebdr.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+      supported-vendors:
+      vendor-id: 62
+    usersync:
+      url: https://match.bnmla.com/usersync/s2s_sync?gdpr={{gdpr}}&gdpr_consent={gdpr_consent}}&r=
+      redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={UUID}
+      cookie-family-name: engagebdr
+      type: redirect
+      support-cors: false
