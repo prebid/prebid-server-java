@@ -154,8 +154,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Before
     public void setUp() {
         given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(
-                        givenBidResponseWithBids(singletonList(givenBid(identity())), null)));
+                .willReturn(Future.succeededFuture(givenBidResponseWithBids(singletonList(givenBid(identity())))));
 
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
@@ -1638,7 +1637,9 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static <T> Imp givenImp(T ext, Function<ImpBuilder, ImpBuilder> impBuilderCustomizer) {
-        return impBuilderCustomizer.apply(Imp.builder().ext(ext == null ? null : mapper.valueToTree(ext))).build();
+        return impBuilderCustomizer.apply(Imp.builder()
+                .ext(ext != null ? mapper.valueToTree(ext) : null))
+                .build();
     }
 
     private static <T> List<Imp> givenSingleImp(T ext) {
@@ -1708,12 +1709,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private void givenBidResponseCreator(List<Bid> bids) {
         given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenBidResponseWithBids(bids, null)));
-    }
-
-    private void givenBidResponseCreator(List<Bid> bids, ExtBidResponse extBidResponse) {
-        given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenBidResponseWithBids(bids, extBidResponse)));
+                .willReturn(Future.succeededFuture(givenBidResponseWithBids(bids)));
     }
 
     private void givenBidResponseCreator(Map<String, List<ExtBidderError>> errors) {
@@ -1721,11 +1717,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenBidResponseWithError(errors)));
     }
 
-    private static BidResponse givenBidResponseWithBids(List<Bid> bids, ExtBidResponse extBidResponse) {
+    private static BidResponse givenBidResponseWithBids(List<Bid> bids) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(givenSeatBid(bids, identity())))
-                .ext(extBidResponse == null ? null : mapper.valueToTree(extBidResponse))
                 .build();
     }
 
