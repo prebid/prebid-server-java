@@ -33,7 +33,9 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +48,13 @@ import static org.assertj.core.api.Assertions.tuple;
 public class SharethroughBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-    private static final String TEST_FORMATED_TIME = "2020-11-04T04:08:08+02:00";
+
+    private static final long TIMEOUT = 2000L;
+
+    private static final Date TEST_TIME = new Date(1604455678999L);
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+    private static final String URLENCODED_TEST_FORMATTED_TIME = HttpUtil.encodeUrl(DATE_FORMAT.format(TEST_TIME));
+    private static final String DEADLINE_FORMATTED_TIME = DATE_FORMAT.format(TEST_TIME.getTime() + TIMEOUT);
 
     private SharethroughBidder sharethroughBidder;
 
@@ -71,7 +79,8 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
+                bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -92,7 +101,8 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
+                bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -116,16 +126,19 @@ public class SharethroughBidderTest extends VertxTest {
                 .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
                 .badv(singletonList("testBlocked"))
                 .test(1)
+                .tmax(TIMEOUT)
                 .build();
 
         // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
+                bidRequest);
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=" +
                 "&instant_play_capable=true&stayInIframe=false&height=10&width=20" +
-                "&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=4";
-        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 10000L, TEST_FORMATED_TIME, true);
+                "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=4";
+        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
+                DEADLINE_FORMATTED_TIME, true);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -165,16 +178,20 @@ public class SharethroughBidderTest extends VertxTest {
                 .device(Device.builder().build())
                 .user(User.builder().buyeruid("buyer").ext(Json.mapper.valueToTree(extUser)).build())
                 .test(1)
+                .tmax(TIMEOUT)
                 .build();
 
         // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
+                bidRequest);
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent" +
-                "&instant_play_capable=false&stayInIframe=false&height=1&width=1&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00" +
-                "&supplyId=FGMrCMMc&strVersion=4&ttduid=first&stxuid=buyer";
-        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 10000L, TEST_FORMATED_TIME, true);
+                "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
+                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
+                + "&supplyId=FGMrCMMc&strVersion=4&ttduid=first&stxuid=buyer";
+        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
+                DEADLINE_FORMATTED_TIME, true);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -204,7 +221,8 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
 
         final String uri = "http://uri.com?placement_key=pkey&bidId=bidid&height=20&width=30";
-        final HttpCall<SharethroughRequestBody> httpCall = givenHttpCallWithUri(uri, Json.mapper.writeValueAsString(response));
+        final HttpCall<SharethroughRequestBody> httpCall = givenHttpCallWithUri(uri,
+                Json.mapper.writeValueAsString(response));
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
@@ -286,4 +304,3 @@ public class SharethroughBidderTest extends VertxTest {
                 null);
     }
 }
-
