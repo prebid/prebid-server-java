@@ -4,11 +4,14 @@ import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.util.HttpUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -21,6 +24,11 @@ import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class SharethroughTest extends IntegrationTest {
+
+    private static final Date TEST_TIME = new Date(1604455678999L); // hardcoded value in bidder
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+    private static final String TEST_FORMATTED_TIME = DATE_FORMAT.format(TEST_TIME);
+    private static final String DEADLINE_FORMATTED_TIME = DATE_FORMAT.format(new Date(TEST_TIME.getTime() + 1000L));
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSharethrough() throws IOException, JSONException {
@@ -35,7 +43,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withQueryParam("height", equalTo("50"))
                 .withQueryParam("width", equalTo("50"))
                 .withQueryParam("supplyId", equalTo("FGMrCMMc"))
-                .withQueryParam("adRequestAt", equalTo("2020-11-04T04:07:58+02:00"))
+                .withQueryParam("adRequestAt", equalTo(TEST_FORMATTED_TIME))
                 .withQueryParam("ttduid", equalTo("id"))
                 .withQueryParam("stxuid", equalTo("STR-UID"))
                 .withQueryParam("strVersion", equalTo("4"))
@@ -45,13 +53,16 @@ public class SharethroughTest extends IntegrationTest {
                 .withHeader("X-Forwarded-For", equalTo("127.0.0.1"))
                 .withHeader("Origin", equalTo("http://www.example.com"))
                 .withHeader("Referer", equalTo("http://www.example.com"))
-                .withRequestBody(equalTo(jsonFrom("openrtb2/sharethrough/test-sharethrough-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response-1.json"))));
+                .withRequestBody(equalTo(jsonFrom("openrtb2/sharethrough/test-sharethrough-request.json")
+                        .replace("{{ DEADLINE_FORMATTED_TIME }}", DEADLINE_FORMATTED_TIME)))
+                .willReturn(
+                        aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response-1.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/sharethrough/test-cache-sharethrough-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-cache-sharethrough-response.json"))));
+                .willReturn(
+                        aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-cache-sharethrough-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -67,9 +78,10 @@ public class SharethroughTest extends IntegrationTest {
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/sharethrough/test-auction-sharethrough-response.json",
-                response, singletonList("sharethrough"));
+                response, singletonList("sharethrough"))
+                .replace("{{ TEST_FORMATTED_TIME }}", HttpUtil.encodeUrl(TEST_FORMATTED_TIME))
+                .replace("{{ DEADLINE_FORMATTED_TIME }}", DEADLINE_FORMATTED_TIME);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
-

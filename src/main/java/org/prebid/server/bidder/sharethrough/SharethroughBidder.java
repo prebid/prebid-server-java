@@ -43,7 +43,6 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.xNative;
-    private static final Long DEFAULT_TIMEOUT = 10000L;
     private static final Date TEST_TIME = new Date(1604455678999L);
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
@@ -104,8 +103,8 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
         final List<StrUriParameters> strUriParameters = new ArrayList<>();
         for (Imp imp : request.getImp()) {
-            final ExtImpSharethrough extImpStr = Json.mapper.<ExtPrebid<?, ExtImpSharethrough>>convertValue(
-                    imp.getExt(), SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
+            final ExtImpSharethrough extImpStr = Json.mapper.convertValue(imp.getExt(),
+                    SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
             strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, canAutoPlay, ttdUid,
                     stxuid));
         }
@@ -153,10 +152,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     }
 
     private static SharethroughRequestBody makeBody(BidRequest request, Date date, boolean test) {
-        Long tmax = request.getTmax();
-        if (tmax == null) {
-            tmax = DEFAULT_TIMEOUT;
-        }
+        final long tmax = request.getTmax(); // cannot be null
         final Date deadLine = new Date(date.getTime() + tmax);
         return SharethroughRequestBody.of(request.getBadv(), tmax, DATE_FORMAT.format(deadLine), test);
     }
@@ -228,4 +224,3 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         return Collections.emptyMap();
     }
 }
-
