@@ -1,14 +1,18 @@
 package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * Convenient place to keep utilities for extracting parameters from HTTP request with intention to use them in auction.
@@ -70,17 +74,36 @@ public class ImplicitParametersExtractor {
      * if both are empty.
      */
     public String ipFrom(HttpServerRequest request) {
-        // X-Forwarded-For: client1, proxy1, proxy2
-        String ip = StringUtils.trimToNull(
-                StringUtils.substringBefore(request.headers().get("X-Forwarded-For"), ","));
+        String ip = null;
+        final MultiMap headers = request.headers();
+        final String xff = headers.get("X-Forwarded-For");
+        if (xff != null) {
+            ip = Stream.of(xff.split(","))
+                    .map(StringUtils::trimToNull)
+                    .filter(Objects::nonNull)
+                    .filter(ImplicitParametersExtractor::isIpPublic)
+                    .findFirst()
+                    .orElse(null);
+        }
         if (ip == null) {
-            ip = StringUtils.trimToNull(request.headers().get("X-Real-IP"));
+            ip = StringUtils.trimToNull(headers.get("X-Real-IP"));
         }
         if (ip == null) {
             ip = StringUtils.trimToNull(request.remoteAddress().host());
         }
 
         return ip;
+    }
+
+    /**
+     * Check if given IP address is a private IP.
+     */
+    private static boolean isIpPublic(String ip) {
+        try {
+            return !InetAddress.getByName(ip).isSiteLocalAddress();
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
     /**

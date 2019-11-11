@@ -31,7 +31,7 @@ public class BrightrollTest extends IntegrationTest {
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
@@ -46,7 +46,7 @@ public class BrightrollTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for{"uids":{"brightroll":"BR-UID"}}
