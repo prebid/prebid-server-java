@@ -81,7 +81,7 @@ public class ImplicitParametersExtractor {
             ip = Stream.of(xff.split(","))
                     .map(StringUtils::trimToNull)
                     .filter(Objects::nonNull)
-                    .filter(ImplicitParametersExtractor::checkPrivateIp)
+                    .filter(ImplicitParametersExtractor::isIpPublic)
                     .findFirst()
                     .orElse(null);
         }
@@ -98,7 +98,7 @@ public class ImplicitParametersExtractor {
     /**
      * Check if given IP address is a private IP.
      */
-    private static boolean checkPrivateIp(String ip) {
+    private static boolean isIpPublic(String ip) {
         try {
             return !InetAddress.getByName(ip).isSiteLocalAddress();
         } catch (UnknownHostException e) {
