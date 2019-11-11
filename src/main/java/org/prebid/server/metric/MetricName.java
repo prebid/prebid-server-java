@@ -14,6 +14,9 @@ public enum MetricName {
     httpclient_circuitbreaker_closed,
 
     // geo location
+    geolocation_requests,
+    geolocation_successful,
+    geolocation_fail,
     geolocation_circuitbreaker_opened,
     geolocation_circuitbreaker_closed,
 

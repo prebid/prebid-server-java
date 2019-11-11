@@ -81,13 +81,6 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves page from user.buyeruid or null when user is null.
-     */
-    static String getBuyerId(User user) {
-        return user != null ? user.getBuyeruid() : null;
-    }
-
-    /**
      * Retrieves {@link String} parameter from {@link UserInfo} and return empty string if value is blank.
      */
     static String retrieveFromUserInfo(UserInfo userInfo, Function<UserInfo, String> retrieve) {

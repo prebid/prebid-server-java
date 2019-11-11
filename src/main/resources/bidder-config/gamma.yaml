@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://hb.gammaplatform.com/adx/sync/?gdpr={{gdpr}}&consent={{gdpr_consent}}&rurl=
-      redirect-url: /setuid?bidder=gamma&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      url:
+      redirect-url:
       cookie-family-name: gamma
       type: redirect
       support-cors: false

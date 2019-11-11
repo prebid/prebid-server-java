@@ -1,7 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
@@ -11,7 +10,6 @@ import java.util.List;
 /**
  * Defines the contract for bidrequest.ext.prebid.targeting
  */
-@AllArgsConstructor(staticName = "of")
 @Builder(toBuilder = true)
 @Value
 public class ExtRequestTargeting {

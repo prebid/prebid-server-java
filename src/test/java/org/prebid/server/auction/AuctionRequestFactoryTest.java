@@ -1,15 +1,18 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
@@ -34,6 +37,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -220,7 +224,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", "UnitTest");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -233,7 +236,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
         assertThat(request.getDevice())
                 .isEqualTo(Device.builder().ip("192.168.244.1").ua("UnitTest").build());
-        assertThat(request.getUser()).isEqualTo(User.builder().id("userId").build());
     }
 
     @Test
@@ -305,7 +307,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(bidRequest);
 
         givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -412,20 +413,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetUserIfNoHostCookie() {
-        // given
-        givenValidBidRequest();
-
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(request.getUser()).isNull();
-    }
-
-    @Test
     public void shouldSetUserExtDigitrustPerfIfNotDefined() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -435,8 +422,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                                 .build()))
                         .build())
                 .build());
-
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -526,6 +511,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureWithInvalidRequestExceptionWhenStringPriceGranularityInvalid() {
         // given
         givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("invalid")).build())
                         .build())))
@@ -542,10 +528,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDefaultPriceGranularityIfPriceGranularityNodeIsMissed() {
+    public void shouldSetDefaultPriceGranularityIfPriceGranularityAndMediaTypePriceGranularityIsMissing() {
         // given
         givenBidRequest(BidRequest.builder()
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .imp(singletonList(Imp.builder().video(Video.builder().build()).ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder().build())
                         .build())))
@@ -563,6 +549,35 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestTargeting::getPricegranularity)
                 .containsOnly(mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
                         BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
+    }
+
+    @Test
+    public void shouldNotSetDefaultPriceGranularityIfThereIsAMediaTypePriceGranularityForImpType() {
+        // given
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
+                mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))), null, null);
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build())
+                        .ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .mediatypepricegranularity(mediaTypePriceGranularity)
+                                .build())
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getPricegranularity)
+                .containsOnly(NullNode.getInstance());
     }
 
     @Test
@@ -837,7 +852,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(bidderCatalog.nameByAlias("configScopedBidderAlias")).willReturn("bidder2");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
+        final BidRequest request = auctionContextFuture.result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
