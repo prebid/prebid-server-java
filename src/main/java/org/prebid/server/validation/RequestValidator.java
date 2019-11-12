@@ -37,7 +37,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.exception.BlacklistedAccountOrApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -86,17 +85,14 @@ public class RequestValidator {
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
-    private final List<String> blacklistedApps;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest.
      */
-    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator,
-                            List<String> blacklistedApps) {
+    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
-        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
     }
 
     /**
@@ -365,14 +361,6 @@ public class RequestValidator {
 
     private void validateApp(App app) throws ValidationException {
         if (app != null) {
-            final String appId = app.getId();
-            if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
-                    && blacklistedApps.contains(appId)) {
-                // propagate BlacklistedAccOrApp instantly
-                throw new BlacklistedAccountOrApp(String.format(
-                        "Prebid-server does not process requests from App ID: %s", appId), false);
-            }
-
             if (app.getExt() != null) {
                 try {
                     Json.mapper.treeToValue(app.getExt(), ExtApp.class);

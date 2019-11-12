@@ -26,7 +26,8 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountOrApp;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
@@ -168,7 +169,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted account", true)));
+                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
 
         // when
         auctionHandler.handle(routingContext);
@@ -184,7 +185,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted app", false)));
+                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
 
         // when
         auctionHandler.handle(routingContext);

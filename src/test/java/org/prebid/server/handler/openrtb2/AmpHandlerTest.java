@@ -33,7 +33,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountOrApp;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
@@ -204,7 +205,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestIfRequestHasBlacklistedAccount() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted account", true)));
+                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
 
         // when
         ampHandler.handle(routingContext);
@@ -224,7 +225,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestIfRequestHasBlacklistedApp() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountOrApp("Blacklisted app", false)));
+                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
 
         // when
         ampHandler.handle(routingContext);
