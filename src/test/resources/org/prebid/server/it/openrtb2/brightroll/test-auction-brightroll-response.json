@@ -49,19 +49,19 @@
   "ext": {
     "debug": {
       "httpcalls": {
-        "brightroll": [
-          {
-            "uri": "{{ brightroll.exchange_uri }}?publisher=publisher",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId17\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"ext\":{\"bidder\":{\"publisher\":\"publisher\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"BR-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
-            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"620160380\",\"impid\":\"impId17\",\"price\":8.43,\"adm\":\"adm17\",\"crid\":\"crid17\",\"dealid\":\"dealId17\",\"w\":300,\"h\":250}],\"seat\":\"seatId17\",\"group\":0}]}",
-            "status": 200
-          }
-        ],
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
             "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"620160380\",\"impid\":\"impId17\",\"price\":8.43,\"adm\":\"adm17\",\"crid\":\"crid17\",\"dealid\":\"dealId17\",\"w\":300,\"h\":250}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"3c7dedc8-dd68-4ba3-ba27-9d4e933cd4b3\"}]}",
+            "status": 200
+          }
+        ],
+        "brightroll": [
+          {
+            "uri": "{{ brightroll.exchange_uri }}?publisher=publisher",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId17\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"ext\":{\"bidder\":{\"publisher\":\"publisher\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"BR-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"620160380\",\"impid\":\"impId17\",\"price\":8.43,\"adm\":\"adm17\",\"crid\":\"crid17\",\"dealid\":\"dealId17\",\"w\":300,\"h\":250}],\"seat\":\"seatId17\",\"group\":0}]}",
             "status": 200
           }
         ]

@@ -31,26 +31,30 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -76,16 +80,18 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final boolean shouldCacheOnlyWinningBids;
 
     public AuctionRequestFactory(
-            long maxRequestSize, boolean enforceValidAccount, String adServerCurrency, List<String> blacklistedAccounts,
-            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
-            InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings) {
+            long maxRequestSize, boolean enforceValidAccount, boolean shouldCacheOnlyWinningBids,
+            String adServerCurrency, List<String> blacklistedAccounts, StoredRequestProcessor storedRequestProcessor,
+            ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
+            BidderCatalog bidderCatalog, RequestValidator requestValidator, InterstitialProcessor interstitialProcessor,
+            TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory, ApplicationSettings applicationSettings) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
+        this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -197,7 +203,7 @@ public class AuctionRequestFactory {
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
-        final User populatedUser = populateUser(bidRequest.getUser(), context);
+        final User populatedUser = populateUser(bidRequest.getUser());
         final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
         final boolean updateAt = at == null || at == 0;
@@ -297,36 +303,12 @@ public class AuctionRequestFactory {
     /**
      * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
-    private User populateUser(User user, RoutingContext context) {
-        final String id = userIdOrNull(user, context);
+    private User populateUser(User user) {
         final ObjectNode ext = userExtOrNull(user);
 
-        if (id != null || ext != null) {
+        if (ext != null) {
             final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-
-            if (id != null) {
-                builder.id(id);
-            }
-            if (ext != null) {
-                builder.ext(ext);
-            }
-
-            return builder.build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns new user ID from host cookie if no request.user.id
-     * or null in case of request.user.id is already presented  or no host cookie passed in request.
-     */
-    private String userIdOrNull(User user, RoutingContext context) {
-        final String id = user != null ? user.getId() : null;
-        if (StringUtils.isBlank(id)) {
-            final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
-            if (StringUtils.isNotBlank(parsedId)) {
-                return parsedId;
-            }
+            return builder.ext(ext).build();
         }
         return null;
     }
@@ -385,11 +367,14 @@ public class AuctionRequestFactory {
         final ExtBidRequest extBidRequest = extBidRequest(extNode);
         final ExtRequestPrebid prebid = extBidRequest.getPrebid();
 
-        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid);
+        final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
+
         final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
 
         final ObjectNode result;
-        if (updatedTargeting != null || updatedAliases != null) {
+        if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
@@ -399,6 +384,8 @@ public class AuctionRequestFactory {
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .cache(ObjectUtils.defaultIfNull(updatedCache,
+                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
                     .build()));
         } else {
             result = null;
@@ -418,9 +405,42 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Iterates through impressions to check what media types each impression has and add them to the resulting set.
+     * If all four media types are present - no point to look any further.
+     */
+    private static Set<BidType> getImpMediaTypes(List<Imp> imps) {
+        final Set<BidType> impMediaTypes = new HashSet<>();
+        for (Imp imp : imps) {
+            checkImpMediaTypes(imp, impMediaTypes);
+            if (impMediaTypes.size() > 3) {
+                break;
+            }
+        }
+        return impMediaTypes;
+    }
+
+    /**
+     * Adds an existing media type to a set.
+     */
+    private static void checkImpMediaTypes(Imp imp, Set<BidType> impsMediaTypes) {
+        if (imp.getBanner() != null) {
+            impsMediaTypes.add(BidType.banner);
+        }
+        if (imp.getVideo() != null) {
+            impsMediaTypes.add(BidType.video);
+        }
+        if (imp.getAudio() != null) {
+            impsMediaTypes.add(BidType.audio);
+        }
+        if (imp.getXNative() != null) {
+            impsMediaTypes.add(BidType.xNative);
+        }
+    }
+
+    /**
      * Returns populated {@link ExtRequestTargeting} or null if no changes were applied.
      */
-    private static ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid) {
+    private ExtRequestTargeting targetingOrNull(ExtRequestPrebid prebid, Set<BidType> impMediaTypes) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
@@ -432,12 +452,12 @@ public class AuctionRequestFactory {
         final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             result = ExtRequestTargeting.of(
-                    populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
-                            isPriceGranularityTextual),
+                    populatePriceGranularity(targeting, isPriceGranularityNull, isPriceGranularityTextual,
+                            impMediaTypes),
                     targeting.getMediatypepricegranularity(),
                     targeting.getCurrency(),
                     isIncludeWinnersNull ? true : targeting.getIncludewinners(),
-                    isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys());
+                    isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
         } else {
             result = null;
         }
@@ -445,17 +465,31 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Returns winning only flag value.
+     */
+    private boolean isWinningOnly(ExtRequestPrebidCache cache) {
+        final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
+        return ObjectUtils.defaultIfNull(cacheWinningOnly, shouldCacheOnlyWinningBids);
+    }
+
+    /**
      * Populates priceGranularity with converted value.
      * <p>
+     * In case of missing Json node and missing media type price granularities - sets default custom value.
      * In case of valid string price granularity replaced it with appropriate custom view.
      * In case of invalid string value throws {@link InvalidRequestException}.
-     * In case of missing Json node sets default custom value.
      */
-    private static JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
-                                                     boolean isPriceGranularityTextual) {
-        if (isPriceGranularityNull) {
+    private static JsonNode populatePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
+                                                     boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
+        final JsonNode priceGranularityNode = targeting.getPricegranularity();
+
+        final boolean hasAllMediaTypes = checkExistingMediaTypes(targeting.getMediatypepricegranularity())
+                .containsAll(impMediaTypes);
+
+        if (isPriceGranularityNull && !hasAllMediaTypes) {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
-        } else if (isPriceGranularityTextual) {
+        }
+        if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
                 priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
@@ -465,6 +499,30 @@ public class AuctionRequestFactory {
             return Json.mapper.valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
         return priceGranularityNode;
+    }
+
+    /**
+     * Checks {@link ExtMediaTypePriceGranularity} object for present media types and returns a set of existing ones.
+     */
+    private static Set<BidType> checkExistingMediaTypes(ExtMediaTypePriceGranularity mediaTypePriceGranularity) {
+        if (mediaTypePriceGranularity == null) {
+            return Collections.emptySet();
+        }
+        final Set<BidType> priceGranularityTypes = new HashSet<>();
+
+        final JsonNode banner = mediaTypePriceGranularity.getBanner();
+        if (banner != null && !banner.isNull()) {
+            priceGranularityTypes.add(BidType.banner);
+        }
+        final JsonNode video = mediaTypePriceGranularity.getVideo();
+        if (video != null && !video.isNull()) {
+            priceGranularityTypes.add(BidType.video);
+        }
+        final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+        if (xNative != null && !xNative.isNull()) {
+            priceGranularityTypes.add(BidType.xNative);
+        }
+        return priceGranularityTypes;
     }
 
     /**
@@ -493,6 +551,21 @@ public class AuctionRequestFactory {
             result.putAll(resolvedAliases);
         }
         return result;
+    }
+
+    /**
+     * Returns populated {@link ExtRequestPrebidCache} or null if no changes were applied.
+     */
+    private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+        final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
+        if (cacheWinningOnly == null && shouldCacheOnlyWinningBids) {
+            return ExtRequestPrebidCache.of(
+                    getIfNotNull(cache, ExtRequestPrebidCache::getBids),
+                    getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
+                    true);
+        }
+        return null;
     }
 
     /**

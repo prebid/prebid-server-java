@@ -83,7 +83,7 @@ public class ApplicationTest extends IntegrationTest {
         // given
         // rubicon bid response for imp 1
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withQueryParam("tk_xint", equalTo("rp-pbs"))
+                .withQueryParam("tk_xint", equalTo("dmbjs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -276,7 +276,8 @@ public class ApplicationTest extends IntegrationTest {
                         "&oh=120" +
                         "&timeout=10000000" +
                         "&slot=overwrite-tagId" +
-                        "&curl=https%3A%2F%2Fgoogle.com");
+                        "&curl=https%3A%2F%2Fgoogle.com" +
+                        "&account=accountId");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),

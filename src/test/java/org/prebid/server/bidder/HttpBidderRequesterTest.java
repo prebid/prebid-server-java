@@ -330,7 +330,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateMultipleErrors() {
+    public void shouldTolerateMultipleErrorsAndAllowNoContent() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                 // this request will fail with response exception
@@ -402,9 +402,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .result();
 
         // then
-        // only one call is expected since other requests failed with errors or returned with 204 status
-        verify(bidder).makeBids(any(), any());
-        assertThat(bidderSeatBid.getBids()).hasSize(1);
+        // only two calls are expected (200 and 204) since other requests have failed with errors.
+        verify(bidder, times(2)).makeBids(any(), any());
+        assertThat(bidderSeatBid.getBids()).hasSize(2);
         assertThat(bidderSeatBid.getErrors()).containsOnly(
                 BidderError.badInput("makeHttpRequestsError"),
                 BidderError.generic("Response exception"),

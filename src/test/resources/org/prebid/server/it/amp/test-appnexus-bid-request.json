@@ -28,6 +28,9 @@
   "site": {
     "domain": "example.com",
     "page": "https://google.com",
+    "publisher": {
+      "id": "accountId"
+    },
     "ext": {
       "amp": 1
     }
