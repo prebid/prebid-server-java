@@ -3,11 +3,18 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.DataObject;
+import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
@@ -75,6 +82,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class BidResponseCreatorTest extends VertxTest {
 
@@ -377,6 +385,60 @@ public class BidResponseCreatorTest extends VertxTest {
                                 ExtBidPrebid.of(banner, null, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
+
+        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldAddTypeToNativeBidAdm() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(123)
+                        .img(ImageObject.builder().type(1).build())
+                        .data(DataObject.builder().type(2).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id("imp1")
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(123)
+                        .img(com.iab.openrtb.response.ImageObject.builder().build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid("imp1")
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
+                null, CACHE_INFO, ACCOUNT, timeout, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets).hasSize(1)
+                .containsOnly(com.iab.openrtb.response.Asset.builder()
+                        .id(123)
+                        .img(com.iab.openrtb.response.ImageObject.builder().type(1).build())
+                        .data(com.iab.openrtb.response.DataObject.builder().type(2).build())
+                        .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
     }

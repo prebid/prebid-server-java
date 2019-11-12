@@ -5,10 +5,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Request;
+import com.iab.openrtb.response.Asset;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -426,8 +431,8 @@ public class BidResponseCreator {
 
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
-                .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest.getApp() != null,
-                        winningBids, winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), account))
+                .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest, winningBids,
+                        winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), account))
                 .collect(Collectors.toList());
 
         final ExtBidResponse extBidResponse = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
@@ -444,13 +449,13 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
      * extension field populated.
      */
-    private SeatBid toSeatBid(BidderResponse bidderResponse, ExtRequestTargeting targeting, boolean isApp,
+    private SeatBid toSeatBid(BidderResponse bidderResponse, ExtRequestTargeting targeting, BidRequest bidRequest,
                               Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
                               Map<Bid, CacheIdInfo> cachedBids, Account account) {
         final String bidder = bidderResponse.getBidder();
 
         final List<Bid> bids = bidderResponse.getSeatBid().getBids().stream()
-                .map(bidderBid -> toBid(bidderBid, bidder, targeting, isApp, winningBids, winningBidsByBidder,
+                .map(bidderBid -> toBid(bidderBid, bidder, targeting, bidRequest, winningBids, winningBidsByBidder,
                         cacheInfo, cachedBids, account))
                 .collect(Collectors.toList());
 
@@ -464,12 +469,17 @@ public class BidResponseCreator {
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
-    private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting, boolean isApp,
+    private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting, BidRequest bidRequest,
                       Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
                       Map<Bid, CacheIdInfo> bidsWithCacheIds, Account account) {
 
         final Bid bid = bidderBid.getBid();
         final BidType bidType = bidderBid.getType();
+
+        final boolean isApp = bidRequest.getApp() != null;
+        if (isApp && bidType.equals(BidType.xNative)) {
+            addNativeMarkup(bid, bidRequest.getImp());
+        }
 
         final boolean eventsEnabled = Objects.equals(account.getEventsEnabled(), true);
         final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), account.getId()) : null;
@@ -510,6 +520,57 @@ public class BidResponseCreator {
         bid.setExt(Json.mapper.valueToTree(bidExt));
 
         return bid;
+    }
+
+    private static void addNativeMarkup(Bid bid, List<Imp> imps) {
+        final Response nativeMarkup;
+        try {
+            nativeMarkup = Json.decodeValue(bid.getAdm(), Response.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        final List<Asset> responseAssets = nativeMarkup.getAssets();
+        if (CollectionUtils.isNotEmpty(responseAssets)) {
+            final Native nativeImp = imps.stream()
+                    .filter(imp -> imp.getId().equals(bid.getImpid()) && imp.getXNative() != null)
+                    .findFirst()
+                    .map(Imp::getXNative)
+                    .orElseThrow(() -> new PreBidException("Could not find native imp"));
+
+            final Request nativeRequest;
+            try {
+                nativeRequest = Json.mapper.readValue(nativeImp.getRequest(), Request.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(e.getMessage());
+            }
+
+            responseAssets.forEach(asset -> setAssetTypes(asset, nativeRequest.getAssets()));
+            bid.setAdm(Json.encode(nativeMarkup));
+        }
+    }
+
+    private static void setAssetTypes(Asset responseAsset, List<com.iab.openrtb.request.Asset> requestAssets) {
+        if (responseAsset.getImg() != null) {
+            final Integer type = getAssetById(responseAsset.getId(), requestAssets).getImg().getType();
+            if (!Objects.equals(type, 0)) {
+                responseAsset.getImg().setType(type);
+            }
+        }
+        if (responseAsset.getData() != null) {
+            final Integer type = getAssetById(responseAsset.getId(), requestAssets).getData().getType();
+            if (!Objects.equals(type, 0)) {
+                responseAsset.getData().setType(type);
+            }
+        }
+    }
+
+    private static com.iab.openrtb.request.Asset getAssetById(int assetId,
+                                                              List<com.iab.openrtb.request.Asset> requestAssets) {
+        return requestAssets.stream()
+                .filter(asset -> asset.getId() == assetId)
+                .findFirst()
+                .orElse(com.iab.openrtb.request.Asset.builder().build());
     }
 
     /**
