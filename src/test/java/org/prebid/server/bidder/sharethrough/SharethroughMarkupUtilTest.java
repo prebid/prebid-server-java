@@ -3,7 +3,7 @@ package org.prebid.server.bidder.sharethrough;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
-import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
+import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 
 import java.util.Date;
 
