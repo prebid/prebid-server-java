@@ -9,7 +9,7 @@ import java.util.List;
 @Value
 public class ExtAdPod {
 
-    Integer podId;
+    Integer podid;
 
     List<ExtResponseVideoTargeting> targeting;
 

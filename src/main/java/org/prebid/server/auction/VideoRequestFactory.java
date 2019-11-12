@@ -71,7 +71,7 @@ public class VideoRequestFactory {
     }
 
     /**
-     * Creates {@link AuctionContext} and {@link List } based on {@link RoutingContext}.
+     * Creates {@link AuctionContext} and {@link List} of {@link PodError} based on {@link RoutingContext}.
      */
     public Future<Tuple2<AuctionContext, List<PodError>>> fromRequest(RoutingContext routingContext, long startTime) {
         final String storedRequestId = routingContext.request().getParam(STORED_ID_REQUEST_PARAM);
@@ -306,7 +306,7 @@ public class VideoRequestFactory {
     private Tuple2<BidRequest, List<PodError>> mergeWithDefaultBidRequest(
             ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
 
-        // We should create imps first. We avoiding too much Tuples for PodError
+        // We should create imps first. We avoid too much Tuples for PodError
         final Tuple2<List<Imp>, List<PodError>> impsToErrors = mergeImpsForResponse(storedData);
         final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest.toBuilder();
 

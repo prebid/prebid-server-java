@@ -42,6 +42,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -151,37 +152,9 @@ public class VideoHandler implements Handler<RoutingContext> {
     }
 
     private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
-        final List<ExtAdPod> adPods = new ArrayList<>();
-        boolean anyBidsReturned = false;
-        if (CollectionUtils.isNotEmpty(bidResponse.getSeatbid())) {
-            for (SeatBid seatBid : bidResponse.getSeatbid()) {
-                for (Bid bid : seatBid.getBid()) {
-                    anyBidsReturned = true;
-                    final Map<String, String> targeting = targeting(bid);
-                    if (targeting.get("hb_uuid") == null) {
-                        continue;
-                    }
-                    final String impId = bid.getImpid();
-                    final Integer podId = Integer.parseInt(impId.split("_")[0]);
-
-                    final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
-                            targeting.get("hb_pb"),
-                            targeting.get("hb_pb_cat_dur"),
-                            targeting.get("hb_uuid"));
-
-                    ExtAdPod adPod = adPods.stream()
-                            .filter(extAdPod -> extAdPod.getPodId().equals(podId))
-                            .findFirst()
-                            .orElse(null);
-
-                    if (adPod == null) {
-                        adPod = ExtAdPod.of(podId, new ArrayList<>(), null);
-                        adPods.add(adPod);
-                    }
-                    adPod.getTargeting().add(videoTargeting);
-                }
-            }
-        }
+        final List<Bid> bids = bids(bidResponse);
+        final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
+        final List<ExtAdPod> adPods = bidsToAdPodWithTargeting(bids);
 
         if (anyBidsReturned && CollectionUtils.isEmpty(adPods)) {
             throw new PreBidException("caching failed for all bids");
@@ -204,6 +177,48 @@ public class VideoHandler implements Handler<RoutingContext> {
         return VideoResponse.of(adPods, extResponseDebug, errors, null);
     }
 
+    private static List<Bid> bids(BidResponse bidResponse) {
+        if (bidResponse != null && CollectionUtils.isNotEmpty(bidResponse.getSeatbid())) {
+            return bidResponse.getSeatbid().stream()
+                    .filter(Objects::nonNull)
+                    .map(SeatBid::getBid)
+                    .filter(Objects::nonNull)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<ExtAdPod> bidsToAdPodWithTargeting(List<Bid> bids) {
+        final List<ExtAdPod> adPods = new ArrayList<>();
+        for (Bid bid : bids) {
+            final Map<String, String> targeting = targeting(bid);
+            if (targeting.get("hb_uuid") == null) {
+                continue;
+            }
+            final String impId = bid.getImpid();
+            final Integer podId = Integer.parseInt(impId.split("_")[0]);
+
+            final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
+                    targeting.get("hb_pb"),
+                    targeting.get("hb_pb_cat_dur"),
+                    targeting.get("hb_uuid"));
+
+            ExtAdPod adPod = adPods.stream()
+                    .filter(extAdPod -> extAdPod.getPodid().equals(podId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (adPod == null) {
+                adPod = ExtAdPod.of(podId, new ArrayList<>(), null);
+                adPods.add(adPod);
+            }
+            adPod.getTargeting().add(videoTargeting);
+        }
+        return adPods;
+    }
+
     private Map<String, String> targeting(Bid bid) {
         final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
         try {
@@ -215,6 +230,12 @@ public class VideoHandler implements Handler<RoutingContext> {
         final ExtBidPrebid extBidPrebid = extBid != null ? extBid.getPrebid() : null;
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         return targeting != null ? targeting : Collections.emptyMap();
+    }
+
+    private static List<ExtAdPod> transformToAdPod(List<PodError> podErrors) {
+        return podErrors.stream()
+                .map(podError -> ExtAdPod.of(podError.getPodId(), null, podError.getPodErrors()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -257,12 +278,6 @@ public class VideoHandler implements Handler<RoutingContext> {
 
     private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
-    }
-
-    private static List<ExtAdPod> transformToAdPod(List<PodError> podErrors) {
-        return podErrors.stream()
-                .map(podError -> ExtAdPod.of(podError.getPodId(), null, podError.getPodErrors()))
-                .collect(Collectors.toList());
     }
 
     private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,

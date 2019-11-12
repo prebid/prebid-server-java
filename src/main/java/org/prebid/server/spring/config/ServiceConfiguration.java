@@ -147,7 +147,7 @@ public class ServiceConfiguration {
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            List<String> blacklistedAccounts,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
@@ -157,13 +157,17 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
         return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
                 adServerCurrency, blacklistedAccounts, storedRequestProcessor, implicitParametersExtractor,
                 uidsCookieService, bidderCatalog, requestValidator, new InterstitialProcessor(), timeoutResolver,
                 timeoutFactory, applicationSettings);
+    }
+
+    @Bean
+    List<String> blacklistedAccounts(@Value("${auction.blacklisted-accounts}") String blacklistedAccountsString) {
+        return Stream.of(blacklistedAccountsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
     }
 
     @Bean
@@ -179,15 +183,12 @@ public class ServiceConfiguration {
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            List<String> blacklistedAccounts,
             StoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
             TimeoutResolver timeoutResolver,
             BidRequest defaultVideoBidRequest) {
 
-        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
         return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, blacklistedAccounts,
                 storedRequestProcessor, auctionRequestFactory, timeoutResolver, defaultVideoBidRequest);
     }
