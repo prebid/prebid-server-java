@@ -10,7 +10,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
-import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -23,8 +24,10 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SetuidHandler implements Handler<RoutingContext> {
 
@@ -43,26 +46,32 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
-    private final BidderCatalog bidderCatalog;
     private final GdprService gdprService;
     private final Set<Integer> gdprVendorIds;
     private final boolean useGeoLocation;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
+    private final Set<String> activeCookieFamilyNames;
 
-    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, BidderCatalog bidderCatalog,
+    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, List<BidderDeps> bidderDeps,
                          GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
                          AnalyticsReporter analyticsReporter, Metrics metrics, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprVendorIds = Collections.singleton(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+
+        activeCookieFamilyNames = Objects.requireNonNull(bidderDeps).stream()
+                .filter(deps -> deps.getBidderInfo().isEnabled())
+                .map(BidderDeps::getUsersyncer)
+                .filter(Objects::nonNull)
+                .map(Usersyncer::getCookieFamilyName)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -78,7 +87,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         final String cookieName = context.request().getParam(BIDDER_PARAM);
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
-        if (isCookieNameBlank || !bidderCatalog.isActiveByCookieName(cookieName)) {
+        if (isCookieNameBlank || !activeCookieFamilyNames.contains(cookieName)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String body = "\"bidder\" query param is ";
             respondWith(context, status, body + (isCookieNameBlank ? "required" : "invalid"));

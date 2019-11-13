@@ -21,6 +21,7 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
@@ -283,7 +284,7 @@ public class WebConfiguration {
     SetuidHandler setuidHandler(
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
-            BidderCatalog bidderCatalog,
+            List<BidderDeps> bidderDeps,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
@@ -291,7 +292,7 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderDeps, gdprService, hostVendorId,
                 useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
