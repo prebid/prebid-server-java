@@ -10,7 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
-import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -24,7 +24,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,7 +53,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final TimeoutFactory timeoutFactory;
     private final Set<String> activeCookieFamilyNames;
 
-    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, List<BidderDeps> bidderDeps,
+    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, BidderCatalog bidderCatalog,
                          GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
                          AnalyticsReporter analyticsReporter, Metrics metrics, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
@@ -66,10 +65,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
 
-        activeCookieFamilyNames = Objects.requireNonNull(bidderDeps).stream()
-                .filter(deps -> deps.getBidderInfo().isEnabled())
-                .map(BidderDeps::getUsersyncer)
-                .filter(Objects::nonNull)
+        activeCookieFamilyNames = bidderCatalog.names().stream()
+                .filter(bidderCatalog::isActive)
+                .map(bidderCatalog::usersyncerByName)
                 .map(Usersyncer::getCookieFamilyName)
                 .collect(Collectors.toSet());
     }
