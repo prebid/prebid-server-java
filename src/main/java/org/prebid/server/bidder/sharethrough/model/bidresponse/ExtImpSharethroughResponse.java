@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.sharethrough.model.bidResponse;
+package org.prebid.server.bidder.sharethrough.model.bidresponse;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;

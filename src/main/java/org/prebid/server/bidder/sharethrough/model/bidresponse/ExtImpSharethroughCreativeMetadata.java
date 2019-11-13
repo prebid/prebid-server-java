@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.sharethrough.model.bidResponse;
+package org.prebid.server.bidder.sharethrough.model.bidresponse;
 
 import lombok.Builder;
 import lombok.Value;

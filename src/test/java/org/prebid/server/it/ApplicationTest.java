@@ -154,7 +154,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
@@ -218,7 +218,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 //this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
@@ -264,7 +264,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
@@ -544,7 +544,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for

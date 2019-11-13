@@ -21,9 +21,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
-import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughCreative;
-import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughCreativeMetadata;
-import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
+import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
+import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
+import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -164,7 +164,7 @@ public class SharethroughBidderTest extends VertxTest {
         final List<ExtUserEidUid> uids = Arrays.asList(
                 ExtUserEidUid.of("first", null),
                 ExtUserEidUid.of("second", null));
-        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids);
+        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
         final ExtUser extUser = ExtUser.builder()
                 .consent("consent")
                 .eids(singletonList(extUserEid))
