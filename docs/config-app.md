@@ -33,13 +33,15 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
 ## Remote-file-syncer
-- `remote-file-syncer.download-url` - url to database file to download.
-- `remote-file-syncer.save-filepath` - local path to downloaded database file.
-- `remote-file-syncer.retry-count` - how many times try to download.
-- `remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
-- `remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
-- `remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
-- `remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
+Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
+
+- `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
+- `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
+- `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
+- `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
