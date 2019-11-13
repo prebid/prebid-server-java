@@ -152,10 +152,8 @@ public class StoredRequestProcessor {
         final Map<String, String> storedIdToImp = storedDataResult.getStoredIdToImp();
         if (MapUtils.isNotEmpty(storedIdToImp)) {
             for (Map.Entry<String, String> idToImp : storedIdToImp.entrySet()) {
-                final String impString = idToImp.getValue();
-                final JsonNode impJson = Json.mapper.valueToTree(impString);
                 try {
-                    idToImps.put(idToImp.getKey(), Json.mapper.treeToValue(impJson, Imp.class));
+                    idToImps.put(idToImp.getKey(), Json.mapper.readValue(idToImp.getValue(), Imp.class));
                 } catch (JsonProcessingException e) {
                     errors.add(e.getMessage());
                 }

@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 
 public class VideoRequestFactory {
 
-    private static final String STORED_ID_REQUEST_PARAM = "storedrequestid";
+    private static final String DEFAULT_CURRENCY = "USD";
     private static final String DEFAULT_BUYERUID = "appnexus";
     private static final Long DEFAULT_TMAX = 5000L;
     private final int maxRequestSize;
@@ -56,11 +56,12 @@ public class VideoRequestFactory {
     private final AuctionRequestFactory auctionRequestFactory;
     private final TimeoutResolver timeoutResolver;
     private final BidRequest defaultBidRequest;
+    private final String currency;
 
     public VideoRequestFactory(int maxRequestSize, boolean enforceStoredRequest, List<String> blacklistedAccounts,
                                StoredRequestProcessor storedRequestProcessor,
                                AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver,
-                               BidRequest defaultBidRequest) {
+                               BidRequest defaultBidRequest, String adServerCurrency) {
         this.maxRequestSize = maxRequestSize;
         this.enforceStoredRequest = enforceStoredRequest;
         this.blacklistedAccounts = blacklistedAccounts;
@@ -68,16 +69,13 @@ public class VideoRequestFactory {
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.defaultBidRequest = Objects.requireNonNull(defaultBidRequest);
+        this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
     }
 
     /**
      * Creates {@link AuctionContext} and {@link List} of {@link PodError} based on {@link RoutingContext}.
      */
     public Future<Tuple2<AuctionContext, List<PodError>>> fromRequest(RoutingContext routingContext, long startTime) {
-        final String storedRequestId = routingContext.request().getParam(STORED_ID_REQUEST_PARAM);
-        if (StringUtils.isBlank(storedRequestId) && enforceStoredRequest) {
-            return Future.failedFuture(new InvalidRequestException("Unable to find required stored request id"));
-        }
 
         final BidRequestVideo incomingBidRequest;
         try {
@@ -85,9 +83,14 @@ public class VideoRequestFactory {
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
-        final Set<String> podIds = podIds(incomingBidRequest);
 
-        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podIds)
+        final String storedRequestId = incomingBidRequest.getStoredrequestid();
+        if (StringUtils.isBlank(storedRequestId) && enforceStoredRequest) {
+            return Future.failedFuture(new InvalidRequestException("Unable to find required stored request id"));
+        }
+
+        final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
+        return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
                 .compose(bidRequestToPodError -> auctionRequestFactory
                         .toAuctionContext(routingContext, bidRequestToPodError.getLeft(), startTime, timeoutResolver)
                         .map(auctionContext -> Tuple2.of(auctionContext, bidRequestToPodError.getRight())));
@@ -116,11 +119,11 @@ public class VideoRequestFactory {
         }
     }
 
-    private static Set<String> podIds(BidRequestVideo incomingBidRequest) {
+    private static Set<String> podConfigIds(BidRequestVideo incomingBidRequest) {
         final Podconfig podconfig = incomingBidRequest.getPodconfig();
         if (podconfig != null) {
             return podconfig.getPods().stream()
-                    .map(Pod::getPodId)
+                    .map(Pod::getConfigId)
                     .filter(Objects::nonNull)
                     .map(String::valueOf)
                     .collect(Collectors.toSet());
@@ -131,8 +134,9 @@ public class VideoRequestFactory {
 
     private Future<Tuple2<BidRequest, List<PodError>>> createBidRequest(RoutingContext routingContext,
                                                                         BidRequestVideo bidRequestVideo,
-                                                                        String storedVideoId, Set<String> podIds) {
-        return storedRequestProcessor.processVideoRequest(storedVideoId, podIds, bidRequestVideo)
+                                                                        String storedVideoId,
+                                                                        Set<String> podConfigIds) {
+        return storedRequestProcessor.processVideoRequest(storedVideoId, podConfigIds, bidRequestVideo)
                 .map(storedData -> doAndReturn(() -> validateStoredBidRequest(storedData.getStoredData()), storedData))
                 .map(this::mergeWithDefaultBidRequest)
                 .map(bidRequestToErrors -> Tuple2.of(auctionRequestFactory
@@ -224,7 +228,7 @@ public class VideoRequestFactory {
     }
 
     private static Tuple2<List<Pod>, List<PodError>> validPods(BidRequestVideo bidRequestVideo,
-                                                               Set<String> validPodIds) {
+                                                               Set<String> storedPodConfigIds) {
         final List<Pod> pods = bidRequestVideo.getPodconfig().getPods();
         final List<PodError> podErrors = validateEachPod(pods);
         final List<Integer> errorPodIds = podErrors.stream()
@@ -235,8 +239,9 @@ public class VideoRequestFactory {
         for (int i = 0; i < pods.size(); i++) {
             final Pod pod = pods.get(i);
             final Integer podId = pod.getPodId();
+            final String configId = pod.getConfigId();
             if (!errorPodIds.contains(podId)) {
-                if (validPodIds.contains(String.valueOf(podId))) {
+                if (storedPodConfigIds.contains(configId)) {
                     validPods.add(pod);
                 } else {
                     podErrors.add(PodError.of(podId, i, Collections.singletonList("unable to load Pod id: " + podId)));
@@ -365,6 +370,8 @@ public class VideoRequestFactory {
             bidRequestBuilder.tmax(videoRequest.getTmax());
         }
 
+        addRequiredOpenRtbFields(bidRequestBuilder);
+
         final List<Imp> imps = impsToErrors.getLeft();
         final BidRequest bidRequest = bidRequestBuilder
                 .id("bid_id")
@@ -373,6 +380,10 @@ public class VideoRequestFactory {
                 .test(videoRequest.getTest())
                 .build();
         return Tuple2.of(bidRequest, impsToErrors.getRight());
+    }
+
+    private void addRequiredOpenRtbFields(BidRequest.BidRequestBuilder bidRequestBuilder) {
+        bidRequestBuilder.cur(Collections.singletonList(currency));
     }
 
     private static ObjectNode createBidExtension(BidRequestVideo videoRequest) {
@@ -474,15 +485,15 @@ public class VideoRequestFactory {
                     maxDuration = maxMin.getRight();
                 }
 
-                final Integer podId = pod.getPodId();
-                final Imp storedImp = idToImps.get(String.valueOf(podId));
+                final String podConfigId = pod.getConfigId();
+                final Imp storedImp = idToImps.get(podConfigId);
 
                 // Should never happen
                 if (storedImp == null) {
                     continue;
                 }
                 final Imp imp = storedImp.toBuilder()
-                        .id(String.format("%d_%d", podId, i))
+                        .id(String.format("%d_%d", pod.getPodId(), i))
                         .video(createVideo(video, maxDuration, minDuration))
                         .build();
                 imps.add(imp);

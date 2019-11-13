@@ -100,7 +100,10 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
                 ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
-                : StoredDataResult.of(storedIdToRequest, storedIdToImp, Stream.of(
+                : StoredDataResult.of(
+                existingStoredIdToJson(requestIds, storedIdToRequest),
+                existingStoredIdToJson(impIds, storedIdToImp),
+                Stream.of(
                         errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
                         errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
                         .flatMap(Collection::stream)
@@ -116,8 +119,9 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
                 ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
-                : StoredResponseDataResult.of(storedIdToSeatBid, errorsForMissedIds(responseIds,
-                storedIdToSeatBid, StoredDataType.seatbid)));
+                : StoredResponseDataResult.of(
+                existingStoredIdToJson(responseIds, storedIdToSeatBid),
+                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
     }
 
     @Override
@@ -162,6 +166,16 @@ public class FileApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException("Not found"));
+    }
+
+    /**
+     * Returns corresponding stored id with json.
+     */
+    private static Map<String, String> existingStoredIdToJson(Set<String> requestedIds,
+                                                              Map<String, String> storedIdToJson) {
+        return requestedIds.stream()
+                .filter(storedIdToJson::containsKey)
+                .collect(Collectors.toMap(Function.identity(), storedIdToJson::get));
     }
 
     /**

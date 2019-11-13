@@ -1,0 +1,12 @@
+{
+  "puts": [
+    {
+      "type": "xml",
+      "value": "some-test-ad"
+    },
+    {
+      "type": "xml",
+      "value": "some-test-ad-2"
+    }
+  ]
+}

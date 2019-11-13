@@ -54,7 +54,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class VideoRequestFactoryTest extends VertxTest {
@@ -85,7 +84,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(httpServerRequest.getParam(anyString())).willReturn("test");
 
         factory = new VideoRequestFactory(Integer.MAX_VALUE, false, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build());
+                BidRequest.builder().build(), null);
     }
 
     @Test
@@ -106,16 +105,14 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredRequestIsEnforcedAndIdIsNotProvided() {
         // given
-        given(httpServerRequest.getParam(anyString())).willReturn(null);
+        given(routingContext.getBody()).willReturn(Json.encodeToBuffer(BidRequestVideo.builder().build()));
         factory = new VideoRequestFactory(Integer.MAX_VALUE, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build());
+                BidRequest.builder().build(), null);
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
-        verify(routingContext, never()).getBody();
-
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
@@ -126,7 +123,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldFailWhenRequestStoredrequestidIsMissing() {
         // given
         factory = new VideoRequestFactory(Integer.MAX_VALUE, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build());
+                BidRequest.builder().build(), null);
 
         givenValidDataResult(builder -> builder.storedrequestid(null), UnaryOperator.identity());
 
@@ -234,7 +231,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldFailWhenSiteIdAndSitePageIsMissing() {
         // given
         factory = new VideoRequestFactory(Integer.MAX_VALUE, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build());
+                BidRequest.builder().build(), null);
 
         givenValidDataResult(requestBuilder -> requestBuilder.site(Site.builder().build()), UnaryOperator.identity());
 
@@ -319,7 +316,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
         factory = new VideoRequestFactory(2, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build());
+                BidRequest.builder().build(), null);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -376,11 +373,11 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
 
         final Imp expectedImp1 = Imp.builder()
-                .id("1_0")
+                .id("123_0")
                 .video(Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(singletonList(123)).build())
                 .build();
         final Imp expectedImp2 = Imp.builder()
-                .id("1_1")
+                .id("123_1")
                 .video(Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(singletonList(123)).build())
                 .build();
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
@@ -399,6 +396,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .tmax(5000L)
                 .bcat(singletonList("bcat"))
                 .badv(singletonList("badv"))
+                .cur(singletonList("USD"))
                 .ext(Json.mapper.valueToTree(ExtBidRequest.of(ext)))
                 .build();
 
@@ -434,9 +432,9 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAllPodErrors() {
         // given
-        final Pod podWithoutId = Pod.of(3, 2, null);
+        final Pod podWithoutId = Pod.of(1, 2, null);
         final Pod podWithBadDurationSec = Pod.of(222, -4, "cnf");
-        final Pod pod = Pod.of(1, 4, "cnf");
+        final Pod pod = Pod.of(123, 4, "1");
         givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.pods(
                 Arrays.asList(podWithoutId, podWithBadDurationSec, pod)));
 
@@ -448,7 +446,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         // then
         final PodError expectedPod1 =
-                PodError.of(3, 0, singletonList("request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: 0"));
+                PodError.of(1, 0, singletonList("request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: 0"));
         final PodError expectedPod2 =
                 PodError.of(222, 1, singletonList("request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: 1"));
 
@@ -459,8 +457,8 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFailWhenThereAreNoStoredImpsFound() {
         // given
-        final Pod pod1 = Pod.of(123, 2, "cnf");
-        final Pod pod2 = Pod.of(321, 3, "cnf");
+        final Pod pod1 = Pod.of(1, 2, "123");
+        final Pod pod2 = Pod.of(2, 3, "321");
         givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.pods(Arrays.asList(pod1, pod2)));
 
         // when
@@ -470,15 +468,15 @@ public class VideoRequestFactoryTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("all pods are incorrect:  unable to load Pod id: 123; unable to load Pod id: 321");
+                .hasMessage("all pods are incorrect:  unable to load Pod id: 1; unable to load Pod id: 2");
     }
 
     @Test
     public void shouldCreateImpsFromStoredRequestAndFromReceivedVideoRequestPods() {
         // given
-        final Pod pod1 = Pod.of(123, 20, "cnf");
-        final Pod pod2 = Pod.of(321, 30, "cnf");
-        final Pod podNoStored = Pod.of(1, 3, "cnf");
+        final Pod pod1 = Pod.of(1, 20, "123");
+        final Pod pod2 = Pod.of(2, 30, "321");
+        final Pod podNoStored = Pod.of(3, 3, "1");
         final Map<String, Imp> idToImp = new HashMap<>();
         idToImp.put("123", Imp.builder().tagid("tagid1").build());
         idToImp.put("321", Imp.builder().tagid("tagid2").clickbrowser(2).build());
@@ -496,18 +494,18 @@ public class VideoRequestFactoryTest extends VertxTest {
 
         final Video video = Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(singletonList(123)).build();
         final Imp expectedImp1 = Imp.builder()
-                .id("123_0")
+                .id("1_0")
                 .tagid("tagid1")
                 .video(video)
                 .build();
-        final Imp expectedImp1_1 = expectedImp1.toBuilder().id("123_1").build();
+        final Imp expectedImp1_1 = expectedImp1.toBuilder().id("1_1").build();
         final Imp expectedImp2 = Imp.builder()
-                .id("321_0")
+                .id("2_0")
                 .tagid("tagid2")
                 .clickbrowser(2)
                 .video(video)
                 .build();
-        final Imp expectedImp2_1 = expectedImp2.toBuilder().id("321_1").build();
+        final Imp expectedImp2_1 = expectedImp2.toBuilder().id("2_1").build();
 
         assertThat(captor.getValue().getImp()).isEqualTo(Arrays.asList(expectedImp1, expectedImp1_1, expectedImp2, expectedImp2_1));
     }
@@ -523,7 +521,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final BidRequestVideo videoRequest = requestCustomizer.apply(BidRequestVideo.builder()
                 .storedrequestid("storedrequestid")
                 .podconfig(podconfigCustomizer.apply(Podconfig.builder()
-                        .pods(singletonList(Pod.of(1, 100, "configId")))
+                        .pods(singletonList(Pod.of(123, 100, "1")))
                         .durationRangeSec(Arrays.asList(200, 100)))
                         .build())
                 .site(Site.builder().id("siteId").build())
@@ -534,12 +532,12 @@ public class VideoRequestFactoryTest extends VertxTest {
 
     private void givenDataResult(BidRequestVideo bidRequestVideo, Map<String, Imp> idToImp) {
         try {
-            final BidRequest bidRequest = BidRequest.builder().build();
-            given(routingContext.getBody()).willReturn(Buffer.buffer(Json.mapper.writeValueAsString(bidRequest)));
+            final BidRequestVideo videoRequest = BidRequestVideo.builder().storedrequestid("stored").build();
+            given(routingContext.getBody()).willReturn(Buffer.buffer(Json.mapper.writeValueAsString(videoRequest)));
 
             final ParsedStoredDataResult<BidRequestVideo, Imp> dataResult =
                     ParsedStoredDataResult.of(bidRequestVideo, idToImp, emptyList());
-            given(storedRequestProcessor.processVideoRequest(anyString(), any(), any()))
+            given(storedRequestProcessor.processVideoRequest(any(), any(), any()))
                     .willReturn(Future.succeededFuture(dataResult));
             given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
             given(auctionRequestFactory.validateRequest(any())).will(answerWithFirstArgument());

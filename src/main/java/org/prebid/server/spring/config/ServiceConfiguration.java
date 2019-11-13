@@ -187,10 +187,12 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
             TimeoutResolver timeoutResolver,
-            BidRequest defaultVideoBidRequest) {
+            BidRequest defaultVideoBidRequest,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency) {
 
         return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, blacklistedAccounts,
-                storedRequestProcessor, auctionRequestFactory, timeoutResolver, defaultVideoBidRequest);
+                storedRequestProcessor, auctionRequestFactory, timeoutResolver, defaultVideoBidRequest,
+                adServerCurrency);
     }
 
     @Bean

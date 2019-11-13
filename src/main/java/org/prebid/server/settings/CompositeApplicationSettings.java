@@ -142,7 +142,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         @Override
         public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds,
                                                            Timeout timeout) {
-            return getStoredRequests(requestIds, Collections.emptySet(), timeout,
+            return getStoredRequests(requestIds, impIds, timeout,
                     applicationSettings::getVideoStoredData, next != null ? next::getVideoStoredData : null);
         }
 

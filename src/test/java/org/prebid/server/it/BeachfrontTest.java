@@ -42,7 +42,7 @@ public class BeachfrontTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 .body(jsonFrom("openrtb2/beachfront/test-auction-beachfront-request.json"))
