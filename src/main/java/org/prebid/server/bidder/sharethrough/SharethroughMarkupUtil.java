@@ -2,7 +2,7 @@ package org.prebid.server.bidder.sharethrough;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
-import org.prebid.server.bidder.sharethrough.model.bidResponse.ExtImpSharethroughResponse;
+import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 
 import java.util.Base64;
 import java.util.Date;
