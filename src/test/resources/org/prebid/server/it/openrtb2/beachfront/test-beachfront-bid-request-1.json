@@ -1,7 +1,7 @@
 {
   "isPrebid": true,
   "appId": "beachfrontAppId1",
-  "video_response_type": "nurl",
+  "videoResponseType": "nurl",
   "request": {
     "id": "tid",
     "imp": [

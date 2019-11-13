@@ -327,17 +327,8 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             final App app = bidRequest.getApp();
             if (app != null && StringUtils.isBlank(app.getDomain()) && StringUtils.isNotBlank(app.getBundle())) {
-                String trimmedBundle = app.getBundle();
-
-                if (trimmedBundle.startsWith("_")) {
-                    trimmedBundle = trimmedBundle.substring(1);
-                }
-
-                if (trimmedBundle.endsWith("_")) {
-                    trimmedBundle = trimmedBundle.substring(0, trimmedBundle.length() - 1);
-                }
-
-                final String[] split = trimmedBundle.split(".");
+                final String trimmedBundle = StringUtils.removeStart(app.getBundle(), "_");
+                final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split(".");
 
                 if (split.length > 1) {
                     bidRequestBuilder.app(app.toBuilder().domain(String.format("%s.%s", split[1], split[0])).build());
@@ -347,7 +338,8 @@ public class BeachfrontBidder implements Bidder<Void> {
             final Device device = bidRequest.getDevice();
             if (device != null) {
                 final Device.DeviceBuilder deviceBuilder = device.toBuilder();
-                if (device.getDevicetype() == null) {
+                final Integer devicetype = device.getDevicetype();
+                if (devicetype == null || devicetype == 0) {
                     deviceBuilder.devicetype(bidRequest.getSite() != null ? 2 : 1);
                 }
                 if (StringUtils.isNotBlank(device.getIp())) {
@@ -502,7 +494,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         if (split.length > 1) {
             return split[2]; //Index out of bound???...
         }
-        return "";
+        return null;
     }
 
     @Override

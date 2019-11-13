@@ -34,7 +34,6 @@ public class BeachfrontTest extends IntegrationTest {
                 .withHeader("Host", equalTo("localhost:8090"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("DNT", equalTo("2"))
-                .withHeader("Content-Length", equalTo("966"))
                 .withHeader("Cookie", equalTo("__io_cid=BF-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-beachfront-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-beachfront-bid-response-2.json"))));
@@ -49,7 +48,6 @@ public class BeachfrontTest extends IntegrationTest {
                 .withHeader("Host", equalTo("localhost:8090"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("DNT", equalTo("2"))
-                .withHeader("Content-Length", equalTo("984"))
                 .withHeader("Cookie", equalTo("__io_cid=BF-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-beachfront-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-beachfront-bid-response-1.json"))));
@@ -62,7 +60,6 @@ public class BeachfrontTest extends IntegrationTest {
                 .withHeader("Host", equalTo("localhost:8090"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("DNT", equalTo("2"))
-                .withHeader("Content-Length", equalTo("321"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/beachfront/test-beachfront-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/beachfront/test-beachfront-bid-response-3.json"))));
 

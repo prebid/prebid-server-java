@@ -15,6 +15,7 @@ public class BeachfrontVideoRequest {
     @JsonProperty("appId")
     String appId;
 
+    @JsonProperty("videoResponseType")
     String videoResponseType;
 
     BidRequest request;

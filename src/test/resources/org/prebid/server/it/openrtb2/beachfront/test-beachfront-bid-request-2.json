@@ -1,6 +1,6 @@
 {
   "appId": "beachfrontAppId",
-  "video_response_type": "adm",
+  "videoResponseType": "adm",
   "request": {
     "id": "tid",
     "imp": [
