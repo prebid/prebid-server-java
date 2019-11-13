@@ -140,7 +140,6 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
         given(httpRequest.getParam(any())).willReturn("invalid_or_disabled");
-        given(bidderCatalog.isActive(any())).willReturn(false);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
