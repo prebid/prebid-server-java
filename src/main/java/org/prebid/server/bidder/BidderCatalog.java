@@ -22,10 +22,18 @@ public class BidderCatalog {
     private final Map<String, BidderDeps> bidderDepsMap;
     private final Map<String, String> deprecatedNameToError = new HashMap<>();
     private final Map<String, String> aliases = new HashMap<>();
+    private final Set<String> activeCookieFamilyNames;
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
                 .collect(Collectors.toMap(BidderDeps::getName, Function.identity()));
+
+        activeCookieFamilyNames = bidderDeps.stream()
+                .filter(deps -> deps.getBidderInfo().isEnabled())
+                .map(BidderDeps::getUsersyncer)
+                .filter(Objects::nonNull)
+                .map(Usersyncer::getCookieFamilyName)
+                .collect(Collectors.toSet());
 
         for (BidderDeps deps : bidderDeps) {
             deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps.getDeprecatedNames(), deps.getName()));
@@ -102,7 +110,15 @@ public class BidderCatalog {
      * Tells if given bidder is enabled and ready for auction.
      */
     public boolean isActive(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isEnabled();
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isEnabled()
+                || activeCookieFamilyNames.contains(name);
+    }
+
+    /**
+     * Tells if bidder with given cookie family name is enabled and ready for auction.
+     */
+    public boolean isActiveByCookieName(String cookieName) {
+        return activeCookieFamilyNames.contains(cookieName);
     }
 
     /**

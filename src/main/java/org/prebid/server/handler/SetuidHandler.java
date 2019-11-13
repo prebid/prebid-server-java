@@ -76,12 +76,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final String bidder = context.request().getParam(BIDDER_PARAM);
-        final boolean isBidderBlank = StringUtils.isBlank(bidder);
-        if (isBidderBlank || !bidderCatalog.isActive(bidder)) {
+        final String cookieName = context.request().getParam(BIDDER_PARAM);
+        final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
+        if (isCookieNameBlank || !bidderCatalog.isActiveByCookieName(cookieName)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String body = "\"bidder\" query param is ";
-            respondWith(context, status, body + (isBidderBlank ? "required" : "invalid"));
+            respondWith(context, status, body + (isCookieNameBlank ? "required" : "invalid"));
             metrics.updateUserSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
@@ -92,7 +92,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip,
                 timeoutFactory.create(defaultTimeout))
-                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
+                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context,

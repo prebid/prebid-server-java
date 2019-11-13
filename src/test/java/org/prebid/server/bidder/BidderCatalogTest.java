@@ -14,6 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BidderCatalogTest {
 
     private static final String BIDDER = "rubicon";
+    private static final BidderInfo EMPTY_INFO = BidderInfo.create(false, null, null,
+            null, null, 0, false, false);
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -31,7 +33,12 @@ public class BidderCatalogTest {
     @Test
     public void isValidNameShouldReturnTrueForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.builder().name(BIDDER).deprecatedNames(emptyList()).aliases(emptyList()).build();
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
+                .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -54,6 +61,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(singletonList("deprecated"))
                 .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
@@ -77,6 +85,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(singletonList("deprecated"))
                 .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
@@ -92,6 +101,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(singletonList("alias"))
+                .bidderInfo(EMPTY_INFO)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
@@ -106,6 +116,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(singletonList("alias"))
+                .bidderInfo(EMPTY_INFO)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
@@ -129,6 +140,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(singletonList("alias"))
+                .bidderInfo(EMPTY_INFO)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
@@ -171,6 +183,7 @@ public class BidderCatalogTest {
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
                 .usersyncer(usersyncer)
+                .bidderInfo(EMPTY_INFO)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
@@ -194,6 +207,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
                 .bidder(bidder)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
@@ -218,6 +232,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
                 .adapter(adapter)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
@@ -242,6 +257,7 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
                 .adapter(adapter)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
@@ -257,6 +273,7 @@ public class BidderCatalogTest {
                 .name("invalid")
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
                 .adapter(adapter)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
@@ -268,7 +285,12 @@ public class BidderCatalogTest {
     @Test
     public void isValidAdapterNameShouldReturnFalseIfAdapterIsNotDefined() {
         // given
-        bidderDeps = BidderDeps.builder().name(BIDDER).deprecatedNames(emptyList()).aliases(emptyList()).build();
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(emptyList())
+                .bidderInfo(EMPTY_INFO)
+                .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then

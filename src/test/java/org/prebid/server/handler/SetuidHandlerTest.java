@@ -89,7 +89,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.toCookie(any()))
                 .willReturn(Cookie.cookie("test", "test"));
 
-        given(bidderCatalog.isActive(any())).willReturn(true);
+        given(bidderCatalog.isActiveByCookieName(any())).willReturn(true);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -134,7 +134,7 @@ public class SetuidHandlerTest extends VertxTest {
         // given
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
-        given(bidderCatalog.isActive(any())).willReturn(false);
+        given(bidderCatalog.isActiveByCookieName(any())).willReturn(false);
         given(httpRequest.getParam(any())).willReturn("invalid_or_disabled");
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
