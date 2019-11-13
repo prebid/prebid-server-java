@@ -147,6 +147,7 @@ public class HttpBidderRequester {
         final List<Result<List<BidderBid>>> createdBids = calls.stream()
                 .filter(httpCall -> httpCall.getError() == null)
                 .filter(HttpBidderRequester::isOkOrNoContent)
+                .map(HttpBidderRequester::toHttpCallWithSafeResponseBody)
                 .map(httpCall -> bidder.makeBids(httpCall, bidRequest))
                 .collect(Collectors.toList());
 
@@ -177,13 +178,32 @@ public class HttpBidderRequester {
         return builder.build();
     }
 
+    /**
+     * Returns true if response HTTP status code is equal to 200 or 204, otherwise false.
+     */
     private static boolean isOkOrNoContent(HttpCall httpCall) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         return statusCode == HttpResponseStatus.OK.code() || statusCode == HttpResponseStatus.NO_CONTENT.code();
     }
 
     /**
-     * Assembles all errors for {@link BidderSeatBid} into the list of {@link List}&lt;{@link BidderError}&gt;
+     * Replaces body of {@link HttpResponse} with empty JSON object if response HTTP status code is equal to 204.
+     * <p>
+     * Note: this will safe making bids by bidders from JSON parsing error.
+     */
+    private static <T> HttpCall<T> toHttpCallWithSafeResponseBody(HttpCall<T> httpCall) {
+        final HttpResponse response = httpCall.getResponse();
+        final int statusCode = response.getStatusCode();
+
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            final HttpResponse updatedHttpResponse = HttpResponse.of(statusCode, response.getHeaders(), "{}");
+            return HttpCall.success(httpCall.getRequest(), updatedHttpResponse, null);
+        }
+        return httpCall;
+    }
+
+    /**
+     * Assembles all errors for {@link BidderSeatBid} into the list of {@link BidderError}s.
      */
     private static <R> List<BidderError> errors(List<BidderError> previousErrors, List<HttpCall<R>> calls,
                                                 List<Result<List<BidderBid>>> createdBids) {
