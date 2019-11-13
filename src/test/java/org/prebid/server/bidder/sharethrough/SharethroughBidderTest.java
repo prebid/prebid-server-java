@@ -164,7 +164,7 @@ public class SharethroughBidderTest extends VertxTest {
         final List<ExtUserEidUid> uids = Arrays.asList(
                 ExtUserEidUid.of("first", null),
                 ExtUserEidUid.of("second", null));
-        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids);
+        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
         final ExtUser extUser = ExtUser.builder()
                 .consent("consent")
                 .eids(singletonList(extUserEid))

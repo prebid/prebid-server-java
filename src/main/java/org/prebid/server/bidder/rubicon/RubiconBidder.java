@@ -101,6 +101,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String ADSERVER_EID = "adserver.org";
+    private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String DATA_NODE_NAME = "data";
 
@@ -473,8 +474,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final User result;
 
         final ExtUser extUser = user != null ? extUser(user.getExt()) : null;
-        final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt);
-        final List<ExtUserTpIdRubicon> userExtTpIds = extUser != null ? extractExtUserTpIds(extUser.getEids()) : null;
+        final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
+                ? specialExtUserEids(extUser.getEids())
+                : null;
+        final List<ExtUserTpIdRubicon> userExtTpIds = sourceToUserEidExt != null
+                ? extractExtUserTpIds(sourceToUserEidExt)
+                : null;
+        final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
 
         if (userExtRp != null || userExtTpIds != null || userExtData != null) {
@@ -524,35 +530,34 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
-        final ObjectNode impExtVisitor = rubiconImpExt.getVisitor();
-        final ObjectNode visitor = impExtVisitor != null && impExtVisitor.size() != 0 ? impExtVisitor : null;
+    private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
+        if (CollectionUtils.isEmpty(eids)) {
+            return null;
+        }
 
-        final boolean hasUser = user != null;
-        final String gender = hasUser ? user.getGender() : null;
-        final Integer yob = hasUser ? user.getYob() : null;
-        final Geo geo = hasUser ? user.getGeo() : null;
-
-        return visitor != null || gender != null || yob != null || geo != null
-                ? RubiconUserExtRp.of(visitor, gender, yob, geo)
-                : null;
+        return eids.stream()
+                .filter(extUserEid -> StringUtils.equalsAny(extUserEid.getSource(), ADSERVER_EID, LIVEINTENT_EID))
+                .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
+                .collect(Collectors.groupingBy(ExtUserEid::getSource));
     }
 
     /**
      * Analyzes request.user.ext.eids and returns a list of new {@link ExtUserTpIdRubicon}s for supported vendors.
      */
-    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(List<ExtUserEid> eids) {
+    private static List<ExtUserTpIdRubicon> extractExtUserTpIds(Map<String, List<ExtUserEid>> specialExtUserEids) {
         final List<ExtUserTpIdRubicon> result = new ArrayList<>();
-        for (ExtUserEid eid : CollectionUtils.emptyIfNull(eids)) {
-            if (Objects.equals(eid.getSource(), ADSERVER_EID)) {
-                final List<ExtUserEidUid> uids = eid.getUids();
-                final ExtUserTpIdRubicon tpId = CollectionUtils.isNotEmpty(uids) ? extUserTpIdForAdServer(
-                        uids.get(0)) : null;
-                if (tpId != null) {
-                    result.add(tpId);
-                }
-            }
-        }
+
+        specialExtUserEids.getOrDefault(ADSERVER_EID, Collections.emptyList()).stream()
+                .map(extUserEid -> extUserTpIdForAdServer(extUserEid.getUids().get(0)))
+                .filter(Objects::nonNull)
+                .forEach(result::add);
+
+        specialExtUserEids.getOrDefault(LIVEINTENT_EID, Collections.emptyList()).stream()
+                .map(extUserEid -> extUserTpIdForLiveintent(extUserEid.getUids().get(0)))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .ifPresent(result::add);
+
         return result.isEmpty() ? null : result;
     }
 
@@ -564,6 +569,47 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return ext != null && Objects.equals(ext.getRtiPartner(), "TDID")
                 ? ExtUserTpIdRubicon.of("tdid", adServerEidUid.getId())
                 : null;
+    }
+
+    /**
+     * Extracts {@link ExtUserTpIdRubicon} for Liveintent.
+     */
+    private static ExtUserTpIdRubicon extUserTpIdForLiveintent(ExtUserEidUid adServerEidUid) {
+        final String id = adServerEidUid != null ? adServerEidUid.getId() : null;
+        return id != null ? ExtUserTpIdRubicon.of(LIVEINTENT_EID, id) : null;
+    }
+
+    private static RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt,
+                                                     Map<String, List<ExtUserEid>> sourceToUserEidExt) {
+        final ObjectNode impExtVisitor = rubiconImpExt.getVisitor();
+        final ObjectNode visitor = impExtVisitor != null && impExtVisitor.size() != 0 ? impExtVisitor : null;
+
+        final boolean hasUser = user != null;
+        final String gender = hasUser ? user.getGender() : null;
+        final Integer yob = hasUser ? user.getYob() : null;
+        final Geo geo = hasUser ? user.getGeo() : null;
+
+        final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, visitor);
+
+        return target != null || gender != null || yob != null || geo != null
+                ? RubiconUserExtRp.of(target, gender, yob, geo)
+                : null;
+    }
+
+    private static JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt,
+                                                   ObjectNode visitor) {
+        if (sourceToUserEidExt == null || CollectionUtils.isEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
+            return visitor;
+        }
+        final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
+        final JsonNode segment = ext != null ? ext.get("segments") : null;
+
+        if (segment == null) {
+            return visitor;
+        }
+        final ObjectNode result = visitor != null ? visitor : Json.mapper.createObjectNode();
+
+        return result.set("LIseq", segment);
     }
 
     private static Device makeDevice(Device device) {
