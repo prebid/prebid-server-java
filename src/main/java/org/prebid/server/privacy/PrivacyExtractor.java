@@ -19,12 +19,12 @@ public class PrivacyExtractor {
 
     /**
      * Retrieves:
-     * <p>
-     * gdpr from regs.ext.gdpr
-     * us_privacy from regs.ext.us_privacy
-     * consent from user.ext.consent
-     * <p>
-     * In case of any exception or invalid values returns default value
+     * <p><ul>
+     * <li>gdpr from regs.ext.gdpr
+     * <li>us_privacy from regs.ext.us_privacy
+     * <li>consent from user.ext.consent
+     * </ul><p>
+     * And construct {@link Privacy} from them
      */
     public static Privacy privacyFrom(Regs regs, User user) {
         final ExtRegs extRegs = extRegs(regs);
