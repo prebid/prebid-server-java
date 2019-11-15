@@ -22,7 +22,8 @@ import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.gdpr.GdprUtils;
+import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
@@ -205,12 +206,10 @@ public class HttpAdapterConnector {
         if (preBidRequest.getApp() == null
                 && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.getCookieFamilyName()) == null) {
 
-            final String gdpr = GdprUtils.gdprFrom(preBidRequest.getRegs());
-            final String gdprConsent = GdprUtils.gdprConsentFrom(preBidRequest.getUser());
-
+            final Privacy privacy = PrivacyExtractor.privacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(UsersyncInfo.from(usersyncer).withGdpr(gdpr, gdprConsent).assemble());
+                    .usersync(UsersyncInfo.from(usersyncer).withPrivacy(privacy).assemble());
         }
 
         final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()

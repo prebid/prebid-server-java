@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -56,7 +55,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -1301,7 +1299,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null))))
+                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null))))
                 .build();
 
         // when
@@ -1798,7 +1796,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2));
+        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2, null));
         final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
 
         // when

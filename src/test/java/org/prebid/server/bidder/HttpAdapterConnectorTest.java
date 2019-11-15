@@ -583,7 +583,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     public void callShouldReturnGdprAwareAdapterResponseWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        final Regs regs = Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, "1--")));
         final User user = User.builder()
                 .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent$1").build()))
                 .build();
@@ -592,7 +592,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        usersyncer = new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
+        usersyncer = new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}"
+                + "%26gdpr_consent%3D{{gdpr_consent}}"
+                + "%26us_privacy={{us_privacy}}",
                 null, null, null, false);
 
         // when
@@ -604,7 +606,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         assertThat(adapterResponse.getBidderStatus().getNoCookie()).isTrue();
         assertThat(adapterResponse.getBidderStatus().getUsersync()).isNotNull();
         assertThat(adapterResponse.getBidderStatus().getUsersync())
-                .isEqualTo(UsersyncInfo.of("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241", null, false));
+                .isEqualTo(UsersyncInfo.of("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1--", null, false));
     }
 
     @Test

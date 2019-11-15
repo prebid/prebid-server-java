@@ -347,7 +347,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(spec)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, false, null))
+                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1NY", false, null))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -362,7 +362,9 @@ public class ApplicationTest extends IntegrationTest {
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
                                         "http://localhost:8000/setuid?bidder=rubicon"
-                                                + "&gdpr=1&gdpr_consent=" + gdprConsent + "&uid=host-cookie-uid",
+                                                + "&gdpr=1&gdpr_consent=" + gdprConsent
+                                                + "&us_privacy=1NY"
+                                                + "&uid=host-cookie-uid",
                                         "redirect", false))
                                 .build(),
                         BidderUsersyncStatus.builder()
