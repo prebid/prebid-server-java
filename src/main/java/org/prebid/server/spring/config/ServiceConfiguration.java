@@ -237,12 +237,6 @@ public class ServiceConfiguration {
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes) {
 
-        final int minCookieSizeBytes = 500;
-        if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < minCookieSizeBytes) {
-            throw new IllegalArgumentException(String.format(
-                    "Configured cookie size is less than allowed minimum size of %s", maxCookieSizeBytes));
-        }
-
         return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
                 hostCookieDomain, ttlDays, maxCookieSizeBytes);
     }

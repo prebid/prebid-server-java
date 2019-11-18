@@ -30,6 +30,7 @@ public class UidsCookieService {
     private static final Logger logger = LoggerFactory.getLogger(UidsCookieService.class);
 
     private static final String COOKIE_NAME = "uids";
+    private static final int MIN_COOKIE_SIZE_BYTES = 500;
 
     private final String optOutCookieName;
     private final String optOutCookieValue;
@@ -42,6 +43,11 @@ public class UidsCookieService {
     public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
                              String hostCookieName, String hostCookieDomain, Integer ttlDays,
                              Integer maxCookieSizeBytes) {
+        if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
+            throw new IllegalArgumentException(String.format(
+                    "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
+        }
+
         this.optOutCookieName = optOutCookieName;
         this.optOutCookieValue = optOutCookieValue;
         this.hostCookieFamily = hostCookieFamily;
@@ -144,8 +150,7 @@ public class UidsCookieService {
      */
     private static Map.Entry<String, UidWithExpiry> getClosestExpiration(Map.Entry<String, UidWithExpiry> first,
                                                                          Map.Entry<String, UidWithExpiry> second) {
-        return first.getValue().getExpires().toEpochSecond() < second.getValue().getExpires().toEpochSecond()
-                ? first : second;
+        return first.getValue().getExpires().isBefore(second.getValue().getExpires()) ? first : second;
     }
 
     /**
