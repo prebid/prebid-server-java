@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class SovrnBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://sovrn.com/openrtb2d";
+    private static final String ENDPOINT_URL = "http://test/auction";
 
     private SovrnBidder sovrnBidder;
 
@@ -288,9 +288,8 @@ public class SovrnBidderTest extends VertxTest {
                 .build());
 
         // then
-        assertThat(result.getValue())
-                .hasSize(1)
-                .element(0).returns("http://sovrn.com/openrtb2d", HttpRequest::getUri);
+        assertThat(result.getValue()).hasSize(1)
+                .element(0).returns(ENDPOINT_URL, HttpRequest::getUri);
     }
 
     @Test
@@ -302,9 +301,9 @@ public class SovrnBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
-                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
 

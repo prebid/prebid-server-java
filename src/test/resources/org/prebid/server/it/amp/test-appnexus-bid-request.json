@@ -28,13 +28,16 @@
   "site": {
     "domain": "example.com",
     "page": "https://google.com",
+    "publisher": {
+      "id": "accountId"
+    },
     "ext": {
       "amp": 1
     }
   },
   "device": {
     "ua": "userAgent",
-    "ip": "192.168.244.1"
+    "ip": "193.168.244.1"
   },
   "at": 1,
   "tmax": 5000,
