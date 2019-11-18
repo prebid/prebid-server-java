@@ -301,7 +301,7 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
-    public void shouldIncludeWinUrlWhenBidIsNotVideoAndWinUrlIsNotNullAndBidIsWinning() {
+    public void shouldIncludeWinUrlAndBidIdWhenBidIsNotVideoAndWinUrlIsNotNullAndBidIsWinning() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
                 .id("bid1")
@@ -318,5 +318,53 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_bidid_bidder1", "bid1"),
                 entry("hb_winurl", "http://extetranlUrl"));
         assertThat(keywords).doesNotContainKeys("hb_winurl_bidder1");
+    }
+
+    @Test
+    public void shouldNotIncludeWinUrlAndBidIdWhenBidIsVideo() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
+                .id("bid1")
+                .price(BigDecimal.ONE)
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create((String) null, true, true, false)
+                .makeFor(bid, "bidder1", true, null, null, null, null, "http://extetranlUrl", true);
+
+        // then
+        assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
+    }
+
+    @Test
+    public void shouldNotIncludeWinUrlAndBidIdWhenBidIsNotWinning() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
+                .id("bid1")
+                .price(BigDecimal.ONE)
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create((String) null, true, true, false)
+                .makeFor(bid, "bidder1", false, null, null, null, null, "http://extetranlUrl", false);
+
+        // then
+        assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
+    }
+
+    @Test
+    public void shouldNotIncludeWinUrlAndBidIdWhenWinUrlIsNull() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
+                .id("bid1")
+                .price(BigDecimal.ONE)
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create((String) null, true, true, false)
+                .makeFor(bid, "bidder1", true, null, null, null, null, null, false);
+
+        // then
+        assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
     }
 }
