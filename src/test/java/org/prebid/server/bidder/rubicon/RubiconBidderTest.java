@@ -7,6 +7,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -807,6 +808,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
+                        .content(Content.builder().build())
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
@@ -831,6 +833,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
+                        .content(Content.builder().build())
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
@@ -901,25 +904,36 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateRequestPerImp() {
         // given
-        final Imp imp = givenImp(builder -> builder.video(Video.builder().build()));
-        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
+        final Imp imp1 = givenImp(builder -> builder.video(Video.builder().build()));
+        final Imp imp2 = givenImp(builder -> builder.id("2").video(Video.builder().build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final BidRequest expectedBidRequest = BidRequest.builder()
+        final BidRequest expectedBidRequest1 = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
                                 RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
                         .build()))
+                .site(Site.builder().content(Content.builder().build()).build())
+                .build();
+        final BidRequest expectedBidRequest2 = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("2")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(RubiconImpExt.of(
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
+                        .build()))
+                .site(Site.builder().content(Content.builder().build()).build())
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(expectedBidRequest, expectedBidRequest);
+                .containsOnly(expectedBidRequest1, expectedBidRequest2);
     }
 
     @Test
@@ -1167,6 +1181,26 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.readTree("{\"search\":\"site search\"}"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage()  {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp.video(Video.builder().build()),
+                extImp -> extImp.video(RubiconVideoParams.builder().language("ua").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getContent)
+                .extracting(Content::getLanguage)
+                .containsOnly("ua");
     }
 
     @Test
