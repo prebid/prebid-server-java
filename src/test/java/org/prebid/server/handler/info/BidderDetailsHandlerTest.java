@@ -37,7 +37,6 @@ public class BidderDetailsHandlerTest extends VertxTest {
     private BidderCatalog bidderCatalog;
 
     private BidderDetailsHandler handler;
-
     @Mock
     private RoutingContext routingContext;
     @Mock

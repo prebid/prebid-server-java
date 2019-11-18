@@ -9,7 +9,7 @@
       "debug": [
         {
           "request_uri": "{{ audienceNetwork.exchange_uri }}",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode5\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"pub1_place1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"pub1\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"FB-UID\",\"ext\":{\"consent\":\"consent1\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":1}}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}},\"ext\":{\"platformid\":101}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode5\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"pub1_place1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"pub1\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"FB-UID\",\"ext\":{\"consent\":\"consent1\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":1}}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}},\"ext\":{\"platformid\":101}}",
           "response_body": "{\"id\":\"bidResponseId5\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode5\",\"price\":5.78,\"adm\":\"adm5\",\"crid\":\"crid5\",\"dealid\":\"dealId5\",\"w\":300,\"h\":250}],\"seat\":\"seatId5\",\"group\":0}]}",
           "status_code": 200
         }

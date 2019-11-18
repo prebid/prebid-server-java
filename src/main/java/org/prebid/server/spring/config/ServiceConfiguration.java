@@ -67,6 +67,8 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
@@ -140,7 +142,10 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
@@ -150,9 +155,13 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency,
-                storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
-                new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
+        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
+                adServerCurrency, blacklistedAccounts, storedRequestProcessor, implicitParametersExtractor,
+                uidsCookieService, bidderCatalog, requestValidator, new InterstitialProcessor(), timeoutResolver,
+                timeoutFactory, applicationSettings);
     }
 
     @Bean
@@ -258,12 +267,13 @@ public class ServiceConfiguration {
     @Bean
     GdprService gdprService(
             @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics,
             VendorListService vendorListService,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(geoLocationService, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(geoLocationService, metrics, vendorListService, eeaCountries, defaultValue);
     }
 
     @Bean
@@ -283,12 +293,11 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService,
-            CacheService cacheService) {
+            EventsService eventsService) {
 
-        return new BidResponseCreator(bidderCatalog, eventsService, cacheService.getEndpointHost(),
-                cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
     }
 
     @Bean
@@ -299,7 +308,6 @@ public class ServiceConfiguration {
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
-            CacheService cacheService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
@@ -307,8 +315,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyConversionService, cacheService,
-                bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
+                httpBidderRequester, responseBidValidator, currencyConversionService, bidResponseCreator,
+                bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -345,8 +353,12 @@ public class ServiceConfiguration {
 
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator) {
-        return new RequestValidator(bidderCatalog, bidderParamValidator);
+                                      BidderParamValidator bidderParamValidator,
+                                      @Value("${auction.blacklisted-apps}") String blacklistedAppsString) {
+        final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
     }
 
     @Bean

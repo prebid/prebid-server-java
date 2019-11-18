@@ -152,6 +152,6 @@ public final class HttpUtil {
     }
 
     public static String toSetCookieHeaderValue(Cookie cookie) {
-        return String.join("; ", cookie.encode(), "SameSite=none");
+        return String.join("; ", cookie.encode(), "SameSite=None; Secure");
     }
 }

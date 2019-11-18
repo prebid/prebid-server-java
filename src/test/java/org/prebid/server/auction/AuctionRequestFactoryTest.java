@@ -1,13 +1,18 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
@@ -19,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -26,13 +32,18 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -46,6 +57,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -59,10 +71,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
+
+    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -97,12 +112,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().id("accountId").build()));
-
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
     }
 
     @Test
@@ -121,11 +133,63 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
+        // given
+        factory = new AuctionRequestFactory(1000, true, false, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        givenValidBidRequest();
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        verify(applicationSettings, never()).getAccountById(any(), any());
+
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Unauthorised account id ");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
+        // given
+
+        factory = new AuctionRequestFactory(1000, true, false, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().id("absentId").build())
+                        .build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        // when
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        verify(applicationSettings).getAccountById(eq("absentId"), any());
+
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(UnauthorizedAccountException.class)
+                .hasMessage("Unauthorised account id absentId");
+    }
+
+    @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor, timeoutResolver,
-                timeoutFactory, applicationSettings);
+        factory = new AuctionRequestFactory(1, false, false, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -160,7 +224,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         givenImplicitParams("http://example.com", "example.com", "192.168.244.1", "UnitTest");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -173,7 +236,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
         assertThat(request.getDevice())
                 .isEqualTo(Device.builder().ip("192.168.244.1").ua("UnitTest").build());
-        assertThat(request.getUser()).isEqualTo(User.builder().id("userId").build());
     }
 
     @Test
@@ -245,7 +307,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(bidRequest);
 
         givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -352,20 +413,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetUserIfNoHostCookie() {
-        // given
-        givenValidBidRequest();
-
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(request.getUser()).isNull();
-    }
-
-    @Test
     public void shouldSetUserExtDigitrustPerfIfNotDefined() {
         // given
         givenBidRequest(BidRequest.builder()
@@ -375,8 +422,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                                 .build()))
                         .build())
                 .build());
-
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -466,6 +511,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureWithInvalidRequestExceptionWhenStringPriceGranularityInvalid() {
         // given
         givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(new TextNode("invalid"),
                                 null, null, null, null))
@@ -483,10 +529,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDefaultPriceGranularityIfPriceGranularityNodeIsMissed() {
+    public void shouldSetDefaultPriceGranularityIfPriceGranularityAndMediaTypePriceGranularityIsMissing() {
         // given
         givenBidRequest(BidRequest.builder()
-                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .imp(singletonList(Imp.builder().video(Video.builder().build()).ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.of(null, null,
                                 null, null, null))
@@ -505,6 +551,33 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestTargeting::getPricegranularity)
                 .containsOnly(mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
                         BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
+    }
+
+    @Test
+    public void shouldNotSetDefaultPriceGranularityIfThereIsAMediaTypePriceGranularityForImpType() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build())
+                        .ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(null, ExtMediaTypePriceGranularity.of(
+                                mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))), null, null),
+                                null, null, null))
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getPricegranularity)
+                .containsOnly(NullNode.getInstance());
     }
 
     @Test
@@ -556,6 +629,210 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetDefaultIncludeBidderKeysToFalseIfIncludeBidderKeysIsMissedAndWinningonlyIsTrue() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(null, null,
+                                null, null, null))
+                        .cache(ExtRequestPrebidCache.of(null, null, true))
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebidderkeys)
+                .containsOnly(false);
+    }
+
+    @Test
+    public void shouldSetDefaultIncludeBidderKeysToFalseIfIncludeBidderKeysIsMissedAndWinningonlyIsTrueInConfig() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(null, null,
+                                null, null, null))
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebidderkeys)
+                .containsOnly(false);
+    }
+
+    @Test
+    public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidIsNull() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getWinningonly)
+                .containsOnly(true);
+    }
+
+    @Test
+    public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidCacheIsNull() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getWinningonly)
+                .containsOnly(true);
+    }
+
+    @Test
+    public void shouldSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNull() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .cache(ExtRequestPrebidCache.of(null, null, null))
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getWinningonly)
+                .containsOnly(true);
+    }
+
+    @Test
+    public void shouldNotChangeAnyOtherExtRequestPrebidCacheFields() {
+        // given
+        final ExtRequestPrebidCacheBids cacheBids = ExtRequestPrebidCacheBids.of(100, true);
+        final ExtRequestPrebidCacheVastxml cacheVastxml = ExtRequestPrebidCacheVastxml.of(100, true);
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .cache(ExtRequestPrebidCache.of(cacheBids, cacheVastxml, null))
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getBids, ExtRequestPrebidCache::getVastxml)
+                .containsOnly(tuple(cacheBids, cacheVastxml));
+    }
+
+    @Test
+    public void shouldSetCacheWinningonlyFromRequestWhenCacheWinningonlyIsPresent() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .cache(ExtRequestPrebidCache.of(null, null, false))
+                        .build())))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getWinningonly)
+                .containsOnly(false);
+    }
+
+    @Test
+    public void shouldNotSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNullAndConfigValueIsFalse() {
+        // given
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD",
+                BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
+                requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
+
+        final ObjectNode extBidRequest = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .cache(ExtRequestPrebidCache.of(null, null, null))
+                .build()));
+
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(extBidRequest)
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getExt()).isSameAs(extBidRequest);
+    }
+
+    @Test
     public void shouldAddMissingAliases() {
         // given
         final Imp imp1 = Imp.builder()
@@ -580,7 +857,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(bidderCatalog.nameByAlias("configScopedBidderAlias")).willReturn("bidder2");
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
+        final BidRequest request = auctionContextFuture.result().getBidRequest();
 
         // then
         assertThat(singletonList(request))
@@ -592,6 +870,23 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .containsOnly(
                         tuple("requestScopedBidderAlias", "bidder1"),
                         tuple("configScopedBidderAlias", "bidder2"));
+    }
+
+    @Test
+    public void shouldTolerateMissingImpExtWhenProcessingAliases() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(null).build()))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("alias", "bidder"))
+                        .build())))
+                .build());
+
+        // when
+        final Future<AuctionContext> future = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
     }
 
     @Test
@@ -679,6 +974,25 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         verify(timeoutFactory).create(eq(startTime), anyLong());
         assertThat(timeout).isNotNull();
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenAccountIdIsBlacklisted() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("bad_acc").build()).build())
+                .build());
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                        + "server host.");
     }
 
     @Test
@@ -815,11 +1129,15 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
+        try {
+            given(routingContext.getBody()).willReturn(Buffer.buffer(Json.mapper.writeValueAsString(bidRequest)));
 
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
+            given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
 
-        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+            given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
     }
 
     private void givenValidBidRequest() {

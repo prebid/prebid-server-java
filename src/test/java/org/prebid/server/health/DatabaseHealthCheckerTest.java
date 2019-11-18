@@ -37,10 +37,8 @@ public class DatabaseHealthCheckerTest {
 
     @Mock
     private Vertx vertx;
-
     @Mock
     private JDBCClient jdbcClient;
-
     @Mock
     private SQLClient sqlClient;
 

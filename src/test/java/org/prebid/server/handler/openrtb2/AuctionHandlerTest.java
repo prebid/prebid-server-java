@@ -27,12 +27,22 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -56,6 +66,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionHandlerTest extends VertxTest {
 
@@ -93,8 +104,9 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
@@ -166,6 +178,21 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(401));
+        verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
+    }
+
+    @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
@@ -215,6 +242,37 @@ public class AuctionHandlerTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{}"));
+    }
+
+    @Test
+    public void shouldRespondWithCorrectResolvedRequestMediaTypePriceGranularity() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final BidRequest resolvedRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(null,
+                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE)))),
+                                        null, mapper.createObjectNode()), null, null, null))
+                        .build())))
+                .build();
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder()
+                        .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
+                                null, null, null, null)))
+                        .build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(exchangeService).holdAuction(any());
+
+        verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":" +
+                "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":" +
+                "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
     }
 
     @Test
@@ -399,8 +457,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         // simulate calling exception handler that is supposed to update networkerr timer value
         given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
-            ((Handler<Void>) inv.getArgument(0)).handle(null);
-            return null;
+            ((Handler<RuntimeException>) inv.getArgument(0)).handle(new RuntimeException());
+            return httpResponse;
         });
 
         // when

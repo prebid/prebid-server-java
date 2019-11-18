@@ -32,7 +32,20 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
+## Remote-file-syncer
+Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
+
+- `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
+- `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
+- `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
+- `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
+
 ## Auction (OpenRTB)
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
@@ -40,6 +53,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
+- `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
@@ -158,6 +172,9 @@ For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 
+For account processing rules available next options:
+- `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
@@ -214,6 +231,5 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
 ## General settings
-- `external-url` - the setting stands for external URL prebid server is reachable by, 
-for example address of the load-balancer e.g. http://prebid.host.com.
+- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
 - `admin.port` - the port to listen on administration requests.

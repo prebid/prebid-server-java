@@ -32,11 +32,11 @@ public class EplanningTest extends IntegrationTest {
                 .withQueryParam("ncb", equalTo("1"))
                 .withQueryParam("ur", equalTo("http://www.example.com"))
                 .withQueryParam("e", equalTo("testadunitcode:600x300"))
-                .withQueryParam("ip", equalTo("192.168.244.1"))
+                .withQueryParam("ip", equalTo("193.168.244.1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Accept-Language", equalTo("en"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/eplanning/test-eplanning-bid-response-1.json"))));
@@ -49,7 +49,7 @@ public class EplanningTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{""eplanning":"EP-UID"}}

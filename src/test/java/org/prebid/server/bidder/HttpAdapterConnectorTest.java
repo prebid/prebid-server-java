@@ -91,12 +91,10 @@ public class HttpAdapterConnectorTest extends VertxTest {
     private Clock clock;
 
     private HttpAdapterConnector httpAdapterConnector;
-
     @Mock
     private Adapter<?, ?> adapter;
 
     private Usersyncer usersyncer;
-
     @Mock
     private UidsCookie uidsCookie;
 

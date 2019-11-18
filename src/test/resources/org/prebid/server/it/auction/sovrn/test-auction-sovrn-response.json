@@ -9,7 +9,7 @@
       "debug": [
         {
           "request_uri": "{{ sovrn.exchange_uri }}",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode11\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"tagId1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"990011\",\"ext\":{\"consent\":\"consent1\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":1}}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode11\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"tagId1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"990011\",\"ext\":{\"consent\":\"consent1\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":1}}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}}}",
           "response_body": "{\"id\":\"bidResponseId11\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode11\",\"price\":5.78,\"adm\":\"adm11\",\"crid\":\"crid11\",\"dealid\":\"dealId11\",\"w\":300,\"h\":250}],\"seat\":\"seatId11\",\"group\":0}]}",
           "status_code": 200
         }

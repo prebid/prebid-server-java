@@ -77,7 +77,6 @@ public class CacheServiceTest extends VertxTest {
 
     @Mock
     private HttpClient httpClient;
-
     @Mock
     private EventsService eventsService;
 
