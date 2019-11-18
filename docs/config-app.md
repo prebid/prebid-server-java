@@ -214,6 +214,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 ## Health Check
 - `health-check.database.enabled` - if equals to `true` the database health check will be enabled to periodically check database status.
 - `health-check.database.refresh-period-ms` - the refresh period for database status updates.
+- `health-check.geolocation.enabled` - if equals to `true` the geolocation service health check will be enabled to periodically check the status.
+- `health-check.geolocation.refresh-period-ms` - the refresh period for geolocation service status updates.
 
 ## GDPR
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).

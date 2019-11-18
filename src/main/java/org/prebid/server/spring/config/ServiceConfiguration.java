@@ -37,6 +37,7 @@ import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
 import org.prebid.server.health.DatabaseHealthChecker;
+import org.prebid.server.health.GeoLocationHealthChecker;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -81,7 +82,6 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            @Value("${external-url}") String externalUrl,
             EventsService eventsService,
             HttpClient httpClient,
             Clock clock) {
@@ -492,6 +492,16 @@ public class ServiceConfiguration {
                 @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
 
             return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
+        }
+
+        @Bean
+        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
+        HealthChecker geoLocationChecker(
+                Vertx vertx,
+                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
+                GeoLocationService geoLocationService,
+                TimeoutFactory timeoutFactory) {
+            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
         }
 
         @Bean

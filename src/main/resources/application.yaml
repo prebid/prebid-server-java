@@ -87,3 +87,8 @@ gdpr:
         http-client:
           connect-timeout-ms: 2500
           max-redirects: 3
+health-check:
+  database:
+    enabled: false
+  geolocation:
+    enabled: false

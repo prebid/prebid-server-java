@@ -43,3 +43,19 @@ health-check:
     enabled: true,
     refresh-period-ms: 60000
 ```
+
+### GeoLocation Checker
+
+Periodically checks the geolocation service status.
+Can be enabled or disabled by `health-check.geolocation.enabled` property.
+Checks interval can be specified at `health-check.geolocation.refresh-period-ms` property.
+
+Config example:
+
+```yaml
+health-check:
+  geolocation:
+    enabled: true,
+    refresh-period-ms: 60000
+```
+
