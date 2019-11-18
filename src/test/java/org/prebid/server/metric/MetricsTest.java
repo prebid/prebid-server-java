@@ -692,6 +692,39 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldIncrementBothGeoLocationRequestsAndSuccessfulMetrics() {
+        // when
+        metrics.updateGeoLocationMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("geolocation_successful").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementBothGeoLocationRequestsAndFailMetrics() {
+        // when
+        metrics.updateGeoLocationMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("geolocation_fail").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldAlwaysIncrementGeoLocationRequestsMetricAndEitherSuccessfulOrFailMetricDependingOnFlag() {
+        // when
+        metrics.updateGeoLocationMetric(true);
+        metrics.updateGeoLocationMetric(false);
+        metrics.updateGeoLocationMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_requests").getCount()).isEqualTo(3);
+        assertThat(metricRegistry.counter("geolocation_fail").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("geolocation_successful").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void shouldIncrementStoredRequestFoundMetric() {
         // when
         metrics.updateStoredRequestMetric(true);

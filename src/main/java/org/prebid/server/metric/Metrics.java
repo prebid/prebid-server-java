@@ -271,6 +271,15 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updateGeoLocationMetric(boolean successful) {
+        incCounter(MetricName.geolocation_requests);
+        if (successful) {
+            incCounter(MetricName.geolocation_successful);
+        } else {
+            incCounter(MetricName.geolocation_fail);
+        }
+    }
+
     public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
         if (opened) {
             incCounter(MetricName.geolocation_circuitbreaker_opened);

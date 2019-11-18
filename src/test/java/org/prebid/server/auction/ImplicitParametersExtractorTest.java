@@ -115,28 +115,28 @@ public class ImplicitParametersExtractorTest {
     @Test
     public void ipFromShouldReturnSingleIpFromXForwardedFor() {
         // given
-        httpRequest.headers().set("X-Forwarded-For", " 192.168.144.1 ");
+        httpRequest.headers().set("X-Forwarded-For", " 193.168.144.1 ");
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("192.168.144.1");
+        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("193.168.144.1");
     }
 
     @Test
-    public void ipFromShouldReturnFirstIpFromXForwardedFor() {
+    public void ipFromShouldReturnFirstValidIpFromXForwardedFor() {
         // given
-        httpRequest.headers().set("X-Forwarded-For", " 192.168.44.1 , 192.168.144.1 , 192.168.244.1 ");
+        httpRequest.headers().set("X-Forwarded-For", "192.168.144.1 , 192.168.244.2 , 193.168.44.1 ");
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("192.168.44.1");
+        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("193.168.44.1");
     }
 
     @Test
     public void ipFromShouldReturnRemoteAddress() {
         // given
-        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "193.168.244.1"));
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("192.168.244.1");
+        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("193.168.244.1");
     }
 
     @Test

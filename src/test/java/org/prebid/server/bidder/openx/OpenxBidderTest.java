@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 public class OpenxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://openx.com/openrtb2d";
+    private static final String ENDPOINT_URL = "http://test/auction";
 
     private OpenxBidder openxBidder;
 
@@ -343,9 +343,9 @@ public class OpenxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
-                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
 
