@@ -293,7 +293,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
                 final String errorMessage = exception.getMessage();
-                logger.info("Blacklisted: {0}", errorMessage);
+                logger.debug("Blacklisted: {0}", errorMessage);
 
                 errorMessages = Collections.singletonList(errorMessage);
                 status = HttpResponseStatus.FORBIDDEN.code();
