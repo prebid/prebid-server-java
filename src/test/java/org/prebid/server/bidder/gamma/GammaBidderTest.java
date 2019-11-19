@@ -224,7 +224,7 @@ public class GammaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("bad server response: Failed to decode");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("bad server response: body is empty");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

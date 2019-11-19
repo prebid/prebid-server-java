@@ -109,7 +109,7 @@ public class AdponeBidderTest extends VertxTest {
 
         // then
         Assertions.assertThat(result.getErrors()).hasSize(1);
-        Assertions.assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        Assertions.assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
         Assertions.assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         Assertions.assertThat(result.getValue()).isEmpty();
     }

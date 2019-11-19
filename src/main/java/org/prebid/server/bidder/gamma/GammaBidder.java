@@ -204,8 +204,13 @@ public class GammaBidder implements Bidder<Void> {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
+        final String body = httpCall.getResponse().getBody();
+        if (body == null) {
+            return Result.emptyWithError(BidderError.badServerResponse("bad server response: body is empty"));
+        }
+
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = Json.decodeValue(body, BidResponse.class);
             return Result.of(extractBids(bidResponse, bidRequest), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(

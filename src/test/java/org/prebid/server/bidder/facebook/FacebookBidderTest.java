@@ -423,7 +423,7 @@ public class FacebookBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                        && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
+                        && error.getMessage().startsWith("Failed to decode:Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
 
