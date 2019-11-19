@@ -69,7 +69,12 @@ public enum MetricName {
     stored_requests_found,
     stored_requests_missing,
     stored_imps_found,
-    stored_imps_missing;
+    stored_imps_missing,
+
+    // cache
+    request_timer,
+    prebid_cache_request_success_time,
+    prebid_cache_request_error_time;
 
     private final String name;
 

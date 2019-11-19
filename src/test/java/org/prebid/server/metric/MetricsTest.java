@@ -760,6 +760,24 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("stored_imps_missing").getCount()).isEqualTo(1);
     }
 
+    @Test
+    public void shouldIncrementPrebidCacheRequestSuccessTimer() {
+        // when
+        metrics.updateStoredCacheRequestSuccessTime(1424L);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache_request_success_time").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheRequestFailedTimer() {
+        // when
+        metrics.updateStoredCacheRequestFailedTime(1424L);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache_request_error_time").getCount()).isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

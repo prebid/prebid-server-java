@@ -84,6 +84,7 @@ public class ServiceConfiguration {
             @Value("${external-url}") String externalUrl,
             EventsService eventsService,
             HttpClient httpClient,
+            Metrics metrics,
             Clock clock) {
 
         return new CacheService(
@@ -92,6 +93,7 @@ public class ServiceConfiguration {
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
                 eventsService,
+                metrics,
                 clock);
     }
 
