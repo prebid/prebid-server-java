@@ -4,10 +4,10 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -167,7 +167,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).setStatusCode(eq(200));
         verify(httpResponse).end(eq("The gdpr_consent param prevents cookies from being saved"));
     }
@@ -189,7 +189,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("GDPR processing failed with error: gdpr exception"));
     }
@@ -212,7 +212,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse, never()).sendFile(any());
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Unexpected GDPR processing error"));
     }
@@ -262,7 +262,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).sendFile(any());
 
         final String uidsCookie = getUidsCookie();
@@ -296,7 +296,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).end();
         verify(httpResponse, never()).sendFile(any());
 
@@ -326,7 +326,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).sendFile(any());
 
         final String uidsCookie = getUidsCookie();
@@ -356,7 +356,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end();
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
 
         final String uidsCookie = getUidsCookie();
         final Uids decodedUids = decodeUids(uidsCookie);
@@ -387,7 +387,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(routingContext, never()).addCookie(any());
+        verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).end();
 
         final String uidsCookie = getUidsCookie();

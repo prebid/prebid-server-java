@@ -9,7 +9,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
@@ -140,8 +139,7 @@ public class WebConfiguration {
     }
 
     @Bean
-    Router router(CookieHandler cookieHandler,
-                  BodyHandler bodyHandler,
+    Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
                   AuctionHandler auctionHandler,
@@ -160,7 +158,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
@@ -182,11 +179,6 @@ public class WebConfiguration {
         router.get("/").handler(staticHandler); // serves index.html by default
 
         return router;
-    }
-
-    @Bean
-    CookieHandler cookieHandler() {
-        return CookieHandler.create();
     }
 
     @Bean
