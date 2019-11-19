@@ -870,11 +870,16 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateBidResponseExtension() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(emptyList())
+                .build();
 
-        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").adm("[]").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
-                BidderSeatBid.of(singletonList(BidderBid.of(bid, banner, null)), null,
+                BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
                         singletonList(BidderError.badInput("bad_input"))), 100));
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
@@ -892,10 +897,13 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getUsersync()).isNull();
         assertThat(responseExt.getTmaxrequest()).isEqualTo(1000L);
 
-        assertThat(responseExt.getErrors()).hasSize(2)
-                .containsOnly(
-                        entry("bidder1", singletonList(ExtBidderError.of(2, "bad_input"))),
-                        entry("prebid", singletonList(ExtBidderError.of(999, "cacheError"))));
+        assertThat(responseExt.getErrors()).hasSize(2).containsOnly(
+                entry("bidder1", asList(
+                        ExtBidderError.of(2, "bad_input"),
+                        ExtBidderError.of(3, "Failed to decode: Cannot deserialize instance of `com.iab." +
+                                "openrtb.response.Response` out of START_ARRAY token\n at [Source: (String)\"[]\"; " +
+                                "line: 1, column: 1]"))),
+                entry("prebid", singletonList(ExtBidderError.of(999, "cacheError"))));
 
         assertThat(responseExt.getResponsetimemillis()).hasSize(2)
                 .containsOnly(entry("bidder1", 100), entry("cache", 666));

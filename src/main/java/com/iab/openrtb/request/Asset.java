@@ -7,6 +7,9 @@ import lombok.Value;
 @Builder(toBuilder = true)
 @Value
 public class Asset {
+
+    public static final Asset EMPTY = com.iab.openrtb.request.Asset.builder().build();
+
     Integer id;
 
     Integer required;

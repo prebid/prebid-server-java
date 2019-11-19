@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.DataObject;
+import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Request;
@@ -17,6 +19,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
@@ -50,6 +53,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,8 +105,8 @@ public class BidResponseCreator {
                     .cur(bidRequest.getCur().get(0))
                     .nbr(2)  // signal "Invalid Request"
                     .seatbid(Collections.emptyList())
-                    .ext(Json.mapper.valueToTree(
-                            toExtBidResponse(bidderResponses, bidRequest, CacheServiceResult.empty(), debugEnabled)))
+                    .ext(Json.mapper.valueToTree(toExtBidResponse(
+                            bidderResponses, bidRequest, CacheServiceResult.empty(), debugEnabled, null)))
                     .build());
         } else {
             final Set<Bid> winningBids = newOrEmptySet(targeting);
@@ -139,12 +143,14 @@ public class BidResponseCreator {
      * from all bidders.
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                            CacheServiceResult cacheResult, boolean debugEnabled) {
+                                            CacheServiceResult cacheResult, boolean debugEnabled,
+                                            Map<String, List<ExtBidderError>> bidErrors) {
 
         final ExtResponseDebug extResponseDebug = debugEnabled
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
                 : null;
-        final Map<String, List<ExtBidderError>> errors = toExtBidderErrors(bidderResponses, bidRequest, cacheResult);
+        final Map<String, List<ExtBidderError>> errors =
+                toExtBidderErrors(bidderResponses, bidRequest, cacheResult, bidErrors);
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null);
@@ -344,20 +350,40 @@ public class BidResponseCreator {
     }
 
     private Map<String, List<ExtBidderError>> toExtBidderErrors(List<BidderResponse> bidderResponses,
-                                                                BidRequest bidRequest, CacheServiceResult cacheResult) {
+                                                                BidRequest bidRequest, CacheServiceResult cacheResult,
+                                                                Map<String, List<ExtBidderError>> bidErrors) {
         final Map<String, List<ExtBidderError>> errors = new HashMap<>();
 
         errors.putAll(extractBidderErrors(bidderResponses));
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
         errors.putAll(extractCacheErrors(cacheResult));
 
+        if (MapUtils.isNotEmpty(bidErrors)) {
+            addBidErrors(errors, bidErrors);
+        }
+
         return errors.isEmpty() ? null : errors;
+    }
+
+    /**
+     * Adds bid errors: if value by key exists - add errors to its list, otherwise - add an entry.
+     */
+    private static void addBidErrors(Map<String, List<ExtBidderError>> errors,
+                                     Map<String, List<ExtBidderError>> bidErrors) {
+        for (Map.Entry<String, List<ExtBidderError>> errorEntry : bidErrors.entrySet()) {
+            final List<ExtBidderError> extBidderErrors = errors.get(errorEntry.getKey());
+            if (extBidderErrors != null) {
+                extBidderErrors.addAll(errorEntry.getValue());
+            } else {
+                errors.put(errorEntry.getKey(), errorEntry.getValue());
+            }
+        }
     }
 
     /**
      * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
      */
-    private Map<String, List<ExtBidderError>> extractBidderErrors(List<BidderResponse> bidderResponses) {
+    private static Map<String, List<ExtBidderError>> extractBidderErrors(List<BidderResponse> bidderResponses) {
         return bidderResponses.stream()
                 .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors()))
                 .collect(Collectors.toMap(BidderResponse::getBidder,
@@ -429,13 +455,15 @@ public class BidResponseCreator {
             Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
             CacheServiceResult cacheResult, Account account, boolean debugEnabled) {
 
+        final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest, winningBids,
-                        winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), account))
+                        winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), account, bidErrors))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse extBidResponse = toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled);
+        final ExtBidResponse extBidResponse =
+                toExtBidResponse(bidderResponses, bidRequest, cacheResult, debugEnabled, bidErrors);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -451,12 +479,14 @@ public class BidResponseCreator {
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, ExtRequestTargeting targeting, BidRequest bidRequest,
                               Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                              Map<Bid, CacheIdInfo> cachedBids, Account account) {
+                              Map<Bid, CacheIdInfo> cachedBids, Account account,
+                              Map<String, List<ExtBidderError>> bidErrors) {
         final String bidder = bidderResponse.getBidder();
 
         final List<Bid> bids = bidderResponse.getSeatBid().getBids().stream()
                 .map(bidderBid -> toBid(bidderBid, bidder, targeting, bidRequest, winningBids, winningBidsByBidder,
-                        cacheInfo, cachedBids, account))
+                        cacheInfo, cachedBids, account, bidErrors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         return SeatBid.builder()
@@ -471,14 +501,22 @@ public class BidResponseCreator {
      */
     private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting, BidRequest bidRequest,
                       Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                      Map<Bid, CacheIdInfo> bidsWithCacheIds, Account account) {
+                      Map<Bid, CacheIdInfo> bidsWithCacheIds, Account account,
+                      Map<String, List<ExtBidderError>> bidErrors) {
 
         final Bid bid = bidderBid.getBid();
         final BidType bidType = bidderBid.getType();
 
         final boolean isApp = bidRequest.getApp() != null;
         if (isApp && bidType.equals(BidType.xNative)) {
-            addNativeMarkup(bid, bidRequest.getImp());
+            try {
+                addNativeMarkup(bid, bidRequest.getImp());
+            } catch (PreBidException e) {
+                bidErrors.putIfAbsent(bidder, new ArrayList<>());
+                bidErrors.get(bidder)
+                        .add(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
+                return null;
+            }
         }
 
         final boolean eventsEnabled = Objects.equals(account.getEventsEnabled(), true);
@@ -552,14 +590,16 @@ public class BidResponseCreator {
 
     private static void setAssetTypes(Asset responseAsset, List<com.iab.openrtb.request.Asset> requestAssets) {
         if (responseAsset.getImg() != null) {
-            final Integer type = getAssetById(responseAsset.getId(), requestAssets).getImg().getType();
-            if (!Objects.equals(type, 0)) {
+            final ImageObject img = getAssetById(responseAsset.getId(), requestAssets).getImg();
+            final Integer type = img != null ? img.getType() : null;
+            if (type != null) {
                 responseAsset.getImg().setType(type);
             }
         }
         if (responseAsset.getData() != null) {
-            final Integer type = getAssetById(responseAsset.getId(), requestAssets).getData().getType();
-            if (!Objects.equals(type, 0)) {
+            final DataObject data = getAssetById(responseAsset.getId(), requestAssets).getData();
+            final Integer type = data != null ? data.getType() : null;
+            if (type != null) {
                 responseAsset.getData().setType(type);
             }
         }
@@ -570,7 +610,7 @@ public class BidResponseCreator {
         return requestAssets.stream()
                 .filter(asset -> asset.getId() == assetId)
                 .findFirst()
-                .orElse(com.iab.openrtb.request.Asset.builder().build());
+                .orElse(com.iab.openrtb.request.Asset.EMPTY);
     }
 
     /**
