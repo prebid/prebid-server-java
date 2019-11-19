@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -217,6 +218,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(site, rubiconImpExt))
                 .app(makeApp(app, rubiconImpExt))
+                .source(makeSource(bidRequest.getSource(), rubiconImpExt.getPchain()))
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
                 .build();
@@ -224,8 +226,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static ExtImpRubicon parseRubiconExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpRubicon>>convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            return Json.mapper.convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -657,6 +658,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static RubiconAppExt makeAppExt(ExtImpRubicon rubiconImpExt) {
         return RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
+    }
+
+    private static Source makeSource(Source source, String pchain) {
+        if (StringUtils.isNotEmpty(pchain)) {
+            final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
+            return builder.pchain(pchain).build();
+        }
+        return source;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {

@@ -33,6 +33,10 @@
         "type": "array"
       }
     },
+    "pchain": {
+      "type": "string",
+      "description": "A payment ID chain string"
+    },
     "video": {
       "type": "object",
       "description": "An object defining additional Rubicon video parameters",
