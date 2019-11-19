@@ -65,7 +65,7 @@ public class InitializationConfiguration {
         final JdbcPeriodicRefreshService ampJdbcPeriodicRefreshService =
                 ampJdbcPeriodicRefreshServiceProvider.getIfAvailable();
 
-        contextRunner.runOnServiceContext(future -> {
+        contextRunner.runOnServiceContext(promise -> {
             if (currencyConversionService != null) {
                 currencyConversionService.initialize();
             }
@@ -82,7 +82,7 @@ public class InitializationConfiguration {
                 ampJdbcPeriodicRefreshService.initialize();
             }
 
-            future.complete();
+            promise.complete();
         });
     }
 }

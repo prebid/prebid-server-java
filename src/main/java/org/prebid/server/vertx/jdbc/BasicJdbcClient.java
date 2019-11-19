@@ -2,6 +2,7 @@ package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
@@ -44,9 +45,9 @@ public class BasicJdbcClient implements JdbcClient {
      * Must be called on Vertx event loop thread.
      */
     public Future<Void> initialize() {
-        final Future<SQLConnection> connectionFuture = Future.future();
-        jdbcClient.getConnection(connectionFuture.completer());
-        return connectionFuture
+        final Promise<SQLConnection> connectionPromise = Promise.promise();
+        jdbcClient.getConnection(connectionPromise);
+        return connectionPromise.future()
                 .recover(BasicJdbcClient::logConnectionError)
                 .mapEmpty();
     }
@@ -59,30 +60,30 @@ public class BasicJdbcClient implements JdbcClient {
             return Future.failedFuture(timeoutException());
         }
         final long startTime = clock.millis();
-        final Future<ResultSet> queryResultFuture = Future.future();
+        final Promise<ResultSet> queryResultPromise = Promise.promise();
 
         // timeout implementation is inspired by this answer:
         // https://groups.google.com/d/msg/vertx/eSf3AQagGGU/K7pztnjLc_EJ
-        final long timerId = vertx.setTimer(remainingTimeout, id -> timedOutResult(queryResultFuture, startTime));
+        final long timerId = vertx.setTimer(remainingTimeout, id -> timedOutResult(queryResultPromise, startTime));
 
-        final Future<SQLConnection> connectionFuture = Future.future();
-        jdbcClient.getConnection(connectionFuture.completer());
-        connectionFuture
+        final Promise<SQLConnection> connectionPromise = Promise.promise();
+        jdbcClient.getConnection(connectionPromise);
+        connectionPromise.future()
                 .recover(BasicJdbcClient::logConnectionError)
                 .compose(connection -> makeQuery(connection, query, params))
-                .setHandler(result -> handleResult(result, queryResultFuture, timerId, startTime));
+                .setHandler(result -> handleResult(result, queryResultPromise, timerId, startTime));
 
-        return queryResultFuture.map(mapper);
+        return queryResultPromise.future().map(mapper);
     }
 
     /**
-     * Fails result {@link Future} with timeout exception.
+     * Fails result {@link Promise} with timeout exception.
      */
-    private void timedOutResult(Future<ResultSet> queryResultFuture, long startTime) {
+    private void timedOutResult(Promise<ResultSet> queryResultPromise, long startTime) {
         // no need for synchronization since timer is fired on the same event loop thread
-        if (!queryResultFuture.isComplete()) {
+        if (!queryResultPromise.future().isComplete()) {
             metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
-            queryResultFuture.fail(timeoutException());
+            queryResultPromise.fail(timeoutException());
         }
     }
 
@@ -95,26 +96,27 @@ public class BasicJdbcClient implements JdbcClient {
      * Performs query to DB.
      */
     private static Future<ResultSet> makeQuery(SQLConnection connection, String query, List<Object> params) {
-        final Future<ResultSet> resultSetFuture = Future.future();
+        final Promise<ResultSet> resultSetPromise = Promise.promise();
         connection.queryWithParams(query, new JsonArray(params),
                 ar -> {
                     connection.close();
-                    resultSetFuture.handle(ar);
+                    resultSetPromise.handle(ar);
                 });
-        return resultSetFuture;
+        return resultSetPromise.future();
     }
 
     /**
-     * Propagates responded {@link ResultSet} (or failure) to result {@link Future}.
+     * Propagates responded {@link ResultSet} (or failure) to result {@link Promise}.
      */
-    private void handleResult(AsyncResult<ResultSet> result, Future<ResultSet> queryResultFuture, long timerId,
-                              long startTime) {
+    private void handleResult(
+            AsyncResult<ResultSet> result, Promise<ResultSet> queryResultPromise, long timerId, long startTime) {
+
         vertx.cancelTimer(timerId);
 
         // check is to avoid harmless exception if timeout exceeds before successful result becomes ready
-        if (!queryResultFuture.isComplete()) {
+        if (!queryResultPromise.future().isComplete()) {
             metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
-            queryResultFuture.handle(result);
+            queryResultPromise.handle(result);
         }
     }
 

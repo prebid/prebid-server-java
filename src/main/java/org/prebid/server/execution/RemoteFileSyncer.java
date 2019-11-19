@@ -2,6 +2,7 @@ package org.prebid.server.execution;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.FileProps;
@@ -88,123 +89,127 @@ public class RemoteFileSyncer {
     }
 
     private Future<Void> downloadIfNotExist() {
-        final Future<Void> future = Future.future();
-        fileSystem.exists(saveFilePath, existResult -> handleFileExists(future, existResult));
-        return future;
+        final Promise<Void> promise = Promise.promise();
+        fileSystem.exists(saveFilePath, existResult -> handleFileExists(promise, existResult));
+        return promise.future();
     }
 
-    private void handleFileExists(Future<Void> future, AsyncResult<Boolean> existResult) {
+    private void handleFileExists(Promise<Void> promise, AsyncResult<Boolean> existResult) {
         if (existResult.succeeded()) {
             if (existResult.result()) {
-                future.complete();
+                promise.complete();
             } else {
-                tryDownload(future);
+                tryDownload(promise);
             }
         } else {
-            future.fail(existResult.cause());
+            promise.fail(existResult.cause());
         }
     }
 
-    private void tryDownload(Future<Void> future) {
-        download().setHandler(downloadResult -> handleDownload(future, downloadResult));
+    private void tryDownload(Promise<Void> promise) {
+        download().setHandler(downloadResult -> handleDownload(promise, downloadResult));
     }
 
     private Future<Void> download() {
-        final Future<Void> future = Future.future();
+        final Promise<Void> promise = Promise.promise();
         final OpenOptions openOptions = new OpenOptions().setCreateNew(true);
-        fileSystem.open(saveFilePath, openOptions, openResult -> handleFileOpenWithDownload(future, openResult));
-        return future;
+        fileSystem.open(saveFilePath, openOptions, openResult -> handleFileOpenWithDownload(promise, openResult));
+        return promise.future();
     }
 
-    private void handleFileOpenWithDownload(Future<Void> future, AsyncResult<AsyncFile> openResult) {
+    private void handleFileOpenWithDownload(Promise<Void> promise, AsyncResult<AsyncFile> openResult) {
         if (openResult.succeeded()) {
             final AsyncFile asyncFile = openResult.result();
             try {
                 // .getNow is not working
                 final HttpClientRequest httpClientRequest = httpClient
-                        .getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, future));
+                        .getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, promise));
                 httpClientRequest.end();
             } catch (Exception ex) {
-                future.fail(ex);
+                promise.fail(ex);
             }
         } else {
-            future.fail(openResult.cause());
+            promise.fail(openResult.cause());
         }
     }
 
-    private void pumpFileFromRequest(HttpClientResponse httpClientResponse, AsyncFile asyncFile, Future<Void> future) {
+    private void pumpFileFromRequest(
+            HttpClientResponse httpClientResponse, AsyncFile asyncFile, Promise<Void> promise) {
+
         httpClientResponse.pause();
         final Pump pump = Pump.pump(httpClientResponse, asyncFile);
         pump.start();
         httpClientResponse.resume();
 
-        final long idTimer = setTimeoutTimer(asyncFile, future, pump);
+        final long idTimer = setTimeoutTimer(asyncFile, promise, pump);
 
-        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, future, idTimer));
+        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, promise, idTimer));
     }
 
-    private long setTimeoutTimer(AsyncFile asyncFile, Future<Void> future, Pump pump) {
-        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, future, pump));
+    private long setTimeoutTimer(AsyncFile asyncFile, Promise<Void> promise, Pump pump) {
+        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, promise, pump));
     }
 
-    private void handleTimeout(AsyncFile asyncFile, Future<Void> future, Pump pump) {
+    private void handleTimeout(AsyncFile asyncFile, Promise<Void> promise, Pump pump) {
         pump.stop();
         asyncFile.close();
-        if (!future.isComplete()) {
-            future.fail(new TimeoutException("Timeout on download"));
+        if (!promise.future().isComplete()) {
+            promise.fail(new TimeoutException("Timeout on download"));
         }
     }
 
-    private void handleResponseEnd(AsyncFile asyncFile, Future<Void> future, long idTimer) {
+    private void handleResponseEnd(AsyncFile asyncFile, Promise<Void> promise, long idTimer) {
         vertx.cancelTimer(idTimer);
-        asyncFile.flush().close(future);
+        asyncFile.flush().close(promise);
     }
 
-    private void handleDownload(Future<Void> future, AsyncResult<Void> downloadResult) {
+    private void handleDownload(Promise<Void> promise, AsyncResult<Void> downloadResult) {
         if (downloadResult.failed()) {
-            retryDownload(future, retryInterval, retryCount);
+            retryDownload(promise, retryInterval, retryCount);
         } else {
-            future.complete();
+            promise.complete();
         }
     }
 
-    private void retryDownload(Future<Void> receivedFuture, long retryInterval, long retryCount) {
-        vertx.setTimer(retryInterval, retryTimerId -> handleRetry(receivedFuture, retryInterval, retryCount));
+    private void retryDownload(Promise<Void> receivedPromise, long retryInterval, long retryCount) {
+        vertx.setTimer(retryInterval, retryTimerId -> handleRetry(receivedPromise, retryInterval, retryCount));
     }
 
-    private void handleRetry(Future<Void> receivedFuture, long retryInterval, long retryCount) {
+    private void handleRetry(Promise<Void> receivedPromise, long retryInterval, long retryCount) {
         if (retryCount > 0) {
             final long next = retryCount - 1;
             cleanUp().compose(aVoid -> download())
-                    .setHandler(retryResult -> handleRetryResult(receivedFuture, retryInterval, next, retryResult));
+                    .setHandler(retryResult -> handleRetryResult(receivedPromise, retryInterval, next, retryResult));
         } else {
-            cleanUp().setHandler(aVoid -> receivedFuture.fail(new PreBidException("File sync failed after retries")));
+            cleanUp().setHandler(aVoid -> receivedPromise.fail(new PreBidException("File sync failed after retries")));
         }
     }
 
     private Future<Void> cleanUp() {
-        final Future<Void> future = Future.future();
-        fileSystem.exists(saveFilePath, existResult -> handleFileExistsWithDelete(future, existResult));
-        return future;
+        final Promise<Void> promise = Promise.promise();
+        fileSystem.exists(saveFilePath, existResult -> handleFileExistsWithDelete(promise, existResult));
+        return promise.future();
     }
 
-    private void handleFileExistsWithDelete(Future<Void> future, AsyncResult<Boolean> existResult) {
+    private void handleFileExistsWithDelete(Promise<Void> promise, AsyncResult<Boolean> existResult) {
         if (existResult.succeeded()) {
             if (existResult.result()) {
-                fileSystem.delete(saveFilePath, future);
+                fileSystem.delete(saveFilePath, promise);
             } else {
-                future.complete();
+                promise.complete();
             }
         } else {
-            future.fail(new PreBidException(String.format("Cant check if file exists %s", saveFilePath)));
+            promise.fail(new PreBidException(String.format("Cant check if file exists %s", saveFilePath)));
         }
     }
 
-    private void handleRetryResult(Future<Void> future, long retryInterval, long next, AsyncResult<Void> retryResult) {
+    private void handleRetryResult(
+            Promise<Void> promise, long retryInterval, long next, AsyncResult<Void> retryResult) {
+
         if (retryResult.succeeded()) {
-            future.complete();
+            promise.complete();
         } else {
-            retryDownload(future, retryInterval, next);
+            retryDownload(promise, retryInterval, next);
         }
     }
 

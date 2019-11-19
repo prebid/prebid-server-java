@@ -27,8 +27,13 @@ public class CircuitBreaker {
 
     private volatile long lastFailureTime;
 
-    public CircuitBreaker(String name, Vertx vertx, int openingThreshold, long openingIntervalMs,
-                          long closingIntervalMs, Clock clock) {
+    public CircuitBreaker(String name,
+                          Vertx vertx,
+                          int openingThreshold,
+                          long openingIntervalMs,
+                          long closingIntervalMs,
+                          Clock clock) {
+
         breaker = io.vertx.circuitbreaker.CircuitBreaker.create(
                 Objects.requireNonNull(name),
                 Objects.requireNonNull(vertx),
@@ -44,24 +49,24 @@ public class CircuitBreaker {
     /**
      * Executes the given operation with the circuit breaker control.
      */
-    public <T> Future<T> execute(Handler<Future<T>> command) {
+    public <T> Future<T> execute(Handler<Promise<T>> command) {
         return breaker.execute(promise -> execute(command, promise));
     }
 
     /**
-     * Executes operation and handle result of it on given {@link Future}.
+     * Executes operation and handle result of it on given {@link Promise}.
      */
-    private <T> void execute(Handler<Future<T>> command, Promise<T> promise) {
-        final Future<T> passedFuture = Future.future();
-        command.handle(passedFuture);
+    private <T> void execute(Handler<Promise<T>> command, Promise<T> promise) {
+        final Promise<T> passedPromise = Promise.promise();
+        command.handle(passedPromise);
 
-        passedFuture
+        passedPromise.future()
                 .compose(response -> succeedBreaker(response, promise))
                 .recover(exception -> failBreaker(exception, promise));
     }
 
     /**
-     * Succeeds given {@link Future} and returns it.
+     * Succeeds given {@link Promise} and returns corresponding {@link Future}.
      */
     private static <T> Future<T> succeedBreaker(T result, Promise<T> promise) {
         promise.complete(result);
@@ -69,13 +74,13 @@ public class CircuitBreaker {
     }
 
     /**
-     * Fails given {@link Future} and returns it.
+     * Fails given {@link Promise} and returns corresponding {@link Future}.
      */
     private <T> Future<T> failBreaker(Throwable exception, Promise<T> promise) {
-        final Future<T> ensureStateFuture = Future.future();
-        vertx.executeBlocking(this::ensureState, false, ensureStateFuture);
+        final Promise<T> ensureStatePromise = Promise.promise();
+        vertx.executeBlocking(this::ensureState, false, ensureStatePromise);
 
-        return ensureStateFuture
+        return ensureStatePromise.future()
                 .recover(throwable -> {
                     logger.warn("Resetting circuit breaker state failed", throwable);
                     promise.fail(throwable);

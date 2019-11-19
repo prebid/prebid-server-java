@@ -1,6 +1,6 @@
 package org.prebid.server.health;
 
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
@@ -36,9 +36,9 @@ public class DatabaseHealthChecker extends PeriodicHealthChecker {
 
     @Override
     void updateStatus() {
-        final Future<SQLConnection> connectionFuture = Future.future();
-        jdbcClient.getConnection(connectionFuture.completer());
-        connectionFuture.setHandler(result ->
+        final Promise<SQLConnection> connectionPromise = Promise.promise();
+        jdbcClient.getConnection(connectionPromise);
+        connectionPromise.future().setHandler(result ->
                 status = StatusResponse.of(
                         result.succeeded() ? Status.UP.name() : Status.DOWN.name(),
                         ZonedDateTime.now(Clock.systemUTC())));

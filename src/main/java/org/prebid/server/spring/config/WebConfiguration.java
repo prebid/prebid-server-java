@@ -100,11 +100,11 @@ public class WebConfiguration {
         logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
                 httpPort);
 
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
+        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
                 vertx.createHttpServer(httpServerOptions)
                         .exceptionHandler(exceptionHandler)
                         .requestHandler(router)
-                        .listen(httpPort, future));
+                        .listen(httpPort, promise));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
@@ -437,8 +437,8 @@ public class WebConfiguration {
                 router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
             }
 
-            contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router).listen(adminPort, future));
+            contextRunner.<HttpServer>runOnServiceContext(promise ->
+                    vertx.createHttpServer().requestHandler(router).listen(adminPort, promise));
 
             logger.info("Successfully started Admin Server");
         }
