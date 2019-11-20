@@ -72,7 +72,6 @@ public enum MetricName {
     stored_imps_missing,
 
     // cache
-    request_timer,
     prebid_cache_request_success_time,
     prebid_cache_request_error_time;
 

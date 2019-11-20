@@ -38,8 +38,8 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `geolocation_fail` - number of failed geo location lookup responses
 - `geolocation_circuitbreaker_opened` - number of times geo location circuit breaker was opened (geo location resource is unavailable)
 - `geolocation_circuitbreaker_closed` - number of times geo location circuit breaker was closed (geo location resource is available again)
-- `prebid_cache_request_success_time` - timer tracking how long did succeeded request to cache take
-- `prebid_cache_request_error_time` -timer tracking how long did failed request to cache take
+- `prebid_cache_request_success_time` - timer tracking how long did successful cache request take
+- `prebid_cache_request_error_time` -timer tracking how long did failed cache request take
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID
