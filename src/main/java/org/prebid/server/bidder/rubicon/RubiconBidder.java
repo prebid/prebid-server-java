@@ -240,7 +240,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         .setParameter(TK_XINT_QUERY_PARAMETER, tkXint)
                         .build().toString();
             } catch (URISyntaxException e) {
-                logger.warn("Cant add the tk_xint value for url");
+                throw new PreBidException(String.format("Cant add the tk_xint value for url: %s", tkXint), e);
             }
         }
         return endpointUrl;
@@ -610,7 +610,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
         final ObjectNode result = visitor != null ? visitor : Json.mapper.createObjectNode();
 
-        return result.set("LIseq", segment);
+        return result.set("LIseg", segment);
     }
 
     private static Device makeDevice(Device device) {
