@@ -2,17 +2,49 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId18",
+      "id": "impId01",
       "video": {
         "mimes": [
           "mimes"
         ]
       },
-      "exp": 230,
+      "ext": {
+        "beachfront": {
+          "appId": "beachfrontAppId1",
+          "bidfloor": 1,
+          "videoResponseType": "nurl"
+        }
+      }
+    },
+    {
+      "id": "impId02",
+      "video": {
+        "mimes": [
+          "mimes"
+        ]
+      },
       "ext": {
         "beachfront": {
           "appId": "beachfrontAppId",
-          "bidfloor": 1
+          "bidfloor": 2,
+          "videoResponseType": "adm"
+        }
+      }
+    },
+    {
+      "id": "impId03",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "beachfront": {
+          "appId": "beachfrontAppId",
+          "bidfloor": 3
         }
       }
     }
