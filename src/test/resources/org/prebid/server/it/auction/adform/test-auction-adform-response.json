@@ -8,7 +8,7 @@
       "num_bids": 1,
       "debug": [
         {
-          "request_uri": "{{ adform.exchange_uri }}?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent1&ip=192.168.244.1&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE",
+          "request_uri": "{{ adform.exchange_uri }}?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent1&ip=193.168.244.1&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE",
           "response_body": "[{\"response\":\"banner\",\"banner\":\"adm12\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\",\"win_crid\":\"crid12\"}]",
           "status_code": 200
         }

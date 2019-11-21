@@ -17,7 +17,8 @@ class SharethroughUriBuilderUtil {
     /**
      * Creates uri with parameters for sharethrough request
      */
-    static String buildSharethroughUrl(String baseUri, String supplyId, String strVersion, StrUriParameters params) {
+    static String buildSharethroughUrl(String baseUri, String supplyId, String strVersion, String formattedDate,
+                                       StrUriParameters params) {
         final URIBuilder uriBuilder = new URIBuilder()
                 .setPath(baseUri)
                 .addParameter("placement_key", params.getPkey())
@@ -28,6 +29,7 @@ class SharethroughUriBuilderUtil {
                 .addParameter("stayInIframe", getBooleanStringValue(params.getIframe()))
                 .addParameter("height", String.valueOf(params.getHeight()))
                 .addParameter("width", String.valueOf(params.getWidth()))
+                .addParameter("adRequestAt", formattedDate)
                 .addParameter("supplyId", supplyId)
                 .addParameter("strVersion", strVersion);
 

@@ -103,7 +103,6 @@ public class FileApplicationSettingsTest {
         assertThat(account.failed()).isTrue();
     }
 
-
     @Test
     public void getAdUnitConfigByIdShouldReturnEmptyWhenConfigsAreMissing() {
         // given
@@ -176,8 +175,6 @@ public class FileApplicationSettingsTest {
         assertThat(storedRequestResult.succeeded()).isTrue();
         assertThat(storedRequestResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No stored request found for id: 2"));
-        assertThat(storedRequestResult.result().getStoredIdToRequest()).isNotNull().hasSize(1)
-                .isEqualTo(singletonMap("1", "value1"));
     }
 
     @Test
@@ -206,8 +203,6 @@ public class FileApplicationSettingsTest {
         assertThat(storedRequestResult.succeeded()).isTrue();
         assertThat(storedRequestResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No stored imp found for id: 2"));
-        assertThat(storedRequestResult.result().getStoredIdToRequest()).isNotNull().hasSize(1)
-                .isEqualTo(singletonMap("1", "value1"));
     }
 
     @Test

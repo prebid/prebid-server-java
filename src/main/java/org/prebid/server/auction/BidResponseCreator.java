@@ -514,11 +514,14 @@ public class BidResponseCreator {
 
     /**
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
-     * instance if they are present.
+     * instance if it is present.
      * <p>
      */
     private static TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
-        return TargetingKeywordsCreator.create(parsePriceGranularity(targeting.getPricegranularity()),
+        final JsonNode pricegranularity = targeting.getPricegranularity();
+        return pricegranularity == null || pricegranularity.isNull()
+                ? null
+                : TargetingKeywordsCreator.create(parsePriceGranularity(pricegranularity),
                 targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp);
     }
 
@@ -536,21 +539,21 @@ public class BidResponseCreator {
 
         final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
 
-        final JsonNode banner = mediaTypePriceGranularity.getBanner();
+        final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
             result.put(BidType.banner, TargetingKeywordsCreator.create(parsePriceGranularity(banner),
                     targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
         }
 
-        final JsonNode video = mediaTypePriceGranularity.getVideo();
+        final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
             result.put(BidType.video, TargetingKeywordsCreator.create(parsePriceGranularity(video),
                     targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
         }
 
-        final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+        final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
             result.put(BidType.xNative, TargetingKeywordsCreator.create(parsePriceGranularity(xNative),
