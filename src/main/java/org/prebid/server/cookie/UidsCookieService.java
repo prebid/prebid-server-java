@@ -41,8 +41,7 @@ public class UidsCookieService {
     private final Integer maxCookieSizeBytes;
 
     public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
-                             String hostCookieName, String hostCookieDomain, Integer ttlDays,
-                             Integer maxCookieSizeBytes) {
+                             String hostCookieName, String hostCookieDomain, int ttlDays, int maxCookieSizeBytes) {
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
             throw new IllegalArgumentException(String.format(
                     "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
