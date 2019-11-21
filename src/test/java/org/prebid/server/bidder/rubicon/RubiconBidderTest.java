@@ -618,7 +618,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedRp = mapper.createObjectNode();
-        expectedRp.putArray("LIseq").add("999").add("888");
+        expectedRp.putArray("LIseg").add("999").add("888");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
@@ -653,7 +653,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedRp = mapper.createObjectNode();
-        expectedRp.putArray("LIseq").add("999").add("888");
+        expectedRp.putArray("LIseg").add("999").add("888");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
