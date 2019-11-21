@@ -54,9 +54,15 @@ public class AdformBidder implements Bidder<Void> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
+    private final AdformRequestUtil requestUtil;
+    private final AdformHttpUtil httpUtil;
+
     public AdformBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.requestUtil = new AdformRequestUtil(mapper);
+        this.httpUtil = new AdformHttpUtil(mapper);
     }
 
     /**
@@ -77,8 +83,8 @@ public class AdformBidder implements Bidder<Void> {
 
         final String currency = resolveRequestCurrency(request.getCur());
         final Device device = request.getDevice();
-        final ExtUser extUser = AdformRequestUtil.getExtUser(request.getUser(), mapper.mapper());
-        final String url = AdformHttpUtil.buildAdformUrl(
+        final ExtUser extUser = requestUtil.getExtUser(request.getUser());
+        final String url = httpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterTagIds(extImpAdforms))
                         .keyValues(getKeyValues(extImpAdforms))
@@ -89,19 +95,18 @@ public class AdformBidder implements Bidder<Void> {
                         .ip(getIp(device))
                         .advertisingId(getIfa(device))
                         .secure(getSecure(imps))
-                        .gdprApplies(AdformRequestUtil.getGdprApplies(request.getRegs(), mapper.mapper()))
-                        .consent(AdformRequestUtil.getConsent(extUser))
+                        .gdprApplies(requestUtil.getGdprApplies(request.getRegs()))
+                        .consent(requestUtil.getConsent(extUser))
                         .currency(currency)
                         .build());
 
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
+        final MultiMap headers = httpUtil.buildAdformHeaders(
                 VERSION,
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
                 getUserId(request.getUser()),
-                AdformRequestUtil.getAdformDigitrust(extUser),
-                mapper.mapper());
+                requestUtil.getAdformDigitrust(extUser));
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()

@@ -43,10 +43,16 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
+    private final AdformRequestUtil requestUtil;
+    private final AdformHttpUtil httpUtil;
+
     public AdformAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         this.cookieFamilyName = Objects.requireNonNull(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.requestUtil = new AdformRequestUtil(mapper);
+        this.httpUtil = new AdformHttpUtil(mapper);
     }
 
     /**
@@ -59,14 +65,13 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 .map(this::toAdformParams)
                 .collect(Collectors.toList());
 
-        final ExtUser extUser = AdformRequestUtil.getExtUser(
-                preBidRequestContext.getPreBidRequest().getUser(), mapper.mapper());
+        final ExtUser extUser = requestUtil.getExtUser(preBidRequestContext.getPreBidRequest().getUser());
 
         return Collections.singletonList(AdapterHttpRequest.of(
                 HttpMethod.GET,
                 getUrl(preBidRequestContext, adformParams, extUser),
                 null,
-                headers(preBidRequestContext, AdformRequestUtil.getAdformDigitrust(extUser))));
+                headers(preBidRequestContext, requestUtil.getAdformDigitrust(extUser))));
     }
 
     @Override
@@ -115,7 +120,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     private String getUrl(PreBidRequestContext preBidRequestContext, List<AdformParams> adformParams, ExtUser extUser) {
         final Integer secure = preBidRequestContext.getSecure();
         final Device device = preBidRequestContext.getPreBidRequest().getDevice();
-        return AdformHttpUtil.buildAdformUrl(
+        return httpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterIds(adformParams))
                         .keyValues(getKeyValues(adformParams))
@@ -126,9 +131,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .ip(ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""))
                         .advertisingId(device != null ? device.getIfa() : "")
                         .secure(secure != null && secure == 1)
-                        .gdprApplies(AdformRequestUtil.getGdprApplies(
-                                preBidRequestContext.getPreBidRequest().getRegs(), mapper.mapper()))
-                        .consent(AdformRequestUtil.getConsent(extUser))
+                        .gdprApplies(requestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest().getRegs()))
+                        .consent(requestUtil.getConsent(extUser))
                         .currency(DEFAULT_CURRENCY)
                         .build());
     }
@@ -165,14 +169,13 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
      * Creates adform headers, which stores adform request parameters
      */
     private MultiMap headers(PreBidRequestContext preBidRequestContext, AdformDigitrust adformDigitrust) {
-        return AdformHttpUtil.buildAdformHeaders(
+        return httpUtil.buildAdformHeaders(
                 VERSION,
                 ObjectUtils.firstNonNull(preBidRequestContext.getUa(), ""),
                 ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
                 preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName),
-                adformDigitrust,
-                mapper.mapper());
+                adformDigitrust);
     }
 
     /**

@@ -53,9 +53,13 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
+    private final SharethroughRequestUtil requestUtil;
+
     public SharethroughBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.requestUtil = new SharethroughRequestUtil(mapper);
     }
 
     /**
@@ -65,7 +69,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      */
     @Override
     public Result<List<HttpRequest<SharethroughRequestBody>>> makeHttpRequests(BidRequest request) {
-        final String page = SharethroughRequestUtil.getPage(request.getSite());
+        final String page = requestUtil.getPage(request.getSite());
 
         // site.page validation is already performed by {@link RequestValidator#validate}
         if (page == null) {
@@ -96,13 +100,13 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      * Retrieves from {@link Imp} and filter not valid {@link ExtImpSharethrough} and returns list result with errors.
      */
     private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request) {
-        final boolean consentRequired = SharethroughRequestUtil.isConsentRequired(request.getRegs(), mapper.mapper());
-        final UserInfo userInfo = SharethroughRequestUtil.getUserInfo(request.getUser(), mapper.mapper());
-        final String ttdUid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
-        final String consent = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent);
-        final String stxuid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid);
+        final boolean consentRequired = requestUtil.isConsentRequired(request.getRegs());
+        final UserInfo userInfo = requestUtil.getUserInfo(request.getUser());
+        final String ttdUid = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
+        final String consent = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent);
+        final String stxuid = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid);
 
-        final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
+        final boolean canAutoPlay = requestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
 
         final List<StrUriParameters> strUriParameters = new ArrayList<>();
         for (Imp imp : request.getImp()) {
@@ -120,7 +124,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpStr, Imp imp, boolean isConsentRequired,
                                                     String consentString, boolean canBrowserAutoPlayVideo,
                                                     String ttdUid, String buyeruid) {
-        final Size size = SharethroughRequestUtil.getSize(imp, extImpStr);
+        final Size size = requestUtil.getSize(imp, extImpStr);
         return StrUriParameters.builder()
                 .pkey(extImpStr.getPkey())
                 .bidID(imp.getId())
@@ -138,9 +142,9 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     /**
      * Make Headers for request.
      */
-    private static MultiMap makeHeaders(Device device, String page) {
+    private MultiMap makeHeaders(Device device, String page) {
         final MultiMap headers = HttpUtil.headers()
-                .add("Origin", SharethroughRequestUtil.getHost(page))
+                .add("Origin", requestUtil.getHost(page))
                 .add("Referer", page);
         final String ip = device.getIp();
         if (ip != null) {

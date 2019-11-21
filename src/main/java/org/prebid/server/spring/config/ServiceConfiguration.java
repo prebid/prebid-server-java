@@ -303,14 +303,15 @@ public class ServiceConfiguration {
 
     @Bean
     GdprService gdprService(
+            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
+            @Value("${gdpr.default-value}") String defaultValue,
             @Autowired(required = false) GeoLocationService geoLocationService,
             Metrics metrics,
             VendorListService vendorListService,
-            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            @Value("${gdpr.default-value}") String defaultValue) {
+            JacksonMapper mapper) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(geoLocationService, metrics, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, vendorListService, mapper);
     }
 
     @Bean
@@ -399,8 +400,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient, Clock clock, JacksonMapper mapper) {
-        return new HttpAdapterConnector(httpClient, clock, mapper);
+    HttpAdapterConnector httpAdapterConnector(
+            HttpClient httpClient, GdprService gdprService, Clock clock, JacksonMapper mapper) {
+
+        return new HttpAdapterConnector(httpClient, gdprService, clock, mapper);
     }
 
     @Bean

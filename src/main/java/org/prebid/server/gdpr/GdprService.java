@@ -1,8 +1,12 @@
 package org.prebid.server.gdpr;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.gdpr.consent.VendorConsent;
 import com.iab.gdpr.consent.VendorConsentDecoder;
 import com.iab.gdpr.exception.VendorConsentParseException;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -17,7 +21,10 @@ import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,19 +47,58 @@ public class GdprService {
     private static final String GDPR_ZERO = "0";
     private static final String GDPR_ONE = "1";
 
+    private final List<String> eeaCountries;
+    private final String gdprDefaultValue;
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
-    private final List<String> eeaCountries;
     private final VendorListService vendorListService;
-    private final String gdprDefaultValue;
+    private final JacksonMapper mapper;
 
-    public GdprService(GeoLocationService geoLocationService, Metrics metrics, VendorListService vendorListService,
-                       List<String> eeaCountries, String gdprDefaultValue) {
+    public GdprService(List<String> eeaCountries,
+                       String gdprDefaultValue,
+                       GeoLocationService geoLocationService,
+                       Metrics metrics,
+                       VendorListService vendorListService,
+                       JacksonMapper mapper) {
+
         this.geoLocationService = geoLocationService;
         this.metrics = Objects.requireNonNull(metrics);
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.vendorListService = Objects.requireNonNull(vendorListService);
         this.gdprDefaultValue = Objects.requireNonNull(gdprDefaultValue);
+        this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    /**
+     * Retrieves gdpr from regs.ext.gdpr and in case of any exception or invalid values returns empty string.
+     */
+    public String gdprFrom(Regs regs) {
+        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
+        final ExtRegs extRegs;
+        try {
+            extRegs = extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
+        } catch (JsonProcessingException e) {
+            return "";
+        }
+
+        final String gdpr = extRegs != null ? Integer.toString(extRegs.getGdpr()) : "";
+        return ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0") ? "" : gdpr;
+    }
+
+    /**
+     * Retrieves consent from user.ext.consent and in case of any exception or invalid values return empty string.
+     */
+    public String gdprConsentFrom(User user) {
+        final ObjectNode extUserNode = user != null ? user.getExt() : null;
+        ExtUser extUser;
+        try {
+            extUser = extUserNode != null ? mapper.mapper().treeToValue(extUserNode, ExtUser.class) : null;
+        } catch (JsonProcessingException e) {
+            extUser = null;
+        }
+
+        final String gdprConsent = extUser != null ? extUser.getConsent() : "";
+        return ObjectUtils.firstNonNull(gdprConsent, "");
     }
 
     /**

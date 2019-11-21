@@ -25,7 +25,6 @@ import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.GdprUtils;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -243,9 +242,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
             vendorIds.add(gdprHostVendorId);
         }
 
-        final String gdpr = GdprUtils.gdprFrom(preBidRequestContext.getPreBidRequest().getRegs(), mapper.mapper());
-        final String gdprConsent = GdprUtils.gdprConsentFrom(
-                preBidRequestContext.getPreBidRequest().getUser(), mapper.mapper());
+        final String gdpr = gdprService.gdprFrom(preBidRequestContext.getPreBidRequest().getRegs());
+        final String gdprConsent = gdprService.gdprConsentFrom(preBidRequestContext.getPreBidRequest().getUser());
         final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
 
         return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdpr, gdprConsent, ip,
