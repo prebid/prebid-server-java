@@ -20,6 +20,10 @@
         <property name="format" value="System\.(out|err)\.print"/>
     </module>
     <module name="SuppressWarningsFilter" />
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
+    </module>
     <module name="TreeWalker">
         <module name="Indentation">
             <property name="lineWrappingIndentation" value="8" />
@@ -30,10 +34,6 @@
             <property name="allowNoEmptyLineBetweenFields" value="true" />
             <property name="allowMultipleEmptyLines" value="false" />
             <property name="allowMultipleEmptyLinesInsideClassMembers" value="false" />
-        </module>
-        <module name="LineLength">
-            <property name="max" value="120"/>
-            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
         </module>
         <module name="NoLineWrap"/>
         <module name="NeedBraces"/>
