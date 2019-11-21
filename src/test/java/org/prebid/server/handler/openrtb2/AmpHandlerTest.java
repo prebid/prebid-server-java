@@ -126,8 +126,16 @@ public class AmpHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        ampHandler = new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock,
-                bidderCatalog, singleton("bidder1"), new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor());
+        ampHandler = new AmpHandler(
+                ampRequestFactory,
+                exchangeService,
+                analyticsReporter,
+                metrics,
+                clock,
+                bidderCatalog,
+                singleton("bidder1"),
+                new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
+                jacksonMapper);
     }
 
     @Test
@@ -365,8 +373,9 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,\"tmax\":1000}}}"));
+        verify(httpResponse).end(eq(
+                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1," +
+                        "\"tmax\":1000}}}"));
     }
 
     @Test

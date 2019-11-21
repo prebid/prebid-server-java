@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -56,7 +55,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -93,7 +91,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
 
-        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, BLACKLISTED_APPS);
+        requestValidator = new RequestValidator(BLACKLISTED_APPS, bidderCatalog, bidderParamValidator, jacksonMapper);
     }
 
     @Test

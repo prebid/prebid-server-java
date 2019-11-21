@@ -9,7 +9,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -28,6 +27,7 @@ import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -67,14 +67,20 @@ public class BidResponseCreator {
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
+    private final JacksonMapper mapper;
+
     private final String cacheHost;
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
 
-    public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService) {
+    public BidResponseCreator(
+            CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService, JacksonMapper mapper) {
+
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
+        this.mapper = Objects.requireNonNull(mapper);
+
         this.cacheHost = Objects.requireNonNull(cacheService.getEndpointHost());
         this.cachePath = Objects.requireNonNull(cacheService.getEndpointPath());
         this.cacheAssetUrlTemplate = Objects.requireNonNull(cacheService.getCachedAssetURLTemplate());
@@ -96,7 +102,7 @@ public class BidResponseCreator {
                     .cur(bidRequest.getCur().get(0))
                     .nbr(2)  // signal "Invalid Request"
                     .seatbid(Collections.emptyList())
-                    .ext(Json.mapper.valueToTree(
+                    .ext(mapper.mapper().valueToTree(
                             toExtBidResponse(bidderResponses, bidRequest, CacheServiceResult.empty(), debugEnabled)))
                     .build());
         } else {
@@ -436,7 +442,7 @@ public class BidResponseCreator {
                 .id(bidRequest.getId())
                 .cur(bidRequest.getCur().get(0))
                 .seatbid(seatBids)
-                .ext(Json.mapper.valueToTree(extBidResponse))
+                .ext(mapper.mapper().valueToTree(extBidResponse))
                 .build();
     }
 
@@ -507,7 +513,7 @@ public class BidResponseCreator {
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidType, targetingKeywords, cache, events);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
-        bid.setExt(Json.mapper.valueToTree(bidExt));
+        bid.setExt(mapper.mapper().valueToTree(bidExt));
 
         return bid;
     }
@@ -517,7 +523,7 @@ public class BidResponseCreator {
      * instance if it is present.
      * <p>
      */
-    private static TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
+    private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
         final JsonNode pricegranularity = targeting.getPricegranularity();
         return pricegranularity == null || pricegranularity.isNull()
                 ? null
@@ -529,8 +535,8 @@ public class BidResponseCreator {
      * Returns a map of {@link BidType} to correspondent {@link TargetingKeywordsCreator}
      * extracted from {@link ExtRequestTargeting} if it exists.
      */
-    private static Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
-                                                                                   boolean isApp) {
+    private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
+                                                                            boolean isApp) {
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
 
         if (mediaTypePriceGranularity == null) {
@@ -567,9 +573,9 @@ public class BidResponseCreator {
      * Parse {@link JsonNode} to {@link List} of {@link ExtPriceGranularity}. Throws {@link PreBidException} in
      * case of errors during decoding pricegranularity.
      */
-    private static ExtPriceGranularity parsePriceGranularity(JsonNode priceGranularity) {
+    private ExtPriceGranularity parsePriceGranularity(JsonNode priceGranularity) {
         try {
-            return Json.mapper.treeToValue(priceGranularity, ExtPriceGranularity.class);
+            return mapper.mapper().treeToValue(priceGranularity, ExtPriceGranularity.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(String.format("Error decoding bidRequest.prebid.targeting.pricegranularity: %s",
                     e.getMessage()), e);

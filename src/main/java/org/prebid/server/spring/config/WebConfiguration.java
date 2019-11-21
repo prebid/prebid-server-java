@@ -46,6 +46,7 @@ import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -217,11 +218,22 @@ public class WebConfiguration {
             HttpAdapterConnector httpAdapterConnector,
             Clock clock,
             GdprService gdprService,
+            JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
 
-        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                metrics, httpAdapterConnector, clock, gdprService, hostVendorId, useGeoLocation);
+        return new AuctionHandler(
+                applicationSettings,
+                bidderCatalog,
+                preBidRequestContextFactory,
+                cacheService,
+                metrics,
+                httpAdapterConnector,
+                clock,
+                gdprService,
+                mapper,
+                hostVendorId,
+                useGeoLocation);
     }
 
     @Bean
@@ -230,10 +242,11 @@ public class WebConfiguration {
             AuctionRequestFactory auctionRequestFactory,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
-            Clock clock) {
+            Clock clock,
+            JacksonMapper mapper) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(auctionRequestFactory, exchangeService,
-                analyticsReporter, metrics, clock);
+        return new org.prebid.server.handler.openrtb2.AuctionHandler(
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, mapper);
     }
 
     @Bean
@@ -245,19 +258,28 @@ public class WebConfiguration {
             Clock clock,
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
-            AmpResponsePostProcessor ampResponsePostProcessor) {
+            AmpResponsePostProcessor ampResponsePostProcessor,
+            JacksonMapper mapper) {
 
-        return new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock, bidderCatalog,
-                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor);
+        return new AmpHandler(
+                ampRequestFactory,
+                exchangeService,
+                analyticsReporter,
+                metrics,
+                clock,
+                bidderCatalog,
+                ampProperties.getCustomTargetingSet(),
+                ampResponsePostProcessor,
+                mapper);
     }
 
     @Bean
-    StatusHandler statusHandler(List<HealthChecker> healthCheckers) {
+    StatusHandler statusHandler(List<HealthChecker> healthCheckers, JacksonMapper mapper) {
         healthCheckers.stream()
                 .filter(PeriodicHealthChecker.class::isInstance)
                 .map(PeriodicHealthChecker.class::cast)
                 .forEach(PeriodicHealthChecker::initialize);
-        return new StatusHandler(healthCheckers);
+        return new StatusHandler(healthCheckers, mapper);
     }
 
     @Bean
@@ -273,10 +295,19 @@ public class WebConfiguration {
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
-            TimeoutFactory timeoutFactory) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, hostVendorId, useGeoLocation, defaultCoopSync, coopSyncPriorities.getPri(),
-                analyticsReporter, metrics, timeoutFactory);
+            TimeoutFactory timeoutFactory,
+            JacksonMapper mapper) {
+
+        return new CookieSyncHandler(
+                externalUrl,
+                defaultTimeoutMs,
+                hostVendorId, useGeoLocation, defaultCoopSync, coopSyncPriorities.getPri(), uidsCookieService,
+                bidderCatalog,
+                gdprService,
+                analyticsReporter,
+                metrics,
+                timeoutFactory,
+                mapper);
     }
 
     @Bean
@@ -296,19 +327,21 @@ public class WebConfiguration {
     }
 
     @Bean
-    GetuidsHandler getuidsHandler(UidsCookieService uidsCookieService) {
-        return new GetuidsHandler(uidsCookieService);
+    GetuidsHandler getuidsHandler(UidsCookieService uidsCookieService, JacksonMapper mapper) {
+        return new GetuidsHandler(uidsCookieService, mapper);
     }
 
     @Bean
     VtrackHandler vtrackHandler(
+            @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CacheService cacheService,
             TimeoutFactory timeoutFactory,
-            @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs) {
+            JacksonMapper mapper) {
 
-        return new VtrackHandler(applicationSettings, bidderCatalog, cacheService, timeoutFactory, defaultTimeoutMs);
+        return new VtrackHandler(
+                defaultTimeoutMs, applicationSettings, bidderCatalog, cacheService, timeoutFactory, mapper);
     }
 
     @Bean
@@ -330,13 +363,13 @@ public class WebConfiguration {
     }
 
     @Bean
-    BiddersHandler biddersHandler(BidderCatalog bidderCatalog) {
-        return new BiddersHandler(bidderCatalog);
+    BiddersHandler biddersHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
+        return new BiddersHandler(bidderCatalog, mapper);
     }
 
     @Bean
-    BidderDetailsHandler bidderDetailsHandler(BidderCatalog bidderCatalog) {
-        return new BidderDetailsHandler(bidderCatalog);
+    BidderDetailsHandler bidderDetailsHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
+        return new BidderDetailsHandler(bidderCatalog, mapper);
     }
 
     @Bean
@@ -406,26 +439,30 @@ public class WebConfiguration {
         @Bean
         @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
                 havingValue = "true")
-        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
-            return new SettingsCacheNotificationHandler(settingsCache);
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
+            return new SettingsCacheNotificationHandler(settingsCache, mapper);
         }
 
         @Bean
         @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
                 havingValue = "true")
-        SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
-            return new SettingsCacheNotificationHandler(ampSettingsCache);
+        SettingsCacheNotificationHandler ampCacheNotificationHandler(
+                SettingsCache ampSettingsCache, JacksonMapper mapper) {
+
+            return new SettingsCacheNotificationHandler(ampSettingsCache, mapper);
         }
 
         @Bean
-        VersionHandler versionHandler() {
-            return VersionHandler.create("git-revision.json");
+        VersionHandler versionHandler(JacksonMapper mapper) {
+            return VersionHandler.create("git-revision.json", mapper);
         }
 
         @Bean
         @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
-        CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
-            return new CurrencyRatesHandler(currencyConversionRates);
+        CurrencyRatesHandler currencyRatesHandler(
+                CurrencyConversionService currencyConversionRates, JacksonMapper mapper) {
+
+            return new CurrencyRatesHandler(currencyConversionRates, mapper);
         }
 
         @PostConstruct

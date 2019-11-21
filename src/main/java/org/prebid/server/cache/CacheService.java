@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,6 +25,8 @@ import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.model.Account;
@@ -64,15 +64,23 @@ public class CacheService {
     private final String cachedAssetUrlTemplate;
     private final EventsService eventsService;
     private final Clock clock;
+    private final JacksonMapper mapper;
 
-    public CacheService(CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
-                        String cachedAssetUrlTemplate, EventsService eventsService, Clock clock) {
+    public CacheService(CacheTtl mediaTypeCacheTtl,
+                        HttpClient httpClient,
+                        URL endpointUrl,
+                        String cachedAssetUrlTemplate,
+                        EventsService eventsService,
+                        Clock clock,
+                        JacksonMapper mapper) {
+
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.clock = Objects.requireNonNull(clock);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public String getEndpointHost() {
@@ -95,7 +103,7 @@ public class CacheService {
      * The returned result will always have the same number of elements as the values argument.
      */
     public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout) {
-        return doCache(bids, timeout, CacheService::createPutObject, this::createBidCacheResult);
+        return doCache(bids, timeout, this::createPutObject, this::createBidCacheResult);
     }
 
     /**
@@ -130,7 +138,7 @@ public class CacheService {
             return failResponse(new TimeoutException("Timeout has been exceeded"));
         }
 
-        return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
+        return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encode(bidCacheRequest),
                 remainingTimeout)
                 .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount))
                 .recover(CacheService::failResponse);
@@ -286,7 +294,7 @@ public class CacheService {
             List<CacheBid> bids, List<CacheBid> videoBids, List<String> videoBidIdsToModify, String accountId,
             Timeout timeout) {
         final List<PutObject> putObjects = Stream.concat(
-                bids.stream().map(CacheService::createJsonPutObjectOpenrtb),
+                bids.stream().map(this::createJsonPutObjectOpenrtb),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, videoBidIdsToModify, accountId)))
                 .collect(Collectors.toList());
 
@@ -301,7 +309,7 @@ public class CacheService {
         }
 
         final String url = endpointUrl.toString();
-        final String body = Json.encode(BidCacheRequest.of(putObjects));
+        final String body = mapper.encode(BidCacheRequest.of(putObjects));
         final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
 
         final long startTime = clock.millis();
@@ -351,7 +359,7 @@ public class CacheService {
     /**
      * Makes put object from {@link Bid}. Used for legacy auction request.
      */
-    private static PutObject createPutObject(Bid bid) {
+    private PutObject createPutObject(Bid bid) {
         return MediaType.video.equals(bid.getMediaType()) ? videoPutObject(bid) : bannerPutObject(bid);
     }
 
@@ -365,10 +373,10 @@ public class CacheService {
     /**
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
+    private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
         return PutObject.builder()
                 .type("json")
-                .value(Json.mapper.valueToTree(cacheBid.getBid()))
+                .value(mapper.mapper().valueToTree(cacheBid.getBid()))
                 .expiry(cacheBid.getTtl())
                 .build();
     }
@@ -445,14 +453,14 @@ public class CacheService {
      * Handles http response, analyzes response status and creates {@link BidCacheResponse} from response body
      * or throws {@link PreBidException} in case of errors.
      */
-    private static BidCacheResponse toBidCacheResponse(int statusCode, String responseBody, int bidCount) {
+    private BidCacheResponse toBidCacheResponse(int statusCode, String responseBody, int bidCount) {
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
         final BidCacheResponse bidCacheResponse;
         try {
-            bidCacheResponse = Json.decodeValue(responseBody, BidCacheResponse.class);
+            bidCacheResponse = mapper.decodeValue(responseBody, BidCacheResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
         }
@@ -554,10 +562,10 @@ public class CacheService {
     /**
      * Creates banner {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
      */
-    private static PutObject bannerPutObject(Bid bid) {
+    private PutObject bannerPutObject(Bid bid) {
         return PutObject.builder()
                 .type("json")
-                .value(Json.mapper.valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(),
+                .value(mapper.mapper().valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(),
                         bid.getHeight())))
                 .build();
     }

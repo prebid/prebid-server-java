@@ -44,12 +44,12 @@ public class SynacormediaBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        synacormediaBidder = new SynacormediaBidder(ENDPOINT_URL);
+        synacormediaBidder = new SynacormediaBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SynacormediaBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new SynacormediaBidder("invalid_url", jacksonMapper));
     }
 
     @Test

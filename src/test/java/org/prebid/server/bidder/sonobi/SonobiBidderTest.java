@@ -40,12 +40,12 @@ public class SonobiBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        sonobiBidder = new SonobiBidder(ENDPOINT_URL);
+        sonobiBidder = new SonobiBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SonobiBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new SonobiBidder("invalid_url", jacksonMapper));
     }
 
     @Test

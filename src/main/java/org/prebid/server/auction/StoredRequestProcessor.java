@@ -8,11 +8,11 @@ import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -38,17 +38,23 @@ import java.util.function.Function;
  */
 public class StoredRequestProcessor {
 
+    private final long defaultTimeout;
     private final ApplicationSettings applicationSettings;
     private final TimeoutFactory timeoutFactory;
     private final Metrics metrics;
-    private final long defaultTimeout;
+    private final JacksonMapper mapper;
 
-    public StoredRequestProcessor(ApplicationSettings applicationSettings, Metrics metrics,
-                                  TimeoutFactory timeoutFactory, long defaultTimeout) {
+    public StoredRequestProcessor(long defaultTimeout,
+                                  ApplicationSettings applicationSettings,
+                                  Metrics metrics,
+                                  TimeoutFactory timeoutFactory,
+                                  JacksonMapper mapper) {
+
+        this.defaultTimeout = defaultTimeout;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.metrics = Objects.requireNonNull(metrics);
-        this.defaultTimeout = defaultTimeout;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -62,10 +68,10 @@ public class StoredRequestProcessor {
         final Map<Imp, String> impToStoredRequestId;
         try {
             bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
+                    Collections.singletonList(bidRequest), this::getStoredRequestFromBidRequest);
 
             impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    bidRequest.getImp(), StoredRequestProcessor::getStoredRequestFromImp);
+                    bidRequest.getImp(), this::getStoredRequestFromImp);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
@@ -167,10 +173,10 @@ public class StoredRequestProcessor {
      * with reason message.
      */
     private <T> T merge(T originalObject, Map<String, String> storedData, String id, Class<T> classToCast) {
-        final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
+        final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
         try {
-            storedRequestJsonNode = Json.mapper.readTree(storedData.get(id));
+            storedRequestJsonNode = mapper.mapper().readTree(storedData.get(id));
         } catch (IOException e) {
             throw new InvalidRequestException(
                     String.format("Can't parse Json for stored request with id %s", id));
@@ -178,7 +184,7 @@ public class StoredRequestProcessor {
         try {
             // Http request fields have higher priority and will override fields from stored requests
             // in case they have different values
-            return Json.mapper.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
+            return mapper.mapper().treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
                     classToCast);
         } catch (JsonPatchException e) {
             throw new InvalidRequestException(String.format(
@@ -230,11 +236,11 @@ public class StoredRequestProcessor {
      * Extracts {@link ExtStoredRequest} from {@link BidRequest} if exists. In case when Extension has invalid
      * format throws {@link InvalidRequestException}
      */
-    private static ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
+    private ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
         final ObjectNode ext = bidRequest.getExt();
         if (ext != null) {
             try {
-                final ExtBidRequest extBidRequest = Json.mapper.treeToValue(ext, ExtBidRequest.class);
+                final ExtBidRequest extBidRequest = mapper.mapper().treeToValue(ext, ExtBidRequest.class);
                 final ExtRequestPrebid prebid = extBidRequest.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();
@@ -252,10 +258,10 @@ public class StoredRequestProcessor {
      * Extracts {@link ExtStoredRequest} from {@link Imp} if exists. In case when Extension has invalid
      * format throws {@link InvalidRequestException}
      */
-    private static ExtStoredRequest getStoredRequestFromImp(Imp imp) {
+    private ExtStoredRequest getStoredRequestFromImp(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtImp extImp = Json.mapper.treeToValue(imp.getExt(), ExtImp.class);
+                final ExtImp extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();

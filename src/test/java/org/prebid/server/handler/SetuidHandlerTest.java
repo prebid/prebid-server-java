@@ -2,11 +2,9 @@ package org.prebid.server.handler;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -31,6 +29,7 @@ import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.Metrics;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -106,7 +105,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithErrorIfOptedOut() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -122,7 +121,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithErrorIfBidderParamIsMissing() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -138,7 +137,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithErrorIfBidderParamIsInvalid() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
         given(httpRequest.getParam(any())).willReturn("invalid_or_disabled");
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -157,7 +156,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(null, false), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -179,7 +178,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -201,7 +200,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(Future.failedFuture("unexpected error"));
 
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -226,7 +225,7 @@ public class SetuidHandlerTest extends VertxTest {
                 null, true, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -244,12 +243,13 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRemoveUidFromCookieIfMissingInRequest() {
+    public void shouldRemoveUidFromCookieIfMissingInRequest() throws IOException {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("format")).willReturn("img");
@@ -272,10 +272,10 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIgnoreFacebookSentinel() {
+    public void shouldIgnoreFacebookSentinel() throws IOException {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
-                Uids.builder().uids(singletonMap(FACEBOOK, UidWithExpiry.live("facebookUid"))).build()));
+                Uids.builder().uids(singletonMap(FACEBOOK, UidWithExpiry.live("facebookUid"))).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
         given(httpRequest.getParam("uid")).willReturn("0");
@@ -307,10 +307,10 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithCookieFromRequestParam() {
+    public void shouldRespondWithCookieFromRequestParam() throws IOException {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
@@ -336,12 +336,13 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateUidInCookieWithRequestValue() {
+    public void shouldUpdateUidInCookieWithRequestValue() throws IOException {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
@@ -366,13 +367,13 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithCookieIfUserIsNotInGdprScope() {
+    public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(false, emptyMap(), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
@@ -401,7 +402,7 @@ public class SetuidHandlerTest extends VertxTest {
         // given
         // this uids cookie value stands for {"optout": true}
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -416,7 +417,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldUpdateBadRequestsMetricIfBidderParamIsMissing() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -431,7 +432,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldNotSendResponseIfClientClosedConnection() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("uid");
@@ -449,7 +450,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldUpdateSetsMetric() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
@@ -465,7 +466,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldPassUnauthorizedEventToAnalyticsReporterIfOptedOut() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -481,7 +482,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldPassBadRequestEventToAnalyticsReporterIfBidderParamIsMissing() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -497,7 +498,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldPassUnsuccessfulEventToAnalyticsReporterIfUidMissingInRequest() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -517,7 +518,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldPassUnsuccessfulEventToAnalyticsReporterIfFacebookSentinel() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
         given(httpRequest.getParam("uid")).willReturn("0");
@@ -547,7 +548,8 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
-                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
+                jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
@@ -569,9 +571,9 @@ public class SetuidHandlerTest extends VertxTest {
         return httpResponse.headers().get("Set-Cookie");
     }
 
-    private static Uids decodeUids(String value) {
+    private static Uids decodeUids(String value) throws IOException {
         final String uids = value.substring(5).split(";")[0];
-        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uids)), Uids.class);
+        return mapper.readValue(Base64.getUrlDecoder().decode(uids), Uids.class);
     }
 
     private SetuidEvent captureSetuidEvent() {

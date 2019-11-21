@@ -3,6 +3,7 @@ package org.prebid.server.bidder.adform;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.bidder.adform.model.UrlParameters;
@@ -16,13 +17,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.util.Lists.emptyList;
 
-public class AdformHttpUtilTest {
+public class AdformHttpUtilTest extends VertxTest {
 
     @Test
     public void buildAdformHeadersShouldReturnAllHeaders() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip",
-                "www.example.com", "buyeruid", AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "www.example.com",
+                "buyeruid",
+                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)),
+                mapper);
 
         // then
         assertThat(headers).hasSize(7)
@@ -42,8 +49,14 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeadersShouldNotContainRefererHeaderIfRefererIsEmpty() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "", "buyeruid",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "",
+                "buyeruid",
+                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)),
+                mapper);
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.REFERER_HEADER.toString());
@@ -52,7 +65,14 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdAndDigiTrustAreEmpty() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "", null);
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "referer",
+                "",
+                null,
+                mapper);
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.COOKIE_HEADER.toString());
@@ -61,8 +81,14 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeaderShouldContainCookieHeaderOnlyWithUserIdIfUserIdPresentAndDigitrustAbsent() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "buyeruid",
-                null);
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "referer",
+                "buyeruid",
+                null,
+                mapper);
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -72,8 +98,14 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeaderShouldContainCookieHeaderOnlyWithDigitrustIfUserIsAbsentAndDigitrustPresent() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "",
-                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "referer",
+                "",
+                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)),
+                mapper);
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)

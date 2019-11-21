@@ -1,14 +1,14 @@
 package org.prebid.server.validation;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -74,17 +74,20 @@ public class BidderParamValidator {
      * schema directory parameter that defines the root directory for files containing schemas. By convention the name
      * of each schema file same as corresponding bidder name.
      */
-    public static BidderParamValidator create(BidderCatalog bidderCatalog, String schemaDirectory) {
+    public static BidderParamValidator create(
+            BidderCatalog bidderCatalog, String schemaDirectory, JacksonMapper mapper) {
+
         Objects.requireNonNull(bidderCatalog);
         Objects.requireNonNull(schemaDirectory);
+        Objects.requireNonNull(mapper);
 
         final Map<String, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
 
         bidderCatalog.names()
                 .forEach(bidderRequester -> bidderRawSchemas.put(bidderRequester,
-                        createSchemaNode(schemaDirectory, bidderRequester)));
+                        createSchemaNode(schemaDirectory, bidderRequester, mapper)));
 
-        return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas));
+        return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas, mapper));
     }
 
     private static Map<String, JsonSchema> toBidderSchemas(Map<String, JsonNode> bidderRawSchemas) {
@@ -92,10 +95,10 @@ public class BidderParamValidator {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> toBidderSchema(e.getValue(), e.getKey())));
     }
 
-    private static String toSchemas(Map<String, JsonNode> bidderRawSchemas) {
+    private static String toSchemas(Map<String, JsonNode> bidderRawSchemas, JacksonMapper mapper) {
         try {
-            return Json.mapper.writeValueAsString(bidderRawSchemas);
-        } catch (JsonProcessingException e) {
+            return mapper.encode(bidderRawSchemas);
+        } catch (EncodeException e) {
             throw new IllegalArgumentException("Couldn't combine json schemas into single json string");
         }
     }
@@ -110,11 +113,11 @@ public class BidderParamValidator {
         return result;
     }
 
-    private static JsonNode createSchemaNode(String schemaDirectory, String bidder) {
+    private static JsonNode createSchemaNode(String schemaDirectory, String bidder, JacksonMapper mapper) {
         final JsonNode result;
         final String path = schemaDirectory + FILE_SEP + bidder + JSON_FILE_EXT;
         try {
-            result = toJsonNode(ResourceUtil.readFromClasspath(path), bidder);
+            result = toJsonNode(ResourceUtil.readFromClasspath(path), bidder, mapper);
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path), ex);
         } catch (IOException | RuntimeException e) {
@@ -124,11 +127,11 @@ public class BidderParamValidator {
         return result;
     }
 
-    private static JsonNode toJsonNode(String content, String bidder) {
+    private static JsonNode toJsonNode(String content, String bidder, JacksonMapper mapper) {
         final JsonNode result;
         if (StringUtils.isNotBlank(content)) {
             try {
-                result = Json.mapper.readTree(content);
+                result = mapper.mapper().readTree(content);
             } catch (IOException | JsonSchemaException e) {
                 throw new IllegalArgumentException(String.format("Couldn't parse %s bidder schema", bidder), e);
             }

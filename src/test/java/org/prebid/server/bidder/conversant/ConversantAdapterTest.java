@@ -87,19 +87,19 @@ public class ConversantAdapterTest extends VertxTest {
 
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new ConversantAdapter(COOKIE_FAMILY, ENDPOINT_URL);
+        adapter = new ConversantAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(COOKIE_FAMILY, null));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(null, null, jacksonMapper));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(COOKIE_FAMILY, null, jacksonMapper));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ConversantAdapter(COOKIE_FAMILY, "invalid_url"))
+                .isThrownBy(() -> new ConversantAdapter(COOKIE_FAMILY, "invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

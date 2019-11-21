@@ -38,7 +38,6 @@ import java.util.Map;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.tuple;
 
 public class FacebookBidderTest extends VertxTest {
@@ -51,34 +50,24 @@ public class FacebookBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        facebookBidder = new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(null, NON_SECURED_ENDPOINT_URL, PLATFORM_ID));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, null, PLATFORM_ID));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, null));
+        facebookBidder = new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder("invalid_url", NON_SECURED_ENDPOINT_URL, PLATFORM_ID))
+                .isThrownBy(() -> new FacebookBidder("invalid_url", NON_SECURED_ENDPOINT_URL, PLATFORM_ID, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder(ENDPOINT_URL, "invalid_url", PLATFORM_ID))
+                .isThrownBy(() -> new FacebookBidder(ENDPOINT_URL, "invalid_url", PLATFORM_ID, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailOnInvalidPlatformId() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, "non-number"))
+                .isThrownBy(() -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, "non-number", jacksonMapper))
                 .withMessage("Platform ID is not valid number: 'non-number'");
     }
 

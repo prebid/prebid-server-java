@@ -2,12 +2,12 @@ package org.prebid.server.currency;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -38,17 +38,24 @@ public class CurrencyConversionService {
     private final long refreshPeriod;
     private final Vertx vertx;
     private final HttpClient httpClient;
+    private final JacksonMapper mapper;
 
     private Map<String, Map<String, BigDecimal>> latestCurrencyRates;
     private ZonedDateTime lastUpdated;
 
-    public CurrencyConversionService(String currencyServerUrl, long defaultTimeout, long refreshPeriod, Vertx vertx,
-                                     HttpClient httpClient) {
+    public CurrencyConversionService(String currencyServerUrl,
+                                     long defaultTimeout,
+                                     long refreshPeriod,
+                                     Vertx vertx,
+                                     HttpClient httpClient,
+                                     JacksonMapper mapper) {
+
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
         this.defaultTimeout = defaultTimeout;
         this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
         this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public ZonedDateTime getLastUpdated() {
@@ -80,7 +87,7 @@ public class CurrencyConversionService {
      */
     private void populatesLatestCurrencyRates() {
         httpClient.get(currencyServerUrl, defaultTimeout)
-                .compose(CurrencyConversionService::processResponse)
+                .compose(this::processResponse)
                 .compose(this::updateCurrencyRates)
                 .recover(CurrencyConversionService::failResponse);
     }
@@ -90,7 +97,7 @@ public class CurrencyConversionService {
      * and creates {@link Future} with {@link CurrencyConversionRates} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private static Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
+    private Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -99,7 +106,7 @@ public class CurrencyConversionService {
         final String body = response.getBody();
         final CurrencyConversionRates currencyConversionRates;
         try {
-            currencyConversionRates = Json.mapper.readValue(body, CurrencyConversionRates.class);
+            currencyConversionRates = mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }

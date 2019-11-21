@@ -88,19 +88,19 @@ public class AppnexusAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new AppnexusAdapter(COOKIE_FAMILY, ENDPOINT_URL);
+        adapter = new AppnexusAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, null));
+        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(null, null, jacksonMapper));
+        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, null, jacksonMapper));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, "invalid_url"))
+                .isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, "invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

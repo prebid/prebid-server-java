@@ -58,7 +58,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,21 +85,13 @@ public class IxAdapterTest extends VertxTest {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        adapter = new IxAdapter(COOKIE_FAMILY, ENDPOINT_URL);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new IxAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new IxAdapter(COOKIE_FAMILY, null));
+        adapter = new IxAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new IxAdapter(COOKIE_FAMILY, "invalid_url"))
+                .isThrownBy(() -> new IxAdapter(COOKIE_FAMILY, "invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

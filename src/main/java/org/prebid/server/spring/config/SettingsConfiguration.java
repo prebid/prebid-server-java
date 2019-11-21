@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -180,9 +181,10 @@ public class SettingsConfiguration {
         HttpApplicationSettings httpApplicationSettings(
                 HttpClient httpClient,
                 @Value("${settings.http.endpoint}") String endpoint,
-                @Value("${settings.http.amp-endpoint}") String ampEndpoint) {
+                @Value("${settings.http.amp-endpoint}") String ampEndpoint,
+                JacksonMapper mapper) {
 
-            return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
+            return new HttpApplicationSettings(endpoint, ampEndpoint, httpClient, mapper);
         }
     }
 
@@ -206,18 +208,21 @@ public class SettingsConfiguration {
         @Bean
         public HttpPeriodicRefreshService httpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.endpoint}") String endpoint,
-                SettingsCache settingsCache) {
+                SettingsCache settingsCache,
+                JacksonMapper mapper) {
 
-            return new HttpPeriodicRefreshService(settingsCache, endpoint, refreshPeriod, timeout, vertx, httpClient);
+            return new HttpPeriodicRefreshService(
+                    endpoint, refreshPeriod, timeout, settingsCache, vertx, httpClient, mapper);
         }
 
         @Bean
         public HttpPeriodicRefreshService ampHttpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.amp-endpoint}") String ampEndpoint,
-                SettingsCache ampSettingsCache) {
+                SettingsCache ampSettingsCache,
+                JacksonMapper mapper) {
 
-            return new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint, refreshPeriod, timeout, vertx,
-                    httpClient);
+            return new HttpPeriodicRefreshService(
+                    ampEndpoint, refreshPeriod, timeout, ampSettingsCache, vertx, httpClient, mapper);
         }
     }
 

@@ -17,8 +17,6 @@ import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
@@ -292,7 +290,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() {
+    public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() throws IOException {
         // given
         wireMockRule.stubFor(post("/optout")
                 .withRequestBody(equalTo("secret=abc&response=recaptcha1"))
@@ -381,7 +379,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void setuidShouldUpdateRubiconUidInUidCookie() {
+    public void setuidShouldUpdateRubiconUidInUidCookie() throws IOException {
         // when
         final Cookie uidsCookie = given(spec)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
@@ -623,8 +621,8 @@ public class ApplicationTest extends IntegrationTest {
                 .statusCode(200);
     }
 
-    private static Uids decodeUids(String value) {
-        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    private Uids decodeUids(String value) throws IOException {
+        return mapper.readValue(Base64.getUrlDecoder().decode(value), Uids.class);
     }
 
     private static List<String> getBidderNamesFromParamFiles() {

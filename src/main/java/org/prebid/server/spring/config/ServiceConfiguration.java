@@ -38,6 +38,7 @@ import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
 import org.prebid.server.health.DatabaseHealthChecker;
 import org.prebid.server.health.HealthChecker;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -84,7 +85,8 @@ public class ServiceConfiguration {
             @Value("${external-url}") String externalUrl,
             EventsService eventsService,
             HttpClient httpClient,
-            Clock clock) {
+            Clock clock,
+            JacksonMapper mapper) {
 
         return new CacheService(
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
@@ -92,7 +94,8 @@ public class ServiceConfiguration {
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
                 eventsService,
-                clock);
+                clock,
+                mapper);
     }
 
     @Bean
@@ -133,10 +136,16 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
-            TimeoutFactory timeoutFactory) {
+            TimeoutFactory timeoutFactory,
+            JacksonMapper mapper) {
 
-        return new PreBidRequestContextFactory(timeoutResolver, implicitParametersExtractor, applicationSettings,
-                uidsCookieService, timeoutFactory);
+        return new PreBidRequestContextFactory(
+                timeoutResolver,
+                implicitParametersExtractor,
+                applicationSettings,
+                uidsCookieService,
+                timeoutFactory,
+                mapper);
     }
 
     @Bean
@@ -153,33 +162,47 @@ public class ServiceConfiguration {
             RequestValidator requestValidator,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings) {
+            ApplicationSettings applicationSettings,
+            JacksonMapper mapper) {
 
         final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
-        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
-                adServerCurrency, blacklistedAccounts, storedRequestProcessor, implicitParametersExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, new InterstitialProcessor(), timeoutResolver,
-                timeoutFactory, applicationSettings);
+        return new AuctionRequestFactory(
+                maxRequestSize,
+                enforceValidAccount,
+                shouldCacheOnlyWinningBids,
+                adServerCurrency,
+                blacklistedAccounts,
+                storedRequestProcessor,
+                implicitParametersExtractor,
+                uidsCookieService,
+                bidderCatalog,
+                requestValidator,
+                new InterstitialProcessor(mapper),
+                timeoutResolver,
+                timeoutFactory,
+                applicationSettings,
+                mapper);
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(
-            StoredRequestProcessor storedRequestProcessor,
-            AuctionRequestFactory auctionRequestFactory,
-            TimeoutResolver timeoutResolver) {
+    AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
+                                        AuctionRequestFactory auctionRequestFactory,
+                                        TimeoutResolver timeoutResolver,
+                                        JacksonMapper mapper) {
 
-        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver);
+        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
     }
 
     @Bean
     GoogleRecaptchaVerifier googleRecaptchaVerifier(
             @Value("${recaptcha-url}") String recaptchaUrl,
             @Value("${recaptcha-secret}") String recaptchaSecret,
-            HttpClient httpClient) {
+            HttpClient httpClient,
+            JacksonMapper mapper) {
 
-        return new GoogleRecaptchaVerifier(httpClient, recaptchaUrl, recaptchaSecret);
+        return new GoogleRecaptchaVerifier(recaptchaUrl, recaptchaSecret, httpClient, mapper);
     }
 
     @Bean
@@ -243,24 +266,39 @@ public class ServiceConfiguration {
             @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
             @Value("${host-cookie.cookie-name:#{null}}") String hostCookieName,
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
-            @Value("${host-cookie.ttl-days}") Integer ttlDays) {
+            @Value("${host-cookie.ttl-days}") Integer ttlDays,
+            JacksonMapper mapper) {
 
-        return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
-                hostCookieDomain, ttlDays);
+        return new UidsCookieService(
+                optOutCookieName,
+                optOutCookieValue,
+                hostCookieFamily,
+                hostCookieName,
+                hostCookieDomain,
+                ttlDays,
+                mapper);
     }
 
     @Bean
     VendorListService vendorListService(
-            FileSystem fileSystem,
             @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
-            HttpClient httpClient,
             @Value("${gdpr.vendorlist.http-endpoint-template}") String endpointTemplate,
             @Value("${gdpr.vendorlist.http-default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            BidderCatalog bidderCatalog) {
+            BidderCatalog bidderCatalog,
+            FileSystem fileSystem,
+            HttpClient httpClient,
+            JacksonMapper mapper) {
 
-        return VendorListService.create(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
-                hostVendorId, bidderCatalog);
+        return VendorListService.create(
+                cacheDir,
+                endpointTemplate,
+                defaultTimeoutMs,
+                hostVendorId,
+                bidderCatalog,
+                fileSystem,
+                httpClient,
+                mapper);
     }
 
     @Bean
@@ -294,13 +332,15 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService) {
+            EventsService eventsService,
+            JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, mapper);
     }
 
     @Bean
     ExchangeService exchangeService(
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
@@ -311,11 +351,21 @@ public class ServiceConfiguration {
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
+            JacksonMapper mapper) {
 
-        return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyConversionService, bidResponseCreator,
-                bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
+        return new ExchangeService(
+                expectedCacheTimeMs,
+                bidderCatalog,
+                storedResponseProcessor,
+                privacyEnforcementService,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyConversionService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                metrics,
+                clock,
+                mapper);
     }
 
     @Bean
@@ -323,46 +373,51 @@ public class ServiceConfiguration {
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             ApplicationSettings applicationSettings,
             Metrics metrics,
-            TimeoutFactory timeoutFactory) {
+            TimeoutFactory timeoutFactory,
+            JacksonMapper mapper) {
 
-        return new StoredRequestProcessor(applicationSettings, metrics, timeoutFactory, defaultTimeoutMs);
+        return new StoredRequestProcessor(defaultTimeoutMs, applicationSettings, metrics, timeoutFactory, mapper);
     }
 
     @Bean
-    StoredResponseProcessor storedResponseProcessor(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog) {
+    StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
+                                                    BidderCatalog bidderCatalog,
+                                                    JacksonMapper mapper) {
 
-        return new StoredResponseProcessor(applicationSettings, bidderCatalog);
+        return new StoredResponseProcessor(applicationSettings, bidderCatalog, mapper);
     }
 
     @Bean
     PrivacyEnforcementService privacyEnforcementService(
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             GdprService gdprService,
             BidderCatalog bidderCatalog,
             Metrics metrics,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
-        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
+            JacksonMapper mapper) {
+
+        return new PrivacyEnforcementService(useGeoLocation, gdprService, bidderCatalog, metrics, mapper);
     }
 
     @Bean
-    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient, Clock clock) {
-        return new HttpAdapterConnector(httpClient, clock);
+    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient, Clock clock, JacksonMapper mapper) {
+        return new HttpAdapterConnector(httpClient, clock, mapper);
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
+    RequestValidator requestValidator(@Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+                                      BidderCatalog bidderCatalog,
                                       BidderParamValidator bidderParamValidator,
-                                      @Value("${auction.blacklisted-apps}") String blacklistedAppsString) {
+                                      JacksonMapper mapper) {
+
         final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
-        return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
+        return new RequestValidator(blacklistedApps, bidderCatalog, bidderParamValidator, mapper);
     }
 
     @Bean
-    BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog) {
-        return BidderParamValidator.create(bidderCatalog, "static/bidder-params");
+    BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog, JacksonMapper mapper) {
+        return BidderParamValidator.create(bidderCatalog, "static/bidder-params", mapper);
     }
 
     @Bean
@@ -410,9 +465,11 @@ public class ServiceConfiguration {
             @Value("${currency-converter.default-timeout-ms}") long defaultTimeout,
             @Value("${currency-converter.refresh-period-ms}") long refreshPeriod,
             Vertx vertx,
-            HttpClient httpClient) {
+            HttpClient httpClient,
+            JacksonMapper mapper) {
 
-        return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
+        return new CurrencyConversionService(
+                currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient, mapper);
     }
 
     @Configuration

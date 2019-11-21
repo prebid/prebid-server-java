@@ -3,13 +3,13 @@ package org.prebid.server.settings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
@@ -61,14 +61,16 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
 
-    private HttpClient httpClient;
     private String endpoint;
     private String ampEndpoint;
+    private HttpClient httpClient;
+    private final JacksonMapper mapper;
 
-    public HttpApplicationSettings(HttpClient httpClient, String endpoint, String ampEndpoint) {
-        this.httpClient = Objects.requireNonNull(httpClient);
+    public HttpApplicationSettings(String endpoint, String ampEndpoint, HttpClient httpClient, JacksonMapper mapper) {
         this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -158,8 +160,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private static Future<StoredDataResult> processResponse(HttpClientResponse response, Set<String> requestIds,
-                                                            Set<String> impIds) {
+    private Future<StoredDataResult> processResponse(HttpClientResponse response, Set<String> requestIds,
+                                                     Set<String> impIds) {
         return Future.succeededFuture(
                 toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
     }
@@ -178,25 +180,25 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private static StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
-                                                       int statusCode, String body) {
+    private StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
+                                                int statusCode, String body) {
         if (statusCode != 200) {
             return toFailedStoredDataResult(requestIds, impIds, "HTTP status code %d", statusCode);
         }
 
         final HttpFetcherResponse response;
         try {
-            response = Json.decodeValue(body, HttpFetcherResponse.class);
+            response = mapper.decodeValue(body, HttpFetcherResponse.class);
         } catch (DecodeException e) {
-            return toFailedStoredDataResult(requestIds, impIds, "parsing json failed for response: %s with message: %s",
-                    body, e.getMessage());
+            return toFailedStoredDataResult(
+                    requestIds, impIds, "parsing json failed for response: %s with message: %s", body, e.getMessage());
         }
 
         return parseResponse(requestIds, impIds, response);
     }
 
-    private static StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds,
-                                                  HttpFetcherResponse response) {
+    private StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds,
+                                           HttpFetcherResponse response) {
         final List<String> errors = new ArrayList<>();
 
         final Map<String, String> storedIdToRequest =
@@ -208,8 +210,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
-    private static Map<String, String> parseStoredDataOrAddError(Set<String> ids, Map<String, ObjectNode> storedData,
-                                                                 StoredDataType type, List<String> errors) {
+    private Map<String, String> parseStoredDataOrAddError(Set<String> ids, Map<String, ObjectNode> storedData,
+                                                          StoredDataType type, List<String> errors) {
         final Map<String, String> result = new HashMap<>(ids.size());
         final Set<String> notParsedIds = new HashSet<>();
 
@@ -219,7 +221,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
                 final String jsonAsString;
                 try {
-                    jsonAsString = Json.mapper.writeValueAsString(entry.getValue());
+                    jsonAsString = mapper.mapper().writeValueAsString(entry.getValue());
                 } catch (JsonProcessingException e) {
                     errors.add(String.format("Error parsing %s json for id: %s with message: %s", type, id,
                             e.getMessage()));

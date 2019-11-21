@@ -11,7 +11,6 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,6 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -48,12 +48,13 @@ public class EplanningBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        eplanningBidder = new EplanningBidder(ENDPOINT_URL);
+        eplanningBidder = new EplanningBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new EplanningBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new EplanningBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -396,7 +397,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         // given, when and then
-        assertThat(eplanningBidder.extractTargeting(Json.mapper.createObjectNode())).isEmpty();
+        assertThat(eplanningBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
     }
 
     private static BidRequest givenBidRequest(

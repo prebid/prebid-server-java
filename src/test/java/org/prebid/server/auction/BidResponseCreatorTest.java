@@ -10,7 +10,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -101,7 +100,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
 
-        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService);
+        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, jacksonMapper);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -529,9 +528,9 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateTargetingKeywordsFromMediaTypePriceGranularities() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
+        final ExtRequestTargeting targeting = ExtRequestTargeting.of(mapper.valueToTree(
                 ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))), ExtMediaTypePriceGranularity.of(Json.mapper.valueToTree(
+                        BigDecimal.valueOf(0.5))))), ExtMediaTypePriceGranularity.of(mapper.valueToTree(
                 ExtPriceGranularity.of(3, singletonList(
                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null),
                 null, true, true);
@@ -703,7 +702,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldNotPopulateWinningBidTargetingIfIncludeWinnersFlagIsFalse() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
+        final ExtRequestTargeting targeting = ExtRequestTargeting.of(mapper.valueToTree(
                 ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                         BigDecimal.valueOf(0.5))))), null, null, false, true);
 
@@ -739,7 +738,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldNotPopulateBidderKeysTargetingIfIncludeBidderKeysFlagIsFalse() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
+        final ExtRequestTargeting targeting = ExtRequestTargeting.of(mapper.valueToTree(
                 ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                         BigDecimal.valueOf(0.5))))), null, null, true, false);
 
@@ -926,7 +925,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static ExtRequestTargeting givenTargeting() {
-        return ExtRequestTargeting.of(Json.mapper.valueToTree(
+        return ExtRequestTargeting.of(mapper.valueToTree(
                 ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                         BigDecimal.valueOf(0.5))))), null, null, true, true);
     }

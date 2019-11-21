@@ -61,7 +61,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
@@ -90,28 +89,20 @@ public class FacebookAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, null));
+        adapter = new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
                 .isThrownBy(
-                        () -> new FacebookAdapter(COOKIE_FAMILY, "invalid_url", NONSECURE_ENDPOINT_URL, PLATFORM_ID))
+                        () -> new FacebookAdapter(
+                                COOKIE_FAMILY, "invalid_url", NONSECURE_ENDPOINT_URL, PLATFORM_ID, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, "invalid_url", PLATFORM_ID))
+                .isThrownBy(() -> new FacebookAdapter(
+                        COOKIE_FAMILY, ENDPOINT_URL, "invalid_url", PLATFORM_ID, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -119,7 +110,8 @@ public class FacebookAdapterTest extends VertxTest {
     public void creationShouldFailOnInvalidPlatformId() {
         assertThatIllegalArgumentException()
                 .isThrownBy(
-                        () -> new FacebookAdapter(COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, "non-number"))
+                        () -> new FacebookAdapter(
+                                COOKIE_FAMILY, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, "non-number", jacksonMapper))
                 .withMessage("Platform ID is not valid number: 'non-number'");
     }
 
@@ -299,8 +291,12 @@ public class FacebookAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestWithRandomEndpoint() {
         // given
-        adapter = new FacebookAdapter(COOKIE_FAMILY, "https://secure-endpoint.org", "http://non-secure-endpoint.org",
-                PLATFORM_ID);
+        adapter = new FacebookAdapter(
+                COOKIE_FAMILY,
+                "https://secure-endpoint.org",
+                "http://non-secure-endpoint.org",
+                PLATFORM_ID,
+                jacksonMapper);
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
         // when

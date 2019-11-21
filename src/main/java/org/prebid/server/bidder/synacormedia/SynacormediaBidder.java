@@ -7,8 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -18,6 +16,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -39,9 +39,11 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public SynacormediaBidder(String endpointUrl) {
+    public SynacormediaBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -74,9 +76,9 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(validImps)
-                .ext(Json.mapper.valueToTree(firstExtImp))
+                .ext(mapper.mapper().valueToTree(firstExtImp))
                 .build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -89,10 +91,9 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private static ExtImpSynacormedia parseExtImp(ObjectNode impExt) {
+    private ExtImpSynacormedia parseExtImp(ObjectNode impExt) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpSynacormedia>>convertValue(impExt, SYNACORMEDIA_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            return mapper.mapper().convertValue(impExt, SYNACORMEDIA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -101,7 +102,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

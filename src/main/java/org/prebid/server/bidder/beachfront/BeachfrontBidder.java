@@ -15,8 +15,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,6 +35,8 @@ import org.prebid.server.bidder.model.HttpRequest.HttpRequestBuilder;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -66,10 +66,12 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
     private final String bannerEndpointUrl;
     private final String videoEndpointUrl;
+    private final JacksonMapper mapper;
 
-    public BeachfrontBidder(String bannerEndpointUrl, String videoEndpointUrl) {
+    public BeachfrontBidder(String bannerEndpointUrl, String videoEndpointUrl, JacksonMapper mapper) {
         this.bannerEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(bannerEndpointUrl));
         this.videoEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -94,8 +96,8 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Creates Http request for video endpoint
      */
-    private static Result<List<HttpRequest<BeachfrontRequests>>> makeVideoHttpRequest(BidRequest bidRequest,
-                                                                                      String endpoint) {
+    private Result<List<HttpRequest<BeachfrontRequests>>> makeVideoHttpRequest(BidRequest bidRequest,
+                                                                               String endpoint) {
         final List<String> errors = new ArrayList<>();
 
         final BeachfrontVideoRequest beachfrontVideoRequest = makeVideoRequest(bidRequest, errors);
@@ -104,7 +106,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
                 httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
                         .uri(String.format("%s%s%s", endpoint, beachfrontVideoRequest.getAppId(),
                                 VIDEO_ENDPOINT_SUFFIX))
-                        .body(Json.encode(beachfrontVideoRequest))
+                        .body(mapper.encode(beachfrontVideoRequest))
                         .payload(BeachfrontRequests.of(null, beachfrontVideoRequest))
                         .build()),
                 makeBadInputErrors(errors));
@@ -113,15 +115,15 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Creates http request for banner endpoint
      */
-    private static Result<List<HttpRequest<BeachfrontRequests>>> makeBannerHttpRequest(BidRequest bidRequest,
-                                                                                       String endpoint) {
+    private Result<List<HttpRequest<BeachfrontRequests>>> makeBannerHttpRequest(BidRequest bidRequest,
+                                                                                String endpoint) {
         final List<String> errors = new ArrayList<>();
         final BeachfrontBannerRequest beachfrontBannerRequest = makeBannerRequest(bidRequest, bidRequest.getImp(),
                 errors);
         return Result.of(Collections.singletonList(
                 httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
                         .uri(endpoint)
-                        .body(Json.encode(beachfrontBannerRequest))
+                        .body(mapper.encode(beachfrontBannerRequest))
                         .payload(BeachfrontRequests.of(beachfrontBannerRequest, null))
                         .build()),
                 makeBadInputErrors(errors));
@@ -129,6 +131,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
     private static HttpRequestBuilder<BeachfrontRequests> httpRequestBuilderWithPopulatedHeadersAndMethod(
             Device device, HttpMethod httpMethod) {
+
         final MultiMap headers = HttpUtil.headers();
         if (device != null) {
             addDeviceHeaders(headers, device);
@@ -147,7 +150,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * Creates {@link BeachfrontVideoRequest} from {@link BidRequest}, which json representation used as http body
      * request to video endpoint.
      */
-    private static BeachfrontVideoRequest makeVideoRequest(BidRequest bidRequest, List<String> errors) {
+    private BeachfrontVideoRequest makeVideoRequest(BidRequest bidRequest, List<String> errors) {
         final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder requestBuilder
                 = BeachfrontVideoRequest.builder().cur(Collections.singletonList("USD")).isPrebid(true);
 
@@ -176,8 +179,8 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * json or missed, {@link BeachfrontVideoImp} considered as invalid. Returns latest {@link ExtImpBeachfront} from
      * last valid imp, if no valid imps, returns null.
      */
-    private static ExtImpBeachfront makeVideoImpsAndGetExtImpBeachfront(BidRequest bidRequest, List<String> errors,
-                                                                        List<BeachfrontVideoImp> beachfrontVideoImps) {
+    private ExtImpBeachfront makeVideoImpsAndGetExtImpBeachfront(BidRequest bidRequest, List<String> errors,
+                                                                 List<BeachfrontVideoImp> beachfrontVideoImps) {
         ExtImpBeachfront latestExtImpBeachfront = null;
         for (final Imp imp : bidRequest.getImp()) {
             final Video video = imp.getVideo();
@@ -252,8 +255,8 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * Creates {@link BeachfrontBannerRequest} from {@link BidRequest}, which json representation used as http body
      * request to banner endpoint.
      */
-    private static BeachfrontBannerRequest makeBannerRequest(BidRequest bidRequest, List<Imp> imps,
-                                                             List<String> errors) {
+    private BeachfrontBannerRequest makeBannerRequest(BidRequest bidRequest, List<Imp> imps,
+                                                      List<String> errors) {
         final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder requestBuilder =
                 BeachfrontBannerRequest.builder().adapterName(BEACHFRONT_NAME).adapterVersion(BEACHFRONT_VERSION);
 
@@ -293,7 +296,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * All banner imps without extension, or with extension which can't be deserialized, considering as invalid.
      * If all imps are invalid, throws {@link InvalidRequestException}.
      */
-    private static List<BeachfrontSlot> makeBeachfrontSlots(List<Imp> imps, List<String> errors) {
+    private List<BeachfrontSlot> makeBeachfrontSlots(List<Imp> imps, List<String> errors) {
         final List<BeachfrontSlot> beachfrontSlots = new ArrayList<>();
         boolean hasValidImp = false;
         for (final Imp imp : imps) {
@@ -377,14 +380,13 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Extracts {@link ExtImpBeachfront} from imp.ext.bidder.
      */
-    private static ExtImpBeachfront getExtImpBeachfront(Imp imp) {
+    private ExtImpBeachfront getExtImpBeachfront(Imp imp) {
         final ObjectNode impExt = imp.getExt();
         if (imp.getExt() == null) {
             throw new PreBidException("Beachfront parameters section is missing");
         }
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpBeachfront>>convertValue(impExt,
-                    BEACHFRONT_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(impExt, BEACHFRONT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
                     "ignoring imp id=%s, error while decoding impExt, err: %s", imp.getId(), e.getMessage()));
@@ -431,7 +433,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final List<BidderError> errors = new ArrayList<>();
         final BidResponse bidResponse;
         try {
-            bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException ex) {
             errors.add(BidderError.badServerResponse(ex.getMessage()));
             return makeErrorResponse(errors);
@@ -487,10 +489,11 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * <p>
      * Throws {@link PreBidException} in case of failure.
      */
-    private static List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
+    private List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
         try {
-            return Json.mapper.readValue(responseBody, Json.mapper.getTypeFactory()
-                    .constructCollectionType(List.class, BeachfrontResponseSlot.class));
+            return mapper.mapper().readValue(
+                    responseBody,
+                    mapper.mapper().getTypeFactory().constructCollectionType(List.class, BeachfrontResponseSlot.class));
         } catch (IOException ex) {
             throw new PreBidException(ex.getMessage());
         }

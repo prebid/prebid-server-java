@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -25,6 +24,7 @@ import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -59,23 +59,29 @@ public class FacebookAdapter extends OpenrtbAdapter {
     private final String endpointUrl;
     private final String nonSecureEndpointUrl;
     private final ObjectNode platformJson;
+    private final JacksonMapper mapper;
 
-    public FacebookAdapter(String cookieFamilyName, String endpointUrl, String nonSecureEndpointUrl,
-                           String platformId) {
+    public FacebookAdapter(String cookieFamilyName,
+                           String endpointUrl,
+                           String nonSecureEndpointUrl,
+                           String platformId,
+                           JacksonMapper mapper) {
+
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.nonSecureEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(nonSecureEndpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
         platformJson = createPlatformJson(Objects.requireNonNull(platformId));
     }
 
-    private static ObjectNode createPlatformJson(String platformId) {
+    private ObjectNode createPlatformJson(String platformId) {
         final Integer platformIdAsInt;
         try {
             platformIdAsInt = Integer.valueOf(platformId);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(String.format("Platform ID is not valid number: '%s'", platformId), e);
         }
-        return Json.mapper.valueToTree(FacebookExt.of(platformIdAsInt));
+        return mapper.mapper().valueToTree(FacebookExt.of(platformIdAsInt));
     }
 
     @Override
@@ -113,14 +119,14 @@ public class FacebookAdapter extends OpenrtbAdapter {
         }
     }
 
-    private static List<AdUnitBidWithParams<NormalizedFacebookParams>> createAdUnitBidsWithParams(
+    private List<AdUnitBidWithParams<NormalizedFacebookParams>> createAdUnitBidsWithParams(
             List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
-    private static NormalizedFacebookParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private NormalizedFacebookParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Facebook params section is missing");
@@ -128,7 +134,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
         final FacebookParams params;
         try {
-            params = Json.mapper.convertValue(paramsNode, FacebookParams.class);
+            params = mapper.mapper().convertValue(paramsNode, FacebookParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());

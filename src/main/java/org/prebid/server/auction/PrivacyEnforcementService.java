@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
@@ -16,6 +15,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -40,17 +40,23 @@ public class PrivacyEnforcementService {
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
     private static final User EMPTY_USER = User.builder().build();
 
+    private final boolean useGeoLocation;
     private final GdprService gdprService;
     private final BidderCatalog bidderCatalog;
     private final Metrics metrics;
-    private final boolean useGeoLocation;
+    private final JacksonMapper mapper;
 
-    public PrivacyEnforcementService(GdprService gdprService, BidderCatalog bidderCatalog, Metrics metrics,
-                                     boolean useGeoLocation) {
+    public PrivacyEnforcementService(boolean useGeoLocation,
+                                     GdprService gdprService,
+                                     BidderCatalog bidderCatalog,
+                                     Metrics metrics,
+                                     JacksonMapper mapper) {
+
+        this.useGeoLocation = useGeoLocation;
         this.gdprService = Objects.requireNonNull(gdprService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.metrics = Objects.requireNonNull(metrics);
-        this.useGeoLocation = useGeoLocation;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -100,11 +106,11 @@ public class PrivacyEnforcementService {
     /**
      * Extracts {@link ExtRegs} from {@link Regs}.
      */
-    private static ExtRegs extRegs(Regs regs) {
+    private ExtRegs extRegs(Regs regs) {
         final ObjectNode regsExt = regs != null ? regs.getExt() : null;
         if (regsExt != null) {
             try {
-                return Json.mapper.treeToValue(regsExt, ExtRegs.class);
+                return mapper.mapper().treeToValue(regsExt, ExtRegs.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
             }

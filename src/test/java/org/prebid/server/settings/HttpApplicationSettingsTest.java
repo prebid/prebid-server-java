@@ -59,7 +59,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @Before
     public void setUp() {
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, ENDPOINT, AMP_ENDPOINT);
+        httpApplicationSettings = new HttpApplicationSettings(ENDPOINT, AMP_ENDPOINT, httpClient, jacksonMapper);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -70,14 +70,14 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, "invalid_url", AMP_ENDPOINT))
+                .isThrownBy(() -> new HttpApplicationSettings("invalid_url", AMP_ENDPOINT, httpClient, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, ENDPOINT, "invalid_url"))
+                .isThrownBy(() -> new HttpApplicationSettings(ENDPOINT, "invalid_url", httpClient, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -157,8 +157,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
         givenHttpClientReturnsResponse(200, null);
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, "http://some-domain?param1=value1",
-                AMP_ENDPOINT);
+        httpApplicationSettings = new HttpApplicationSettings(
+                "http://some-domain?param1=value1", AMP_ENDPOINT, httpClient, jacksonMapper);
 
         // when
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);

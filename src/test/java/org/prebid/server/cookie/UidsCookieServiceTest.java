@@ -1,7 +1,6 @@
 package org.prebid.server.cookie;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.Json;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -13,7 +12,9 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.json.JacksonMapper;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -48,7 +49,8 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
-        uidsCookieService = new UidsCookieService("trp_optout", "true", null, null, "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", "true", null, null, "cookie-domain", 90, jacksonMapper);
     }
 
     @Test
@@ -118,13 +120,13 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNewUidsCookieWithBday() {
+    public void shouldReturnNewUidsCookieWithBday() throws IOException {
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
         final String uidsCookieBase64 = uidsCookieService.toCookie(uidsCookie).getValue();
 
         // then
-        final Uids uids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookieBase64)), Uids.class);
+        final Uids uids = mapper.readValue(Base64.getUrlDecoder().decode(uidsCookieBase64), Uids.class);
         assertThat(uids.getBday()).isCloseTo(ZonedDateTime.now(Clock.systemUTC()), within(10, ChronoUnit.SECONDS));
     }
 
@@ -177,7 +179,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieNameNotSpecified() {
         // given
-        uidsCookieService = new UidsCookieService(null, "true", null, null, "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(
+                null, "true", null, null, "cookie-domain", 90, jacksonMapper);
         given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
@@ -190,7 +193,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieValueNotSpecified() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", null, null, null, "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", null, null, null, "cookie-domain", 90, jacksonMapper);
         given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("trp_optout", "true")));
 
         // when
@@ -203,7 +207,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, jacksonMapper);
         given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("khaos", "abc123")));
 
         // when
@@ -216,7 +221,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsPresentButDiffers() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, jacksonMapper);
 
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         given(routingContext.cookies()).willReturn(new HashSet<>(asList(
@@ -231,7 +237,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldSkipFacebookSentinelFromUidsCookie() {
+    public void shouldSkipFacebookSentinelFromUidsCookie() throws JsonProcessingException {
         // given
         final Map<String, UidWithExpiry> uidsWithExpiry = new HashMap<>();
         uidsWithExpiry.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
@@ -251,9 +257,10 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldReturnCookieWithExpectedValue() {
+    public void toCookieShouldReturnCookieWithExpectedValue() throws IOException {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build())
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
                 .updateUid(RUBICON, "rubiconUid")
                 .updateUid(ADNXS, "adnxsUid");
 
@@ -276,7 +283,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void toCookieShouldReturnCookieWithExpectedExpiration() {
         // when
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build());
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
 
         // then
@@ -286,7 +294,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void toCookieShouldReturnCookieWithExpectedDomain() {
         // when
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build());
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
 
         // then
@@ -313,7 +322,8 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldParseHostCookie() {
         // given
-        uidsCookieService = new UidsCookieService("trp_optout", "true", null, "khaos", "cookie-domain", 90);
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", "true", null, "khaos", "cookie-domain", 90, jacksonMapper);
 
         // when
         final String hostCookie = uidsCookieService.parseHostCookie(singletonMap("khaos", "userId"));
@@ -341,11 +351,11 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(hostCookie).isNull();
     }
 
-    private static String encodeUids(Uids uids) {
-        return Base64.getUrlEncoder().encodeToString(Json.encodeToBuffer(uids).getBytes());
+    private static String encodeUids(Uids uids) throws JsonProcessingException {
+        return Base64.getUrlEncoder().encodeToString(mapper.writeValueAsBytes(uids));
     }
 
-    private static Uids decodeUids(String value) {
-        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    private static Uids decodeUids(String value) throws IOException {
+        return mapper.readValue(Base64.getUrlDecoder().decode(value), Uids.class);
     }
 }

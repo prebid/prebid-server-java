@@ -1,13 +1,13 @@
 package org.prebid.server.bidder.sharethrough;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -61,11 +61,11 @@ class SharethroughRequestUtil {
     /**
      * Retrieves gdpr from regs.ext.gdpr and in case of 1 returns true.
      */
-    static boolean isConsentRequired(Regs regs) {
+    static boolean isConsentRequired(Regs regs, ObjectMapper mapper) {
         final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
         final ExtRegs extRegs;
         try {
-            extRegs = extRegsNode != null ? Json.mapper.treeToValue(extRegsNode, ExtRegs.class) : null;
+            extRegs = extRegsNode != null ? mapper.treeToValue(extRegsNode, ExtRegs.class) : null;
         } catch (JsonProcessingException e) {
             return false;
         }
@@ -91,10 +91,10 @@ class SharethroughRequestUtil {
     /**
      * Retrieves {@link UserInfo} from user.ext or returns null in case of exception.
      */
-    static UserInfo getUserInfo(User user) {
+    static UserInfo getUserInfo(User user, ObjectMapper mapper) {
         final ObjectNode extUserNode = user != null ? user.getExt() : null;
         try {
-            final UserExt userExt = extUserNode != null ? Json.mapper.treeToValue(extUserNode, UserExt.class) : null;
+            final UserExt userExt = extUserNode != null ? mapper.treeToValue(extUserNode, UserExt.class) : null;
             final String consent = userExt != null ? userExt.getConsent() : null;
             final String stxuid = user != null ? user.getBuyeruid() : null;
 

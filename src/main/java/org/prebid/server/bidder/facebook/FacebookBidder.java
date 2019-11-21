@@ -12,8 +12,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -24,6 +22,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -55,11 +55,13 @@ public class FacebookBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final String nonSecureEndpointUrl;
     private final ObjectNode platformJson;
+    private final JacksonMapper mapper;
 
-    public FacebookBidder(String endpointUrl, String nonSecureEndpointUrl, String platformId) {
+    public FacebookBidder(String endpointUrl, String nonSecureEndpointUrl, String platformId, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.nonSecureEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(nonSecureEndpointUrl));
-        platformJson = createPlatformJson(Objects.requireNonNull(platformId));
+        this.mapper = Objects.requireNonNull(mapper);
+        this.platformJson = createPlatformJson(Objects.requireNonNull(platformId));
     }
 
     @Override
@@ -89,7 +91,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .site(makeSite(bidRequest, pubId))
                 .app(makeApp(bidRequest, pubId))
                 .build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -105,7 +107,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -117,14 +119,14 @@ public class FacebookBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 
-    private static ObjectNode createPlatformJson(String platformId) {
+    private ObjectNode createPlatformJson(String platformId) {
         final Integer platformIdAsInt;
         try {
             platformIdAsInt = Integer.valueOf(platformId);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(String.format("Platform ID is not valid number: '%s'", platformId), e);
         }
-        return Json.mapper.valueToTree(FacebookExt.of(platformIdAsInt));
+        return mapper.mapper().valueToTree(FacebookExt.of(platformIdAsInt));
     }
 
     private ExtImpFacebook parseExtImpFacebook(Imp imp) {
@@ -133,7 +135,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpFacebook>>convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
+            return mapper.mapper().convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);

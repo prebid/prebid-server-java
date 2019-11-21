@@ -40,12 +40,12 @@ public class UnrulyBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        unrulyBidder = new UnrulyBidder(ENDPOINT_URL);
+        unrulyBidder = new UnrulyBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new UnrulyBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new UnrulyBidder("invalid_url", jacksonMapper));
     }
 
     @Test

@@ -258,7 +258,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private static CurrencyConversionService createAndInitService(String url, long refreshPeriod, Vertx vertx,
                                                                   HttpClient httpClient) {
         final CurrencyConversionService currencyService =
-                new CurrencyConversionService(url, 1000L, refreshPeriod, vertx, httpClient);
+                new CurrencyConversionService(url, 1000L, refreshPeriod, vertx, httpClient, jacksonMapper);
         currencyService.initialize();
         return currencyService;
     }

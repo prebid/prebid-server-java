@@ -10,8 +10,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -27,6 +25,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
@@ -58,9 +58,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public AppnexusBidder(String endpointUrl) {
+    public AppnexusBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -97,7 +99,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -110,10 +112,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
+    private String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
         if (bidRequest.getApp() != null) {
             try {
-                final ExtApp extApp = Json.mapper.convertValue(bidRequest.getApp().getExt(), ExtApp.class);
+                final ExtApp extApp = mapper.mapper().convertValue(bidRequest.getApp().getExt(), ExtApp.class);
                 final ExtAppPrebid prebid = extApp != null ? extApp.getPrebid() : null;
                 if (prebid != null) {
                     final String source = prebid.getSource();
@@ -142,7 +144,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ImpWithMemberId makeImpWithMemberId(Imp imp, String defaultDisplayManagerVer) {
+    private ImpWithMemberId makeImpWithMemberId(Imp imp, String defaultDisplayManagerVer) {
         if (imp.getAudio() != null) {
             throw new PreBidException(
                     String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
@@ -152,7 +154,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(makeBanner(imp.getBanner(), appnexusExt))
-                .ext(Json.mapper.valueToTree(makeAppnexusImpExt(appnexusExt)));
+                .ext(mapper.mapper().valueToTree(makeAppnexusImpExt(appnexusExt)));
 
         final String invCode = appnexusExt.getInvCode();
         if (StringUtils.isNotBlank(invCode)) {
@@ -225,14 +227,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             }
         }
 
-        return kvs.stream().collect(Collectors.joining(","));
+        return String.join(",", kvs);
     }
 
-    private static ExtImpAppnexus parseAndValidateAppnexusExt(Imp imp) {
+    private ExtImpAppnexus parseAndValidateAppnexusExt(Imp imp) {
         ExtImpAppnexus ext;
         try {
-            ext = Json.mapper.<ExtPrebid<?, ExtImpAppnexus>>convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            ext = mapper.mapper().convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -263,7 +264,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -275,13 +276,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -291,7 +292,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private static BidType bidType(Bid bid) {
+    private BidType bidType(Bid bid) {
         final AppnexusBidExtAppnexus appnexus = parseAppnexusBidExt(bid.getExt()).getAppnexus();
         if (appnexus == null) {
             throw new PreBidException("bidResponse.bid.ext.appnexus should be defined");
@@ -317,14 +318,14 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {
+    private AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {
         if (bidExt == null) {
             throw new PreBidException("bidResponse.bid.ext should be defined for appnexus");
         }
 
         final AppnexusBidExt appnexusBidExt;
         try {
-            appnexusBidExt = Json.mapper.treeToValue(bidExt, AppnexusBidExt.class);
+            appnexusBidExt = mapper.mapper().treeToValue(bidExt, AppnexusBidExt.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Device;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -20,6 +19,7 @@ import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -41,10 +41,12 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
 
     private final String cookieFamilyName;
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public AdformAdapter(String cookieFamilyName, String endpointUrl) {
+    public AdformAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         this.cookieFamilyName = Objects.requireNonNull(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -57,7 +59,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 .map(this::toAdformParams)
                 .collect(Collectors.toList());
 
-        final ExtUser extUser = AdformRequestUtil.getExtUser(preBidRequestContext.getPreBidRequest().getUser());
+        final ExtUser extUser = AdformRequestUtil.getExtUser(
+                preBidRequestContext.getPreBidRequest().getUser(), mapper.mapper());
 
         return Collections.singletonList(AdapterHttpRequest.of(
                 HttpMethod.GET,
@@ -94,7 +97,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         }
         final AdformParams adformParams;
         try {
-            adformParams = Json.mapper.treeToValue(params, AdformParams.class);
+            adformParams = mapper.mapper().treeToValue(params, AdformParams.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e.getCause());
         }
@@ -123,8 +126,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .ip(ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""))
                         .advertisingId(device != null ? device.getIfa() : "")
                         .secure(secure != null && secure == 1)
-                        .gdprApplies(AdformRequestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest()
-                                .getRegs()))
+                        .gdprApplies(AdformRequestUtil.getGdprApplies(
+                                preBidRequestContext.getPreBidRequest().getRegs(), mapper.mapper()))
                         .consent(AdformRequestUtil.getConsent(extUser))
                         .currency(DEFAULT_CURRENCY)
                         .build());
@@ -168,7 +171,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
                 preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName),
-                adformDigitrust);
+                adformDigitrust,
+                mapper.mapper());
     }
 
     /**

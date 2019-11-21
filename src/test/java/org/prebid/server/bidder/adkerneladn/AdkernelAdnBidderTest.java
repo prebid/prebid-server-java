@@ -51,12 +51,12 @@ public class AdkernelAdnBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        adkernelAdnBidder = new AdkernelAdnBidder(ENDPOINT_URL);
+        adkernelAdnBidder = new AdkernelAdnBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AdkernelAdnBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdkernelAdnBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -180,7 +180,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
     public void makeHttpRequestShouldRemovePortIfHostIsSpecified() {
         // given
         final String urlWithPort = "http://test:8080/rtbpub?account=";
-        adkernelAdnBidder = new AdkernelAdnBidder(urlWithPort);
+        adkernelAdnBidder = new AdkernelAdnBidder(urlWithPort, jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 identity(),

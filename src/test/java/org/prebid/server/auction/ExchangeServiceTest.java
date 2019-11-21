@@ -20,7 +20,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,6 +48,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -184,17 +184,37 @@ public class ExchangeServiceTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyService, bidResponseCreator,
-                bidResponsePostProcessor, metrics, clock, 0);
+        exchangeService = new ExchangeService(
+                0,
+                bidderCatalog,
+                storedResponseProcessor,
+                privacyEnforcementService,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                metrics,
+                clock,
+                jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                        httpBidderRequester, responseBidValidator, currencyService, bidResponseCreator,
-                        bidResponsePostProcessor, metrics, clock, -1));
+                () -> new ExchangeService(
+                        -1,
+                        bidderCatalog,
+                        storedResponseProcessor,
+                        privacyEnforcementService,
+                        httpBidderRequester,
+                        responseBidValidator,
+                        currencyService,
+                        bidResponseCreator,
+                        bidResponsePostProcessor,
+                        metrics,
+                        clock,
+                        jacksonMapper));
     }
 
     @Test
@@ -1123,9 +1143,19 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToBidResponseCreator() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyService, bidResponseCreator,
-                bidResponsePostProcessor, metrics, clock, 100);
+        exchangeService = new ExchangeService(
+                100,
+                bidderCatalog,
+                storedResponseProcessor,
+                privacyEnforcementService,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                metrics,
+                clock,
+                jacksonMapper);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
@@ -1702,7 +1732,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static ExtRequestTargeting givenTargeting(boolean includebidderkeys) {
-        return ExtRequestTargeting.of(Json.mapper.valueToTree(
+        return ExtRequestTargeting.of(mapper.valueToTree(
                 ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                         BigDecimal.valueOf(0.5))))), null, null, true, includebidderkeys);
     }

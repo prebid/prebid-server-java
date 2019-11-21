@@ -1,10 +1,10 @@
 package org.prebid.server.bidder.adform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
@@ -26,11 +26,11 @@ class AdformRequestUtil {
     /**
      * Retrieves {@link ExtUser} from user.ext.
      */
-    static ExtUser getExtUser(User user) {
+    static ExtUser getExtUser(User user, ObjectMapper mapper) {
         final ObjectNode extUserNode = user != null ? user.getExt() : null;
         ExtUser extUser;
         try {
-            extUser = extUserNode != null ? Json.mapper.treeToValue(extUserNode, ExtUser.class) : null;
+            extUser = extUserNode != null ? mapper.treeToValue(extUserNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
             extUser = null;
         }
@@ -40,11 +40,11 @@ class AdformRequestUtil {
     /**
      * Retrieves gdpr from regs.ext.gdpr and in case of any exception or invalid values returns empty string.
      */
-    static String getGdprApplies(Regs regs) {
+    static String getGdprApplies(Regs regs, ObjectMapper mapper) {
         final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
         final ExtRegs extRegs;
         try {
-            extRegs = extRegsNode != null ? Json.mapper.treeToValue(extRegsNode, ExtRegs.class) : null;
+            extRegs = extRegsNode != null ? mapper.treeToValue(extRegsNode, ExtRegs.class) : null;
         } catch (JsonProcessingException e) {
             return "";
         }

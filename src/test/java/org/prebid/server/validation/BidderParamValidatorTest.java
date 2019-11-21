@@ -31,7 +31,6 @@ import java.util.Set;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.BDDMockito.given;
 
 public class BidderParamValidatorTest extends VertxTest {
@@ -62,31 +61,27 @@ public class BidderParamValidatorTest extends VertxTest {
                 asList(RUBICON, APPNEXUS, ADFORM, BRIGHTROLL, SOVRN, ADTELLIGENT, FACEBOOK, OPENX, EPLANNING,
                         SOMOAUDIENCE, BEACHFRONT)));
 
-        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params");
-    }
-
-    @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> BidderParamValidator.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> BidderParamValidator.create(bidderCatalog, null));
+        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params", jacksonMapper);
     }
 
     @Test
     public void createShouldFailOnInvalidSchemaPath() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "noschema"));
+                () -> BidderParamValidator.create(bidderCatalog, "noschema", jacksonMapper));
     }
 
     @Test
     public void createShouldFailOnEmptySchemaFile() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "org/prebid/server/validation/schema/empty"));
+                () -> BidderParamValidator.create(
+                        bidderCatalog, "org/prebid/server/validation/schema/empty", jacksonMapper));
     }
 
     @Test
     public void createShouldFailOnInvalidSchemaFile() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "org/prebid/server/validation/schema/invalid"));
+                () -> BidderParamValidator.create(
+                        bidderCatalog, "org/prebid/server/validation/schema/invalid", jacksonMapper));
     }
 
     @Test
@@ -390,7 +385,8 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
 
-        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "org/prebid/server/validation/schema/valid");
+        bidderParamValidator = BidderParamValidator.create(
+                bidderCatalog, "org/prebid/server/validation/schema/valid", jacksonMapper);
 
         // when
         final String result = bidderParamValidator.schemas();

@@ -26,7 +26,6 @@ import java.util.function.Function;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -38,7 +37,7 @@ public class TappxBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        tappxBidder = new TappxBidder(ENDPOINT_URL);
+        tappxBidder = new TappxBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -128,8 +127,10 @@ public class TappxBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> emptyHostResult = tappxBidder.makeHttpRequests(bidRequestEmptyHost);
-        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult = tappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
-        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult = tappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
+        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult =
+                tappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
+        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult =
+                tappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
 
         // then
         assertThat(emptyHostResult.getErrors()).hasSize(1);

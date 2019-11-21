@@ -17,7 +17,7 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprFromShouldReturnEmptyValueWhenRegsIsNull() {
         // given and when
-        final String gdpr = GdprUtils.gdprFrom(null);
+        final String gdpr = GdprUtils.gdprFrom(null, mapper);
 
         // then
         assertThat(gdpr).isEmpty();
@@ -26,7 +26,7 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprFromShouldReturnEmptyValueWhenRegsExtIsNull() {
         // given and when
-        final String gdpr = GdprUtils.gdprFrom(Regs.of(null, null));
+        final String gdpr = GdprUtils.gdprFrom(Regs.of(null, null), mapper);
 
         // then
         assertThat(gdpr).isEmpty();
@@ -35,7 +35,8 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprFromShouldReturnEmptyValueWhenRegExtIsNotValidJson() throws IOException {
         // given and when
-        final String gdpr = GdprUtils.gdprFrom(Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}")));
+        final String gdpr = GdprUtils.gdprFrom(
+                Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}")), mapper);
 
         // then
         assertThat(gdpr).isEmpty();
@@ -44,7 +45,8 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprFromShouldReturnEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
-        final String gdpr = GdprUtils.gdprFrom(Regs.of(null, mapper.valueToTree(ExtRegs.of(2))));
+        final String gdpr = GdprUtils.gdprFrom(
+                Regs.of(null, mapper.valueToTree(ExtRegs.of(2))), mapper);
 
         // then
         assertThat(gdpr).isEmpty();
@@ -53,7 +55,8 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprFromShouldReturnOne() {
         // given and when
-        final String gdpr = GdprUtils.gdprFrom(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
+        final String gdpr = GdprUtils.gdprFrom(
+                Regs.of(null, mapper.valueToTree(ExtRegs.of(1))), mapper);
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -62,7 +65,8 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprFromShouldReturnZero() {
         // given and when
-        final String gdpr = GdprUtils.gdprFrom(Regs.of(null, mapper.valueToTree(ExtRegs.of(0))));
+        final String gdpr = GdprUtils.gdprFrom(
+                Regs.of(null, mapper.valueToTree(ExtRegs.of(0))), mapper);
 
         // then
         assertThat(gdpr).isEqualTo("0");
@@ -71,7 +75,7 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprConsentFromShouldReturnEmptyValueWhenExtUserIsNull() {
         // given and when
-        final String consent = GdprUtils.gdprConsentFrom(null);
+        final String consent = GdprUtils.gdprConsentFrom(null, mapper);
 
         // then
         assertThat(consent).isEmpty();
@@ -80,9 +84,8 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprConsentFromShouldReturnEmptyValueWhenConsentIsNull() {
         // given and when
-        final String consent = GdprUtils.gdprConsentFrom(User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().build()))
-                .build());
+        final String consent = GdprUtils.gdprConsentFrom(
+                User.builder().ext(mapper.valueToTree(ExtUser.builder().build())).build(), mapper);
 
         // then
         assertThat(consent).isEmpty();
@@ -91,9 +94,8 @@ public class GdprUtilsTest extends VertxTest {
     @Test
     public void gdprConsentFromShouldReturnConsent() {
         // given and when
-        final String consent = GdprUtils.gdprConsentFrom(User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
-                .build());
+        final String consent = GdprUtils.gdprConsentFrom(
+                User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build(), mapper);
 
         // then
         assertThat(consent).isEqualTo("consent");

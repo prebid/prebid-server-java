@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.util.HttpUtil;
 
@@ -25,10 +25,12 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     private static final String BIDDER_NAME_PARAM = "bidderName";
     private static final String ALL_PARAM_VALUE = "all";
 
+    private final JacksonMapper mapper;
     private final Map<String, String> bidderInfos;
 
-    public BidderDetailsHandler(BidderCatalog bidderCatalog) {
+    public BidderDetailsHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
         validateAliases(Objects.requireNonNull(bidderCatalog));
+        this.mapper = Objects.requireNonNull(mapper);
         bidderInfos = createBidderInfos(bidderCatalog);
     }
 
@@ -44,7 +46,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
      * Returns a {@link Map} with bidder name (or alias, or "all" keyword) as a key
      * and json-encoded string of {@link BidderInfoResponseModel} as a value.
      */
-    private static Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
+    private Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
         final Map<String, ObjectNode> nameToInfo = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
@@ -58,21 +60,21 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
 
         return Stream.of(nameToInfo, aliasToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, map -> Json.encode(map.getValue())));
+                .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encode(map.getValue())));
     }
 
     /**
      * Returns bidder info as {@link ObjectNode}.
      */
-    private static ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
+    private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
         final BidderInfo bidderInfo = bidderCatalog.bidderInfoByName(name);
-        return Json.mapper.valueToTree(BidderInfoResponseModel.from(bidderInfo));
+        return mapper.mapper().valueToTree(BidderInfoResponseModel.from(bidderInfo));
     }
 
     /**
      * Returns alias info as {@link ObjectNode}.
      */
-    private static ObjectNode aliasNode(BidderCatalog bidderCatalog, String alias) {
+    private ObjectNode aliasNode(BidderCatalog bidderCatalog, String alias) {
         final String name = bidderCatalog.nameByAlias(alias);
 
         final ObjectNode node = bidderNode(bidderCatalog, name);
@@ -83,11 +85,11 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     /**
      * Returns a {@link Map} of all bidder's infos sorted by name (and alias) as {@link ObjectNode}.
      */
-    private static ObjectNode allInfos(Map<String, ObjectNode> nameToInfo, Map<String, ObjectNode> aliasToInfo) {
+    private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo, Map<String, ObjectNode> aliasToInfo) {
         final Map<String, ObjectNode> result = new TreeMap<>();
         result.putAll(nameToInfo);
         result.putAll(aliasToInfo);
-        return Json.mapper.valueToTree(result);
+        return mapper.mapper().valueToTree(result);
     }
 
     @Override

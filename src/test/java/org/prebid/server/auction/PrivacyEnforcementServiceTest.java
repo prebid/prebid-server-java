@@ -83,7 +83,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false);
+        privacyEnforcementService = new PrivacyEnforcementService(
+                false, gdprService, bidderCatalog, metrics, jacksonMapper);
     }
 
     @Test

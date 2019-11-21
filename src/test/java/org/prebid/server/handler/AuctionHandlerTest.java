@@ -152,8 +152,18 @@ public class AuctionHandlerTest extends VertxTest {
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, emptyMap(), null)));
 
-        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock, gdprService, null, false);
+        auctionHandler = new AuctionHandler(
+                applicationSettings,
+                bidderCatalog,
+                preBidRequestContextFactory,
+                cacheService,
+                metrics,
+                httpAdapterConnector,
+                clock,
+                gdprService,
+                jacksonMapper,
+                null,
+                false);
     }
 
     @Test
@@ -810,8 +820,17 @@ public class AuctionHandlerTest extends VertxTest {
                                 .usersync(UsersyncInfo.of("url1", "type1", null))
                                 .build(), emptyList(), null)));
 
-        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock, gdprService, 1, false);
+        auctionHandler = new AuctionHandler(
+                applicationSettings,
+                bidderCatalog,
+                preBidRequestContextFactory,
+                cacheService,
+                metrics,
+                httpAdapterConnector,
+                clock, gdprService,
+                jacksonMapper,
+                1,
+                false);
 
         // when
         auctionHandler.handle(routingContext);

@@ -16,7 +16,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -34,6 +33,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -55,8 +55,8 @@ public class BeachfrontBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        beachfrontBidder = new BeachfrontBidder("http://banner-beachfront.com",
-                "http://video-beachfront.com?exchange_id=");
+        beachfrontBidder = new BeachfrontBidder(
+                "http://banner-beachfront.com", "http://video-beachfront.com?exchange_id=", jacksonMapper);
     }
 
     @Test
@@ -65,7 +65,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().banner(Banner.builder().build()).build(),
                         Imp.builder().video(Video.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appId", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appId", 1f))))
                                 .build()))
                 .build();
 
@@ -85,7 +85,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId").video(Video.builder().w(300).h(400).build())
                         .secure(1)
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .user(User.builder().id("userId").buyeruid("buyerId").build())
                 .device(Device.builder().ua("ua").ip("127.0.0.1").language(null).build())
@@ -111,7 +111,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         tuple("X-Forwarded-For", "127.0.0.1"));
 
         assertThat(result.getValue()).
-                extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
+                extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BeachfrontVideoRequest.builder().isPrebid(true).appId("appIdExt")
                         .imp(singletonList(BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), 1f, 0, "impId", 1)))
                         .site(Site.builder().domain("appDomain").page("appId").build())
@@ -126,7 +126,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().video(Video.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .build();
 
@@ -135,7 +135,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .flatExtracting(BeachfrontVideoRequest::getImp)
                 .extracting(BeachfrontVideoImp::getSecure)
                 .containsOnly(0);
@@ -162,7 +162,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("impId")
                         .video(Video.builder().build())
-                        .ext(Json.mapper.createObjectNode().put("bidder", 4))
+                        .ext(mapper.createObjectNode().put("bidder", 4))
                         .build())).build();
 
         // when
@@ -183,7 +183,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().video(Video.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .app(App.builder().domain("appDomain").id("appId").build())
                 .site(Site.builder().domain("siteDomain").build())
@@ -194,7 +194,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getSite)
                 .extracting(Site::getDomain)
                 .containsOnly("appDomain");
@@ -205,7 +205,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().video(Video.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .site(Site.builder().page("http://domain.com/list").domain("domain.com").build())
                 .build();
@@ -215,7 +215,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getSite)
                 .extracting(Site::getDomain)
                 .containsOnly("domain.com");
@@ -226,7 +226,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().video(Video.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .site(Site.builder().page("http://domain.com/list").build())
                 .build();
@@ -236,7 +236,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getSite)
                 .extracting(Site::getDomain)
                 .containsOnly("domain.com");
@@ -247,7 +247,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().video(Video.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .build();
 
@@ -256,7 +256,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getSite)
                 .containsNull();
     }
@@ -266,10 +266,10 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().video(Video.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt1", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt1", 1f))))
                                 .build(),
                         Imp.builder().video(Video.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt2", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt2", 1f))))
                                 .build()))
                 .site(Site.builder().page("http://domain.com/list").build())
                 .build();
@@ -279,7 +279,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getAppId)
                 .containsOnly("appIdExt2");
     }
@@ -289,10 +289,10 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().id("impId1").video(Video.builder().w(300).h(400).build()).secure(1)
-                                .ext(Json.mapper.valueToTree(Json.mapper.createObjectNode().put("bidder", 4)))
+                                .ext(mapper.valueToTree(mapper.createObjectNode().put("bidder", 4)))
                                 .build(),
                         Imp.builder().id("impId2").video(Video.builder().w(100).h(200).build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt1", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt1", 1f))))
                                 .build()))
                 .build();
 
@@ -309,7 +309,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .containsOnly(BeachfrontVideoRequest.builder().isPrebid(true).appId("appIdExt1")
                         .imp(asList(BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), null, null, null, 1),
                                 BeachfrontVideoImp.of(BeachfrontSize.of(100, 200), 1.0f, 1, "impId2", 0)))
@@ -323,7 +323,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .imp(asList(Imp.builder().audio(Audio.builder().build()).build(),
                         Imp.builder().xNative(Native.builder().build()).build(),
                         Imp.builder().id("impId2").video(Video.builder().w(100).h(200).build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt1", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt1", 1f))))
                                 .build()))
                 .build();
 
@@ -333,7 +333,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontVideoRequest.class))
                 .extracting(BeachfrontVideoRequest::getImp)
                 .hasSize(1);
     }
@@ -400,7 +400,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         Banner.builder().format(asList(
                                 Format.builder().w(100).h(200).build(),
                                 Format.builder().w(300).h(400).build())).build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .secure(1).build()))
                 .device(Device.builder().ip("127.0.0.1").model("model").os("os").dnt(5).ua("ua").build())
                 .user(User.builder().buyeruid("buyeruid").id("userId").build())
@@ -424,7 +424,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         tuple("X-Forwarded-For", "127.0.0.1"),
                         tuple("DNT", "5"));
 
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder()
                         .slots(singletonList(BeachfrontSlot.of("impId1", "appIdExt", BigDecimal.valueOf(1.0),
                                 asList(BeachfrontSize.of(100, 200), BeachfrontSize.of(300, 400)))))
@@ -440,7 +440,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .build();
 
@@ -449,7 +449,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontBannerRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontBannerRequest.class))
                 .extracting(BeachfrontBannerRequest::getUser)
                 .containsNull();
     }
@@ -459,10 +459,10 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                                 .secure(1).build(),
                         Imp.builder().banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                                 .secure(0).build()))
                 .build();
 
@@ -471,7 +471,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontBannerRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontBannerRequest.class))
                 .extracting(BeachfrontBannerRequest::getSecure)
                 .containsOnly(0);
     }
@@ -481,7 +481,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .build();
 
@@ -490,7 +490,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getBody)
-                .extracting(s -> Json.mapper.readValue(s, BeachfrontBannerRequest.class))
+                .extracting(s -> mapper.readValue(s, BeachfrontBannerRequest.class))
                 .extracting(BeachfrontBannerRequest::getSecure)
                 .containsNull();
     }
@@ -500,7 +500,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId").banner(Banner.builder().build())
-                        .ext(Json.mapper.createObjectNode().put("bidder", 5))
+                        .ext(mapper.createObjectNode().put("bidder", 5))
                         .build()))
                 .build();
 
@@ -527,11 +527,11 @@ public class BeachfrontBidderTest extends VertxTest {
                 .imp(asList(Imp.builder().id("impId1").banner(Banner.builder()
                         .format(singletonList(Format.builder().w(100).h(200).build())).build())
                         .bidfloor(BigDecimal.valueOf(1.0))
-                        .ext(Json.mapper.createObjectNode().put("bidder", 5))
+                        .ext(mapper.createObjectNode().put("bidder", 5))
                         .build(), Imp.builder().id("impId2").banner(Banner.builder()
                         .format(singletonList(Format.builder().w(200).h(300).build())).build())
                         .bidfloor(BigDecimal.valueOf(2))
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f)))).build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f)))).build()))
                 .build();
 
         // when
@@ -546,7 +546,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         + " at [Source: UNKNOWN; line: -1, column: -1] (through reference chain:"
                         + " org.prebid.server.proto.openrtb.ext.ExtPrebid[\"bidder\"])");
 
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder()
                         .slots(asList(
                                 BeachfrontSlot.of(null, null, BigDecimal.valueOf(1.0),
@@ -564,14 +564,14 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build())).build();
 
         // when
         final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder()
                         .slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                                 singletonList(BeachfrontSize.of(null, null)))))
@@ -586,7 +586,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .app(App.builder().domain("rubiconapp.com").id("appId").build())
                 .site(Site.builder().page("http://rubiconpage.com/adunits").build())
@@ -596,7 +596,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                         singletonList(BeachfrontSize.of(null, null))))).domain("rubiconapp.com").page(
                         "appId").adapterName("BF_PREBID_S2S")
@@ -608,7 +608,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .site(Site.builder().page("http://rubiconpage.com/adunits").build())
                 .build();
@@ -617,7 +617,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                         singletonList(BeachfrontSize.of(null, null))))).domain("rubiconpage.com")
                         .page("http://rubiconpage.com/adunits").adapterName("BF_PREBID_S2S").adapterVersion("0.3.0")
@@ -629,7 +629,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().id("impId1").banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f)))).build(),
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f)))).build(),
                         Imp.builder().id("impId2").audio(Audio.builder().build()).build(),
                         Imp.builder().id("impId3").xNative(Native.builder().build()).build()))
                 .build();
@@ -796,7 +796,7 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorsWithoutBidsWhenBannerResponseCantBeDecoded() {
         // given
-        final String response = Json.mapper.createObjectNode().put("w", "invalid").toString();
+        final String response = mapper.createObjectNode().put("w", "invalid").toString();
 
         final BidRequest bidRequest = BidRequest.builder().id("reqId").imp(singletonList(
                 Imp.builder().banner(Banner.builder().build()).build())).build();
@@ -838,7 +838,7 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         // given, when and then
-        assertThat(beachfrontBidder.extractTargeting(Json.mapper.createObjectNode())).isEqualTo(emptyMap());
+        assertThat(beachfrontBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static HttpCall<BeachfrontRequests> givenHttpCall(String body, BeachfrontVideoRequest

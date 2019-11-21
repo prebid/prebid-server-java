@@ -37,12 +37,12 @@ public class VisxBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        visxBidder = new VisxBidder(ENDPOINT_URL);
+        visxBidder = new VisxBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new VisxBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new VisxBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class VisxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpVisx.of(123, Arrays.asList(10,20)))))
+                                ExtImpVisx.of(123, Arrays.asList(10, 20)))))
                         .build()))
                 .id("request_id")
                 .build();

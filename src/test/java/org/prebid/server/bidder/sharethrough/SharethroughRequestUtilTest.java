@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import io.vertx.core.json.Json;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.Size;
@@ -97,8 +96,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
 
         // when and then
         final UserInfo expected = UserInfo.of(null, null, null);
-        assertThat(SharethroughRequestUtil.getUserInfo(null)).isEqualTo(expected);
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getUserInfo(null, mapper)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getUserInfo(user, mapper)).isEqualTo(expected);
     }
 
     @Test
@@ -106,11 +105,11 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // given
         final String consent = "con";
         final ExtUser extUser = ExtUser.builder().consent(consent).build();
-        final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().ext(mapper.valueToTree(extUser)).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(consent, null, null);
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getUserInfo(user, mapper)).isEqualTo(expected);
     }
 
     @Test
@@ -126,11 +125,11 @@ public class SharethroughRequestUtilTest extends VertxTest {
                 .consent(consent)
                 .eids(Collections.singletonList(extUserEid))
                 .build();
-        final User user = User.builder().buyeruid("buyerid").ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().buyeruid("buyerid").ext(mapper.valueToTree(extUser)).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(consent, "first", "buyerid");
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getUserInfo(user, mapper)).isEqualTo(expected);
     }
 
     @Test
@@ -149,11 +148,11 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder()
                 .eids(Arrays.asList(firstExtUserEid, secondExtUserEid))
                 .build();
-        final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().ext(mapper.valueToTree(extUser)).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(null, "firstFromSecond", null);
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(SharethroughRequestUtil.getUserInfo(user, mapper)).isEqualTo(expected);
     }
 
     @Test
@@ -228,34 +227,34 @@ public class SharethroughRequestUtilTest extends VertxTest {
     public void isConsentRequiredShouldReturnFalseWhenRegsOrRegsExtIsNull() {
         // given
         final Regs regs = Regs.of(null, null);
-        final Regs regsWithGdprNull = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(null)));
+        final Regs regsWithGdprNull = Regs.of(null, mapper.valueToTree(ExtRegs.of(null)));
 
         // when and then
-        assertThat(SharethroughRequestUtil.isConsentRequired(null)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regs)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWithGdprNull)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(null, mapper)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regs, mapper)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWithGdprNull, mapper)).isFalse();
     }
 
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsExtIsNot1() {
         // given
-        final Regs regsWith3 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(3)));
-        final Regs regsWith0 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(0)));
-        final Regs regsWith100 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(100)));
+        final Regs regsWith3 = Regs.of(null, mapper.valueToTree(ExtRegs.of(3)));
+        final Regs regsWith0 = Regs.of(null, mapper.valueToTree(ExtRegs.of(0)));
+        final Regs regsWith100 = Regs.of(null, mapper.valueToTree(ExtRegs.of(100)));
 
         // when and then
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith0)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith3)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith100)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith0, mapper)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith3, mapper)).isFalse();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith100, mapper)).isFalse();
     }
 
     @Test
     public void isConsentRequiredShouldReturnTrueWhenRegsExtIs1() {
         // given
-        final Regs regs = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
 
         // when and then
-        assertThat(SharethroughRequestUtil.isConsentRequired(regs)).isTrue();
+        assertThat(SharethroughRequestUtil.isConsentRequired(regs, mapper)).isTrue();
     }
 
     @Test

@@ -111,7 +111,8 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        auctionHandler = new AuctionHandler(auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock);
+        auctionHandler = new AuctionHandler(
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, jacksonMapper);
     }
 
     @Test

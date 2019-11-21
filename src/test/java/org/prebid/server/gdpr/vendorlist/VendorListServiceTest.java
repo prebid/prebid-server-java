@@ -67,8 +67,15 @@ public class VendorListServiceTest extends VertxTest {
                 .willReturn(new BidderInfo(true, null, null, null,
                         new BidderInfo.GdprInfo(52, true), false));
 
-        vendorListService = VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/{VERSION}",
-                0, null, bidderCatalog);
+        vendorListService = VendorListService.create(
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                null,
+                bidderCatalog,
+                fileSystem,
+                httpClient,
+                jacksonMapper);
     }
 
     // Creation related tests
@@ -79,8 +86,15 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.mkdirsBlocking(anyString())).willThrow(new RuntimeException("dir creation error"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/%s",
-                0, null, bidderCatalog))
+        assertThatThrownBy(() -> VendorListService.create(
+                CACHE_DIR,
+                "http://vendorlist/%s",
+                0,
+                null,
+                bidderCatalog,
+                fileSystem,
+                httpClient,
+                jacksonMapper))
                 .hasMessage("dir creation error");
     }
 
@@ -90,8 +104,15 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString())).willThrow(new RuntimeException("read error"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/%s",
-                0, null, bidderCatalog))
+        assertThatThrownBy(() -> VendorListService.create(
+                CACHE_DIR,
+                "http://vendorlist/%s",
+                0,
+                null,
+                bidderCatalog,
+                fileSystem,
+                httpClient,
+                jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -103,8 +124,15 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString())).willThrow(new RuntimeException("read error"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/%s",
-                0, null, bidderCatalog))
+        assertThatThrownBy(() -> VendorListService.create(
+                CACHE_DIR,
+                "http://vendorlist/%s",
+                0,
+                null,
+                bidderCatalog,
+                fileSystem,
+                httpClient,
+                jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -116,8 +144,15 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("invalid"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/%s",
-                0, null, bidderCatalog))
+        assertThatThrownBy(() -> VendorListService.create(
+                CACHE_DIR,
+                "http://vendorlist/%s",
+                0,
+                null,
+                bidderCatalog,
+                fileSystem,
+                httpClient,
+                jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }

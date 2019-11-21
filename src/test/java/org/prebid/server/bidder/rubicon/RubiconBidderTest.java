@@ -23,7 +23,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.junit.Before;
@@ -104,13 +103,14 @@ public class RubiconBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS);
+        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS));
+                () -> new RubiconBidder(
+                        "invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, jacksonMapper));
     }
 
     @Test
@@ -820,7 +820,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldPassSiteExtAmpIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.site(Site.builder().ext(Json.mapper.valueToTree(ExtSite.of(1, null))).build()),
+                builder -> builder.site(Site.builder().ext(mapper.valueToTree(ExtSite.of(1, null))).build()),
                 builder -> builder.video(Video.builder().build()),
                 builder -> builder.accountId(2001).siteId(3001));
 

@@ -8,8 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -20,6 +18,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -36,10 +36,13 @@ import java.util.stream.Collectors;
 public class MgidBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private final String endpointUrl;
 
-    public MgidBidder(String endpoint) {
-        endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+
+    public MgidBidder(String endpoint, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -70,7 +73,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .build();
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -81,9 +84,9 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .build()), Collections.emptyList());
     }
 
-    private static ExtImpMgid parseImpExt(Imp imp) {
+    private ExtImpMgid parseImpExt(Imp imp) {
         try {
-            return Json.mapper.convertValue(imp.getExt().get("bidder"), ExtImpMgid.class);
+            return mapper.mapper().convertValue(imp.getExt().get("bidder"), ExtImpMgid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -136,23 +139,21 @@ public class MgidBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall,
                                                   BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json
-                    .decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse),
-                    Collections.emptyList());
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -162,7 +163,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidType(Bid bid) {
+    private BidType getBidType(Bid bid) {
         final ExtBidMgid bidExt = getBidExt(bid);
         if (bidExt == null) {
             return BidType.banner;
@@ -172,9 +173,9 @@ public class MgidBidder implements Bidder<BidRequest> {
         return crtype == null ? BidType.banner : crtype;
     }
 
-    private static ExtBidMgid getBidExt(Bid bid) {
+    private ExtBidMgid getBidExt(Bid bid) {
         try {
-            return Json.mapper.convertValue(bid.getExt(), ExtBidMgid.class);
+            return mapper.mapper().convertValue(bid.getExt(), ExtBidMgid.class);
         } catch (IllegalArgumentException e) {
             return null;
         }

@@ -1,9 +1,9 @@
 package org.prebid.server.bidder.adform;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
@@ -32,8 +32,14 @@ class AdformHttpUtil {
     /**
      * Creates headers for Adform request
      */
-    static MultiMap buildAdformHeaders(String version, String userAgent, String ip,
-                                       String referer, String userId, AdformDigitrust adformDigitrust) {
+    static MultiMap buildAdformHeaders(String version,
+                                       String userAgent,
+                                       String ip,
+                                       String referer,
+                                       String userId,
+                                       AdformDigitrust adformDigitrust,
+                                       ObjectMapper mapper) {
+
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
                 .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
@@ -52,7 +58,7 @@ class AdformHttpUtil {
         if (adformDigitrust != null) {
             try {
                 final String adformDigitrustEncoded = Base64.getUrlEncoder().withoutPadding()
-                        .encodeToString(Json.mapper.writeValueAsString(adformDigitrust).getBytes());
+                        .encodeToString(mapper.writeValueAsString(adformDigitrust).getBytes());
                 // Cookie name and structure are described here:
                 // https://github.com/digi-trust/dt-cdn/wiki/Cookies-for-Platforms
                 cookieValues.add(String.format("DigiTrust.v1.identity=%s", adformDigitrustEncoded));

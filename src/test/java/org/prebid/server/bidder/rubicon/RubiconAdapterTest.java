@@ -76,7 +76,6 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
@@ -105,21 +104,13 @@ public class RubiconAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        adapter = new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, USER, PASSWORD);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, USER, null));
+        adapter = new RubiconAdapter(COOKIE_FAMILY, ENDPOINT_URL, USER, PASSWORD, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, "invalid_url", USER, PASSWORD))
+                .isThrownBy(() -> new RubiconAdapter(COOKIE_FAMILY, "invalid_url", USER, PASSWORD, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -579,7 +570,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.user(User.builder()
-                        .ext((ObjectNode) mapper.createObjectNode()
+                        .ext(mapper.createObjectNode()
                                 .set("consent", mapper.createObjectNode())).build()));
 
         // when
