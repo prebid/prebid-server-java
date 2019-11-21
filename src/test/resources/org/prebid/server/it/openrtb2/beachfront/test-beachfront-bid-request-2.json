@@ -1,12 +1,11 @@
 {
-  "isPrebid": true,
-  "appId": "beachfrontAppId1",
-  "videoResponseType": "nurl",
+  "appId": "beachfrontAppId",
+  "videoResponseType": "adm",
   "request": {
     "id": "tid",
     "imp": [
       {
-        "id": "impId01",
+        "id": "impId02",
         "video": {
           "mimes": [
             "mimes"
@@ -16,7 +15,7 @@
           "skipmin": 0,
           "skipafter": 0
         },
-        "bidfloor": 1,
+        "bidfloor": 2,
         "secure": 0
       }
     ],
