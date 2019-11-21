@@ -48,7 +48,7 @@
       "httpcalls": {
         "adform": [
           {
-            "uri": "{{ adform.exchange_uri }}?CC=1&adid=ifaId&fd=1&gdpr=0&gdpr_consent=consentValue&ip=192.168.244.1&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE",
+            "uri": "{{ adform.exchange_uri }}?CC=1&adid=ifaId&fd=1&gdpr=0&gdpr_consent=consentValue&ip=193.168.244.1&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE",
             "responsebody": "{\"response\":\"banner\",\"banner\":\"banner\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\",\"win_crid\":\"crid12\"}",
             "status": 200
           }
@@ -96,7 +96,7 @@
         "device": {
           "ua": "userAgent",
           "dnt": 2,
-          "ip": "192.168.244.1",
+          "ip": "193.168.244.1",
           "pxratio": 4.2,
           "language": "en",
           "ifa": "ifaId"

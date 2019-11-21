@@ -120,7 +120,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final List<ExtUserEidUid> uids = Arrays.asList(
                 ExtUserEidUid.of("first", null),
                 ExtUserEidUid.of("second", null));
-        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids);
+        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
 
         final ExtUser extUser = ExtUser.builder()
                 .consent(consent)
@@ -139,12 +139,12 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final List<ExtUserEidUid> uidsFromFirst = Arrays.asList(
                 ExtUserEidUid.of("firstFromFirst", null),
                 ExtUserEidUid.of("secondFromFirst", null));
-        final ExtUserEid firstExtUserEid = ExtUserEid.of("badSource", null, uidsFromFirst);
+        final ExtUserEid firstExtUserEid = ExtUserEid.of("badSource", null, uidsFromFirst, null);
 
         final List<ExtUserEidUid> uidsFromSecond = Arrays.asList(
                 ExtUserEidUid.of("firstFromSecond", null),
                 ExtUserEidUid.of("secondFromSecond", null));
-        final ExtUserEid secondExtUserEid = ExtUserEid.of("adserver.org", null, uidsFromSecond);
+        final ExtUserEid secondExtUserEid = ExtUserEid.of("adserver.org", null, uidsFromSecond, null);
 
         final ExtUser extUser = ExtUser.builder()
                 .eids(Arrays.asList(firstExtUserEid, secondExtUserEid))

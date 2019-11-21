@@ -94,7 +94,7 @@
         "synacormedia": [
           {
             "uri": "{{ synacormedia.exchange_uri }}/228",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId001\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"ext\":{\"bidder\":{\"seatId\":\"228\"}}},{\"id\":\"impId002\",\"video\":{\"mimes\":[\"video/mp4\"],\"w\":300,\"h\":250,\"skipmin\":0,\"skipafter\":0,\"pos\":1},\"ext\":{\"bidder\":{\"seatId\":\"1987\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SCM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"seatId\":\"228\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId001\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"ext\":{\"bidder\":{\"seatId\":\"228\"}}},{\"id\":\"impId002\",\"video\":{\"mimes\":[\"video/mp4\"],\"w\":300,\"h\":250,\"skipmin\":0,\"skipafter\":0,\"pos\":1},\"ext\":{\"bidder\":{\"seatId\":\"1987\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SCM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"seatId\":\"228\"}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid001\",\"impid\":\"impId001\",\"price\":7.77,\"adid\":\"adid001\",\"crid\":\"crid001\",\"cid\":\"cid001\",\"adm\":\"adm001\",\"h\":250,\"w\":300},{\"id\":\"bid002\",\"impid\":\"impId002\",\"price\":9.99,\"crid\":\"crid002\",\"cid\":\"cid002\",\"adomain\":[\"psacentral.org\"],\"h\":250,\"w\":300}],\"seat\":\"synacormedia\"}]}",
             "status": 200
           }
@@ -159,7 +159,7 @@
         "device": {
           "ua": "userAgent",
           "dnt": 2,
-          "ip": "192.168.244.1",
+          "ip": "193.168.244.1",
           "pxratio": 4.2,
           "language": "en",
           "ifa": "ifaId"

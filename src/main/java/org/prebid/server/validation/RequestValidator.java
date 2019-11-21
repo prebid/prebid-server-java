@@ -216,7 +216,10 @@ public class RequestValidator {
      * Validates {@link ExtRequestTargeting}.
      */
     private static void validateTargeting(ExtRequestTargeting extRequestTargeting) throws ValidationException {
-        validateExtPriceGranularity(extRequestTargeting.getPricegranularity(), null);
+        final JsonNode pricegranularity = extRequestTargeting.getPricegranularity();
+        if (pricegranularity != null && !pricegranularity.isNull()) {
+            validateExtPriceGranularity(pricegranularity, null);
+        }
         validateMediaTypePriceGranularity(extRequestTargeting.getMediatypepricegranularity());
 
         final Boolean includeWinners = extRequestTargeting.getIncludewinners();

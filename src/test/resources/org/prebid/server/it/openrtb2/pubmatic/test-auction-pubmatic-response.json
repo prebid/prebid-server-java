@@ -99,7 +99,7 @@
         "pubmatic": [
           {
             "uri": "{{ pubmatic.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId9\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":250},\"tagid\":\"slot9\",\"ext\":{\"pmZoneID\":\"Zone1,Zone2\",\"preference\":\"sports,movies\"}},{\"id\":\"impId91\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":600,\"skipmin\":0,\"skipafter\":0},\"ext\":{\"pmZoneID\":\"Zone1,Zone2\"}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"PM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"wrapper\":{\"version\":1,\"profile\":5123}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId9\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":250},\"tagid\":\"slot9\",\"ext\":{\"pmZoneID\":\"Zone1,Zone2\",\"preference\":\"sports,movies\"}},{\"id\":\"impId91\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":600,\"skipmin\":0,\"skipafter\":0},\"ext\":{\"pmZoneID\":\"Zone1,Zone2\"}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"PM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"wrapper\":{\"version\":1,\"profile\":5123}}}",
             "responsebody": "{\"id\":\"bidResponseId9\",\"seatbid\":[{\"bid\":[{\"id\":\"158758924\",\"impid\":\"impId9\",\"price\":4.75,\"adm\":\"adm9\",\"crid\":\"crid9\",\"dealid\":\"dealId9\",\"w\":300,\"h\":600},{\"id\":\"113343587\",\"impid\":\"impId91\",\"price\":4.0,\"adm\":\"adm91\",\"crid\":\"crid91\",\"dealid\":\"dealId91\",\"w\":300,\"h\":600,\"ext\":{\"BidType\":1}}],\"seat\":\"seatId9\",\"group\":0}]}",
             "status": 200
           }
@@ -200,7 +200,7 @@
         "device": {
           "ua": "userAgent",
           "dnt": 2,
-          "ip": "192.168.244.1",
+          "ip": "193.168.244.1",
           "pxratio": 4.2,
           "language": "en",
           "ifa": "ifaId"

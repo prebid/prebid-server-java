@@ -20,6 +20,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -35,8 +36,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +55,7 @@ import static org.mockito.Mockito.verify;
 public class SetuidHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
+    private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
 
     @Rule
@@ -86,15 +90,16 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(uidsCookieService.toCookie(any()))
-                .willReturn(Cookie.cookie("test", "test"));
-
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("test", "test"));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("rubicon", "audienceNetwork")));
         given(bidderCatalog.isActive(any())).willReturn(true);
+        given(bidderCatalog.usersyncerByName(any())).willReturn(
+                new Usersyncer(RUBICON, null, null, null, false));
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService, null, false,
-                analyticsReporter, metrics, timeoutFactory);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+                null, false, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
@@ -134,9 +139,7 @@ public class SetuidHandlerTest extends VertxTest {
         // given
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
-        given(bidderCatalog.isActive(any())).willReturn(false);
         given(httpRequest.getParam(any())).willReturn("invalid_or_disabled");
-
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
@@ -219,8 +222,8 @@ public class SetuidHandlerTest extends VertxTest {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService, null, true,
-                analyticsReporter, metrics, timeoutFactory);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+                null, true, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
@@ -272,14 +275,22 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldIgnoreFacebookSentinel() {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
-                Uids.builder().uids(singletonMap("audienceNetwork", UidWithExpiry.live("facebookUid"))).build()));
+                Uids.builder().uids(singletonMap(FACEBOOK, UidWithExpiry.live("facebookUid"))).build()));
 
-        given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
+        given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
         given(httpRequest.getParam("uid")).willReturn("0");
 
         // this uids cookie value stands for {"tempUIDs":{"audienceNetwork":{"uid":"facebookUid"}}}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
                 .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhdWRpZW5jZU5ldHdvcmsiOnsidWlkIjoiZmFjZWJvb2tVaWQifX19"));
+
+        given(bidderCatalog.usersyncerByName(any())).willReturn(
+                new Usersyncer(FACEBOOK, null, null, null, false));
+
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+                null, false, analyticsReporter, metrics, timeoutFactory);
 
         // when
         setuidHandler.handle(routingContext);
@@ -292,7 +303,7 @@ public class SetuidHandlerTest extends VertxTest {
         final String uidsCookie = getUidsCookie();
         final Uids decodedUids = decodeUids(uidsCookie);
         assertThat(decodedUids.getUids()).hasSize(1);
-        assertThat(decodedUids.getUids().get("audienceNetwork").getUid()).isEqualTo("facebookUid");
+        assertThat(decodedUids.getUids().get(FACEBOOK).getUid()).isEqualTo("facebookUid");
     }
 
     @Test
@@ -508,9 +519,16 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 
-        given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
+        given(httpRequest.getParam("bidder")).willReturn(FACEBOOK);
         given(httpRequest.getParam("uid")).willReturn("0");
 
+        given(bidderCatalog.usersyncerByName(any())).willReturn(
+                new Usersyncer(FACEBOOK, null, null, null, false));
+
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+                null, false, analyticsReporter, metrics, timeoutFactory);
 
         // when
         setuidHandler.handle(routingContext);
@@ -519,7 +537,7 @@ public class SetuidHandlerTest extends VertxTest {
         final SetuidEvent setuidEvent = captureSetuidEvent();
         assertThat(setuidEvent).isEqualTo(SetuidEvent.builder()
                 .status(200)
-                .bidder("audienceNetwork")
+                .bidder(FACEBOOK)
                 .uid("0")
                 .success(false)
                 .build());

@@ -3,5 +3,5 @@
     "testblocked"
   ],
   "tmax": 1000,
-  "deadline": "2020-11-04T04:07:59+02:00"
+  "deadline": "{{ DEADLINE_FORMATTED_TIME }}"
 }
