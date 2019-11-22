@@ -538,8 +538,12 @@ public class ApplicationTest extends IntegrationTest {
 
         // rubicon bid response
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response1.json"))));
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response2.json"))));
 
         // when
         final Response response = given(spec)

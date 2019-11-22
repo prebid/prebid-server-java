@@ -4,12 +4,12 @@
     {
       "bid": [
         {
-          "id": "466223845",
-          "impid": "impId-cache-update",
-          "price": 4.26,
-          "adm": "adm2",
-          "crid": "crid2",
-          "dealid": "dealId2",
+          "id": "31124",
+          "impid": "impId-video-cache-update",
+          "price": 3,
+          "adm": "adm1",
+          "crid": "crid1",
+          "dealid": "dealId1",
           "w": 120,
           "h": 600
         }

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Executes stored request processing
@@ -105,6 +106,51 @@ public class StoredRequestProcessor {
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
+    }
+
+    /**
+     * Fetches stored request.video and maps imp.id to existing jsonNode video.
+     */
+    Future<Map<String, JsonNode>> impToStoredVideoJson(List<Imp> imps, Timeout timeout) {
+        final Map<String, String> storedIdToImpId =
+                mapStoredRequestHolderToStoredRequestId(imps, StoredRequestProcessor::getStoredRequestFromImp)
+                        .entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getValue,
+                                impIdToStoredId -> impIdToStoredId.getKey().getId()));
+
+        return impIdToStoredImp(storedIdToImpId, timeout)
+                .map(StoredRequestProcessor::existingVideoFromJson);
+    }
+
+    private Future<Map<String, String>> impIdToStoredImp(Map<String, String> storedIdToImpId, Timeout timeout) {
+        final Set<String> storedIds = storedIdToImpId.keySet();
+        return applicationSettings.getStoredData(Collections.emptySet(), storedIds, timeout)
+                .map(StoredDataResult::getStoredIdToImp)
+                .map(storedIdToImp -> storedIdToImp.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                idToImp -> storedIdToImpId.get(idToImp.getKey()), Map.Entry::getValue)));
+    }
+
+    private static Map<String, JsonNode> existingVideoFromJson(Map<String, String> impIdToStoredVideo) {
+        final Map<String, JsonNode> impIdToStoredVideoJson = new HashMap<>();
+        for (Map.Entry<String, String> impIdToStored : impIdToStoredVideo.entrySet()) {
+            final String id = impIdToStored.getKey();
+            final JsonNode video = videoFromJson(impIdToStored.getValue());
+            if (video != null) {
+                impIdToStoredVideoJson.put(id, video);
+            }
+        }
+        return impIdToStoredVideoJson;
+    }
+
+    private static JsonNode videoFromJson(String storedJson) {
+        try {
+            final JsonNode jsonNode = Json.mapper.readTree(storedJson);
+            final JsonNode video = jsonNode.get("video");
+            return video == null || video.isNull() ? null : video;
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,

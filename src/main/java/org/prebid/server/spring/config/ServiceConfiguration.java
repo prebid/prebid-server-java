@@ -295,9 +295,10 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService) {
+            EventsService eventsService,
+            StoredRequestProcessor storedRequestProcessor) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
     }
 
     @Bean
