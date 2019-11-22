@@ -34,6 +34,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Remote-file-syncer
 Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
+Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
 - `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
@@ -202,6 +203,7 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `host-cookie.cookie-name` - set the name value for host cookie.
 - `host-cookie.domain` - set the domain value for host cookie.
 - `host-cookie.ttl-days` - set the cookie ttl in days.
+- `host-cookie.max-cookie-size-bytes` - a size limit for UIDs Cookie. Valid values are `0` (disabled) and `>500`.
 
 ## Google Recaptcha
 - `recaptcha-url` - the url for Google Recaptcha service to submit user verification.

@@ -15,7 +15,7 @@ import java.util.List;
  * method. For example might be a video impression embedded in an iframe on an
  * unknown web property or device.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Content {
 
