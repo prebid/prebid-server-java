@@ -810,7 +810,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
-                        .content(Content.builder().build())
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
@@ -835,7 +834,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
-                        .content(Content.builder().build())
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
@@ -920,7 +918,6 @@ public class RubiconBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(RubiconImpExt.of(
                                 RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
                         .build()))
-                .site(Site.builder().content(Content.builder().build()).build())
                 .build();
         final BidRequest expectedBidRequest2 = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -929,7 +926,6 @@ public class RubiconBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(RubiconImpExt.of(
                                 RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
                         .build()))
-                .site(Site.builder().content(Content.builder().build()).build())
                 .build();
 
         assertThat(result.getErrors()).isEmpty();

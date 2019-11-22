@@ -649,6 +649,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static Site makeSite(Site site, String impLanguage, ExtImpRubicon rubiconImpExt) {
+        if (site == null && StringUtils.isBlank(impLanguage)) {
+            return null;
+        }
+
         return site == null
                 ? Site.builder().content(makeSiteContent(null, impLanguage)).build()
                 : site.toBuilder()
@@ -658,8 +662,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
+    private static Content makeSiteContent(Content siteContent, String impLanguage) {
+        if (StringUtils.isBlank(impLanguage)) {
+            return siteContent;
+        }
+        if (siteContent == null) {
+            return Content.builder().language(impLanguage).build();
+        } else {
+            return StringUtils.isBlank(siteContent.getLanguage())
+                    ? siteContent.toBuilder().language(impLanguage).build()
+                    : siteContent;
+        }
     }
 
     private static Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
@@ -668,14 +681,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Content makeSiteContent(Content siteContent, String impLanguage) {
-        if (siteContent == null) {
-            return Content.builder().language(impLanguage).build();
-        } else {
-            return StringUtils.isBlank(siteContent.getLanguage())
-                    ? siteContent.toBuilder().language(impLanguage).build()
-                    : siteContent;
-        }
+    private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
+        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
     }
 
     private static RubiconSiteExt makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
