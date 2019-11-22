@@ -37,7 +37,7 @@ public class UidsCookieService {
     private final String hostCookieFamily;
     private final String hostCookieName;
     private final String hostCookieDomain;
-    private final Long ttlSeconds;
+    private final long ttlSeconds;
     private final Integer maxCookieSizeBytes;
 
     public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
