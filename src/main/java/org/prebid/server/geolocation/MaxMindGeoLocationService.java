@@ -6,7 +6,7 @@ import com.maxmind.geoip2.exception.GeoIp2Exception;
 import io.vertx.core.Future;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.RemoteFileProcessor;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 
@@ -19,15 +19,15 @@ import java.util.zip.GZIPInputStream;
  * Implementation of of the {@link GeoLocationService}
  * backed by <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/">MaxMind free database</a>
  */
-public class MaxMindGeoLocationService implements GeoLocationService {
+public class MaxMindGeoLocationService implements GeoLocationService, RemoteFileProcessor {
 
     private static final String DATABASE_FILE_NAME = "GeoLite2-Country.mmdb";
 
     private DatabaseReader databaseReader;
 
-    public void setDatabaseReader(String dbArchivePath) {
+    public Future<?> setDataPath(String dataFilePath) {
         try (TarArchiveInputStream tarInput = new TarArchiveInputStream(new GZIPInputStream(
-                new FileInputStream(dbArchivePath)))) {
+                new FileInputStream(dataFilePath)))) {
 
             TarArchiveEntry currentEntry;
             boolean hasDatabaseFile = false;
@@ -38,15 +38,15 @@ public class MaxMindGeoLocationService implements GeoLocationService {
                 }
             }
             if (!hasDatabaseFile) {
-                throw new PreBidException(String.format("Database file %s not found in %s archive",
-                        DATABASE_FILE_NAME, dbArchivePath));
+                return Future.failedFuture(String.format("Database file %s not found in %s archive", DATABASE_FILE_NAME,
+                        dataFilePath));
             }
 
             databaseReader = new DatabaseReader.Builder(tarInput).fileMode(Reader.FileMode.MEMORY).build();
-
+            return Future.succeededFuture();
         } catch (IOException e) {
-            throw new PreBidException(String.format(
-                    "IO Exception occurred while trying to read an archive/db file: %s", e.getMessage()), e);
+            return Future.failedFuture(
+                    String.format("IO Exception occurred while trying to read an archive/db file: %s", e.getMessage()));
         }
     }
 

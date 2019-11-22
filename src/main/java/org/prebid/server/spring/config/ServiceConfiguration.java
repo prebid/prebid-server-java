@@ -474,8 +474,7 @@ public class ServiceConfiguration {
                     vertx.createHttpClient(httpClientOptions), vertx);
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService::setDatabaseReader);
-
+            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
         }
     }

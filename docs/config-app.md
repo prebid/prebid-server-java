@@ -34,6 +34,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Remote-file-syncer
 Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
+Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
 - `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
