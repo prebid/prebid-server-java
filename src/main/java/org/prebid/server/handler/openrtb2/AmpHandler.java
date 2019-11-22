@@ -296,7 +296,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 final String logMessage = String.format("Invalid request format: %s", errorMessages);
-                logModifier.getLogModifier().accept(logger, logMessage);
+                logModifier.get().accept(logger, logMessage);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = errorMessages.stream().map(

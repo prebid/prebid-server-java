@@ -127,7 +127,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
-        given(logModifier.getLogModifier()).willReturn(Logger::info);
+        given(logModifier.get()).willReturn(Logger::info);
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
@@ -198,7 +198,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(logModifier).getLogModifier();
+        verify(logModifier).get();
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(

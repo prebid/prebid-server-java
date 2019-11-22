@@ -11,51 +11,51 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class LogModifierTest {
 
     private final static BiConsumer<Logger, String> DEFAULT_LOG_MODIFIER = Logger::info;
-    private LogModifier errorLoggerLevelSwitch;
+    private LogModifier logModifier;
 
     @Before
     public void setUp() {
-        errorLoggerLevelSwitch = new LogModifier(DEFAULT_LOG_MODIFIER);
+        logModifier = new LogModifier(DEFAULT_LOG_MODIFIER);
     }
 
     @Test
-    public void shouldReturnDefaultLogModifierWhenErrorLevelCountIsNotSet() {
+    public void shouldReturnDefaultLogModifierWhenNothingWasSet() {
         // given and when
-        final BiConsumer<Logger, String> logModifier = errorLoggerLevelSwitch.getLogModifier();
+        final BiConsumer<Logger, String> defaultLogModifier = logModifier.get();
 
         // then
-        assertThat(logModifier).isEqualTo(DEFAULT_LOG_MODIFIER);
+        assertThat(defaultLogModifier).isEqualTo(DEFAULT_LOG_MODIFIER);
     }
 
     @Test
     public void shouldReturnDefaultLogModifierWhenErrorLevelCountIsZero() {
         // given
-        errorLoggerLevelSwitch.setLogModifier(0, Logger::error);
+        logModifier.set(Logger::error, 0);
 
         // when and then
-        assertThat(errorLoggerLevelSwitch.getLogModifier()).isEqualTo(DEFAULT_LOG_MODIFIER);
+        assertThat(logModifier.get()).isEqualTo(DEFAULT_LOG_MODIFIER);
     }
 
     @Test
     public void shouldReturnDefaultLogModifierWhenErrorLevelCountIsNegative() {
         // given
-        errorLoggerLevelSwitch.setLogModifier(-123, Logger::error);
+        logModifier.set(Logger::error, -123);
 
         // when and then
-        assertThat(errorLoggerLevelSwitch.getLogModifier()).isEqualTo(DEFAULT_LOG_MODIFIER);
+        assertThat(logModifier.get()).isEqualTo(DEFAULT_LOG_MODIFIER);
     }
 
     @Test
     public void shouldReturnLogModifierWhenErrorLevelCountIsPositive() {
         // given
-        final BiConsumer<Logger, String> logModifier = Logger::error;
-        errorLoggerLevelSwitch.setLogModifier(123, logModifier);
+        final BiConsumer<Logger, String> loggingLevelModifier = Logger::error;
+        logModifier.set(loggingLevelModifier, 123);
 
         // when
-        final BiConsumer<Logger, String> result = errorLoggerLevelSwitch.getLogModifier();
+        final BiConsumer<Logger, String> result = logModifier.get();
 
         // then
-        assertThat(result).isEqualTo(logModifier);
+        assertThat(result).isEqualTo(loggingLevelModifier);
     }
 }
 

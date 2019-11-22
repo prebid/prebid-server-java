@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.execution.LogModifier;
 
+import java.util.Objects;
 import java.util.function.BiConsumer;
 
 public class AdminHandler implements Handler<RoutingContext> {
@@ -16,20 +17,23 @@ public class AdminHandler implements Handler<RoutingContext> {
     private static final String RECORDS_PARAM = "records";
     private static final String LOGGING_PARAM = "logging";
 
-    private final LogModifier loggerModifier;
+    private final LogModifier logModifier;
 
-    public AdminHandler(LogModifier loggerModifier) {
-        this.loggerModifier = loggerModifier;
+    public AdminHandler(LogModifier logModifier) {
+        this.logModifier = Objects.requireNonNull(logModifier);
     }
 
     @Override
     public void handle(RoutingContext context) {
         final HttpServerRequest request = context.request();
         final BiConsumer<Logger, String> loggingLevelModifier;
+        final String loggingParam = request.getParam(LOGGING_PARAM);
+        final String recordsParam = request.getParam(RECORDS_PARAM);
         final int records;
+
         try {
-            loggingLevelModifier = loggingLevel(request.getParam(LOGGING_PARAM));
-            records = records(request.getParam(RECORDS_PARAM));
+            loggingLevelModifier = loggingLevel(loggingParam);
+            records = records(recordsParam);
         } catch (IllegalArgumentException e) {
             context.response()
                     .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
@@ -37,8 +41,9 @@ public class AdminHandler implements Handler<RoutingContext> {
             return;
         }
 
-        loggerModifier.setLogModifier(records, loggingLevelModifier);
-        context.response().end();
+        logModifier.set(loggingLevelModifier, records);
+        context.response()
+                .end(String.format("Logging level was changed to %s, for %s requests", loggingParam, recordsParam));
     }
 
     private BiConsumer<Logger, String> loggingLevel(String level) {

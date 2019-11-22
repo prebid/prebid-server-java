@@ -127,8 +127,8 @@ public class AdminHandlerTest extends VertxTest {
         adminHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end();
-        verify(logModifier).setLogModifier(eq(123), any());
+        verify(httpResponse).end(eq("Logging level was changed to error, for 123 requests"));
+        verify(logModifier).set(any(), eq(123));
     }
 }
 

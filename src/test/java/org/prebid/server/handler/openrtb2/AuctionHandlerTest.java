@@ -103,7 +103,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(logModifier.getLogModifier()).willReturn(Logger::info);
+        given(logModifier.get()).willReturn(Logger::info);
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
@@ -479,7 +479,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(logModifier).getLogModifier();
+        verify(logModifier).get();
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()

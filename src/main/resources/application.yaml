@@ -45,7 +45,7 @@ cookie-sync:
     default: true
   default-timeout-ms: 2000
 logger-level-modifier:
-  enabled: true
+  enabled: false
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
