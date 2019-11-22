@@ -3,20 +3,14 @@
     {
       "type": "json",
       "value": {
-        "id": "tid",
-        "impid": "impId18",
-        "price": 8.43,
-        "nurl": "nurl181\"nurl182\"nurl183",
-        "adm": "adm18",
-        "crid": "nurl183",
-        "dealid": "dealId18"
-      },
-      "expiry": 230
-    },
-    {
-      "type": "xml",
-      "value": "adm18",
-      "expiry": 230
+        "id": "div-gpt-ad-1460505748561-0Banner",
+        "impid": "div-gpt-ad-1460505748561-0",
+        "price": 2.942807912826538,
+        "adm": "<div id=\"44861168\"><script>!function(){console.log\"Hello, ad.\";}();</script></div>",
+        "crid": "crid_3",
+        "w": 300,
+        "h": 250
+      }
     }
   ]
 }

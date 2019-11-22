@@ -17,7 +17,7 @@ adapters:
       supported-vendors:
       vendor-id: 80
     usersync:
-      url: https://sharethrough.adnxs.com/getuid?
+      url: https://match.sharethrough.com/FGMrCMMc/v1?redirectUri=
       redirect-url: /setuid?bidder=sharethrough&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
       cookie-family-name: sharethrough
       type: redirect

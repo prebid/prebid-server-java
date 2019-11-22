@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -47,4 +48,10 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.data
      */
     ExtRequestPrebidData data;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.bidders
+     */
+    ObjectNode bidders;
 }
+

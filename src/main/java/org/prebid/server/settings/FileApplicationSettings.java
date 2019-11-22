@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -101,11 +102,14 @@ public class FileApplicationSettings implements ApplicationSettings {
                                                   Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
                 ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
-                : StoredDataResult.of(storedIdToRequest, storedIdToImp, Stream.of(
-                errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
-                errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList())));
+                : StoredDataResult.of(
+                existingStoredIdToJson(requestIds, storedIdToRequest),
+                existingStoredIdToJson(impIds, storedIdToImp),
+                Stream.of(
+                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
+                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toList())));
     }
 
     @Override
@@ -123,8 +127,9 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
                 ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
-                : StoredResponseDataResult.of(storedIdToSeatBid, errorsForMissedIds(responseIds,
-                storedIdToSeatBid, StoredDataType.seatbid)));
+                : StoredResponseDataResult.of(
+                existingStoredIdToJson(responseIds, storedIdToSeatBid),
+                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {
@@ -159,6 +164,21 @@ public class FileApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException("Not found"));
+    }
+
+    /**
+     * Returns corresponding stored id with json.
+     */
+    private static Map<String, String> existingStoredIdToJson(Set<String> requestedIds,
+                                                              Map<String, String> storedIdToJson) {
+        final Map<String, String> idToJson = new HashMap<>();
+        for (String id : requestedIds) {
+            final String json = storedIdToJson.get(id);
+            if (StringUtils.isNotBlank(json)) {
+                idToJson.put(id, json);
+            }
+        }
+        return idToJson;
     }
 
     /**

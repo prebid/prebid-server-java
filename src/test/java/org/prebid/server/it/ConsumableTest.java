@@ -30,9 +30,9 @@ public class ConsumableTest extends IntegrationTest {
                 .withHeader("Origin", equalTo("http://www.example.com"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("Forwarded", equalTo("for=192.168.244.1"))
+                .withHeader("Forwarded", equalTo("for=193.168.244.1"))
                 .withHeader("Referer", equalTo("http://www.example.com"))
-                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("Host", equalTo("localhost:8090"))
                 .withHeader("Content-Length", equalTo("302"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -50,7 +50,7 @@ public class ConsumableTest extends IntegrationTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"consumable":"CS-UID"}}

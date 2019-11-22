@@ -31,7 +31,11 @@ public class BidderCatalogTest {
     @Test
     public void isValidNameShouldReturnTrueForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.builder().name(BIDDER).deprecatedNames(emptyList()).aliases(emptyList()).build();
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(emptyList())
+                .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -268,7 +272,11 @@ public class BidderCatalogTest {
     @Test
     public void isValidAdapterNameShouldReturnFalseIfAdapterIsNotDefined() {
         // given
-        bidderDeps = BidderDeps.builder().name(BIDDER).deprecatedNames(emptyList()).aliases(emptyList()).build();
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(emptyList())
+                .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then

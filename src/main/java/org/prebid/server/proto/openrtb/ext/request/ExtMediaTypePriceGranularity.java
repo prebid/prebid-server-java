@@ -1,8 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Value;
 
 /**
@@ -15,16 +16,17 @@ public class ExtMediaTypePriceGranularity {
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.mediatypepricegranularity.banner
      */
-    JsonNode banner;
+    ObjectNode banner;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.mediatypepricegranularity.video
      */
-    JsonNode video;
+    ObjectNode video;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.mediatypepricegranularity.native
      */
     @JsonProperty("native")
-    JsonNode xNative;
+    @Getter(onMethod = @__({@JsonProperty("native")}))
+    ObjectNode xNative;
 }

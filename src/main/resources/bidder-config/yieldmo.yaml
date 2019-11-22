@@ -1,7 +1,7 @@
 adapters:
   yieldmo:
     enabled: false
-    endpoint: http://ads.yieldmo.com/exchange/prebid-server
+    endpoint: https://ads.yieldmo.com/exchange/prebid-server
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:

@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -47,6 +48,7 @@ public class AmpRequestFactory {
     private static final String H_REQUEST_PARAM = "h";
     private static final String MS_REQUEST_PARAM = "ms";
     private static final String CURL_REQUEST_PARAM = "curl";
+    private static final String ACCOUNT_REQUEST_PARAM = "account";
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
@@ -148,7 +150,7 @@ public class AmpRequestFactory {
                     || targeting.getIncludebidderkeys() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
-            setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
+            setDefaultCache = cache == null || cache.equals(ExtRequestPrebidCache.EMPTY);
         }
 
         final Integer debugQueryParam = debugFromQueryStringParam(context);
@@ -220,14 +222,23 @@ public class AmpRequestFactory {
 
     private static Site overrideSite(Site site, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
+        final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
-        final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final boolean hasSite = site != null;
+        final ObjectNode siteExt = hasSite ? site.getExt() : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
 
-        if (StringUtils.isNotBlank(canonicalUrl) || shouldSetExtAmp) {
-            final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp) {
+            final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
+            }
+            if (StringUtils.isNotBlank(accountId)) {
+                final Publisher publisher = hasSite ? site.getPublisher() : null;
+                final Publisher.PublisherBuilder publisherBuilder = publisher != null
+                        ? publisher.toBuilder() : Publisher.builder();
+
+                siteBuilder.publisher(publisherBuilder.id(accountId).build());
             }
             if (shouldSetExtAmp) {
                 final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
@@ -434,7 +445,7 @@ public class AmpRequestFactory {
             }
             if (setDefaultCache) {
                 prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                        ExtRequestPrebidCacheVastxml.of(null, null)));
+                        ExtRequestPrebidCacheVastxml.of(null, null), null));
             }
             if (updatedDebug != null) {
                 prebidBuilder.debug(updatedDebug);

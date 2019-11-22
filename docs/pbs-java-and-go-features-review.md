@@ -11,6 +11,7 @@ Geo location (used for GDPR) |+|-
 Circuit Breaker (Http, DB) |+|-
 Passing Bidder ext in `imp[...].ext.prebid.bidder` |-|+
 Media Type Price Granularity |+|-
+Cache only-winning-bids Flag |+|-
 User ID module |+|+
 Bid Categories |-|+
 Event endpoint |+|-
