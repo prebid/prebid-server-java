@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -1001,7 +1002,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of("parentAccount")))
+                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount"))))
                                 .build())
                         .build())
                 .build());
@@ -1042,12 +1043,35 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherIdWhenExtPublisherPrebidIsNull() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId")
+                                .ext(mapper.valueToTree(ExtPublisher.of(null))).build())
+                        .build())
+                .build());
+
+        final Account givenAccount = Account.builder().id("accountId").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        verify(applicationSettings).getAccountById(eq("accountId"), any());
+
+        assertThat(account).isSameAs(givenAccount);
+    }
+
+    @Test
     public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherIdWhenExtParentIsEmpty() {
         // given
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of(""))).build())
+                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("")))).build())
                         .build())
                 .build());
 
@@ -1070,7 +1094,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of("parentAccount")))
+                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount"))))
                                 .build())
                         .build())
                 .build());

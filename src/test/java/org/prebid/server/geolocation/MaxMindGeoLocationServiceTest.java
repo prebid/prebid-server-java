@@ -9,13 +9,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.FieldSetter;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.geolocation.model.GeoInfo;
 
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -43,10 +41,14 @@ public class MaxMindGeoLocationServiceTest {
     }
 
     @Test
-    public void setDatabaseReaderShouldThrowExceptionIfDatabaseArchiveNotFound() {
-        assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> maxMindGeoLocationService.setDatabaseReader("no_file"))
-                .withMessageStartingWith("IO Exception occurred while trying to read an archive/db file: no_file");
+    public void setDatabaseReaderShouldReturnFailedFutureIfDatabaseArchiveNotFound() {
+        // given and when
+        final Future<?> result = maxMindGeoLocationService.setDataPath("no_file");
+
+        // then
+        assertTrue(result.failed());
+        assertThat(result.cause())
+                .hasMessageStartingWith("IO Exception occurred while trying to read an archive/db file: no_file");
     }
 
     @Test

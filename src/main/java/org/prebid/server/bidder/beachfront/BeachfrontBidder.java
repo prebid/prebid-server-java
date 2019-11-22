@@ -18,27 +18,23 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
-import org.prebid.server.bidder.beachfront.model.BeachfrontRequests;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
 import org.prebid.server.bidder.beachfront.model.BeachfrontSize;
 import org.prebid.server.bidder.beachfront.model.BeachfrontSlot;
-import org.prebid.server.bidder.beachfront.model.BeachfrontVideoDevice;
-import org.prebid.server.bidder.beachfront.model.BeachfrontVideoImp;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpRequest.HttpRequestBuilder;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
+import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -54,11 +50,18 @@ import java.util.stream.Collectors;
 /**
  * Beachfront {@link Bidder} implementation.
  */
-public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
+public class BeachfrontBidder implements Bidder<Void> {
 
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String NURL_VIDEO_TYPE = "nurl";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.3.0";
-    private static final String VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
+    private static final String BEACHFRONT_VERSION = "0.8.0";
+    private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
+    private static final String TEST_IP = "192.168.255.255";
+
+    private static final BigDecimal MIN_BID_FLOOR = BigDecimal.valueOf(0.01);
+    private static final int DEFAULT_VIDEO_WIDTH = 300;
+    private static final int DEFAULT_VIDEO_HEIGHT = 250;
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
@@ -72,170 +75,186 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         this.videoEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpointUrl));
     }
 
-    /**
-     * Creates POST HTTP requests for both, video or banner endoint, dependent on which {@link Imp} {@link BidRequest}
-     * contains, to fetch bids.
-     */
     @Override
-    public Result<List<HttpRequest<BeachfrontRequests>>> makeHttpRequests(BidRequest request) {
-        final String endpoint = getEndpoint(request.getImp());
-        Result<List<HttpRequest<BeachfrontRequests>>> result;
-        try {
-            result = endpoint.equals(videoEndpointUrl)
-                    ? makeVideoHttpRequest(request, endpoint)
-                    : makeBannerHttpRequest(request, endpoint);
-        } catch (InvalidRequestException ex) {
-            result = Result.of(Collections.emptyList(),
-                    makeBadInputErrors(ex.getMessages()));
+    public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<Imp> bannerImps = new ArrayList<>();
+        final List<Imp> videoImps = new ArrayList<>();
+        for (Imp imp : bidRequest.getImp()) {
+            final Banner banner = imp.getBanner();
+            if (banner != null
+                    && (checkFormats(banner.getFormat()) || (banner.getH() != null && banner.getW() != null))) {
+                bannerImps.add(imp);
+            }
+            if (imp.getVideo() != null) {
+                videoImps.add(imp);
+            }
         }
-        return result;
-    }
+        if (bannerImps.isEmpty() && videoImps.isEmpty()) {
+            return Result.emptyWithError(BidderError.badInput("no valid impressions were found in the request"));
+        }
 
-    /**
-     * Creates Http request for video endpoint
-     */
-    private static Result<List<HttpRequest<BeachfrontRequests>>> makeVideoHttpRequest(BidRequest bidRequest,
-                                                                                      String endpoint) {
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
+        final BeachfrontBannerRequest bannerRequest = getBannerRequest(bidRequest, bannerImps, errors);
+        final List<BeachfrontVideoRequest> videoRequests = getVideoRequests(bidRequest, videoImps, errors);
 
-        final BeachfrontVideoRequest beachfrontVideoRequest = makeVideoRequest(bidRequest, errors);
-
-        return Result.of(Collections.singletonList(
-                httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
-                        .uri(String.format("%s%s%s", endpoint, beachfrontVideoRequest.getAppId(),
-                                VIDEO_ENDPOINT_SUFFIX))
-                        .body(Json.encode(beachfrontVideoRequest))
-                        .payload(BeachfrontRequests.of(null, beachfrontVideoRequest))
-                        .build()),
-                makeBadInputErrors(errors));
-    }
-
-    /**
-     * Creates http request for banner endpoint
-     */
-    private static Result<List<HttpRequest<BeachfrontRequests>>> makeBannerHttpRequest(BidRequest bidRequest,
-                                                                                       String endpoint) {
-        final List<String> errors = new ArrayList<>();
-        final BeachfrontBannerRequest beachfrontBannerRequest = makeBannerRequest(bidRequest, bidRequest.getImp(),
-                errors);
-        return Result.of(Collections.singletonList(
-                httpRequestBuilderWithPopulatedHeadersAndMethod(bidRequest.getDevice(), HttpMethod.POST)
-                        .uri(endpoint)
-                        .body(Json.encode(beachfrontBannerRequest))
-                        .payload(BeachfrontRequests.of(beachfrontBannerRequest, null))
-                        .build()),
-                makeBadInputErrors(errors));
-    }
-
-    private static HttpRequestBuilder<BeachfrontRequests> httpRequestBuilderWithPopulatedHeadersAndMethod(
-            Device device, HttpMethod httpMethod) {
         final MultiMap headers = HttpUtil.headers();
+        final Device device = bidRequest.getDevice();
         if (device != null) {
             addDeviceHeaders(headers, device);
         }
-        return HttpRequest.<BeachfrontRequests>builder().method(httpMethod).headers(headers);
+
+        final List<HttpRequest<Void>> requests = new ArrayList<>();
+        if (bannerRequest != null) {
+            requests.add(HttpRequest.<Void>builder()
+                    .method(HttpMethod.POST)
+                    .uri(bannerEndpointUrl)
+                    .body(Json.encode(bannerRequest))
+                    .headers(headers)
+                    .build());
+        }
+
+        final MultiMap videoHeaders = MultiMap.caseInsensitiveMultiMap().addAll(headers);
+
+        final User user = bidRequest.getUser();
+        final String buyerUid = user != null ? user.getBuyeruid() : null;
+        if (!videoRequests.isEmpty() && StringUtils.isNotBlank(buyerUid)) {
+            videoHeaders.add("Cookie", "__io_cid=" + buyerUid);
+        }
+
+        videoRequests.stream()
+                .map(videoRequest -> HttpRequest.<Void>builder()
+                        .method(HttpMethod.POST)
+                        .uri(resolveVideoUri(videoRequest.getAppId(), videoRequest.getIsPrebid()))
+                        .body(Json.encode(videoRequest))
+                        .headers(videoHeaders)
+                        .build())
+                .forEach(requests::add);
+
+        return Result.of(requests, errors);
     }
 
-    private static void addDeviceHeaders(MultiMap headers, Device device) {
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
+    private String resolveVideoUri(String appId, Boolean isPrebid) {
+        final String videoWithId = videoEndpointUrl + appId;
+        return BooleanUtils.toBoolean(isPrebid)
+                ? videoWithId + NURL_VIDEO_ENDPOINT_SUFFIX
+                : videoWithId;
     }
 
-    /**
-     * Creates {@link BeachfrontVideoRequest} from {@link BidRequest}, which json representation used as http body
-     * request to video endpoint.
-     */
-    private static BeachfrontVideoRequest makeVideoRequest(BidRequest bidRequest, List<String> errors) {
-        final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder requestBuilder
-                = BeachfrontVideoRequest.builder().cur(Collections.singletonList("USD")).isPrebid(true);
+    private static boolean checkFormats(List<Format> formats) {
+        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
+        final boolean isHeightNonZero = firstFormat != null && !Objects.equals(firstFormat.getH(), 0);
+        final boolean isWidthNonZero = firstFormat != null && !Objects.equals(firstFormat.getW(), 0);
+        return isHeightNonZero && isWidthNonZero;
+    }
 
-        final List<BeachfrontVideoImp> beachfrontVideoImps = new ArrayList<>();
+    private static BeachfrontBannerRequest getBannerRequest(BidRequest bidRequest, List<Imp> bannerImps,
+                                                            List<BidderError> errors) {
+        final List<BeachfrontSlot> slots = new ArrayList<>();
 
-        final ExtImpBeachfront latestExtImpBeachfront = makeVideoImpsAndGetExtImpBeachfront(bidRequest, errors,
-                beachfrontVideoImps);
+        for (Imp imp : bannerImps) {
+            try {
+                final ExtImpBeachfront extImpBeachfront = parseImpExt(imp);
+                final String appId = getAppId(extImpBeachfront, true);
 
-        populateVideoRequestSite(bidRequest.getApp(), bidRequest.getSite(), requestBuilder);
+                slots.add(BeachfrontSlot.of(imp.getId(), appId, checkBidFloor(extImpBeachfront.getBidfloor()),
+                        makeBeachfrontSizes(imp.getBanner())));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+        if (slots.isEmpty()) {
+            return null;
+        }
+
+        final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder requestBuilder = BeachfrontBannerRequest.builder()
+                .adapterName(BEACHFRONT_NAME)
+                .adapterVersion(BEACHFRONT_VERSION)
+                .requestId(bidRequest.getId())
+                .slots(slots);
+
+        final User user = bidRequest.getUser();
+        if (user != null) {
+            requestBuilder.user(makeUser(user));
+        }
 
         final Device device = bidRequest.getDevice();
-        final User user = bidRequest.getUser();
-
-        return requestBuilder
-                .imp(beachfrontVideoImps)
-                .device(device != null
-                        ? BeachfrontVideoDevice.of(device.getUa(), device.getIp(), "1")
-                        : null)
-                .appId(latestExtImpBeachfront.getAppId())
-                .user(user != null ? makeUserForVideoRequest(user) : null)
-                .build();
-    }
-
-    /**
-     * Creates {@link BeachfrontVideoImp} from {@link Imp}. If imps {@link ExtImpBeachfront} can't be deserialized from
-     * json or missed, {@link BeachfrontVideoImp} considered as invalid. Returns latest {@link ExtImpBeachfront} from
-     * last valid imp, if no valid imps, returns null.
-     */
-    private static ExtImpBeachfront makeVideoImpsAndGetExtImpBeachfront(BidRequest bidRequest, List<String> errors,
-                                                                        List<BeachfrontVideoImp> beachfrontVideoImps) {
-        ExtImpBeachfront latestExtImpBeachfront = null;
-        for (final Imp imp : bidRequest.getImp()) {
-            final Video video = imp.getVideo();
-            if (video != null) {
-                final BeachfrontSize beachfrontSize = BeachfrontSize.of(video.getW(), video.getH());
-                final ExtImpBeachfront extImpBeachfront;
-                final Integer secured = imp.getSecure() != null ? imp.getSecure() : 0;
-
-                try {
-                    extImpBeachfront = getExtImpBeachfront(imp);
-                } catch (PreBidException ex) {
-                    errors.add(ex.getMessage());
-                    beachfrontVideoImps.add(BeachfrontVideoImp.of(beachfrontSize, null, null, null, secured));
-                    continue;
-                }
-
-                latestExtImpBeachfront = ObjectUtils.firstNonNull(extImpBeachfront, latestExtImpBeachfront);
-
-                beachfrontVideoImps.add(BeachfrontVideoImp.of(beachfrontSize,
-                        extImpBeachfront.getBidfloor(),
-                        beachfrontVideoImps.size(), imp.getId(), secured));
-            }
+        if (device != null) {
+            populateDeviceFields(requestBuilder, device);
         }
 
-        if (latestExtImpBeachfront == null) {
-            errors.add("No valid impressions were found");
-            throw new InvalidRequestException(errors);
-        }
-
-        return latestExtImpBeachfront;
-    }
-
-    /**
-     * Creates {@link BeachfrontVideoRequest} domain from {@link App} or {@link Site}.
-     */
-    private static void populateVideoRequestSite(App app, Site site,
-                                                 BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
-                                                         videoRequestBuilder) {
-        if (app != null) {
-            final String domain = app.getDomain();
-            if (StringUtils.isNotEmpty(domain)) {
-                videoRequestBuilder.site(Site.builder().domain(domain).page(app.getId()).build());
-            }
-        } else if (site != null) {
+        final Site site = bidRequest.getSite();
+        final Integer firstImpSecure = bannerImps.get(0).getSecure();
+        if (site != null) {
             final String page = site.getPage();
-            if (StringUtils.isNotEmpty(page)) {
-                final String domain = site.getDomain();
-                final String resolvedDomain = StringUtils.isEmpty(domain) ? HttpUtil.getDomainFromUrl(page) : domain;
 
-                videoRequestBuilder.site(Site.builder().domain(resolvedDomain).page(page).build());
+            requestBuilder.page(page);
+            requestBuilder.domain(StringUtils.isBlank(site.getDomain())
+                    ? HttpUtil.getDomainFromUrl(page) : site.getDomain());
+            requestBuilder.isMobile(0);
+            requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(page));
+        } else {
+            final App app = bidRequest.getApp();
+            final String bundle = app.getBundle();
+
+            requestBuilder.page(bundle);
+            requestBuilder.domain(app.getDomain());
+            requestBuilder.isMobile(1);
+            requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
+        }
+
+        return requestBuilder.build();
+    }
+
+    private static ExtImpBeachfront parseImpExt(Imp imp) {
+        try {
+            return Json.mapper.<ExtPrebid<?, ExtImpBeachfront>>convertValue(imp.getExt(), BEACHFRONT_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format(
+                    "ignoring imp id=%s, error while decoding extImpBeachfront, err: %s", imp.getId(), e.getMessage()));
+        }
+    }
+
+    private static String getAppId(ExtImpBeachfront extImpBeachfront, boolean isBanner) {
+        final String appId = extImpBeachfront.getAppId();
+        if (StringUtils.isNotBlank(appId)) {
+            return appId;
+        }
+
+        final ExtImpBeachfrontAppIds appIds = extImpBeachfront.getAppIds();
+        final String bannerAppId = appIds != null ? appIds.getBanner() : null;
+        if (isBanner && StringUtils.isNotBlank(bannerAppId)) {
+            return appIds.getBanner();
+        }
+
+        final String videoAppId = appIds != null ? appIds.getVideo() : null;
+        if (StringUtils.isNotBlank(videoAppId)) {
+            return appIds.getVideo();
+        }
+        throw new PreBidException("unable to determine the appId(s) from the supplied extension");
+    }
+
+    private static BigDecimal checkBidFloor(BigDecimal bidFloor) {
+        return bidFloor.compareTo(MIN_BID_FLOOR) > 0 ? bidFloor : BigDecimal.ZERO;
+    }
+
+    /**
+     * Creates {@link BeachfrontSize} by copying from {@link Format}s.
+     */
+    private static List<BeachfrontSize> makeBeachfrontSizes(Banner banner) {
+        final List<BeachfrontSize> beachfrontSizes = new ArrayList<>();
+        if (banner.getFormat() != null) {
+            for (final Format format : banner.getFormat()) {
+                beachfrontSizes.add(BeachfrontSize.of(format.getW(), format.getH()));
             }
         }
+        return beachfrontSizes;
     }
 
     /**
      * Creates {@link BeachfrontVideoRequest} user.
      */
-    private static User makeUserForVideoRequest(User user) {
+    private static User makeUser(User user) {
         final String userId = user.getId();
         final String buyerId = user.getBuyeruid();
         return User.builder()
@@ -249,237 +268,154 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     }
 
     /**
-     * Creates {@link BeachfrontBannerRequest} from {@link BidRequest}, which json representation used as http body
-     * request to banner endpoint.
-     */
-    private static BeachfrontBannerRequest makeBannerRequest(BidRequest bidRequest, List<Imp> imps,
-                                                             List<String> errors) {
-        final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder requestBuilder =
-                BeachfrontBannerRequest.builder().adapterName(BEACHFRONT_NAME).adapterVersion(BEACHFRONT_VERSION);
-
-        final List<BeachfrontSlot> beachfrontSlots = makeBeachfrontSlots(imps, errors);
-
-        final Device device = bidRequest.getDevice();
-        if (device != null) {
-            populateDeviceFields(requestBuilder, bidRequest.getDevice());
-        }
-
-        populateDomainPageFieldsForBannerRequest(bidRequest.getApp(), bidRequest.getSite(),
-                requestBuilder);
-
-        final User user = bidRequest.getUser();
-        if (user != null) {
-            requestBuilder.user(User.builder().id(user.getId()).buyeruid(user.getBuyeruid()).build());
-        }
-
-        final Integer secure = imps.stream()
-                .map(Imp::getSecure)
-                .filter(Objects::nonNull)
-                .reduce((first, second) -> second)
-                .orElse(null);
-
-        return requestBuilder
-                .requestId(bidRequest.getId())
-                .slots(beachfrontSlots)
-                .secure(secure)
-                .build();
-    }
-
-    /**
-     * Creates list of {@link BeachfrontSlot}s from {@link Imp}.
-     * <p>
-     * If Imp has audio or native type, adds error about unsupported type.
-     * <p>
-     * All banner imps without extension, or with extension which can't be deserialized, considering as invalid.
-     * If all imps are invalid, throws {@link InvalidRequestException}.
-     */
-    private static List<BeachfrontSlot> makeBeachfrontSlots(List<Imp> imps, List<String> errors) {
-        final List<BeachfrontSlot> beachfrontSlots = new ArrayList<>();
-        boolean hasValidImp = false;
-        for (final Imp imp : imps) {
-            final Banner banner = imp.getBanner();
-            if (imp.getAudio() != null) {
-                errors.add(String.format(
-                        "Beachfront doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
-            } else if (imp.getXNative() != null) {
-                errors.add(String.format(
-                        "Beachfront doesn't support native Imps. Ignoring Imp ID=%s", imp.getId()));
-            } else if (banner != null) {
-                final List<BeachfrontSize> sizes = makeBeachfrontSizes(banner);
-
-                final ExtImpBeachfront extImpBeachfront;
-
-                try {
-                    extImpBeachfront = getExtImpBeachfront(imp);
-                } catch (PreBidException ex) {
-                    errors.add(ex.getMessage());
-                    beachfrontSlots.add(BeachfrontSlot.of(null, null, imp.getBidfloor(), sizes));
-                    continue;
-                }
-                hasValidImp = true;
-                beachfrontSlots.add(BeachfrontSlot.of(imp.getId(), extImpBeachfront.getAppId(),
-                        imp.getBidfloor(), sizes));
-            }
-        }
-        if (!hasValidImp) {
-            errors.add("No valid impressions were found");
-            throw new InvalidRequestException(errors);
-        }
-        return beachfrontSlots;
-    }
-
-    /**
-     * Populates {@link BeachfrontBannerRequest} domain and page fields from {@link App} or {@link Site}.
-     */
-    private static void populateDomainPageFieldsForBannerRequest(App app, Site site,
-                                                                 BeachfrontBannerRequest.BeachfrontBannerRequestBuilder
-                                                                         beachfrontRequestsBuilder) {
-        if (app != null) {
-            beachfrontRequestsBuilder.domain(app.getDomain());
-            beachfrontRequestsBuilder.page(app.getId());
-        } else {
-            if (site != null) {
-                beachfrontRequestsBuilder.domain(HttpUtil.getDomainFromUrl(site.getPage()));
-                beachfrontRequestsBuilder.page(site.getPage());
-            }
-        }
-    }
-
-    /**
      * Populates {@link BeachfrontBannerRequest} with fields from {@link Device} if it is not null.
      */
     private static void populateDeviceFields(BeachfrontBannerRequest.BeachfrontBannerRequestBuilder builder,
                                              Device device) {
-        builder.ip(device.getIp());
+        builder.ip(getIP(device.getIp()));
         builder.deviceModel(device.getModel());
         builder.deviceOs(device.getOs());
-        builder.dnt(device.getDnt());
+        if (device.getDnt() != null) {
+            builder.dnt(device.getDnt());
+        }
         if (StringUtils.isNotEmpty(device.getUa())) {
             builder.ua(device.getUa());
         }
     }
 
-    /**
-     * Creates {@link BeachfrontSize} by copying from {@link Format}s.
-     */
-    private static List<BeachfrontSize> makeBeachfrontSizes(Banner banner) {
-        final List<BeachfrontSize> beachfrontSizes = new ArrayList<>();
-        if (banner.getFormat() != null) {
-            for (final Format format : banner.getFormat()) {
-                beachfrontSizes.add(BeachfrontSize.of(format.getW(), format.getH()));
+    private static String getIP(String ip) {
+        return StringUtils.isBlank(ip) || ip.equals("::1") || ip.equals("127.0.0.1") ? TEST_IP : ip;
+    }
+
+    private static int getSecure(String page) {
+        return StringUtils.contains(page, "https") ? 1 : 0;
+    }
+
+    private static List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
+                                                                 List<BidderError> errors) {
+        final List<BeachfrontVideoRequest> videoRequests = new ArrayList<>();
+        for (Imp imp : videoImps) {
+            final ExtImpBeachfront extImpBeachfront;
+            final String appId;
+
+            try {
+                extImpBeachfront = parseImpExt(imp);
+                appId = getAppId(extImpBeachfront, false);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
-        } else {
-            beachfrontSizes.add(BeachfrontSize.of(null, null));
+
+            final String videoResponseType = extImpBeachfront.getVideoResponseType();
+            final String responseType = StringUtils.isBlank(videoResponseType) ? NURL_VIDEO_TYPE : videoResponseType;
+            final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder requestBuilder = BeachfrontVideoRequest.builder()
+                    .appId(appId)
+                    .videoResponseType(responseType);
+
+            if (responseType.equals(NURL_VIDEO_TYPE) || responseType.equals("both")) {
+                requestBuilder.isPrebid(true);
+            }
+
+            final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
+            int secure = 0;
+            final Site site = bidRequest.getSite();
+            if (site != null && StringUtils.isBlank(site.getDomain()) && StringUtils.isNotBlank(site.getPage())) {
+                bidRequestBuilder.site(site.toBuilder().domain(HttpUtil.getDomainFromUrl(site.getPage())).build());
+
+                secure = getSecure(site.getPage());
+            }
+
+            final App app = bidRequest.getApp();
+            if (app != null && StringUtils.isBlank(app.getDomain()) && StringUtils.isNotBlank(app.getBundle())) {
+                final String trimmedBundle = StringUtils.removeStart(app.getBundle(), "_");
+                final String[] split = StringUtils.removeEnd(trimmedBundle, "_").split(".");
+
+                if (split.length > 1) {
+                    bidRequestBuilder.app(app.toBuilder().domain(String.format("%s.%s", split[1], split[0])).build());
+                }
+            }
+
+            final Device device = bidRequest.getDevice();
+            if (device != null) {
+                final Device.DeviceBuilder deviceBuilder = device.toBuilder();
+                final Integer devicetype = device.getDevicetype();
+                if (devicetype == null || devicetype == 0) {
+                    deviceBuilder.devicetype(bidRequest.getSite() != null ? 2 : 1);
+                }
+                if (StringUtils.isNotBlank(device.getIp())) {
+                    deviceBuilder.ip(getIP(device.getIp()));
+                }
+                bidRequestBuilder.device(deviceBuilder.build());
+            }
+
+            final Imp.ImpBuilder impBuilder = imp.toBuilder()
+                    .banner(null)
+                    .ext(null)
+                    .secure(secure)
+                    .bidfloor(checkBidFloor(extImpBeachfront.getBidfloor()));
+
+            final Video video = imp.getVideo();
+            final Integer videoHeight = video.getH();
+            final Integer videoWidth = video.getW();
+            if ((videoHeight == null || videoHeight == 0) && (videoWidth == null || videoWidth == 0)) {
+                impBuilder.video(video.toBuilder().h(DEFAULT_VIDEO_HEIGHT).w(DEFAULT_VIDEO_WIDTH).build());
+            }
+
+            bidRequestBuilder.imp(Collections.singletonList(impBuilder.build()));
+
+            if (CollectionUtils.isEmpty(bidRequest.getCur())) {
+                bidRequestBuilder.cur(Collections.singletonList(DEFAULT_BID_CURRENCY));
+            }
+
+            videoRequests.add(requestBuilder.request(bidRequestBuilder.build()).build());
         }
-        return beachfrontSizes;
+
+        return videoRequests;
     }
 
-    /**
-     * Extracts {@link ExtImpBeachfront} from imp.ext.bidder.
-     */
-    private static ExtImpBeachfront getExtImpBeachfront(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        if (imp.getExt() == null) {
-            throw new PreBidException("Beachfront parameters section is missing");
-        }
-        try {
-            return Json.mapper.<ExtPrebid<?, ExtImpBeachfront>>convertValue(impExt,
-                    BEACHFRONT_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format(
-                    "ignoring imp id=%s, error while decoding impExt, err: %s", imp.getId(), e.getMessage()));
-        }
-    }
-
-    /**
-     * Determines to which endpoint send request depends on {@link Imp}s media types.
-     */
-    private String getEndpoint(List<Imp> imps) {
-        return imps.stream().anyMatch(imp -> imp.getVideo() != null) ? videoEndpointUrl : bannerEndpointUrl;
-    }
-
-    private static List<BidderError> makeBadInputErrors(List<String> errors) {
-        return errors.stream().map(BidderError::badInput).collect(Collectors.toList());
+    private static void addDeviceHeaders(MultiMap headers, Device device) {
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
     }
 
     /**
      * Converts response to {@link List} of {@link BidderBid}s with {@link List}, depends on response type.
      */
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BeachfrontRequests> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
         if (StringUtils.isBlank(bodyString)) {
             return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
         }
 
-        // Beachfront sending an empty array and 200 as their "no results" response.
-        if (bodyString.equals("[]")) {
+        if (httpCall.getResponse().getStatusCode() == 204 || bodyString.length() <= 2) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
-        final String id = bidRequest.getId();
-        return getBidType(bidRequest.getImp()) == BidType.video
-                ? processVideoResponse(httpCall, id)
-                : processBannerResponse(httpCall, id);
-    }
-
-    /**
-     * Creates response for video response, by updating response {@link Bid} by data from request's
-     * {@link BeachfrontVideoImp}
-     */
-    private Result<List<BidderBid>> processVideoResponse(HttpCall<BeachfrontRequests> httpCall, String id) {
-        final List<BidderError> errors = new ArrayList<>();
-        final BidResponse bidResponse;
         try {
-            bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-        } catch (DecodeException ex) {
-            errors.add(BidderError.badServerResponse(ex.getMessage()));
-            return makeErrorResponse(errors);
+            return processVideoResponse(bodyString, httpCall.getRequest());
+        } catch (DecodeException e) {
+            try {
+                return processBannerResponse(bodyString);
+            } catch (PreBidException ex) {
+                return Result.emptyWithError(BidderError.badServerResponse(ex.getMessage()));
+            }
         }
-
-        if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-
-        final BeachfrontVideoImp videoImp = httpCall.getRequest().getPayload().getVideoRequest().getImp().get(0);
-
-        return Result.of(bidResponse.getSeatbid().get(0).getBid().stream()
-                .map(bid -> BidderBid.of(updateVideoBid(bid, videoImp, id), BidType.video, "USD"))
-                .collect(Collectors.toList()), errors);
-    }
-
-    /**
-     * Updates {@link Bid} with data from request's {@link BeachfrontVideoImp}.
-     */
-    private static Bid updateVideoBid(Bid bid, BeachfrontVideoImp imp, String id) {
-        final String bidNurl = bid.getNurl();
-        bid.setCrid(bidNurl != null ? extractCrid(bid.getNurl(), 2) : null);
-        bid.setImpid(imp.getImpid());
-        bid.setH(imp.getVideo().getH());
-        bid.setW(imp.getVideo().getW());
-        bid.setId(id);
-        return bid;
     }
 
     /**
      * Creates response for banner response, by creating response {@link Bid} from {@link BeachfrontResponseSlot}.
      */
-    private Result<List<BidderBid>> processBannerResponse(HttpCall<BeachfrontRequests> httpCall, String id) {
-        final List<BidderError> errors = new ArrayList<>();
-        final String responseBody = httpCall.getResponse().getBody();
-        final List<BeachfrontResponseSlot> responseSlots;
-        try {
-            responseSlots = makeBeachfrontResponseSlots(responseBody);
-        } catch (PreBidException ex) {
-            errors.add(BidderError.badServerResponse(ex.getMessage()));
-            return makeErrorResponse(errors);
-        }
+    private Result<List<BidderBid>> processBannerResponse(String responseBody) {
+        final List<BeachfrontResponseSlot> responseSlots = makeBeachfrontResponseSlots(responseBody);
 
         return Result.of(responseSlots.stream()
-                .filter(Objects::nonNull)
-                .map(beachfrontResponseSlot -> makeBidFromBeachfrontSlot(beachfrontResponseSlot, id))
-                .map(bid -> BidderBid.of(bid, BidType.banner, "USD"))
-                .collect(Collectors.toList()), errors);
+                        .filter(Objects::nonNull)
+                        .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
+                        .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                        .collect(Collectors.toList()),
+                Collections.emptyList());
     }
 
     /**
@@ -499,42 +435,66 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Creates {@link Bid} from {@link BeachfrontResponseSlot}.
      */
-    private static Bid makeBidFromBeachfrontSlot(BeachfrontResponseSlot beachfrontResponseSlot, String id) {
-        final String adm = beachfrontResponseSlot.getAdm();
-        final Float price = beachfrontResponseSlot.getPrice();
-
+    private static Bid makeBidFromBeachfrontSlot(BeachfrontResponseSlot beachfrontResponseSlot) {
+        final String slot = beachfrontResponseSlot.getSlot();
         return Bid.builder()
-                .crid(adm != null ? extractCrid(adm, 1) : null)
-                .impid(beachfrontResponseSlot.getSlot())
-                .price(price != null ? BigDecimal.valueOf(price) : null)
-                .id(id)
-                .adm(adm)
+                .crid(beachfrontResponseSlot.getCrid())
+                .impid(slot)
+                .price(BigDecimal.valueOf(beachfrontResponseSlot.getPrice()))
+                .id(slot + "Banner")
+                .adm(beachfrontResponseSlot.getAdm())
                 .h(beachfrontResponseSlot.getH())
                 .w(beachfrontResponseSlot.getW())
                 .build();
     }
 
-    /**
-     * Extracts crid from " separated source by position. In case when crid was not found return null.
-     */
-    private static String extractCrid(String source, int position) {
-        String[] crids = source.split("\"");
-        return position < crids.length ? crids[position] : null;
+    private Result<List<BidderBid>> processVideoResponse(String responseBody, HttpRequest httpRequest) {
+        final BidResponse bidResponse = Json.decodeValue(responseBody, BidResponse.class);
+        final BeachfrontVideoRequest videoRequest = Json.decodeValue(httpRequest.getBody(),
+                BeachfrontVideoRequest.class);
+
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        }
+
+        final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
+        final List<Imp> imps = videoRequest.getRequest().getImp();
+        if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
+            return Result.of(updateVideoBids(bids, imps).stream()
+                            .map(bid -> BidderBid.of(bid, BidType.video, DEFAULT_BID_CURRENCY))
+                            .collect(Collectors.toList()),
+                    Collections.emptyList());
+        } else {
+            return Result.of(bids.stream()
+                            .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
+                            .map(bid -> BidderBid.of(bid, BidType.video, DEFAULT_BID_CURRENCY))
+                            .collect(Collectors.toList()),
+                    Collections.emptyList());
+        }
     }
 
-    /**
-     * Creates {@link Result} with empty list of {@link BidderBid}s and bad server errors.
-     */
-    private static Result<List<BidderBid>> makeErrorResponse(List<BidderError> errors) {
-        errors.add(BidderError.badServerResponse("Failed to process the beachfront response"));
-        return Result.of(Collections.emptyList(), errors);
+    private static List<Bid> updateVideoBids(List<Bid> bids, List<Imp> imps) {
+        for (int i = 0; i < bids.size(); i++) {
+            final Bid bid = bids.get(i);
+            final Imp imp = imps.get(i);
+
+            final String impId = imp.getId();
+            bid.setCrid(getCrId(bid.getNurl()));
+            bid.setImpid(impId);
+            bid.setH(imp.getVideo().getH());
+            bid.setW(imp.getVideo().getW());
+            bid.setId(impId + "NurlVideo");
+        }
+        return bids;
     }
 
-    /**
-     * Finds {@link BidType} depends on {@link BidRequest} {@link Imp}s.
-     */
-    private static BidType getBidType(List<Imp> imps) {
-        return imps.stream().anyMatch(imp -> imp.getVideo() != null) ? BidType.video : BidType.banner;
+    private static String getCrId(String nurl) {
+        final String[] split = nurl.split(":");
+
+        if (split.length > 1) {
+            return split[2]; //Index out of bound???...
+        }
+        return null;
     }
 
     @Override

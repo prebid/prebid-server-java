@@ -243,10 +243,11 @@ public class ServiceConfiguration {
             @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
             @Value("${host-cookie.cookie-name:#{null}}") String hostCookieName,
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
-            @Value("${host-cookie.ttl-days}") Integer ttlDays) {
+            @Value("${host-cookie.ttl-days}") Integer ttlDays,
+            @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes) {
 
         return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
-                hostCookieDomain, ttlDays);
+                hostCookieDomain, ttlDays, maxCookieSizeBytes);
     }
 
     @Bean
@@ -473,8 +474,7 @@ public class ServiceConfiguration {
                     vertx.createHttpClient(httpClientOptions), vertx);
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService::setDatabaseReader);
-
+            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
         }
     }
