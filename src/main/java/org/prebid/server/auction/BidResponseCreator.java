@@ -491,12 +491,11 @@ public class BidResponseCreator {
             final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
                     keywordsCreatorByBidType(targeting, isApp);
             final boolean isWinningBid = winningBids.contains(bid);
-            final String winUrl = eventsEnabled
+            final String winUrl = eventsEnabled && bidType != BidType.video
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(account.getId()))
                     : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
-                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl,
-                            bidType == BidType.video);
+                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl);
 
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;

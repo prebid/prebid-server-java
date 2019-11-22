@@ -403,10 +403,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
                 for (final Bid bid : bids) {
                     final boolean isFirstBid = bid == bids.get(0);
-                    final boolean isVideoBid = isFirstBid && bid.getMediaType() == MediaType.video;
                     // IMPORTANT: see javadoc in Bid class
                     bid.setAdServerTargeting(joinMaps(
-                            keywordsCreator.makeFor(bid, isFirstBid, isVideoBid), bid.getAdServerTargeting()));
+                            keywordsCreator.makeFor(bid, isFirstBid), bid.getAdServerTargeting()));
                 }
             }
         }
