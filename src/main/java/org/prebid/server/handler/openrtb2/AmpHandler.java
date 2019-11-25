@@ -37,6 +37,7 @@ import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -79,10 +80,12 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final BidderCatalog bidderCatalog;
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
+    private final LogModifier logModifier;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
                       AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, BidderCatalog bidderCatalog,
-                      Set<String> biddersSupportingCustomTargeting, AmpResponsePostProcessor ampResponsePostProcessor) {
+                      Set<String> biddersSupportingCustomTargeting, AmpResponsePostProcessor ampResponsePostProcessor,
+                      LogModifier logModifier) {
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
@@ -91,6 +94,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
+        this.logModifier = Objects.requireNonNull(logModifier);
     }
 
     @Override
@@ -301,8 +305,10 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             } else if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
+
                 errorMessages = ((InvalidRequestException) exception).getMessages();
-                logger.info("Invalid request format: {0}", errorMessages);
+                final String logMessage = String.format("Invalid request format: %s", errorMessages);
+                logModifier.get().accept(logger, logMessage);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = errorMessages.stream().map(
