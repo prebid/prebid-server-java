@@ -65,7 +65,6 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
@@ -110,7 +109,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
 
-        given(storedRequestProcessor.impToStoredVideoJson(any(), any())).willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
+                .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
         bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
 
@@ -865,14 +865,14 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
-        given(storedRequestProcessor.impToStoredVideoJson(any(), any())).willReturn(Future.failedFuture("Fetch failed"));
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any())).willReturn(Future.failedFuture("Fetch failed"));
 
         // when
         final Future<BidResponse> result =
                 bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, false);
 
         // then
-        verify(storedRequestProcessor).impToStoredVideoJson(eq(singletonList(imp)), eq(timeout));
+        verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp)), any(), eq(timeout));
 
         assertThat(result.succeeded()).isTrue();
     }
@@ -905,7 +905,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
 
         final Video storedVideo = Video.builder().maxduration(100).h(2).w(2).build();
-        given(storedRequestProcessor.impToStoredVideoJson(any(), any()))
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.of(singletonMap("impId1", storedVideo), emptyList())));
 
         // when
@@ -913,7 +913,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, false);
 
         // then
-        verify(storedRequestProcessor).impToStoredVideoJson(eq(Arrays.asList(imp1, imp3)), eq(timeout));
+        verify(storedRequestProcessor).videoStoredDataResult(eq(Arrays.asList(imp1, imp3)), any(), eq(timeout));
 
         assertThat(result.result().getSeatbid())
                 .flatExtracting(SeatBid::getBid).hasSize(3)
@@ -936,7 +936,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
 
-        given(storedRequestProcessor.impToStoredVideoJson(any(), any()))
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.failedFuture("Bad timeout"));
 
         // when
@@ -944,7 +944,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, false);
 
         // then
-        verify(storedRequestProcessor).impToStoredVideoJson(eq(singletonList(imp1)), eq(timeout));
+        verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp1)), any(), eq(timeout));
 
         assertThat(result.result().getExt()).isEqualTo(
                 mapper.valueToTree(ExtBidResponse.of(null, singletonMap(

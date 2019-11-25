@@ -114,7 +114,7 @@ public class StoredRequestProcessor {
     /**
      * Fetches stored request.video and map existing values to imp.id.
      */
-    Future<VideoStoredDataResult> impToStoredVideoJson(List<Imp> imps, Timeout timeout) {
+    Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, List<String> errors, Timeout timeout) {
         final Map<String, String> storedIdToImpId =
                 mapStoredRequestHolderToStoredRequestId(imps, StoredRequestProcessor::getStoredRequestFromImp)
                         .entrySet().stream()
@@ -122,14 +122,14 @@ public class StoredRequestProcessor {
                                 impIdToStoredId -> impIdToStoredId.getKey().getId()));
 
         return applicationSettings.getStoredData(Collections.emptySet(), storedIdToImpId.keySet(), timeout)
-                .map(storedDataResult -> videoStoredDataResult(storedDataResult, storedIdToImpId));
+                .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
     }
 
-    private static VideoStoredDataResult videoStoredDataResult(StoredDataResult storedDataResult,
-                                                               Map<String, String> storedIdToImpId) {
+    private static VideoStoredDataResult makeVideoStoredDataResult(StoredDataResult storedDataResult,
+                                                                   Map<String, String> storedIdToImpId,
+                                                                   List<String> errors) {
         final Map<String, String> storedIdToStoredImp = storedDataResult.getStoredIdToImp();
         final Map<String, Video> impIdToStoredVideo = new HashMap<>();
-        final List<String> errors = new ArrayList<>();
 
         for (Map.Entry<String, String> storedIdToImpIdEntry : storedIdToImpId.entrySet()) {
             final String storedId = storedIdToImpIdEntry.getKey();

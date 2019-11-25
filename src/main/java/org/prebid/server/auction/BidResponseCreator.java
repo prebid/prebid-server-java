@@ -52,6 +52,7 @@ import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -477,12 +478,19 @@ public class BidResponseCreator {
     }
 
     private Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, Timeout timeout) {
+        final List<String> errors = new ArrayList<>();
+        final List<Imp> storedVideoInjectableImps = new ArrayList<>();
+        for (Imp imp : imps) {
+            try {
+                if (checkEchoVideoAttrs(imp)) {
+                    storedVideoInjectableImps.add(imp);
+                }
+            } catch (InvalidRequestException e) {
+                errors.add(e.getMessage());
+            }
+        }
 
-        final List<Imp> storedVideoInjectableImps = imps.stream()
-                .filter(BidResponseCreator::checkEchoVideoAttrs)
-                .collect(Collectors.toList());
-
-        return storedRequestProcessor.impToStoredVideoJson(storedVideoInjectableImps, timeout)
+        return storedRequestProcessor.videoStoredDataResult(storedVideoInjectableImps, errors, timeout)
                 .otherwise(throwable -> VideoStoredDataResult.of(Collections.emptyMap(),
                         Collections.singletonList(throwable.getMessage())));
     }

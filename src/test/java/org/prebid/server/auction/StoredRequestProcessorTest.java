@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +46,6 @@ import java.util.function.Function;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -623,7 +623,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedIdToJson, emptyList())));
 
         // when
-        final Future<VideoStoredDataResult> result = storedRequestProcessor.impToStoredVideoJson(Arrays.asList(imp1, imp2), null);
+        final Future<VideoStoredDataResult> result = storedRequestProcessor.videoStoredDataResult(Arrays.asList(imp1, imp2), emptyList(), null);
 
         // then
         verify(applicationSettings).getStoredData(any(), eq(new HashSet<>(Arrays.asList("st1", "st2"))), any());
@@ -651,7 +651,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedIdToJson, emptyList())));
 
         // when
-        final Future<VideoStoredDataResult> result = storedRequestProcessor.impToStoredVideoJson(Arrays.asList(imp1, imp2), null);
+        final Future<VideoStoredDataResult> result = storedRequestProcessor.videoStoredDataResult(Arrays.asList(imp1, imp2), new ArrayList<>(), null);
 
         // then
         verify(applicationSettings).getStoredData(any(), eq(new HashSet<>(Arrays.asList("st1", "st2"))), any());
@@ -660,7 +660,6 @@ public class StoredRequestProcessorTest extends VertxTest {
                 "No stored Imp for stored id st2",
                 "No stored video found for Imp with id id1");
     }
-
 
     private static BidRequest givenBidRequest(
             Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
