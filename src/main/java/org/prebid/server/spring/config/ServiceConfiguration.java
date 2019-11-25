@@ -145,6 +145,7 @@ public class ServiceConfiguration {
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
@@ -155,13 +156,19 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
+        final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
+                adServerCurrency, blacklistedApps, blacklistedAccounts, storedRequestProcessor,
+                implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
+    }
+
+    private static List<String> splitCommaSeparatedString(String listString) {
+        return Stream.of(listString.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
-        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
-                adServerCurrency, blacklistedAccounts, storedRequestProcessor, implicitParametersExtractor,
-                uidsCookieService, bidderCatalog, requestValidator, new InterstitialProcessor(), timeoutResolver,
-                timeoutFactory, applicationSettings);
     }
 
     @Bean
@@ -352,13 +359,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator,
-                                      @Value("${auction.blacklisted-apps}") String blacklistedAppsString) {
-        final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
-        return new RequestValidator(bidderCatalog, bidderParamValidator, blacklistedApps);
+    RequestValidator requestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
+        return new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
     @Bean

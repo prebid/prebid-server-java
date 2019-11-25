@@ -19,6 +19,8 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.metric.MetricName;
@@ -125,7 +127,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
             body = Json.encode(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof BlacklistedAppException || exception instanceof BlacklistedAccountException) {
+                metricRequestStatus = exception instanceof BlacklistedAccountException
+                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                final String errorMessage = exception.getMessage();
+                logger.debug("Blacklisted: {0}", errorMessage);
+
+                errorMessages = Collections.singletonList(errorMessage);
+                status = HttpResponseStatus.FORBIDDEN.code();
+                body = String.format("Blacklisted: %s", errorMessage);
+
+            } else if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 logger.info("Invalid request format: {0}", errorMessages);

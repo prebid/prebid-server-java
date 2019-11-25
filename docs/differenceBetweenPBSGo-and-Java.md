@@ -35,6 +35,7 @@ and not the other for an interim period. This page tracks known differences that
   - in PBS-Java, the adapter set BidderBid[N].currency.
 - PBS-Go use "60 seconds buffer + {bid,imp,mediaType}TTL" approach to determine caching TTL period.
 - PBS-Java has different names for system metrics. For example instead of `active_connections` it uses `vertx.http.servers.[IP]:[PORT].open-netsockets.count`. See [Metrics](metrics.md) for details.
+- PBS-Go `/openrtb2/{auction,amp}` returns HTTP 503 Service Unavailable if request has blacklisted account or app, PBS-Java returns HTTP 403 Forbidden.
 
 ## GDPR differences
 - PBS-Java supports geo location service interface to determine the country for incoming client request and provides a default implementation using MaxMind GeoLite2 Country database.

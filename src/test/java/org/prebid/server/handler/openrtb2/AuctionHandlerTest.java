@@ -26,6 +26,8 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
@@ -164,6 +166,38 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+    }
+
+    @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
+    }
+
+    @Test
     public void shouldRespondWithBadRequestIfBidRequestIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
@@ -175,6 +209,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
     }
 
     @Test
@@ -207,6 +243,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
     }
 
     @Test
