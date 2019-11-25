@@ -39,6 +39,7 @@ import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
 import org.prebid.server.health.DatabaseHealthChecker;
+import org.prebid.server.health.GeoLocationHealthChecker;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -83,7 +84,6 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            @Value("${external-url}") String externalUrl,
             EventsService eventsService,
             HttpClient httpClient,
             Clock clock) {
@@ -145,7 +145,9 @@ public class ServiceConfiguration {
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
@@ -156,12 +158,19 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
+        final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
+                adServerCurrency, blacklistedApps, blacklistedAccounts, storedRequestProcessor,
+                implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
+                new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
+    }
+
+    private static List<String> splitCommaSeparatedString(String listString) {
+        return Stream.of(listString.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
-        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, adServerCurrency, blacklistedAccounts,
-                storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
-                new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
     }
 
     @Bean
@@ -243,10 +252,11 @@ public class ServiceConfiguration {
             @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
             @Value("${host-cookie.cookie-name:#{null}}") String hostCookieName,
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
-            @Value("${host-cookie.ttl-days}") Integer ttlDays) {
+            @Value("${host-cookie.ttl-days}") Integer ttlDays,
+            @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes) {
 
         return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
-                hostCookieDomain, ttlDays);
+                hostCookieDomain, ttlDays, maxCookieSizeBytes);
     }
 
     @Bean
@@ -266,12 +276,13 @@ public class ServiceConfiguration {
     @Bean
     GdprService gdprService(
             @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics,
             VendorListService vendorListService,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(geoLocationService, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(geoLocationService, metrics, vendorListService, eeaCountries, defaultValue);
     }
 
     @Bean
@@ -291,12 +302,11 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService,
-            CacheService cacheService) {
+            EventsService eventsService) {
 
-        return new BidResponseCreator(bidderCatalog, eventsService, cacheService.getEndpointHost(),
-                cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
     }
 
     @Bean
@@ -307,7 +317,6 @@ public class ServiceConfiguration {
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
-            CacheService cacheService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
@@ -315,8 +324,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyConversionService, cacheService,
-                bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
+                httpBidderRequester, responseBidValidator, currencyConversionService, bidResponseCreator,
+                bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -352,8 +361,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator) {
+    RequestValidator requestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
         return new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
@@ -475,8 +483,7 @@ public class ServiceConfiguration {
                     vertx.createHttpClient(httpClientOptions), vertx);
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService::setDatabaseReader);
-
+            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
         }
     }
@@ -494,6 +501,16 @@ public class ServiceConfiguration {
                 @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
 
             return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
+        }
+
+        @Bean
+        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
+        HealthChecker geoLocationChecker(
+                Vertx vertx,
+                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
+                GeoLocationService geoLocationService,
+                TimeoutFactory timeoutFactory) {
+            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
         }
 
         @Bean

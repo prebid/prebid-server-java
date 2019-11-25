@@ -34,6 +34,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -205,6 +207,46 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestIfRequestHasBlacklistedAccount() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(403));
+        assertThat(httpResponse.headers()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestIfRequestHasBlacklistedApp() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(403));
+        assertThat(httpResponse.headers()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
     }
 
     @Test

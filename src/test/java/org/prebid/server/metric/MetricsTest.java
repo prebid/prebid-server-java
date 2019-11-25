@@ -407,12 +407,16 @@ public class MetricsTest {
     public void updateRequestTypeMetricShouldIncrementMetric() {
         // when
         metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blacklisted_account);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blacklisted_app);
         metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("requests.blacklisted_account.openrtb2-web").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("requests.blacklisted_app.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isEqualTo(1);
@@ -689,6 +693,39 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("geolocation_circuitbreaker_closed").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementBothGeoLocationRequestsAndSuccessfulMetrics() {
+        // when
+        metrics.updateGeoLocationMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("geolocation_successful").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementBothGeoLocationRequestsAndFailMetrics() {
+        // when
+        metrics.updateGeoLocationMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("geolocation_fail").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldAlwaysIncrementGeoLocationRequestsMetricAndEitherSuccessfulOrFailMetricDependingOnFlag() {
+        // when
+        metrics.updateGeoLocationMetric(true);
+        metrics.updateGeoLocationMetric(false);
+        metrics.updateGeoLocationMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_requests").getCount()).isEqualTo(3);
+        assertThat(metricRegistry.counter("geolocation_fail").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("geolocation_successful").getCount()).isEqualTo(2);
     }
 
     @Test

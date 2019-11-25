@@ -1,0 +1,137 @@
+package org.prebid.server.bidder.lockerdome;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.lockerdome.ExtImpLockerdome;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+public class LockerdomeBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpLockerdome>> LOCKERDOME_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpLockerdome>>() {
+            };
+
+    private static final String DEFAULT_BID_CURRENCY = "USD";
+
+    private final String endpointUrl;
+
+    public LockerdomeBidder(String endpointUrl) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
+
+        final List<Imp> requestImps = bidRequest.getImp();
+        final List<Imp> validImps = new ArrayList<>();
+        for (Imp imp : requestImps) {
+            try {
+                validImps.add(validateImp(imp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        if (validImps.isEmpty()) {
+            errors.add(BidderError.badInput("No valid or supported impressions in the bid request."));
+            return Result.of(Collections.emptyList(), errors);
+        }
+
+        final MultiMap headers = HttpUtil.headers()
+                .add("x-openrtb-version", "2.5");
+
+        final BidRequest outgoingRequest = validImps.size() != requestImps.size()
+                ? bidRequest.toBuilder().imp(validImps).build()
+                : bidRequest;
+
+        final String body = Json.encode(outgoingRequest);
+
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .headers(headers)
+                        .body(body)
+                        .payload(outgoingRequest)
+                        .build()),
+                errors);
+    }
+
+    private static Imp validateImp(Imp imp) {
+        if (imp.getBanner() == null) {
+            throw new PreBidException("LockerDome does not currently support non-banner types.");
+        }
+
+        final ExtImpLockerdome extImpLockerdome;
+        try {
+            extImpLockerdome = Json.mapper.<ExtPrebid<?, ExtImpLockerdome>>convertValue(imp.getExt(),
+                    LOCKERDOME_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        if (StringUtils.isBlank(extImpLockerdome.getAdUnitId())) {
+            throw new PreBidException("ext.bidder.adUnitId is empty.");
+        }
+        return imp;
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Collections.emptyList()
+                : bidsFromResponse(bidResponse);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
+    }
+}

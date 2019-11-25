@@ -27,6 +27,8 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -34,8 +36,17 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -162,6 +173,38 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+    }
+
+    @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
+    }
+
+    @Test
     public void shouldRespondWithBadRequestIfBidRequestIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
@@ -173,6 +216,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
     }
 
     @Test
@@ -205,6 +250,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
     }
 
     @Test
@@ -240,6 +287,37 @@ public class AuctionHandlerTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{}"));
+    }
+
+    @Test
+    public void shouldRespondWithCorrectResolvedRequestMediaTypePriceGranularity() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final BidRequest resolvedRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.of(null,
+                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE)))),
+                                        null, mapper.createObjectNode()), null, null, null))
+                        .build())))
+                .build();
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder()
+                        .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
+                                null, null, null, null)))
+                        .build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(exchangeService).holdAuction(any());
+
+        verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":" +
+                "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":" +
+                "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
     }
 
     @Test
