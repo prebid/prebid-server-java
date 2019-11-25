@@ -159,6 +159,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
+        given(bidderCatalog.metricsBidderName(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(privacyEnforcementService.mask(argThat(MapUtils::isNotEmpty), any(), any(), any(), any(), any(), any()))
                 .willAnswer(inv ->

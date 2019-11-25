@@ -18,6 +18,7 @@ public class BidderCatalog {
 
     private static final String ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED = "%s has been deprecated and is no "
             + "longer available. Use %s instead.";
+    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
 
     private final Map<String, BidderDeps> bidderDepsMap;
     private final Map<String, String> deprecatedNameToError = new HashMap<>();
@@ -110,6 +111,18 @@ public class BidderCatalog {
      */
     public boolean isValidAdapterName(String name) {
         return bidderDepsMap.containsKey(name) && adapterByName(name) != null;
+    }
+
+    /**
+     * Returns a bidder name to be used for metrics. In case given name is invalid and there's no alias for it -
+     * "UNKNOWN" is returned.
+     */
+    public String metricsBidderName(String bidder) {
+        if (isValidName(bidder)) {
+            return bidder;
+        }
+        final String nameByAlias = nameByAlias(bidder);
+        return nameByAlias != null ? nameByAlias : METRICS_UNKNOWN_BIDDER;
     }
 
     /**

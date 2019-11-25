@@ -63,7 +63,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 public class CookieSyncHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
-
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_COOKIE = "adnxs";
 
@@ -505,6 +504,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
+        given(bidderCatalog.metricsBidderName(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(true, null, null,

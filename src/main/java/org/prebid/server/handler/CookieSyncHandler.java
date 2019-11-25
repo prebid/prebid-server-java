@@ -303,7 +303,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void updateCookieSyncGdprMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
-                metrics.updateCookieSyncGdprPreventMetric(bidder);
+                metrics.updateCookieSyncGdprPreventMetric(bidderCatalog.metricsBidderName(bidder));
             } else {
                 metrics.updateCookieSyncGenMetric(bidder);
             }

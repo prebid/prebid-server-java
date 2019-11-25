@@ -625,7 +625,8 @@ public class ExchangeService {
             final boolean noBuyerId = !bidderCatalog.isActive(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName()));
 
-            metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestTypeMetric, !isApp && noBuyerId);
+            metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidderCatalog.metricsBidderName(bidder),
+                    requestTypeMetric, !isApp && noBuyerId);
         }
         return bidderRequests;
     }
@@ -806,7 +807,7 @@ public class ExchangeService {
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
         for (final BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
+            final String bidder = bidderCatalog.metricsBidderName(bidderResponse.getBidder());
 
             metrics.updateAdapterResponseTime(bidder, publisherId, bidderResponse.getResponseTime());
 
