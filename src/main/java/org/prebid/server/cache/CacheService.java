@@ -128,12 +128,12 @@ public class CacheService {
             return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
         }
 
-        final long startTime = clock.millis();
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return failResponse(new TimeoutException("Timeout has been exceeded"));
         }
 
+        final long startTime = clock.millis();
         return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
                 remainingTimeout)
                 .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount, startTime))
