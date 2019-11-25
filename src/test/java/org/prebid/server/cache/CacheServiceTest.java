@@ -210,7 +210,7 @@ public class CacheServiceTest extends VertxTest {
         final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
-        verify(metrics).updateStoredCacheRequestFailedTime(anyLong());
+        verify(metrics).updateCacheRequestFailedTime(anyLong());
 
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
@@ -226,7 +226,7 @@ public class CacheServiceTest extends VertxTest {
         final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
-        verify(metrics).updateStoredCacheRequestFailedTime(anyLong());
+        verify(metrics).updateCacheRequestFailedTime(anyLong());
 
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class);
@@ -295,7 +295,7 @@ public class CacheServiceTest extends VertxTest {
         final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
-        verify(metrics).updateStoredCacheRequestSuccessTime(anyLong());
+        verify(metrics).updateCacheRequestSuccessTime(anyLong());
 
         final List<BidCacheResult> bidCacheResults = future.result();
         assertThat(bidCacheResults).hasSize(1)

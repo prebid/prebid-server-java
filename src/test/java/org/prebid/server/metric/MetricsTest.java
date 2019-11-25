@@ -763,7 +763,7 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheRequestSuccessTimer() {
         // when
-        metrics.updateStoredCacheRequestSuccessTime(1424L);
+        metrics.updateCacheRequestSuccessTime(1424L);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache_request_success_time").getCount()).isEqualTo(1);
@@ -772,7 +772,7 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheRequestFailedTimer() {
         // when
-        metrics.updateStoredCacheRequestFailedTime(1424L);
+        metrics.updateCacheRequestFailedTime(1424L);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache_request_error_time").getCount()).isEqualTo(1);

@@ -131,7 +131,7 @@ public class CacheService {
         final long startTime = clock.millis();
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failResponse(new TimeoutException("Timeout has been exceeded"), startTime);
+            return failResponse(new TimeoutException("Timeout has been exceeded"));
         }
 
         return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
@@ -143,8 +143,13 @@ public class CacheService {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
+    private Future<BidCacheResponse> failResponse(Throwable exception) {
+        logger.warn("Error occurred while interacting with cache service", exception);
+        return Future.failedFuture(exception);
+    }
+
     private Future<BidCacheResponse> failResponse(Throwable exception, long startTime) {
-        metrics.updateStoredCacheRequestFailedTime(clock.millis() - startTime);
+        metrics.updateCacheRequestFailedTime(clock.millis() - startTime);
         logger.warn("Error occurred while interacting with cache service", exception);
         return Future.failedFuture(exception);
     }
@@ -467,7 +472,7 @@ public class CacheService {
             throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
-        metrics.updateStoredCacheRequestSuccessTime(clock.millis() - startTime);
+        metrics.updateCacheRequestSuccessTime(clock.millis() - startTime);
         return bidCacheResponse;
     }
 

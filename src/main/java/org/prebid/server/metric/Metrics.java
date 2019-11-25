@@ -304,11 +304,11 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateStoredCacheRequestSuccessTime(long timeElapsed) {
+    public void updateCacheRequestSuccessTime(long timeElapsed) {
         updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
     }
 
-    public void updateStoredCacheRequestFailedTime(long timeElapsed) {
+    public void updateCacheRequestFailedTime(long timeElapsed) {
         updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
     }
 }
