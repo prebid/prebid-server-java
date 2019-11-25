@@ -25,9 +25,8 @@ public class LogModifier {
             return Logger::info;
         } else if (defaultLogger.isWarnEnabled()) {
             return Logger::warn;
-        } else {
-            return Logger::error;
         }
+        return Logger::error;
     }
 
     public void set(BiConsumer<Logger, String> logModifier, int requestCount) {
