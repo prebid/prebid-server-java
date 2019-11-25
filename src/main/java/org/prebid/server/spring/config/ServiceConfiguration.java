@@ -5,7 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -392,7 +392,7 @@ public class ServiceConfiguration {
 
     @Bean
     LogModifier logModifier() {
-        return new LogModifier(Logger::info);
+        return new LogModifier(LoggerFactory.getLogger(ServiceConfiguration.class));
     }
 
     @Bean

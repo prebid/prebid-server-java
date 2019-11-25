@@ -2,47 +2,63 @@ package org.prebid.server.execution;
 
 import io.vertx.core.logging.Logger;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 public class LogModifierTest {
 
-    private final static BiConsumer<Logger, String> DEFAULT_LOG_MODIFIER = Logger::info;
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private Logger logger;
+
     private LogModifier logModifier;
 
     @Before
     public void setUp() {
-        logModifier = new LogModifier(DEFAULT_LOG_MODIFIER);
+        given(logger.isInfoEnabled()).willReturn(true);
+
+        logModifier = new LogModifier(logger);
     }
 
     @Test
-    public void shouldReturnDefaultLogModifierWhenNothingWasSet() {
+    public void shouldUseDefaultLogModifierWhenNothingWasSet() {
         // given and when
-        final BiConsumer<Logger, String> defaultLogModifier = logModifier.get();
+        logModifier.get().accept(logger, "test");
 
         // then
-        assertThat(defaultLogModifier).isEqualTo(DEFAULT_LOG_MODIFIER);
+        verify(logger).info(any());
     }
 
     @Test
-    public void shouldReturnDefaultLogModifierWhenErrorLevelCountIsZero() {
-        // given
+    public void shouldUseDefaultLogModifierWhenErrorLevelCountIsZero() {
+        // given and when
         logModifier.set(Logger::error, 0);
+        logModifier.get().accept(logger, "test");
 
-        // when and then
-        assertThat(logModifier.get()).isEqualTo(DEFAULT_LOG_MODIFIER);
+        // then
+        verify(logger).info(any());
     }
 
     @Test
-    public void shouldReturnDefaultLogModifierWhenErrorLevelCountIsNegative() {
-        // given
+    public void shouldUseDefaultLogModifierWhenErrorLevelCountIsNegative() {
+        // given and when
         logModifier.set(Logger::error, -123);
+        logModifier.get().accept(logger, "test");
 
-        // when and then
-        assertThat(logModifier.get()).isEqualTo(DEFAULT_LOG_MODIFIER);
+        // then
+        verify(logger).info(any());
     }
 
     @Test

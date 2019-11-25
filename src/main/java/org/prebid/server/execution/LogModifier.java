@@ -12,8 +12,22 @@ public class LogModifier {
     private volatile BiConsumer<Logger, String> defaultLogModifier;
     private volatile BiConsumer<Logger, String> logModifier;
 
-    public LogModifier(BiConsumer<Logger, String> defaultLogModifier) {
-        this.defaultLogModifier = defaultLogModifier;
+    public LogModifier(Logger defaultLogger) {
+        defaultLogModifier = defaultLogModifier(defaultLogger);
+    }
+
+    private static BiConsumer<Logger, String> defaultLogModifier(Logger defaultLogger) {
+        if (defaultLogger.isTraceEnabled()) {
+            return Logger::trace;
+        } else if (defaultLogger.isDebugEnabled()) {
+            return Logger::debug;
+        } else if (defaultLogger.isInfoEnabled()) {
+            return Logger::info;
+        } else if (defaultLogger.isWarnEnabled()) {
+            return Logger::warn;
+        } else {
+            return Logger::error;
+        }
     }
 
     public void set(BiConsumer<Logger, String> logModifier, int requestCount) {
