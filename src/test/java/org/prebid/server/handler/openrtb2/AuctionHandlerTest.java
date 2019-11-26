@@ -10,6 +10,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,8 +27,11 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
@@ -83,6 +87,8 @@ public class AuctionHandlerTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private Clock clock;
+    @Mock
+    private LogModifier logModifier;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -108,11 +114,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
+        given(logModifier.get()).willReturn(Logger::info);
+
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
         auctionHandler = new AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, jacksonMapper);
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, logModifier, jacksonMapper);
     }
 
     @Test
@@ -165,6 +173,38 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+    }
+
+    @Test
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
+        // given
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(403));
+        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
+    }
+
+    @Test
     public void shouldRespondWithBadRequestIfBidRequestIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
@@ -176,6 +216,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
     }
 
     @Test
@@ -208,6 +250,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
+
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
     }
 
     @Test
@@ -513,6 +557,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
+        verify(logModifier).get();
+
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())

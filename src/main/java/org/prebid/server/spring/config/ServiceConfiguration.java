@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -28,6 +29,7 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
@@ -37,6 +39,7 @@ import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.health.ApplicationChecker;
 import org.prebid.server.health.DatabaseHealthChecker;
+import org.prebid.server.health.GeoLocationHealthChecker;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -82,7 +85,6 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            @Value("${external-url}") String externalUrl,
             EventsService eventsService,
             HttpClient httpClient,
             Clock clock,
@@ -154,6 +156,7 @@ public class ServiceConfiguration {
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
@@ -165,14 +168,15 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedAccounts = Stream.of(blacklistedAccountsString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
+        final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
         return new AuctionRequestFactory(
                 maxRequestSize,
                 enforceValidAccount,
                 shouldCacheOnlyWinningBids,
                 adServerCurrency,
+                blacklistedApps,
                 blacklistedAccounts,
                 storedRequestProcessor,
                 implicitParametersExtractor,
@@ -184,6 +188,12 @@ public class ServiceConfiguration {
                 timeoutFactory,
                 applicationSettings,
                 mapper);
+    }
+
+    private static List<String> splitCommaSeparatedString(String listString) {
+        return Stream.of(listString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
     }
 
     @Bean
@@ -267,6 +277,7 @@ public class ServiceConfiguration {
             @Value("${host-cookie.cookie-name:#{null}}") String hostCookieName,
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
+            @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
             JacksonMapper mapper) {
 
         return new UidsCookieService(
@@ -276,6 +287,7 @@ public class ServiceConfiguration {
                 hostCookieName,
                 hostCookieDomain,
                 ttlDays,
+                maxCookieSizeBytes,
                 mapper);
     }
 
@@ -407,15 +419,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(@Value("${auction.blacklisted-apps}") String blacklistedAppsString,
-                                      BidderCatalog bidderCatalog,
+    RequestValidator requestValidator(BidderCatalog bidderCatalog,
                                       BidderParamValidator bidderParamValidator,
                                       JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = Stream.of(blacklistedAppsString.split(","))
-                .map(String::trim)
-                .collect(Collectors.toList());
-        return new RequestValidator(blacklistedApps, bidderCatalog, bidderParamValidator, mapper);
+        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper);
     }
 
     @Bean
@@ -449,6 +457,11 @@ public class ServiceConfiguration {
     @Bean
     TimeoutFactory timeoutFactory(Clock clock) {
         return new TimeoutFactory(clock);
+    }
+
+    @Bean
+    LogModifier logModifier() {
+        return new LogModifier(LoggerFactory.getLogger(ServiceConfiguration.class));
     }
 
     @Bean
@@ -533,8 +546,7 @@ public class ServiceConfiguration {
                     vertx.createHttpClient(httpClientOptions), vertx);
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService::setDatabaseReader);
-
+            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
         }
     }
@@ -552,6 +564,16 @@ public class ServiceConfiguration {
                 @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
 
             return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
+        }
+
+        @Bean
+        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
+        HealthChecker geoLocationChecker(
+                Vertx vertx,
+                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
+                GeoLocationService geoLocationService,
+                TimeoutFactory timeoutFactory) {
+            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
         }
 
         @Bean

@@ -25,8 +25,10 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -243,10 +245,11 @@ public class WebConfiguration {
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
+            LogModifier logModifier,
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, mapper);
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, logModifier, mapper);
     }
 
     @Bean
@@ -259,6 +262,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
+            LogModifier logModifier,
             JacksonMapper mapper) {
 
         return new AmpHandler(
@@ -270,6 +274,7 @@ public class WebConfiguration {
                 bidderCatalog,
                 ampProperties.getCustomTargetingSet(),
                 ampResponsePostProcessor,
+                logModifier,
                 mapper);
     }
 
@@ -424,6 +429,9 @@ public class WebConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
+        @Autowired(required = false)
+        private AdminHandler adminHandler;
+
         @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
 
@@ -458,6 +466,12 @@ public class WebConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "logger-level-modifier", name = "enabled", havingValue = "true")
+        AdminHandler adminHandler(LogModifier logModifier) {
+            return new AdminHandler(logModifier);
+        }
+
+        @Bean
         @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(
                 CurrencyConversionService currencyConversionRates, JacksonMapper mapper) {
@@ -472,6 +486,9 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            if (adminHandler != null) {
+                router.route("/admin").handler(adminHandler);
+            }
             if (currencyRatesHandler != null) {
                 router.route("/currency-rates").handler(currencyRatesHandler);
             }

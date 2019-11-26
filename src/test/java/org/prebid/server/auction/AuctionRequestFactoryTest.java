@@ -29,6 +29,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -77,6 +79,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
+    private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
     private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
@@ -117,6 +120,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 false,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -153,6 +157,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 true,
                 false,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -188,6 +193,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 true,
                 false,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -231,6 +237,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 false,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -713,6 +720,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 true,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -753,6 +761,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 true,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -791,6 +800,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 true,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -829,6 +839,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 true,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -894,6 +905,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 true,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -934,6 +946,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 false,
                 false,
                 "USD",
+                BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
@@ -1120,9 +1133,26 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .isInstanceOf(InvalidRequestException.class)
+                .isInstanceOf(BlacklistedAccountException.class)
                 .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
                         + "server host.");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenAppIdIsBlacklisted() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().id("bad_app").build())
+                .build());
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(BlacklistedAppException.class)
+                .hasMessage("Prebid-server does not process requests from App ID: bad_app");
     }
 
     @Test

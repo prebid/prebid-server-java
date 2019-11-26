@@ -46,6 +46,8 @@ cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
+logger-level-modifier:
+  enabled: false
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
@@ -69,6 +71,7 @@ host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
+  max-cookie-size-bytes: 0
 gdpr:
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
@@ -87,3 +90,8 @@ gdpr:
         http-client:
           connect-timeout-ms: 2500
           max-redirects: 3
+health-check:
+  database:
+    enabled: false
+  geolocation:
+    enabled: false

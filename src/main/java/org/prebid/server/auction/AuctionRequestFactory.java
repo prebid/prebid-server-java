@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -71,6 +73,7 @@ public class AuctionRequestFactory {
     private final boolean enforceValidAccount;
     private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
+    private final List<String> blacklistedApps;
     private final List<String> blacklistedAccounts;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
@@ -87,6 +90,7 @@ public class AuctionRequestFactory {
                                  boolean enforceValidAccount,
                                  boolean shouldCacheOnlyWinningBids,
                                  String adServerCurrency,
+                                 List<String> blacklistedApps,
                                  List<String> blacklistedAccounts,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
@@ -103,6 +107,7 @@ public class AuctionRequestFactory {
         this.enforceValidAccount = enforceValidAccount;
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
@@ -207,13 +212,18 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context, TimeoutResolver timeoutResolver) {
+        final boolean hasApp = bidRequest.getApp() != null;
+        if (hasApp) {
+            checkBlacklistedApp(bidRequest.getApp());
+        }
+
         final BidRequest result;
 
         final HttpServerRequest request = context.request();
         final List<Imp> imps = bidRequest.getImp();
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
-        final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
+        final Site populatedSite = hasApp ? null : populateSite(bidRequest.getSite(), request);
         final User populatedUser = populateUser(bidRequest.getUser());
         final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
@@ -244,6 +254,15 @@ public class AuctionRequestFactory {
             result = bidRequest;
         }
         return result;
+    }
+
+    private void checkBlacklistedApp(App app) {
+        final String appId = app.getId();
+        if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
+                && blacklistedApps.contains(appId)) {
+            throw new BlacklistedAppException(String.format(
+                    "Prebid-server does not process requests from App ID: %s", appId));
+        }
     }
 
     /**
@@ -626,14 +645,15 @@ public class AuctionRequestFactory {
      */
     private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
         final String accountId = accountIdFrom(bidRequest);
+        final boolean blankAccountId = StringUtils.isBlank(accountId);
 
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && StringUtils.isNotBlank(accountId)
+        if (CollectionUtils.isNotEmpty(blacklistedAccounts) && !blankAccountId
                 && blacklistedAccounts.contains(accountId)) {
-            throw new InvalidRequestException(String.format("Prebid-server has blacklisted Account ID: %s, please "
+            throw new BlacklistedAccountException(String.format("Prebid-server has blacklisted Account ID: %s, please "
                     + "reach out to the prebid server host.", accountId));
         }
 
-        return StringUtils.isEmpty(accountId)
+        return blankAccountId
                 ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));

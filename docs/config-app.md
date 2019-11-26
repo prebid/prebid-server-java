@@ -34,6 +34,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Remote-file-syncer
 Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
+Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
 - `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
@@ -85,6 +86,9 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
 But feel free to add additional bidder's specific options.
+
+## Admin
+- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
 
 ## Currency Converter
 - `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
@@ -202,6 +206,7 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `host-cookie.cookie-name` - set the name value for host cookie.
 - `host-cookie.domain` - set the domain value for host cookie.
 - `host-cookie.ttl-days` - set the cookie ttl in days.
+- `host-cookie.max-cookie-size-bytes` - a size limit for UIDs Cookie. Valid values are `0` (disabled) and `>500`.
 
 ## Google Recaptcha
 - `recaptcha-url` - the url for Google Recaptcha service to submit user verification.
@@ -214,6 +219,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 ## Health Check
 - `health-check.database.enabled` - if equals to `true` the database health check will be enabled to periodically check database status.
 - `health-check.database.refresh-period-ms` - the refresh period for database status updates.
+- `health-check.geolocation.enabled` - if equals to `true` the geolocation service health check will be enabled to periodically check the status.
+- `health-check.geolocation.refresh-period-ms` - the refresh period for geolocation service status updates.
 
 ## GDPR
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).

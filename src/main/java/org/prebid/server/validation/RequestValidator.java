@@ -83,7 +83,6 @@ public class RequestValidator {
     private static final String DOCUMENTATION = "https://iabtechlab.com/wp-content/uploads/2016/07/"
             + "OpenRTB-Native-Ads-Specification-Final-1.2.pdf";
 
-    private final List<String> blacklistedApps;
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
     private final JacksonMapper mapper;
@@ -92,12 +91,10 @@ public class RequestValidator {
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest.
      */
-    public RequestValidator(List<String> blacklistedApps,
-                            BidderCatalog bidderCatalog,
+    public RequestValidator(BidderCatalog bidderCatalog,
                             BidderParamValidator bidderParamValidator,
                             JacksonMapper mapper) {
 
-        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
         this.mapper = Objects.requireNonNull(mapper);
@@ -372,12 +369,6 @@ public class RequestValidator {
 
     private void validateApp(App app) throws ValidationException {
         if (app != null) {
-            final String appId = app.getId();
-            if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
-                    && blacklistedApps.contains(appId)) {
-                throw new ValidationException("Prebid-server does not process requests from App ID: %s", appId);
-            }
-
             if (app.getExt() != null) {
                 try {
                     mapper.mapper().treeToValue(app.getExt(), ExtApp.class);
