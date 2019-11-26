@@ -232,7 +232,20 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
-- `geolocation.type` - name of the geo location implementation provider that should be used.
+- `geolocation.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make geo location client more robust.
+- `geolocation.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
+- `geolocation.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `geolocation.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
+- `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
+- `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
+- `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file.
+- `geolocation.maxmind.remote-file-syncer.download-url` - url to database file to download.
+- `geolocation.maxmind.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `geolocation.maxmind.remote-file-syncer.retry-count` - how many times try to download.
+- `geolocation.maxmind.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `geolocation.maxmind.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `geolocation.maxmind.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
+- `geolocation.maxmind.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
 ## Auction (Legacy)
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.

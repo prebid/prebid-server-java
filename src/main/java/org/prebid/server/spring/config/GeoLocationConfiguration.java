@@ -22,6 +22,13 @@ import java.time.Clock;
 @ConditionalOnProperty(prefix = "geolocation", name = "enabled", havingValue = "true")
 public class GeoLocationConfiguration {
 
+    @Bean
+    @ConfigurationProperties(prefix = "geolocation.circuit-breaker")
+    @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "true")
+    CircuitBreakerProperties geolocationCircuitBreakerProperties() {
+        return new CircuitBreakerProperties();
+    }
+
     @Configuration
     @ConditionalOnProperty(prefix = "geolocation", name = "type", havingValue = "maxmind")
     static class MaxMindGeoLocationConfiguration {
@@ -42,13 +49,6 @@ public class GeoLocationConfiguration {
                                                    Vertx vertx) {
 
             return createGeoLocationService(fileSyncerProperties, vertx);
-        }
-
-        @Bean
-        @ConfigurationProperties(prefix = "geolocation.circuit-breaker")
-        @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerProperties geolocationCircuitBreakerProperties() {
-            return new CircuitBreakerProperties();
         }
 
         @Bean
