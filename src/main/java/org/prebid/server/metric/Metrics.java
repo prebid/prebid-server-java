@@ -303,4 +303,12 @@ public class Metrics extends UpdatableMetrics {
             incCounter(MetricName.stored_imps_missing);
         }
     }
+
+    public void updateCacheRequestSuccessTime(long timeElapsed) {
+        updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
+    }
+
+    public void updateCacheRequestFailedTime(long timeElapsed) {
+        updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
+    }
 }
