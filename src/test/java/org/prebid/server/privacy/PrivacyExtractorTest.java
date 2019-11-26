@@ -18,7 +18,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprEmptyValueWhenRegsIsNull() {
         // given and when
-        final String gdpr = PrivacyExtractor.privacyFrom(null, null).getGdpr();
+        final String gdpr = PrivacyExtractor.validPrivacyFrom(null, null).getGdpr();
 
         // then
         assertThat(gdpr).isEmpty();
@@ -27,7 +27,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprEmptyValueWhenRegsExtIsNull() {
         // given and when
-        final String gdpr = PrivacyExtractor.privacyFrom(Regs.of(null, null), null).getGdpr();
+        final String gdpr = PrivacyExtractor.validPrivacyFrom(Regs.of(null, null), null).getGdpr();
 
         // then
         assertThat(gdpr).isEmpty();
@@ -37,7 +37,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprEmptyValueWhenRegExtIsNotValidJson() throws IOException {
         // given and when
         final Regs regs = Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}"));
-        final String gdpr = PrivacyExtractor.privacyFrom(regs, null).getGdpr();
+        final String gdpr = PrivacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
         assertThat(gdpr).isEmpty();
@@ -47,7 +47,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
         final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(2, null)));
-        final String gdpr = PrivacyExtractor.privacyFrom(regs, null).getGdpr();
+        final String gdpr = PrivacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
         assertThat(gdpr).isEmpty();
@@ -57,7 +57,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprOneWhenExtRegsContainsGdprOne() {
         // given and when
         final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
-        final String gdpr = PrivacyExtractor.privacyFrom(regs, null).getGdpr();
+        final String gdpr = PrivacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -67,7 +67,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprZeroWhenExtRegsContainsGdprZero() {
         // given and when
         final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
-        final String gdpr = PrivacyExtractor.privacyFrom(regs, null).getGdpr();
+        final String gdpr = PrivacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
         assertThat(gdpr).isEqualTo("0");
@@ -76,7 +76,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnConsentEmptyValueWhenExtUserIsNull() {
         // given and when
-        final String consent = PrivacyExtractor.privacyFrom(null, null).getConsent();
+        final String consent = PrivacyExtractor.validPrivacyFrom(null, null).getConsent();
 
         // then
         assertThat(consent).isEmpty();
@@ -88,7 +88,7 @@ public class PrivacyExtractorTest extends VertxTest {
         final User user = User.builder()
                 .ext(mapper.valueToTree(ExtUser.builder().build()))
                 .build();
-        final String consent = PrivacyExtractor.privacyFrom(null, user).getConsent();
+        final String consent = PrivacyExtractor.validPrivacyFrom(null, user).getConsent();
 
         // then
         assertThat(consent).isEmpty();
@@ -100,7 +100,7 @@ public class PrivacyExtractorTest extends VertxTest {
         final User user = User.builder()
                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                 .build();
-        final String consent = PrivacyExtractor.privacyFrom(null, user).getConsent();
+        final String consent = PrivacyExtractor.validPrivacyFrom(null, user).getConsent();
 
         // then
         assertThat(consent).isEqualTo("consent");
@@ -113,7 +113,7 @@ public class PrivacyExtractorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                 .build();
         final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, "YAN")));
-        final Privacy privacy = PrivacyExtractor.privacyFrom(regs, user);
+        final Privacy privacy = PrivacyExtractor.validPrivacyFrom(regs, user);
 
         // then
         assertThat(privacy).isEqualTo(Privacy.of("0", "consent", "YAN"));

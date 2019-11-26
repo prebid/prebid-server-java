@@ -236,7 +236,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        final Privacy privacy = PrivacyExtractor.privacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
+        final Privacy privacy = PrivacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
         final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
 
         return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, privacy.getGdpr(), privacy.getConsent(), ip,
