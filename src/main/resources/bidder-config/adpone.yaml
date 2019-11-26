@@ -16,7 +16,7 @@ adapters:
       vendor-id: 16
     usersync:
       url: https://usersync.adpone.com/csync?redir=
-      redirect-url: /setuid?bidder=adpone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={uid}
+      redirect-url: /setuid?bidder=adpone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={uid}
       cookie-family-name: adpone
       type: redirect
       support-cors: false

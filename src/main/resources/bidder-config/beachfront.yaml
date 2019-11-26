@@ -19,7 +19,7 @@ adapters:
       vendor-id: 335
     usersync:
       url: https://sync.bfmio.com/sync_s2s?gdpr={{gdpr}}&url=
-      redirect-url: /setuid?bidder=beachfront&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[io_cid]
+      redirect-url: /setuid?bidder=beachfront&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[io_cid]
       cookie-family-name: beachfront
       type: iframe
       support-cors: false

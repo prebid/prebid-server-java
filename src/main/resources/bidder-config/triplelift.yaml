@@ -17,7 +17,7 @@ adapters:
       supported-vendors:
       vendor-id: 28
     usersync:
-      url: https://eb2.3lift.com/sync?gpdr={{gdpr}}&cmp_cs={{gdpr_consent}}
+      url: https://eb2.3lift.com/sync?gpdr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}
       redirect-url:
       cookie-family-name: triplelift
       type: redirect

@@ -75,9 +75,9 @@ public class UsersyncInfo {
          * if the "gdpr" arg was empty, and the consent arg was "BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw"
          */
         public UsersyncInfoAssembler withPrivacy(Privacy privacy) {
-            final String gdpr = privacy.getGdpr();
-            final String consent = privacy.getConsent();
-            final String ccpa = privacy.getCcpa();
+            final String gdpr = ObjectUtils.defaultIfNull(privacy.getGdpr(), "");
+            final String consent = ObjectUtils.defaultIfNull(privacy.getConsent(), "");
+            final String ccpa = ObjectUtils.defaultIfNull(privacy.getCcpa(), "");
             redirectUrl = updateUrlWithPrivacy(redirectUrl, gdpr, consent, ccpa);
 
             final String encodedGdpr = HttpUtil.encodeUrl(gdpr);

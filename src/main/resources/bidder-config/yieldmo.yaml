@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 173
     usersync:
-      url: https://ads.yieldmo.com/pbsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirectUri=
-      redirect-url: /setuid?bidder=yieldmo&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      url: https://ads.yieldmo.com/pbsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
+      redirect-url: /setuid?bidder=yieldmo&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: yieldmo
       type: redirect
       support-cors: false
