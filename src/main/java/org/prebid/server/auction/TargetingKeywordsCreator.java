@@ -148,9 +148,8 @@ public class TargetingKeywordsCreator {
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
-    Map<String, String> makeFor(
-            com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid, String cacheId, String vastCacheId,
-            String cacheHost, String cachePath, String winUrl) {
+    Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid, String cacheId,
+                                String vastCacheId, String cacheHost, String cachePath, String winUrl) {
         return makeFor(bidder, bid.getId(), winningBid, bid.getPrice(), "0.0", bid.getW(), bid.getH(), cacheId,
                 vastCacheId, bid.getDealid(), cacheHost, cachePath, winUrl);
     }

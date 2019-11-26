@@ -87,6 +87,9 @@ There are several typical keys:
 
 But feel free to add additional bidder's specific options.
 
+## Admin
+- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
+
 ## Currency Converter
 - `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
 - `currency-converter.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
@@ -216,6 +219,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 ## Health Check
 - `health-check.database.enabled` - if equals to `true` the database health check will be enabled to periodically check database status.
 - `health-check.database.refresh-period-ms` - the refresh period for database status updates.
+- `health-check.geolocation.enabled` - if equals to `true` the geolocation service health check will be enabled to periodically check the status.
+- `health-check.geolocation.refresh-period-ms` - the refresh period for geolocation service status updates.
 
 ## GDPR
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).

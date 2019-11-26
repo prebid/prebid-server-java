@@ -1,14 +1,12 @@
-package com.iab.openrtb.request;
+package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder(toBuilder = true)
+@Builder
 @Value
 public class Asset {
-
-    public static final Asset EMPTY = com.iab.openrtb.request.Asset.builder().build();
 
     Integer id;
 
@@ -21,6 +19,8 @@ public class Asset {
     VideoObject video;
 
     DataObject data;
+
+    Link link;
 
     ObjectNode ext;
 }
