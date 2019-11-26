@@ -361,8 +361,7 @@ public class BidResponseCreator {
 
         errors.putAll(extractBidderErrors(bidderResponses));
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
-        errors.putAll(extractCacheErrors(cacheResult));
-        errors.putAll(extractStoredErrors(videoStoredDataResult));
+        errors.putAll(extractPrebidErrors(cacheResult, videoStoredDataResult));
 
         return errors.isEmpty() ? null : errors;
     }
@@ -403,30 +402,44 @@ public class BidResponseCreator {
     /**
      * Returns a singleton map with "prebid" as a key and list of {@link ExtBidderError}s cache errors as a value.
      */
-    private static Map<String, List<ExtBidderError>> extractCacheErrors(CacheServiceResult cacheResult) {
+    private static Map<String, List<ExtBidderError>> extractPrebidErrors(CacheServiceResult cacheResult,
+                                                                         VideoStoredDataResult videoStoredDataResult) {
+        final List<ExtBidderError> cacheErrors = extractCacheErrors(cacheResult);
+        final List<ExtBidderError> storedErrors = extractStoredErrors(videoStoredDataResult);
+        if (cacheErrors.isEmpty() && storedErrors.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        final List<ExtBidderError> collectedErrors = Stream.concat(storedErrors.stream(), cacheErrors.stream())
+                .collect(Collectors.toList());
+
+        return Collections.singletonMap(PREBID_EXT, collectedErrors);
+    }
+
+    /**
+     * Returns a list of {@link ExtBidderError}s of cache errors.
+     */
+    private static List<ExtBidderError> extractCacheErrors(CacheServiceResult cacheResult) {
         final Throwable error = cacheResult.getError();
         if (error != null) {
             final ExtBidderError extBidderError = ExtBidderError.of(BidderError.Type.generic.getCode(),
                     error.getMessage());
-            return Collections.singletonMap(PREBID_EXT, Collections.singletonList(extBidderError));
+            return Collections.singletonList(extBidderError);
         }
-        return Collections.emptyMap();
+        return Collections.emptyList();
     }
 
     /**
-     * Returns a singleton map with "prebid" as a key and list of {@link ExtBidderError}s
-     * stored request errors as a value.
+     * Returns a list of {@link ExtBidderError}s of stored request errors.
      */
-    private static Map<String, List<ExtBidderError>> extractStoredErrors(VideoStoredDataResult videoStoredDataResult) {
+    private static List<ExtBidderError> extractStoredErrors(VideoStoredDataResult videoStoredDataResult) {
         final List<String> errors = videoStoredDataResult.getErrors();
         if (CollectionUtils.isNotEmpty(errors)) {
-            final List<ExtBidderError> extBidderErrors = errors.stream()
+            return errors.stream()
                     .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
                     .collect(Collectors.toList());
-
-            return Collections.singletonMap(PREBID_EXT, extBidderErrors);
         }
-        return Collections.emptyMap();
+        return Collections.emptyList();
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
