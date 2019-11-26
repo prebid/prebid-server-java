@@ -58,7 +58,6 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -74,7 +73,6 @@ import static org.mockito.BDDMockito.given;
 public class RequestValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
-    private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -91,7 +89,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
 
-        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, BLACKLISTED_APPS);
+        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
     @Test
@@ -1034,24 +1032,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .element(0).asString().startsWith("request.site.ext object is not valid: ");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenAppIdIsInABlacklist() {
-        // given
-        final BidRequest bidRequest = overwriteApp(
-                BidRequest.builder()
-                        .id("123")
-                        .cur(singletonList("USD"))
-                        .imp(singletonList(validImpBuilder().build())),
-                appBuilder -> App.builder().id("bad_app")).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Prebid-server does not process requests from App ID: bad_app");
     }
 
     @Test

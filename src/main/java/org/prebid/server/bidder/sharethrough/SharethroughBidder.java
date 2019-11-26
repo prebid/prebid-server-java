@@ -39,10 +39,10 @@ import java.util.stream.Collectors;
 
 public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
-    private static final String VERSION = "4";
+    private static final String VERSION = "7";
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final BidType DEFAULT_BID_TYPE = BidType.xNative;
+    private static final BidType DEFAULT_BID_TYPE = BidType.banner;
     private static final Date TEST_TIME = new Date(1604455678999L);
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
@@ -69,21 +69,19 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
             return Result.emptyWithError(BidderError.badInput("site.page is required"));
         }
 
+        final boolean test = Objects.equals(request.getTest(), 1);
+        final Date date = test ? TEST_TIME : new Date();
+
         List<StrUriParameters> strUriParameters;
         try {
-            strUriParameters = parseBidRequestToUriParameters(request);
+            strUriParameters = parseBidRequestToUriParameters(request, date, test);
         } catch (IllegalArgumentException e) {
             return Result.emptyWithError(BidderError.badInput(
                     String.format("Error occurred parsing sharethrough parameters %s", e.getMessage())));
         }
-        final boolean test = Objects.equals(request.getTest(), 1);
-        final Date date = test ? TEST_TIME : new Date();
         final MultiMap headers = makeHeaders(request.getDevice(), page);
-        final SharethroughRequestBody body = makeBody(request, date, test);
         final List<HttpRequest<SharethroughRequestBody>> httpRequests = strUriParameters.stream()
-                .map(strUriParameter -> SharethroughUriBuilderUtil.buildSharethroughUrl(
-                        endpointUrl, SUPPLY_ID, VERSION, DATE_FORMAT.format(date), strUriParameter))
-                .map(uri -> makeHttpRequest(uri, headers, body))
+                .map(strUriParameter -> makeHttpRequest(headers, date, strUriParameter))
                 .collect(Collectors.toList());
 
         return Result.of(httpRequests, Collections.emptyList());
@@ -92,7 +90,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     /**
      * Retrieves from {@link Imp} and filter not valid {@link ExtImpSharethrough} and returns list result with errors.
      */
-    private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request) {
+    private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request, Date date, boolean test) {
         final boolean consentRequired = SharethroughRequestUtil.isConsentRequired(request.getRegs());
         final UserInfo userInfo = SharethroughRequestUtil.getUserInfo(request.getUser());
         final String ttdUid = SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
@@ -101,12 +99,18 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
         final boolean canAutoPlay = SharethroughRequestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
 
+        final long tmax = request.getTmax();
+        final List<String> badv = request.getBadv();
+        final Date deadLine = new Date(date.getTime() + tmax);
+
         final List<StrUriParameters> strUriParameters = new ArrayList<>();
         for (Imp imp : request.getImp()) {
             final ExtImpSharethrough extImpStr = Json.mapper.convertValue(imp.getExt(),
                     SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
+            final SharethroughRequestBody body = SharethroughRequestBody.of(badv, tmax, DATE_FORMAT.format(deadLine),
+                    test, extImpStr.getBidfloor());
             strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, canAutoPlay, ttdUid,
-                    stxuid));
+                    stxuid, body));
         }
         return strUriParameters;
     }
@@ -116,7 +120,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      */
     private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpStr, Imp imp, boolean isConsentRequired,
                                                     String consentString, boolean canBrowserAutoPlayVideo,
-                                                    String ttdUid, String buyeruid) {
+                                                    String ttdUid, String buyeruid, SharethroughRequestBody body) {
         final Size size = SharethroughRequestUtil.getSize(imp, extImpStr);
         return StrUriParameters.builder()
                 .pkey(extImpStr.getPkey())
@@ -129,6 +133,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .width(size.getWidth())
                 .theTradeDeskUserId(ttdUid)
                 .sharethroughUserId(buyeruid)
+                .body(body)
                 .build();
     }
 
@@ -151,17 +156,14 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         return headers;
     }
 
-    private static SharethroughRequestBody makeBody(BidRequest request, Date date, boolean test) {
-        final long tmax = request.getTmax(); // cannot be null
-        final Date deadLine = new Date(date.getTime() + tmax);
-        return SharethroughRequestBody.of(request.getBadv(), tmax, DATE_FORMAT.format(deadLine), test);
-    }
-
     /**
      * Make {@link HttpRequest} from uri and headers.
      */
-    private static HttpRequest<SharethroughRequestBody> makeHttpRequest(String uri, MultiMap headers,
-                                                                        SharethroughRequestBody body) {
+    private HttpRequest<SharethroughRequestBody> makeHttpRequest(MultiMap headers, Date date,
+                                                                 StrUriParameters strUriParameter) {
+        final String uri = SharethroughUriBuilderUtil.buildSharethroughUrl(
+                endpointUrl, SUPPLY_ID, VERSION, DATE_FORMAT.format(date), strUriParameter);
+        final SharethroughRequestBody body = strUriParameter.getBody();
         return HttpRequest.<SharethroughRequestBody>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)

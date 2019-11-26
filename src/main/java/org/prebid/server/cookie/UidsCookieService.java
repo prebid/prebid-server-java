@@ -30,22 +30,30 @@ public class UidsCookieService {
     private static final Logger logger = LoggerFactory.getLogger(UidsCookieService.class);
 
     private static final String COOKIE_NAME = "uids";
+    private static final int MIN_COOKIE_SIZE_BYTES = 500;
 
     private final String optOutCookieName;
     private final String optOutCookieValue;
     private final String hostCookieFamily;
     private final String hostCookieName;
     private final String hostCookieDomain;
-    private final Long ttlSeconds;
+    private final long ttlSeconds;
+    private final int maxCookieSizeBytes;
 
     public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
-                             String hostCookieName, String hostCookieDomain, Integer ttlDays) {
+                             String hostCookieName, String hostCookieDomain, int ttlDays, int maxCookieSizeBytes) {
+        if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
+            throw new IllegalArgumentException(String.format(
+                    "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
+        }
+
         this.optOutCookieName = optOutCookieName;
         this.optOutCookieValue = optOutCookieValue;
         this.hostCookieFamily = hostCookieFamily;
         this.hostCookieName = hostCookieName;
         this.hostCookieDomain = hostCookieDomain;
         this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
+        this.maxCookieSizeBytes = maxCookieSizeBytes;
     }
 
     /**
@@ -112,8 +120,20 @@ public class UidsCookieService {
      * as a value.
      */
     public Cookie toCookie(UidsCookie uidsCookie) {
+        UidsCookie modifiedUids = uidsCookie;
+        byte[] cookieBytes = uidsCookie.toJson().getBytes();
+
+        while (maxCookieSizeBytes > 0 && cookieBytes.length > maxCookieSizeBytes) {
+            final String familyName = modifiedUids.getCookieUids().getUids().entrySet().stream()
+                    .reduce(UidsCookieService::getClosestExpiration)
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
+            modifiedUids = modifiedUids.deleteUid(familyName);
+            cookieBytes = modifiedUids.toJson().getBytes();
+        }
+
         final Cookie cookie = Cookie
-                .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
+                .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(cookieBytes))
                 .setPath("/")
                 .setMaxAge(ttlSeconds);
 
@@ -122,6 +142,14 @@ public class UidsCookieService {
         }
 
         return cookie;
+    }
+
+    /**
+     * Returns the Uid with the closest expiration date, e.i. the one that will expire sooner.
+     */
+    private static Map.Entry<String, UidWithExpiry> getClosestExpiration(Map.Entry<String, UidWithExpiry> first,
+                                                                         Map.Entry<String, UidWithExpiry> second) {
+        return first.getValue().getExpires().isBefore(second.getValue().getExpires()) ? first : second;
     }
 
     /**

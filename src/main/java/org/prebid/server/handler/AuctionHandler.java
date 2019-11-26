@@ -403,10 +403,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .thenComparing(Bid::getResponseTimeMs));
 
                 for (final Bid bid : bids) {
+                    final boolean isFirstBid = bid == bids.get(0);
                     // IMPORTANT: see javadoc in Bid class
                     bid.setAdServerTargeting(joinMaps(
-                            keywordsCreator.makeFor(bid, bid == bids.get(0)),
-                            bid.getAdServerTargeting()));
+                            keywordsCreator.makeFor(bid, isFirstBid), bid.getAdServerTargeting()));
                 }
             }
         }

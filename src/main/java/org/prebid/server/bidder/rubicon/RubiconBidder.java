@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -14,6 +15,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -84,6 +86,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -125,10 +128,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final boolean useFirstPartyData = useFirstPartyData(bidRequest);
+        final Map<Imp, ExtImpRubicon> impToExtImpRubicon = parseRubiconImpExts(bidRequest.getImp(), errors);
+        final String impLanguage = firstImpExtLanguage(impToExtImpRubicon.values());
 
-        for (final Imp imp : bidRequest.getImp()) {
+        for (Map.Entry<Imp, ExtImpRubicon> impToExt : impToExtImpRubicon.entrySet()) {
             try {
-                final BidRequest singleRequest = createSingleRequest(imp, bidRequest, useFirstPartyData);
+                final Imp imp = impToExt.getKey();
+                final ExtImpRubicon ext = impToExt.getValue();
+                final BidRequest singleRequest = createSingleRequest(imp, ext, bidRequest, impLanguage,
+                        useFirstPartyData);
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -205,9 +213,39 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
     }
 
-    private BidRequest createSingleRequest(Imp imp, BidRequest bidRequest, boolean useFirstPartyData) {
-        final ExtImpRubicon rubiconImpExt = parseRubiconExt(imp);
+    private static Map<Imp, ExtImpRubicon> parseRubiconImpExts(List<Imp> imps, List<BidderError> errors) {
+        final Map<Imp, ExtImpRubicon> impToRubiconExt = new HashMap<>();
+        for (final Imp imp : imps) {
+            try {
+                final ExtImpRubicon rubiconImpExt = parseRubiconExt(imp);
+                impToRubiconExt.put(imp, rubiconImpExt);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+        return impToRubiconExt;
+    }
 
+    private static ExtImpRubicon parseRubiconExt(Imp imp) {
+        try {
+            return Json.mapper.convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private static String firstImpExtLanguage(Collection<ExtImpRubicon> rubiconImpExts) {
+        return rubiconImpExts.stream()
+                .map(ExtImpRubicon::getVideo)
+                .filter(Objects::nonNull)
+                .map(RubiconVideoParams::getLanguage)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private BidRequest createSingleRequest(Imp imp, ExtImpRubicon rubiconImpExt, BidRequest bidRequest,
+                                           String impLanguage, boolean useFirstPartyData) {
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
 
@@ -215,20 +253,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(makeImp(imp, rubiconImpExt, site, app, useFirstPartyData)))
                 .user(makeUser(bidRequest.getUser(), rubiconImpExt))
                 .device(makeDevice(bidRequest.getDevice()))
-                .site(makeSite(site, rubiconImpExt))
+                .site(makeSite(site, impLanguage, rubiconImpExt))
                 .app(makeApp(app, rubiconImpExt))
+                .source(makeSource(bidRequest.getSource(), rubiconImpExt.getPchain()))
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
                 .build();
-    }
-
-    private static ExtImpRubicon parseRubiconExt(Imp imp) {
-        try {
-            return Json.mapper.<ExtPrebid<?, ExtImpRubicon>>convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE)
-                    .getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
     }
 
     private String makeUri(BidRequest bidRequest) {
@@ -239,7 +269,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         .setParameter(TK_XINT_QUERY_PARAMETER, tkXint)
                         .build().toString();
             } catch (URISyntaxException e) {
-                logger.warn("Cant add the tk_xint value for url");
+                throw new PreBidException(String.format("Cant add the tk_xint value for url: %s", tkXint), e);
             }
         }
         return endpointUrl;
@@ -609,7 +639,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
         final ObjectNode result = visitor != null ? visitor : Json.mapper.createObjectNode();
 
-        return result.set("LIseq", segment);
+        return result.set("LIseg", segment);
     }
 
     private static Device makeDevice(Device device) {
@@ -618,11 +648,41 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Site makeSite(Site site, ExtImpRubicon rubiconImpExt) {
-        return site == null ? null : site.toBuilder()
+    private static Site makeSite(Site site, String impLanguage, ExtImpRubicon rubiconImpExt) {
+        if (site == null && StringUtils.isBlank(impLanguage)) {
+            return null;
+        }
+
+        return site == null
+                ? Site.builder().content(makeSiteContent(null, impLanguage)).build()
+                : site.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
+                .content(makeSiteContent(site.getContent(), impLanguage))
                 .ext(Json.mapper.valueToTree(makeSiteExt(site, rubiconImpExt)))
                 .build();
+    }
+
+    private static Content makeSiteContent(Content siteContent, String impLanguage) {
+        if (StringUtils.isBlank(impLanguage)) {
+            return siteContent;
+        }
+        if (siteContent == null) {
+            return Content.builder().language(impLanguage).build();
+        } else {
+            return StringUtils.isBlank(siteContent.getLanguage())
+                    ? siteContent.toBuilder().language(impLanguage).build()
+                    : siteContent;
+        }
+    }
+
+    private static Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
+        return Publisher.builder()
+                .ext(Json.mapper.valueToTree(makePublisherExt(rubiconImpExt)))
+                .build();
+    }
+
+    private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
+        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
     }
 
     private static RubiconSiteExt makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
@@ -638,16 +698,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()), siteExtAmp);
     }
 
-    private static Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
-        return Publisher.builder()
-                .ext(Json.mapper.valueToTree(makePublisherExt(rubiconImpExt)))
-                .build();
-    }
-
-    private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
-    }
-
     private static App makeApp(App app, ExtImpRubicon rubiconImpExt) {
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
@@ -657,6 +707,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static RubiconAppExt makeAppExt(ExtImpRubicon rubiconImpExt) {
         return RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
+    }
+
+    private static Source makeSource(Source source, String pchain) {
+        if (StringUtils.isNotEmpty(pchain)) {
+            final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
+            return builder.pchain(pchain).build();
+        }
+        return source;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {

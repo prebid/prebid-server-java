@@ -98,6 +98,7 @@ public class SharethroughBidderTest extends VertxTest {
                 .id("request_id")
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
+                .tmax(100L)
                 .build();
 
         // when
@@ -118,7 +119,7 @@ public class SharethroughBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("abc")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20)))))
+                                ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20), BigDecimal.ONE))))
                         .banner(Banner.builder().w(40).h(30).build())
                         .build()))
                 .app(App.builder().ext(Json.mapper.createObjectNode()).build())
@@ -136,9 +137,9 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=" +
                 "&instant_play_capable=true&stayInIframe=false&height=10&width=20" +
-                "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=4";
+                "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=7";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
-                DEADLINE_FORMATTED_TIME, true);
+                DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -172,7 +173,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSharethrough.of("pkey", false, null))))
+                                ExtImpSharethrough.of("pkey", false, null, null))))
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
@@ -189,9 +190,9 @@ public class SharethroughBidderTest extends VertxTest {
         final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent" +
                 "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
                 + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
-                + "&supplyId=FGMrCMMc&strVersion=4&ttduid=first&stxuid=buyer";
+                + "&supplyId=FGMrCMMc&strVersion=7&ttduid=first&stxuid=buyer";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
-                DEADLINE_FORMATTED_TIME, true);
+                DEADLINE_FORMATTED_TIME, true, null);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull()
@@ -262,7 +263,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .h(20)
                         .adm(adm)
                         .build(),
-                BidType.xNative, "USD");
+                BidType.banner, "USD");
 
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
@@ -299,7 +300,7 @@ public class SharethroughBidderTest extends VertxTest {
     private static HttpCall<SharethroughRequestBody> givenHttpCallWithUri(String uri, String body) {
         return HttpCall.success(
                 HttpRequest.<SharethroughRequestBody>builder().uri(uri)
-                        .payload(SharethroughRequestBody.of(null, null, null, true)).build(),
+                        .payload(SharethroughRequestBody.of(null, null, null, true, null)).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

@@ -407,12 +407,16 @@ public class MetricsTest {
     public void updateRequestTypeMetricShouldIncrementMetric() {
         // when
         metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blacklisted_account);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blacklisted_app);
         metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("requests.blacklisted_account.openrtb2-web").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("requests.blacklisted_app.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isEqualTo(1);
@@ -758,6 +762,24 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("stored_imps_missing").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheRequestSuccessTimer() {
+        // when
+        metrics.updateCacheRequestSuccessTime(1424L);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache_request_success_time").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheRequestFailedTimer() {
+        // when
+        metrics.updateCacheRequestFailedTime(1424L);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache_request_error_time").getCount()).isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

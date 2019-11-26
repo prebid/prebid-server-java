@@ -13,7 +13,7 @@ import lombok.Value;
  * another RTB exchange, a mediation platform, or an ad server combines direct
  * campaigns with 3rd party demand in decisioning.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Source {
 
@@ -38,6 +38,8 @@ public class Source {
      */
     String pchain;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

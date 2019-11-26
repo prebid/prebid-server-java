@@ -4,67 +4,67 @@
     {
       "bid": [
         {
-          "adid": "arid",
-          "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
-          "cid": "cmpKey",
-          "crid": "creaKey",
-          "dealid": "dealId",
-          "ext": {
-            "prebid": {
-              "cache": {
-                "bids": {
-                  "cacheId": "a03927f1-86e1-48fb-9efc-da9104a44e39",
-                  "url": "{{ cache.resource_url }}a03927f1-86e1-48fb-9efc-da9104a44e39"
-                }
-              },
-              "targeting": {
-                "hb_bidder": "sharethrough",
-                "hb_bidder_sharethrough": "sharethrough",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_sharethrough": "{{ cache.host }}",
-                "hb_cache_id": "a03927f1-86e1-48fb-9efc-da9104a44e39",
-                "hb_cache_id_sharethrough": "a03927f1-86e1-48fb-9efc-da9104a44e39",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_sharethrough": "{{ cache.path }}",
-                "hb_deal": "dealId",
-                "hb_deal_sharethrough": "dealId",
-                "hb_pb": "10.00",
-                "hb_pb_sharethrough": "10.00",
-                "hb_size": "50x50",
-                "hb_size_sharethrough": "50x50"
-              },
-              "type": "native"
-            }
-          },
-          "h": 50,
           "id": "bid",
           "impid": "bid",
           "price": 10,
-          "w": 50
+          "adm": "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\" />\n\t\t<div data-str-native-key=\"abc123\" data-stx-response-name=\"str_response_bid\"></div>\n\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp.js\"></script>\n",
+          "adid": "arid",
+          "cid": "cmpKey",
+          "crid": "creaKey",
+          "dealid": "dealId",
+          "w": 50,
+          "h": 50,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_deal_sharethrough": "dealId",
+                "hb_bidder_sharethrough": "sharethrough",
+                "hb_cache_id": "a03927f1-86e1-48fb-9efc-da9104a44e39",
+                "hb_cache_id_sharethrough": "a03927f1-86e1-48fb-9efc-da9104a44e39",
+                "hb_cache_path_sharethrough": "{{ cache.path }}",
+                "hb_pb": "10.00",
+                "hb_size_sharethrough": "50x50",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "50x50",
+                "hb_bidder": "sharethrough",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_sharethrough": "{{ cache.host }}",
+                "hb_deal": "dealId",
+                "hb_pb_sharethrough": "10.00"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}a03927f1-86e1-48fb-9efc-da9104a44e39",
+                  "cacheId": "a03927f1-86e1-48fb-9efc-da9104a44e39"
+                }
+              }
+            }
+          }
         }
       ],
-      "group": 0,
-      "seat": "sharethrough"
+      "seat": "sharethrough",
+      "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "debug": {
       "httpcalls": {
-        "cache": [
-          {
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"dealid\":\"dealId\",\"w\":50,\"h\":50}}]}",
-            "responsebody": "{\"responses\":[{\"uuid\":\"a03927f1-86e1-48fb-9efc-da9104a44e39\"}]}",
-            "status": 200,
-            "uri": "{{ cache.endpoint }}"
-          }
-        ],
         "sharethrough": [
           {
-            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":1000,\"deadline\":\"{{ DEADLINE_FORMATTED_TIME }}\"}",
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=7&ttduid=id&stxuid=STR-UID",
+            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":1000,\"deadline\":\"2020-11-04T04:07:59+02:00\",\"bidfloor\":3.5}",
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\",\"deal_id\":\"dealId\"},\"version\":0}]}",
-            "status": 200,
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=4&ttduid=id&stxuid=STR-UID"
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifSwidmVyc2lvbiI6MH1dfQ==\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"dealid\":\"dealId\",\"w\":50,\"h\":50}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"a03927f1-86e1-48fb-9efc-da9104a44e39\"}]}",
+            "status": 200
           }
         ]
       },
@@ -76,59 +76,42 @@
             "banner": {
               "format": [
                 {
-                  "h": 250,
-                  "w": 300
+                  "w": 300,
+                  "h": 250
                 }
               ]
             },
             "ext": {
               "sharethrough": {
+                "pkey": "abc123",
                 "iframe": true,
                 "iframeSize": [
                   50,
                   50
                 ],
-                "pkey": "abc123"
+                "bidfloor": 3.5
               }
             }
           }
         ],
-        "badv": [
-          "testblocked"
-        ],
-        "regs": {
-          "ext": {
-            "gdpr": 0
-          }
-        },
-        "cur": [
-          "USD"
-        ],
-        "device": {
-          "dnt": 2,
-          "ifa": "ifaId",
-          "ua": "Android Chrome/60",
-          "ip": "127.0.0.1",
-          "language": "en",
-          "pxratio": 4.2
-        },
         "site": {
           "domain": "example.com",
-          "ext": {
-            "amp": 0
-          },
           "page": "http://www.example.com",
           "publisher": {
             "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
           }
         },
-        "source": {
-          "fd": 1,
-          "tid": "tid"
+        "device": {
+          "ua": "Android Chrome/60",
+          "dnt": 2,
+          "ip": "127.0.0.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
         },
-        "test": 1,
-        "at": 1,
-        "tmax": 1000,
         "user": {
           "ext": {
             "eids": [
@@ -141,12 +124,30 @@
                 ]
               }
             ],
-            "consent": "consentValue",
             "digitrust": {
               "id": "id",
               "keyv": 123,
               "pref": 0
-            }
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "USD"
+        ],
+        "badv": [
+          "testblocked"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
           }
         },
         "ext": {
