@@ -19,6 +19,6 @@ settings:
 gdpr:
   vendorlist:
     filesystem-cache-dir: /var/tmp
-  geolocation:
-    enabled: false
+geolocation:
+  enabled: false
 status-response: "ok"

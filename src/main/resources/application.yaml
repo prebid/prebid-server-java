@@ -78,18 +78,19 @@ gdpr:
   vendorlist:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
-  geolocation:
-    enabled: true
-    maxmind:
-      remote-file-syncer:
-        download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
-        save-filepath: /var/tmp/prebid/GeoLite2-Country.tar.gz
-        retry-count: 3
-        retry-interval-ms: 3000
-        timeout-ms: 300000
-        http-client:
-          connect-timeout-ms: 2500
-          max-redirects: 3
+geolocation:
+  enabled: true
+  type: maxmind
+  maxmind:
+    remote-file-syncer:
+      download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
+      save-filepath: /var/tmp/prebid/GeoLite2-Country.tar.gz
+      retry-count: 3
+      retry-interval-ms: 3000
+      timeout-ms: 300000
+      http-client:
+        connect-timeout-ms: 2500
+        max-redirects: 3
 health-check:
   database:
     enabled: false
