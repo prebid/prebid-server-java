@@ -282,46 +282,4 @@ public class BidderCatalogTest {
         // when and then
         assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();
     }
-
-    @Test
-    public void metricsBidderNameShouldReturnBidderNameWhenItIsValid() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.metricsBidderName(BIDDER)).isEqualTo(BIDDER);
-    }
-
-    @Test
-    public void metricsBidderNameShouldReturnBidderNameWhenItIsAnAlias() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(singletonList("alias"))
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.metricsBidderName("alias")).isEqualTo(BIDDER);
-    }
-
-    @Test
-    public void metricsBidderNameShouldReturnUnknownWhenBidderNameIsInvalidAndNotAnAlias() {
-        // given
-        bidderDeps = BidderDeps.builder()
-                .name(BIDDER)
-                .deprecatedNames(emptyList())
-                .aliases(emptyList())
-                .build();
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
-
-        // when and then
-        assertThat(bidderCatalog.metricsBidderName("invalid")).isEqualTo("UNKNOWN");
-    }
 }

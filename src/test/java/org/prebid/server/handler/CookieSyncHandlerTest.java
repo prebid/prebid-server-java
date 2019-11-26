@@ -504,7 +504,6 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
-        given(bidderCatalog.metricsBidderName(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(true, null, null,
