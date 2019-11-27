@@ -6,7 +6,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -37,10 +36,6 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
-import org.prebid.server.health.ApplicationChecker;
-import org.prebid.server.health.DatabaseHealthChecker;
-import org.prebid.server.health.GeoLocationHealthChecker;
-import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -56,7 +51,6 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -487,37 +481,6 @@ public class ServiceConfiguration {
 
             remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
-        }
-    }
-
-    @Configuration
-    @ConditionalOnProperty("status-response")
-    @ConditionalOnExpression("'${status-response}' != ''")
-    static class HealthCheckerConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
-        HealthChecker databaseChecker(
-                Vertx vertx,
-                JDBCClient jdbcClient,
-                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
-
-            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
-        }
-
-        @Bean
-        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
-        HealthChecker geoLocationChecker(
-                Vertx vertx,
-                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
-                GeoLocationService geoLocationService,
-                TimeoutFactory timeoutFactory) {
-            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
-        }
-
-        @Bean
-        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
-            return new ApplicationChecker(statusResponse);
         }
     }
 }
