@@ -49,6 +49,8 @@ public class GdprServiceTest {
     public void setUp() {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, singleton(GdprPurpose.informationStorageAndAccess.getId()))));
+        given(geoLocationService.lookup(anyString(), any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country1").build()));
 
         gdprService = new GdprService(null, metrics, vendorListService, emptyList(), "1");
     }
@@ -83,7 +85,6 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnGdprFromGeoLocationServiceIfGdprFromRequestIsNotValidAndUpdateMetrics() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(geoLocationService, metrics, vendorListService, singletonList("country1"), "1");
 
         // when
@@ -229,7 +230,6 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotInEEA() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(geoLocationService, metrics, vendorListService, emptyList(), "1");
 
         // when
@@ -262,7 +262,6 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndConsentParamIsValidAndCountryIsInEEA() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(geoLocationService, metrics, vendorListService, singletonList("country1"), "1");
 
         // when

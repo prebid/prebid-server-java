@@ -9,7 +9,6 @@
           "price": 6.00,
           "adm": "adm4",
           "crid": "crid4",
-          "dealid": "dealId4",
           "w": 300,
           "h": 600
         },
@@ -19,7 +18,6 @@
           "price": 5.00,
           "adm": "adm41",
           "crid": "crid41",
-          "dealid": "dealId41",
           "w": 300,
           "h": 600
         }
