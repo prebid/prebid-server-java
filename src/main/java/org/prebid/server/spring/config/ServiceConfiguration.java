@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -202,7 +203,8 @@ public class ServiceConfiguration {
 
         return createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
                 httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects());
+                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
+                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
     }
 
     @Bean
@@ -224,14 +226,17 @@ public class ServiceConfiguration {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
                 httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects());
+                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
+                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
                 circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(), clock);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression, int maxRedirects) {
+                                                         boolean useCompression, int maxRedirects, boolean ssl,
+                                                         String jksPath, String jksPassword) {
+
         final HttpClientOptions options = new HttpClientOptions()
                 .setMaxPoolSize(maxPoolSize)
                 .setTryUseCompression(useCompression)
@@ -239,6 +244,16 @@ public class ServiceConfiguration {
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
                 .setMaxRedirects(maxRedirects + 1);
+
+        if (ssl) {
+            final JksOptions jksOptions = new JksOptions()
+                    .setPath(jksPath)
+                    .setPassword(jksPassword);
+
+            options
+                    .setSsl(true)
+                    .setKeyStoreOptions(jksOptions);
+        }
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
