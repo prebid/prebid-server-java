@@ -17,8 +17,8 @@ adapters:
       supported-vendors:
       vendor-id: 253
     usersync:
-      url: https://ad.360yield.com/server_match?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
-      redirect-url: /setuid?bidder=improvedigital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={PUB_USER_ID}
+      url: https://ad.360yield.com/server_match?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      redirect-url: /setuid?bidder=improvedigital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={PUB_USER_ID}
       cookie-family-name: improvedigital
       type: redirect
       support-cors: false

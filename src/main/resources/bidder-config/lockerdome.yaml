@@ -16,7 +16,7 @@ adapters:
       vendor-id: 0
     usersync:
       url: https://lockerdome.com/usync/prebidserver?pid=
-      redirect-url: /setuid?bidder=lockerdome&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={{uid}}
+      redirect-url: /setuid?bidder=lockerdome&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={{uid}}
       cookie-family-name: lockerdome
       type: redirect
       support-cors: false
