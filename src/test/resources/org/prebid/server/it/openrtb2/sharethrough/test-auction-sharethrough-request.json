@@ -18,7 +18,8 @@
           "iframeSize": [
             50,
             50
-          ]
+          ],
+          "bidfloor": 3.5
         }
       }
     }

@@ -8,6 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -23,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -52,6 +54,7 @@ public class AmpRequestFactory {
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
+    private static final String US_PRIVACY_PARAM = "us_privacy";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final StoredRequestProcessor storedRequestProcessor;
@@ -205,14 +208,17 @@ public class AmpRequestFactory {
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
         final User updatedUser = overrideUser(bidRequest.getUser(), request);
+        final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), request);
 
         final BidRequest result;
-        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null) {
+        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
+                || updatedRegs != null) {
             result = bidRequest.toBuilder()
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
                     .user(updatedUser != null ? updatedUser : bidRequest.getUser())
+                    .regs(updatedRegs != null ? updatedRegs : bidRequest.getRegs())
                     .build();
         } else {
             result = bidRequest;
@@ -401,6 +407,33 @@ public class AmpRequestFactory {
             return Json.mapper.treeToValue(extUserNode, ExtUser.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()));
+        }
+    }
+
+    private static Regs overrideRegs(Regs regs, HttpServerRequest request) {
+        final String usPrivacyParam = request.getParam(US_PRIVACY_PARAM);
+        if (StringUtils.isBlank(usPrivacyParam)) {
+            return null;
+        }
+
+        Integer coppa = null;
+        Integer gdpr = null;
+        if (regs != null) {
+            coppa = regs.getCoppa();
+            gdpr = extractExtRegs(regs.getExt()).getGdpr();
+        }
+
+        return Regs.of(coppa, Json.mapper.valueToTree(ExtRegs.of(gdpr, usPrivacyParam)));
+    }
+
+    /**
+     * Extracts {@link ExtRegs} from bidrequest.regs.ext {@link ObjectNode}.
+     */
+    private static ExtRegs extractExtRegs(ObjectNode extRegsNode) {
+        try {
+            return Json.mapper.treeToValue(extRegsNode, ExtRegs.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()));
         }
     }
 

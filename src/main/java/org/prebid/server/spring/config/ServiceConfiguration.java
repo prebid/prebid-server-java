@@ -40,6 +40,8 @@ import org.prebid.server.health.GeoLocationHealthChecker;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -82,6 +84,7 @@ public class ServiceConfiguration {
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             EventsService eventsService,
             HttpClient httpClient,
+            Metrics metrics,
             Clock clock) {
 
         return new CacheService(
@@ -90,6 +93,7 @@ public class ServiceConfiguration {
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
                 eventsService,
+                metrics,
                 clock);
     }
 

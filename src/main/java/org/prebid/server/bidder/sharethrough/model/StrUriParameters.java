@@ -26,5 +26,7 @@ public class StrUriParameters {
     String theTradeDeskUserId;
 
     String sharethroughUserId;
+
+    SharethroughRequestBody body;
 }
 
