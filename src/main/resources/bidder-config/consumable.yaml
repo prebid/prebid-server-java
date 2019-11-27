@@ -15,8 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 65535
     usersync:
-      url: https://e.serverbid.com/udb/9969/match?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&redir=
-      redirect-url: /setuid?bidder=consumable&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=
+      url: https://e.serverbid.com/udb/9969/match?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      redirect-url: /setuid?bidder=consumable&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: consumable
       type: redirect
       support-cors: false
