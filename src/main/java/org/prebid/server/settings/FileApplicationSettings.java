@@ -47,8 +47,12 @@ public class FileApplicationSettings implements ApplicationSettings {
     private final Map<String, String> storedIdToImp;
     private final Map<String, String> storedIdToSeatBid;
 
-    private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedIdToRequest,
-                                    Map<String, String> storedIdToImp, Map<String, String> storedIdToSeatBid) {
+    public FileApplicationSettings(FileSystem fileSystem, String settingsFileName, String storedRequestsDir,
+                                   String storedImpsDir, String storedResponsesDir) {
+
+        final SettingsFile settingsFile = readSettingsFile(Objects.requireNonNull(fileSystem),
+                Objects.requireNonNull(settingsFileName));
+
         accounts = toMap(settingsFile.getAccounts(),
                 Account::getId,
                 Function.identity());
@@ -57,29 +61,9 @@ public class FileApplicationSettings implements ApplicationSettings {
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
 
-        this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
-        this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
-        this.storedIdToSeatBid = Objects.requireNonNull(storedIdToSeatBid);
-    }
-
-    /**
-     * Instantiate {@link FileApplicationSettings} by and by looking for .json file
-     * extension and creates {@link Map} file names without .json extension to file content.
-     */
-    public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
-                                                 String storedRequestsDir, String storedImpsDir,
-                                                 String storedResponsesDir) {
-        Objects.requireNonNull(fileSystem);
-        Objects.requireNonNull(settingsFileName);
-        Objects.requireNonNull(storedRequestsDir);
-        Objects.requireNonNull(storedImpsDir);
-        Objects.requireNonNull(storedResponsesDir);
-
-        return new FileApplicationSettings(
-                readSettingsFile(fileSystem, settingsFileName),
-                readStoredData(fileSystem, storedRequestsDir),
-                readStoredData(fileSystem, storedImpsDir),
-                readStoredData(fileSystem, storedResponsesDir));
+        this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
+        this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
+        this.storedIdToSeatBid = readStoredData(fileSystem, Objects.requireNonNull(storedResponsesDir));
     }
 
     @Override
@@ -168,7 +152,7 @@ public class FileApplicationSettings implements ApplicationSettings {
      * Returns corresponding stored id with json.
      */
     private static Map<String, String> existingStoredIdToJson(Set<String> requestedIds,
-                                                             Map<String, String> storedIdToJson) {
+                                                              Map<String, String> storedIdToJson) {
         final Map<String, String> idToJson = new HashMap<>();
         for (String id : requestedIds) {
             final String json = storedIdToJson.get(id);
