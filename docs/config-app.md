@@ -26,11 +26,14 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
 - `http-client.connect-timeout-ms` - set the connect timeout.
 - `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
-- `http-client.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
+- `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 - `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
+- `http-client.ssl` - enable SSL/TLS support.
+- `http-client.jks-path` - path to the java keystore (if ssl is enabled).
+- `http-client.jks-password` - password for the keystore (if ssl is enabled).
 
 ## Remote-file-syncer
 Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
