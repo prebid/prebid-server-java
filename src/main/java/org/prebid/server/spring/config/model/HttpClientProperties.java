@@ -23,4 +23,10 @@ public class HttpClientProperties {
 
     @NotNull
     private Integer maxRedirects;
+
+    private Boolean ssl;
+
+    private String jksPath;
+
+    private String jksPassword;
 }
