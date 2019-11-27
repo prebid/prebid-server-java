@@ -42,7 +42,7 @@ public class FileApplicationSettingsTest {
 
         // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore"));
+                .isThrownBy(() -> new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore"));
     }
 
     @Test
@@ -51,7 +51,7 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -69,7 +69,7 @@ public class FileApplicationSettingsTest {
                         + " analyticsSamplingFactor : '1'} ]"));
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -94,7 +94,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("789", null);
@@ -109,7 +109,7 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:"));
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<String> config = applicationSettings.getAdUnitConfigById("123", null);
@@ -125,7 +125,7 @@ public class FileApplicationSettingsTest {
                 "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123", null);
@@ -144,7 +144,7 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<String> config = applicationSettings.getAdUnitConfigById("789", null);
@@ -164,7 +164,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")); // stored imp
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -192,7 +192,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value3")); // stored response
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -219,7 +219,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value2")) // stored imp
                 .willReturn(Buffer.buffer("value3")); // stored response
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -246,7 +246,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")); // stored imp
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredDataResult> storedRequestResult =
@@ -272,7 +272,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value1")); // responses
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -300,7 +300,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value1")); // responses
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -330,7 +330,7 @@ public class FileApplicationSettingsTest {
                 .willReturn(Buffer.buffer("value1")); // responses
 
         final FileApplicationSettings applicationSettings =
-                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -351,7 +351,7 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:")); // settings file
 
         // when
-        FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore", "ignore");
+        new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
 
         // then
         verify(fileSystem, never()).readFileBlocking(eq("1.txt"));

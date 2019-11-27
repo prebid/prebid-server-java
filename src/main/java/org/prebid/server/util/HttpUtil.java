@@ -1,9 +1,11 @@
 package org.prebid.server.util;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -153,5 +155,17 @@ public final class HttpUtil {
 
     public static String toSetCookieHeaderValue(Cookie cookie) {
         return String.join("; ", cookie.encode(), "SameSite=None; Secure");
+    }
+
+    /**
+     * Sends HTTP response according to the given status and body
+     */
+    public static void respondWith(RoutingContext context, HttpResponseStatus status, String body) {
+        final HttpServerResponse response = context.response().setStatusCode(status.code());
+        if (body != null) {
+            response.end(body);
+        } else {
+            response.end();
+        }
     }
 }
