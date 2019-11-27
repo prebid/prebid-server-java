@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 61
     usersync:
-      url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
-      redirect-url: /setuid?bidder=gumgum&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=
+      url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      redirect-url: /setuid?bidder=gumgum&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: gumgum
       type: redirect
       support-cors: false

@@ -30,7 +30,7 @@ public class GammaTest extends IntegrationTest {
                 .withQueryParam("id", equalTo("id"))
                 .withQueryParam("zid", equalTo("zid"))
                 .withQueryParam("wid", equalTo("wid"))
-                .withQueryParam("bidid", equalTo("bid"))
+                .withQueryParam("bidid", equalTo("impId1"))
                 .withQueryParam("hb", equalTo("pbmobile"))
                 .withQueryParam("device_ip", equalTo("123.123.123.12"))
                 .withQueryParam("device_ua", equalTo("Android Chrome/60"))

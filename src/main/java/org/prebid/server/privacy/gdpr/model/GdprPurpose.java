@@ -1,4 +1,4 @@
-package org.prebid.server.gdpr.model;
+package org.prebid.server.privacy.gdpr.model;
 
 public enum GdprPurpose {
 

@@ -16,8 +16,8 @@ adapters:
       supported-vendors:
       vendor-id: 62
     usersync:
-      url: https://match.bnmla.com/usersync/s2s_sync?gdpr={{gdpr}}&gdpr_consent={gdpr_consent}}&r=
-      redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid={UUID}
+      url: https://match.bnmla.com/usersync/s2s_sync?gdpr={{gdpr}}&gdpr_consent={gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={UUID}
       cookie-family-name: engagebdr
       type: redirect
       support-cors: false

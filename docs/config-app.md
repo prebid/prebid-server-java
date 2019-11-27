@@ -26,11 +26,14 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
 - `http-client.connect-timeout-ms` - set the connect timeout.
 - `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
-- `http-client.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
+- `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 - `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
+- `http-client.ssl` - enable SSL/TLS support.
+- `http-client.jks-path` - path to the java keystore (if ssl is enabled).
+- `http-client.jks-password` - password for the keystore (if ssl is enabled).
 
 ## Remote-file-syncer
 Remote File Syncer can be related to particular entity like geolocation maxmind service etc.
@@ -86,6 +89,9 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
 But feel free to add additional bidder's specific options.
+
+## Admin
+- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
 
 ## Currency Converter
 - `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
@@ -216,6 +222,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 ## Health Check
 - `health-check.database.enabled` - if equals to `true` the database health check will be enabled to periodically check database status.
 - `health-check.database.refresh-period-ms` - the refresh period for database status updates.
+- `health-check.geolocation.enabled` - if equals to `true` the geolocation service health check will be enabled to periodically check the status.
+- `health-check.geolocation.refresh-period-ms` - the refresh period for geolocation service status updates.
 
 ## GDPR
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).

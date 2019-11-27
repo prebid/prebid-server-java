@@ -19,6 +19,9 @@ http-client:
   connect-timeout-ms: 2500
   use-compression: false
   max-redirects: 0
+  ssl: false
+  jks-path:
+  jks-password:
 external-url: http://localhost:8000
 default-timeout-ms: 900
 max-timeout-ms: 5000
@@ -46,6 +49,8 @@ cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
+logger-level-modifier:
+  enabled: false
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
@@ -88,3 +93,8 @@ gdpr:
         http-client:
           connect-timeout-ms: 2500
           max-redirects: 3
+health-check:
+  database:
+    enabled: false
+  geolocation:
+    enabled: false

@@ -27,6 +27,7 @@ import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.model.Account;
@@ -63,15 +64,17 @@ public class CacheService {
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
     private final EventsService eventsService;
+    private final Metrics metrics;
     private final Clock clock;
 
     public CacheService(CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
-                        String cachedAssetUrlTemplate, EventsService eventsService, Clock clock) {
+                        String cachedAssetUrlTemplate, EventsService eventsService, Metrics metrics, Clock clock) {
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
         this.eventsService = Objects.requireNonNull(eventsService);
+        this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -130,16 +133,23 @@ public class CacheService {
             return failResponse(new TimeoutException("Timeout has been exceeded"));
         }
 
+        final long startTime = clock.millis();
         return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
                 remainingTimeout)
-                .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount))
-                .recover(CacheService::failResponse);
+                .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount, startTime))
+                .recover(exception -> failResponse(exception, startTime));
     }
 
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<BidCacheResponse> failResponse(Throwable exception) {
+    private Future<BidCacheResponse> failResponse(Throwable exception) {
+        logger.warn("Error occurred while interacting with cache service", exception);
+        return Future.failedFuture(exception);
+    }
+
+    private Future<BidCacheResponse> failResponse(Throwable exception, long startTime) {
+        metrics.updateCacheRequestFailedTime(clock.millis() - startTime);
         logger.warn("Error occurred while interacting with cache service", exception);
         return Future.failedFuture(exception);
     }
@@ -322,7 +332,7 @@ public class CacheService {
 
         final BidCacheResponse bidCacheResponse;
         try {
-            bidCacheResponse = toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount);
+            bidCacheResponse = toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount, startTime);
         } catch (PreBidException e) {
             return CacheServiceResult.of(httpCall, e, Collections.emptyMap());
         }
@@ -445,7 +455,7 @@ public class CacheService {
      * Handles http response, analyzes response status and creates {@link BidCacheResponse} from response body
      * or throws {@link PreBidException} in case of errors.
      */
-    private static BidCacheResponse toBidCacheResponse(int statusCode, String responseBody, int bidCount) {
+    private BidCacheResponse toBidCacheResponse(int statusCode, String responseBody, int bidCount, long startTime) {
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
@@ -462,6 +472,7 @@ public class CacheService {
             throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
+        metrics.updateCacheRequestSuccessTime(clock.millis() - startTime);
         return bidCacheResponse;
     }
 

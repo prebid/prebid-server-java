@@ -25,8 +25,9 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -48,6 +49,7 @@ import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
@@ -230,10 +232,11 @@ public class WebConfiguration {
             AuctionRequestFactory auctionRequestFactory,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
-            Clock clock) {
+            Clock clock,
+            LogModifier logModifier) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(auctionRequestFactory, exchangeService,
-                analyticsReporter, metrics, clock);
+                analyticsReporter, metrics, clock, logModifier);
     }
 
     @Bean
@@ -245,10 +248,11 @@ public class WebConfiguration {
             Clock clock,
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
-            AmpResponsePostProcessor ampResponsePostProcessor) {
+            AmpResponsePostProcessor ampResponsePostProcessor,
+            LogModifier logModifier) {
 
         return new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock, bidderCatalog,
-                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor);
+                ampProperties.getCustomTargetingSet(), ampResponsePostProcessor, logModifier);
     }
 
     @Bean
@@ -391,6 +395,9 @@ public class WebConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
+        @Autowired(required = false)
+        private AdminHandler adminHandler;
+
         @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
 
@@ -423,6 +430,12 @@ public class WebConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "logger-level-modifier", name = "enabled", havingValue = "true")
+        AdminHandler adminHandler(LogModifier logModifier) {
+            return new AdminHandler(logModifier);
+        }
+
+        @Bean
         @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
             return new CurrencyRatesHandler(currencyConversionRates);
@@ -435,6 +448,9 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            if (adminHandler != null) {
+                router.route("/admin").handler(adminHandler);
+            }
             if (currencyRatesHandler != null) {
                 router.route("/currency-rates").handler(currencyRatesHandler);
             }

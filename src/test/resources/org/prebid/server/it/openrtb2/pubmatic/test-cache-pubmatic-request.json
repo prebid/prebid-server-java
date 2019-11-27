@@ -8,7 +8,6 @@
         "price": 4,
         "adm": "adm91",
         "crid": "crid91",
-        "dealid": "dealId91",
         "w": 300,
         "h": 600,
         "ext": {
@@ -24,7 +23,6 @@
         "price": 4.75,
         "adm": "adm9",
         "crid": "crid9",
-        "dealid": "dealId9",
         "w": 300,
         "h": 600
       }

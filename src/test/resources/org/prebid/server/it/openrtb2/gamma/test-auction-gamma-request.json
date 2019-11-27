@@ -2,7 +2,7 @@
   "id": "bidid",
   "imp": [
     {
-      "id": "bid",
+      "id": "impId1",
       "banner": {
         "format": [
           {
