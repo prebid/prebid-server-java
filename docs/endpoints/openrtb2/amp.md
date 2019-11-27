@@ -100,9 +100,10 @@ This endpoint supports the following query parameters:
 4. `ow` - `amp-ad` `data-override-width`
 5. `ms` - `amp-ad` `data-multi-size`
 6. `curl` - the canonical URL of the page
-7   . `timeout` - the publisher-specified timeout for the RTC callout
+7. `timeout` - the publisher-specified timeout for the RTC callout
    - A configuration option `amp.default-timeout-ms` may be set to account for estimated latency so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
-8. `debug` - When set to `1`, the responses will contain extra info for debugging.
+8. `us_privacy` - CCPA value for request. 
+9. `debug` - When set to `1`, the responses will contain extra info for debugging.
  
 For information on how these get from AMP into this endpoint, see [this pull request adding the query params to the Prebid callout](https://github.com/ampproject/amphtml/pull/14155) and [this issue adding support for network-level RTC macros](https://github.com/ampproject/amphtml/issues/12374).
  
@@ -111,7 +112,8 @@ If present, these will override parts of your Stored Request.
 1. `ow`, `oh`, `w`, `h`, and/or `ms` will be used to set `request.imp[0].banner.format` if `request.imp[0].banner` is present.
 2. `curl` will be used to set `request.site.page`
 3. `timeout` will generally be used to set `request.tmax`. However, the Prebid Server host can [configure](../../config.md) their deploy to reduce this timeout for technical reasons.
-4. `debug` will be used to set `request.test`, causing the `response.debug` to have extra debugging info in it.
+4. `us_privacy` will be used to set `request.regs.ext.us_privacy` 
+5. `debug` will be used to set `request.test`, causing the `response.debug` to have extra debugging info in it.
  
 ### Resolving Sizes
  

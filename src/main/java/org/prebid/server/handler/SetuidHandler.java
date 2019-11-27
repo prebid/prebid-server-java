@@ -16,10 +16,10 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprPurpose;
-import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;

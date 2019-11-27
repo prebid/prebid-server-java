@@ -27,7 +27,7 @@ adapters:
         - whiteops
       vendor-id: 52
     usersync:
-      url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+      url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
       redirect-url:
       cookie-family-name: rubicon
       type: redirect

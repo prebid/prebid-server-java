@@ -592,7 +592,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithGdprFromPreBidRequestRegsExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5)))));
+                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5, null)))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,

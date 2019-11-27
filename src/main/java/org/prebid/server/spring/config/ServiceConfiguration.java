@@ -21,6 +21,7 @@ import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
@@ -31,13 +32,13 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -292,8 +293,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequester httpBidderRequester(HttpClient httpClient) {
-        return new HttpBidderRequester(httpClient);
+    HttpBidderRequester httpBidderRequester(
+            HttpClient httpClient,
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
     }
 
     @Bean
@@ -335,9 +339,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    StoredResponseProcessor storedResponseProcessor(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog) {
+    StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
+                                                    BidderCatalog bidderCatalog) {
 
         return new StoredResponseProcessor(applicationSettings, bidderCatalog);
     }
@@ -348,6 +351,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             Metrics metrics,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
+
         return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
     }
 
@@ -386,7 +390,7 @@ public class ServiceConfiguration {
 
     @Bean
     Clock clock() {
-        return Clock.systemDefaultZone();
+        return Clock.systemUTC();
     }
 
     @Bean

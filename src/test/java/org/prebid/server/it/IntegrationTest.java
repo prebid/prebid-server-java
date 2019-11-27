@@ -56,12 +56,7 @@ public abstract class IntegrationTest extends VertxTest {
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
 
-    static final RequestSpecification spec = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(APP_PORT)
-            .setConfig(RestAssuredConfig.config()
-                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
-            .build();
+    static final RequestSpecification spec = spec(APP_PORT);
 
     @BeforeClass
     public static void setUp() throws IOException {
@@ -71,9 +66,18 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
     }
 
+    static RequestSpecification spec(int port) {
+        return new RequestSpecBuilder()
+                .setBaseUri("http://localhost")
+                .setPort(port)
+                .setConfig(RestAssuredConfig.config()
+                        .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
+                .build();
+    }
+
     static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
-        return mapper.writeValueAsString(mapper.readTree(ApplicationTest.class.getResourceAsStream(file)));
+        return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
     }
 
     static String legacyAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
@@ -134,7 +138,7 @@ public abstract class IntegrationTest extends VertxTest {
         try {
             final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
             final JsonNode jsonNodeMatcher =
-                    mapper.readTree(ApplicationTest.class.getResourceAsStream(requestCacheIdMapFile));
+                    mapper.readTree(IntegrationTest.class.getResourceAsStream(requestCacheIdMapFile));
             final List<PutObject> puts = cacheRequest.getPuts();
 
             final List<CacheObject> responseCacheObjects = new ArrayList<>();

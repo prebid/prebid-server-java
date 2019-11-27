@@ -1279,7 +1279,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null))))
+                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null))))
                 .build();
 
         // when
@@ -1776,7 +1776,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2));
+        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2, null));
         final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
 
         // when
