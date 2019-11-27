@@ -1,4 +1,4 @@
-package org.prebid.server.gdpr;
+package org.prebid.server.privacy.gdpr;
 
 import io.vertx.core.Future;
 import org.junit.Before;
@@ -7,12 +7,12 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.gdpr.model.GdprPurpose;
-import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 
 import java.util.Arrays;
 import java.util.HashSet;

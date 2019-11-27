@@ -15,7 +15,7 @@ adapters:
       vendor-id: 10
     usersync:
       url: http://ssum.casalemedia.com/usermatchredir?s=184932&cb=
-      redirect-url: /setuid?bidder=ix&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=
+      redirect-url: /setuid?bidder=ix&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: ix
       type: redirect
       support-cors: false

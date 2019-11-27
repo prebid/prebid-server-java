@@ -2,6 +2,7 @@ package org.prebid.server.proto.response;
 
 import org.junit.Test;
 import org.prebid.server.bidder.Usersyncer;
+import org.prebid.server.privacy.model.Privacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,52 +30,58 @@ public class UsersyncInfoTest {
     }
 
     @Test
-    public void assembleWithGdprShouldCreateGdprAwareUsersyncInfo() {
+    public void assembleWithPrivacyShouldCreatePrivacyAwareUsersyncInfo() {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
-                .assembler(new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
+                .assembler(new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}"
+                        + "%26gdpr_consent%3D{{gdpr_consent}}"
+                        + "%26us_privacy={{us_privacy}}",
                         null, null, null, false))
-                .withGdpr("1", "consent$1").assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", "1YN")).assemble();
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241");
+        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YN");
     }
 
     @Test
-    public void assembleWithGdprShouldTolerateMissingGdprParamsUsersyncInfo() {
+    public void assembleWithPrivacyShouldTolerateMissingPrivacyParamsUsersyncInfo() {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
-                .assembler(new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
-                        null, null, null, false)).withGdpr(null, null).assemble();
+                .assembler(new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}"
+                        + "%26gdpr_consent%3D{{gdpr_consent}}"
+                        + "%26us_privacy%3D{{us_privacy}}",
+                        null, null, null, false)).withPrivacy(Privacy.empty()).assemble();
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D%26gdpr_consent%3D");
+        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D%26gdpr_consent%3D%26us_privacy%3D");
     }
 
     @Test
-    public void assembleWithGdprShouldIgnoreGdprParamsIfTheyAreMissingInUrl() {
+    public void assembleWithPrivacyShouldIgnorePrivacyParamsIfTheyAreMissingInUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
                 .assembler(new Usersyncer(null, "http://url?redir=a%3Db", null, null, null, false))
-                .withGdpr(null, null).assemble();
+                .withPrivacy(Privacy.of("1", "consent", "YNN")).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=a%3Db");
     }
 
     @Test
-    public void assembleWithGdprUsersyncInfoShouldPopulateWithGdprRedirectAndUsersyncUrl() {
+    public void assembleWithPrivacyUsersyncInfoShouldPopulateWithPrivacyRedirectAndUsersyncUrl() {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
                 .assembler(new Usersyncer(null, "http://url/{{gdpr}}/{{gdpr_consent}}?redir=",
-                        "/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID",
+                        "/setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
+                                + "&us_privacy={{us_privacy}}"
+                                + "&uid=$UID",
                         "http://localhost:8000", null, false))
-                .withGdpr("1", "consent$1").assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", "1YN")).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
                 "http://url/1/consent%241?redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26gdpr%3D1"
-                        + "%26gdpr_consent%3Dconsent%241%26uid%3D%24UID");
+                        + "%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YN%26uid%3D%24UID");
     }
 
     @Test

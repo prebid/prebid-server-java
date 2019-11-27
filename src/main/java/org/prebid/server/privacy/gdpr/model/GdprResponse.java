@@ -1,4 +1,4 @@
-package org.prebid.server.gdpr.model;
+package org.prebid.server.privacy.gdpr.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
