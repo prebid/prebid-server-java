@@ -63,7 +63,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 public class CookieSyncHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
-
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_COOKIE = "adnxs";
 

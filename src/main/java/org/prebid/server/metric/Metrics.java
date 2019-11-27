@@ -2,6 +2,7 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.ArrayList;
@@ -19,7 +20,10 @@ import java.util.stream.Collectors;
  */
 public class Metrics extends UpdatableMetrics {
 
+    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
+
     private AccountMetricsVerbosity accountMetricsVerbosity;
+    private final BidderCatalog bidderCatalog;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
@@ -34,10 +38,11 @@ public class Metrics extends UpdatableMetrics {
     private final CookieSyncMetrics cookieSyncMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
-            accountMetricsVerbosity) {
+            accountMetricsVerbosity, BidderCatalog bidderCatalog) {
         super(metricRegistry, counterType, MetricName::toString);
 
         this.accountMetricsVerbosity = Objects.requireNonNull(accountMetricsVerbosity);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
 
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
@@ -160,7 +165,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
-        final AdapterMetrics adapterMetrics = forAdapter(bidder);
+        final AdapterMetrics adapterMetrics = forAdapter(resolveMetricsBidderName(bidder));
 
         adapterMetrics.requestType().incCounter(requestType);
 
@@ -169,46 +174,58 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    private String resolveMetricsBidderName(String bidder) {
+        if (bidderCatalog.isValidName(bidder)) {
+            return bidder;
+        }
+        final String nameByAlias = bidderCatalog.nameByAlias(bidder);
+        return nameByAlias != null ? nameByAlias : METRICS_UNKNOWN_BIDDER;
+    }
+
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
-        final AdapterMetrics adapterMetrics = forAdapter(bidder);
+        final String metricsBidderName = resolveMetricsBidderName(bidder);
+        final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
         adapterMetrics.updateTimer(MetricName.request_time, responseTime);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(metricsBidderName);
             accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
         }
     }
 
     public void updateAdapterRequestNobidMetrics(String bidder, String accountId) {
-        forAdapter(bidder).request().incCounter(MetricName.nobid);
+        final String metricsBidderName = resolveMetricsBidderName(bidder);
+        forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).forAdapter(bidder).request().incCounter(MetricName.nobid);
+            forAccount(accountId).forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
         }
     }
 
     public void updateAdapterRequestGotbidsMetrics(String bidder, String accountId) {
-        forAdapter(bidder).request().incCounter(MetricName.gotbids);
+        final String metricsBidderName = resolveMetricsBidderName(bidder);
+        forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).forAdapter(bidder).request().incCounter(MetricName.gotbids);
+            forAccount(accountId).forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
         }
     }
 
     public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, String bidType) {
-        final AdapterMetrics adapterMetrics = forAdapter(bidder);
+        final String metricsBidderName = resolveMetricsBidderName(bidder);
+        final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
         adapterMetrics.updateHistogram(MetricName.prices, cpm);
         adapterMetrics.incCounter(MetricName.bids_received);
         adapterMetrics.forBidType(bidType)
                 .incCounter(isAdm ? MetricName.adm_bids_received : MetricName.nurl_bids_received);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(metricsBidderName);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
             accountAdapterMetrics.incCounter(MetricName.bids_received);
         }
     }
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
-        forAdapter(bidder).request().incCounter(errorMetric);
+        forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
     }
 
     public void updateUserSyncOptoutMetric() {
@@ -240,7 +257,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateCookieSyncGdprPreventMetric(String bidder) {
-        cookieSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+        cookieSync().forBidder(resolveMetricsBidderName(bidder)).incCounter(MetricName.gdpr_prevent);
     }
 
     public void updateGdprMaskedMetric(String bidder) {
