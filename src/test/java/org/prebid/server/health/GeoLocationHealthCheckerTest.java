@@ -42,9 +42,6 @@ public class GeoLocationHealthCheckerTest {
     @Mock
     private GeoLocationService geoLocationService;
 
-    @Mock
-    private TimeoutFactory timeoutFactory;
-
     private GeoLocationHealthChecker geoLocationHealthChecker;
 
     @Before
@@ -67,7 +64,8 @@ public class GeoLocationHealthCheckerTest {
     @Test
     public void getLastStatusShouldReturnStatusUpAndLastUpdatedAfterTestTime() {
         // given
-        given(geoLocationService.lookup(any(), any())).willReturn(Future.succeededFuture(GeoInfo.of("USA")));
+        given(geoLocationService.lookup(any(), any())).willReturn(
+                Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("USA").build()));
 
         // when
         geoLocationHealthChecker.updateStatus();
@@ -99,9 +97,9 @@ public class GeoLocationHealthCheckerTest {
         given(vertx.setPeriodic(anyLong(), any())).willReturn(1L);
         given(geoLocationService.lookup(any(), any()))
                 .willReturn(
-                        Future.succeededFuture(GeoInfo.of("USA")),
+                        Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("USA").build()),
                         Future.failedFuture("failed"),
-                        Future.succeededFuture(GeoInfo.of("USA")));
+                        Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("USA").build()));
 
         // when
         geoLocationHealthChecker.initialize();
