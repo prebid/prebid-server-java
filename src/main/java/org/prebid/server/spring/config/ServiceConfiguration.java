@@ -33,10 +33,6 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
-import org.prebid.server.health.ApplicationChecker;
-import org.prebid.server.health.DatabaseHealthChecker;
-import org.prebid.server.health.GeoLocationHealthChecker;
-import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.gdpr.GdprService;
@@ -437,36 +433,5 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
-    }
-
-    @Configuration
-    @ConditionalOnProperty("status-response")
-    @ConditionalOnExpression("'${status-response}' != ''")
-    static class HealthCheckerConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
-        HealthChecker databaseChecker(
-                Vertx vertx,
-                JDBCClient jdbcClient,
-                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
-
-            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
-        }
-
-        @Bean
-        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${geolocation.enabled} == true")
-        HealthChecker geoLocationChecker(
-                Vertx vertx,
-                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
-                GeoLocationService geoLocationService,
-                TimeoutFactory timeoutFactory) {
-            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
-        }
-
-        @Bean
-        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
-            return new ApplicationChecker(statusResponse);
-        }
     }
 }
