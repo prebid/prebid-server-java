@@ -1,4 +1,4 @@
-package org.prebid.server.gdpr.vendorlist;
+package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
@@ -15,8 +15,8 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;

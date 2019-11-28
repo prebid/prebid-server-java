@@ -19,7 +19,13 @@ http-client:
   connect-timeout-ms: 2500
   use-compression: false
   max-redirects: 0
+  ssl: false
+  jks-path:
+  jks-password:
 external-url: http://localhost:8000
+host-id: localhost
+datacenter-region: local
+vendor: local
 default-timeout-ms: 900
 max-timeout-ms: 5000
 timeout-adjustment-ms: 30

@@ -1,8 +1,5 @@
-package org.prebid.server.gdpr;
+package org.prebid.server.privacy.gdpr;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -11,16 +8,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.gdpr.model.GdprPurpose;
-import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -56,92 +50,10 @@ public class GdprServiceTest extends VertxTest {
     public void setUp() {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, singleton(GdprPurpose.informationStorageAndAccess.getId()))));
+        given(geoLocationService.lookup(anyString(), any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country1").build()));
 
-        gdprService = new GdprService(emptyList(), "1", null, metrics, vendorListService, jacksonMapper);
-    }
-
-    @Test
-    public void gdprFromShouldReturnEmptyValueWhenRegsIsNull() {
-        // given and when
-        final String gdpr = gdprService.gdprFrom(null);
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
-    public void gdprFromShouldReturnEmptyValueWhenRegsExtIsNull() {
-        // given and when
-        final String gdpr = gdprService.gdprFrom(Regs.of(null, null));
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
-    public void gdprFromShouldReturnEmptyValueWhenRegExtIsNotValidJson() throws IOException {
-        // given and when
-        final String gdpr = gdprService.gdprFrom(
-                Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}")));
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
-    public void gdprFromShouldReturnEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
-        // given and when
-        final String gdpr = gdprService.gdprFrom(Regs.of(null, mapper.valueToTree(ExtRegs.of(2))));
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
-    public void gdprFromShouldReturnOne() {
-        // given and when
-        final String gdpr = gdprService.gdprFrom(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
-
-        // then
-        assertThat(gdpr).isEqualTo("1");
-    }
-
-    @Test
-    public void gdprFromShouldReturnZero() {
-        // given and when
-        final String gdpr = gdprService.gdprFrom(Regs.of(null, mapper.valueToTree(ExtRegs.of(0))));
-
-        // then
-        assertThat(gdpr).isEqualTo("0");
-    }
-
-    @Test
-    public void gdprConsentFromShouldReturnEmptyValueWhenExtUserIsNull() {
-        // given and when
-        final String consent = gdprService.gdprConsentFrom(null);
-
-        // then
-        assertThat(consent).isEmpty();
-    }
-
-    @Test
-    public void gdprConsentFromShouldReturnEmptyValueWhenConsentIsNull() {
-        // given and when
-        final String consent = gdprService.gdprConsentFrom(
-                User.builder().ext(mapper.valueToTree(ExtUser.builder().build())).build());
-
-        // then
-        assertThat(consent).isEmpty();
-    }
-
-    @Test
-    public void gdprConsentFromShouldReturnConsent() {
-        // given and when
-        final String consent = gdprService.gdprConsentFrom(
-                User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build());
-
-        // then
-        assertThat(consent).isEqualTo("consent");
+        gdprService = new GdprService(emptyList(), "1", null, metrics, vendorListService);
     }
 
     @Test
@@ -174,9 +86,8 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void shouldReturnGdprFromGeoLocationServiceIfGdprFromRequestIsNotValidAndUpdateMetrics() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(
-                singletonList("country1"), "1", geoLocationService, metrics, vendorListService, jacksonMapper);
+                singletonList("country1"), "1", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future = gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess),
@@ -305,7 +216,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotFoundButDefaultGdprIsZeroAndUpdateMetrics() {
         // given
         given(geoLocationService.lookup(anyString(), any())).willReturn(Future.failedFuture("country not found"));
-        gdprService = new GdprService(emptyList(), "0", geoLocationService, metrics, vendorListService, jacksonMapper);
+        gdprService = new GdprService(emptyList(), "0", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future =
@@ -321,8 +232,7 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotInEEA() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
-        gdprService = new GdprService(emptyList(), "1", geoLocationService, metrics, vendorListService, jacksonMapper);
+        gdprService = new GdprService(emptyList(), "1", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future =
@@ -354,9 +264,8 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndConsentParamIsValidAndCountryIsInEEA() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(
-                singletonList("country1"), "1", geoLocationService, metrics, vendorListService, jacksonMapper);
+                singletonList("country1"), "1", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future =
@@ -373,7 +282,7 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndNoIpButGdprDefaultValueIsZero() {
         // given
-        gdprService = new GdprService(emptyList(), "0", null, metrics, vendorListService, jacksonMapper);
+        gdprService = new GdprService(emptyList(), "0", null, metrics, vendorListService);
 
         // when
         final Future<?> future =

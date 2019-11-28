@@ -235,7 +235,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
     public void isConsentRequiredShouldReturnFalseWhenRegsOrRegsExtIsNull() {
         // given
         final Regs regs = Regs.of(null, null);
-        final Regs regsWithGdprNull = Regs.of(null, mapper.valueToTree(ExtRegs.of(null)));
+        final Regs regsWithGdprNull = Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null)));
 
         // when and then
         assertThat(requestUtil.isConsentRequired(null)).isFalse();
@@ -246,9 +246,9 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsExtIsNot1() {
         // given
-        final Regs regsWith3 = Regs.of(null, mapper.valueToTree(ExtRegs.of(3)));
-        final Regs regsWith0 = Regs.of(null, mapper.valueToTree(ExtRegs.of(0)));
-        final Regs regsWith100 = Regs.of(null, mapper.valueToTree(ExtRegs.of(100)));
+        final Regs regsWith3 = Regs.of(null, mapper.valueToTree(ExtRegs.of(3, null)));
+        final Regs regsWith0 = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
+        final Regs regsWith100 = Regs.of(null, mapper.valueToTree(ExtRegs.of(100, null)));
 
         // when and then
         assertThat(requestUtil.isConsentRequired(regsWith0)).isFalse();
@@ -259,7 +259,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void isConsentRequiredShouldReturnTrueWhenRegsExtIs1() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
 
         // when and then
         assertThat(requestUtil.isConsentRequired(regs)).isTrue();
@@ -271,7 +271,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final Imp notBannerImp = Imp.builder().build();
         final Banner banner = Banner.builder().format(Collections.emptyList()).build();
         final Imp bannerImpEmptyFormat = Imp.builder().banner(banner).build();
-        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList());
+        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList(), null);
 
         // when and then
         final Size expected = Size.of(1, 1);
@@ -286,7 +286,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final List<Format> formats = Collections.singletonList(Format.builder().w(200).h(200).build());
         final Banner banner = Banner.builder().format(formats).build();
         final Imp imp = Imp.builder().banner(banner).build();
-        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Arrays.asList(100, 100));
+        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Arrays.asList(100, 100), null);
 
         // when and then
         final Size expected = Size.of(100, 100);
@@ -303,7 +303,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final List<Format> formats = Arrays.asList(firstFormat, secondFormat, thirdFormat);
         final Banner banner = Banner.builder().format(formats).build();
         final Imp imp = Imp.builder().banner(banner).build();
-        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList());
+        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList(), null);
 
         // when and then
         final Size expected = Size.of(320, 300);

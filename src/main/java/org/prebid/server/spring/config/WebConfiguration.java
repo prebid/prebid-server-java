@@ -27,7 +27,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
@@ -51,6 +50,8 @@ import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
@@ -220,6 +221,7 @@ public class WebConfiguration {
             HttpAdapterConnector httpAdapterConnector,
             Clock clock,
             GdprService gdprService,
+            PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
@@ -233,6 +235,7 @@ public class WebConfiguration {
                 httpAdapterConnector,
                 clock,
                 gdprService,
+                privacyExtractor,
                 mapper,
                 hostVendorId,
                 useGeoLocation);

@@ -20,9 +20,10 @@ import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
@@ -53,13 +54,17 @@ public class HttpAdapterConnector {
     private static final Logger logger = LoggerFactory.getLogger(HttpAdapterConnector.class);
 
     private final HttpClient httpClient;
-    private final GdprService gdprService;
+    private final PrivacyExtractor privacyExtractor;
     private final Clock clock;
     private final JacksonMapper mapper;
 
-    public HttpAdapterConnector(HttpClient httpClient, GdprService gdprService, Clock clock, JacksonMapper mapper) {
+    public HttpAdapterConnector(HttpClient httpClient,
+                                PrivacyExtractor privacyExtractor,
+                                Clock clock,
+                                JacksonMapper mapper) {
+
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.gdprService = Objects.requireNonNull(gdprService);
+        this.privacyExtractor = Objects.requireNonNull(privacyExtractor);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -208,12 +213,10 @@ public class HttpAdapterConnector {
         if (preBidRequest.getApp() == null
                 && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.getCookieFamilyName()) == null) {
 
-            final String gdpr = gdprService.gdprFrom(preBidRequest.getRegs());
-            final String gdprConsent = gdprService.gdprConsentFrom(preBidRequest.getUser());
-
+            final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(UsersyncInfo.from(usersyncer).withGdpr(gdpr, gdprConsent).assemble());
+                    .usersync(UsersyncInfo.from(usersyncer).withPrivacy(privacy).assemble());
         }
 
         final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()

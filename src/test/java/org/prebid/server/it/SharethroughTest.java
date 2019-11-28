@@ -46,7 +46,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withQueryParam("adRequestAt", equalTo(TEST_FORMATTED_TIME))
                 .withQueryParam("ttduid", equalTo("id"))
                 .withQueryParam("stxuid", equalTo("STR-UID"))
-                .withQueryParam("strVersion", equalTo("4"))
+                .withQueryParam("strVersion", equalTo("7"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("Android Chrome/60"))

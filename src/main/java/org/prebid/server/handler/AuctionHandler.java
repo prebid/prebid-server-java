@@ -24,11 +24,13 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
@@ -73,6 +75,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final HttpAdapterConnector httpAdapterConnector;
     private final Clock clock;
     private final GdprService gdprService;
+    private final PrivacyExtractor privacyExtractor;
     private final JacksonMapper mapper;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
@@ -85,7 +88,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           HttpAdapterConnector httpAdapterConnector,
                           Clock clock,
                           GdprService gdprService,
-                          JacksonMapper mapper,
+                          PrivacyExtractor privacyExtractor, JacksonMapper mapper,
                           Integer gdprHostVendorId,
                           boolean useGeoLocation) {
 
@@ -97,6 +100,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
         this.clock = Objects.requireNonNull(clock);
         this.gdprService = Objects.requireNonNull(gdprService);
+        this.privacyExtractor = Objects.requireNonNull(privacyExtractor);
         this.mapper = Objects.requireNonNull(mapper);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
@@ -242,11 +246,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
             vendorIds.add(gdprHostVendorId);
         }
 
-        final String gdpr = gdprService.gdprFrom(preBidRequestContext.getPreBidRequest().getRegs());
-        final String gdprConsent = gdprService.gdprConsentFrom(preBidRequestContext.getPreBidRequest().getUser());
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
         final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
 
-        return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdpr, gdprConsent, ip,
+        return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, privacy.getGdpr(), privacy.getConsent(), ip,
                 preBidRequestContext.getTimeout())
                 .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getVendorsToGdpr(), hostVendorIdIsMissing));
     }

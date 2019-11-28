@@ -9,7 +9,6 @@
           "price": 4.75,
           "adm": "adm7",
           "crid": "crid7",
-          "dealid": "dealId7",
           "w": 300,
           "h": 600,
           "ext": {
@@ -18,7 +17,6 @@
               "targeting": {
                 "hb_cache_host_lifestreet": "{{ cache.host }}",
                 "hb_cache_id": "f0bfa534-ca56-42bc-9b91-a801f8f202c2",
-                "hb_deal_lifestreet": "dealId7",
                 "hb_bidder_lifestreet": "lifestreet",
                 "hb_pb": "4.70",
                 "hb_size_lifestreet": "300x600",
@@ -28,8 +26,7 @@
                 "hb_pb_lifestreet": "4.70",
                 "hb_bidder": "lifestreet",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_id_lifestreet": "f0bfa534-ca56-42bc-9b91-a801f8f202c2",
-                "hb_deal": "dealId7"
+                "hb_cache_id_lifestreet": "f0bfa534-ca56-42bc-9b91-a801f8f202c2"
               },
               "cache": {
                 "bids": {
@@ -46,7 +43,6 @@
           "price": 3.75,
           "adm": "adm71",
           "crid": "crid71",
-          "dealid": "dealId71",
           "w": 300,
           "h": 600,
           "ext": {
@@ -55,7 +51,6 @@
               "targeting": {
                 "hb_cache_host_lifestreet": "{{ cache.host }}",
                 "hb_cache_id": "04f8b42b-7927-4930-a0b1-0ab16a441e91",
-                "hb_deal_lifestreet": "dealId71",
                 "hb_bidder_lifestreet": "lifestreet",
                 "hb_pb": "3.70",
                 "hb_size_lifestreet": "300x600",
@@ -67,7 +62,6 @@
                 "hb_bidder": "lifestreet",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_id_lifestreet": "04f8b42b-7927-4930-a0b1-0ab16a441e91",
-                "hb_deal": "dealId71",
                 "hb_uuid_lifestreet": "7e5320e5-ad46-439e-a7eb-f4cb826d8ab6"
               },
               "cache": {
@@ -96,20 +90,20 @@
           {
             "uri": "{{ lifestreet.exchange_uri }}",
             "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId7\",\"banner\":{\"w\":300,\"h\":600},\"tagid\":\"slot.tag\",\"ext\":{\"bidder\":{\"slot_tag\":\"slot.tag\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"LS-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
-            "responsebody": "{\"id\":\"bidResponseId7\",\"seatbid\":[{\"bid\":[{\"id\":\"847761866\",\"impid\":\"impId7\",\"price\":4.75,\"adm\":\"adm7\",\"crid\":\"crid7\",\"dealid\":\"dealId7\",\"w\":300,\"h\":600}],\"seat\":\"seatId7\",\"group\":0}]}",
+            "responsebody": "{\"id\":\"bidResponseId7\",\"seatbid\":[{\"bid\":[{\"id\":\"847761866\",\"impid\":\"impId7\",\"price\":4.75,\"adm\":\"adm7\",\"crid\":\"crid7\",\"w\":300,\"h\":600}],\"seat\":\"seatId7\",\"group\":0}]}",
             "status": 200
           },
           {
             "uri": "{{ lifestreet.exchange_uri }}",
             "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId71\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":600,\"skipmin\":0,\"skipafter\":0},\"tagid\":\"slot.tag\",\"ext\":{\"bidder\":{\"slot_tag\":\"slot.tag\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"LS-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
-            "responsebody": "{\"id\":\"bidResponseId71\",\"seatbid\":[{\"bid\":[{\"id\":\"791858127\",\"impid\":\"impId71\",\"price\":3.75,\"adm\":\"adm71\",\"crid\":\"crid71\",\"dealid\":\"dealId71\",\"w\":300,\"h\":600}],\"seat\":\"seatId71\",\"group\":0}]}",
+            "responsebody": "{\"id\":\"bidResponseId71\",\"seatbid\":[{\"bid\":[{\"id\":\"791858127\",\"impid\":\"impId71\",\"price\":3.75,\"adm\":\"adm71\",\"crid\":\"crid71\",\"w\":300,\"h\":600}],\"seat\":\"seatId71\",\"group\":0}]}",
             "status": 200
           }
         ],
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"791858127\",\"impid\":\"impId71\",\"price\":3.75,\"adm\":\"adm71\",\"crid\":\"crid71\",\"dealid\":\"dealId71\",\"w\":300,\"h\":600}},{\"type\":\"json\",\"value\":{\"id\":\"847761866\",\"impid\":\"impId7\",\"price\":4.75,\"adm\":\"adm7\",\"crid\":\"crid7\",\"dealid\":\"dealId7\",\"w\":300,\"h\":600}},{\"type\":\"xml\",\"value\":\"adm71\",\"expiry\":120}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"791858127\",\"impid\":\"impId71\",\"price\":3.75,\"adm\":\"adm71\",\"crid\":\"crid71\",\"w\":300,\"h\":600}},{\"type\":\"json\",\"value\":{\"id\":\"847761866\",\"impid\":\"impId7\",\"price\":4.75,\"adm\":\"adm7\",\"crid\":\"crid7\",\"w\":300,\"h\":600}},{\"type\":\"xml\",\"value\":\"adm71\",\"expiry\":120}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"04f8b42b-7927-4930-a0b1-0ab16a441e91\"},{\"uuid\":\"f0bfa534-ca56-42bc-9b91-a801f8f202c2\"},{\"uuid\":\"7e5320e5-ad46-439e-a7eb-f4cb826d8ab6\"}]}",
             "status": 200
           }

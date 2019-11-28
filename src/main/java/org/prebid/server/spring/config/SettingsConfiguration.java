@@ -61,7 +61,7 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.stored-responses-dir}") String storedResponsesDir,
                 FileSystem fileSystem) {
 
-            return FileApplicationSettings.create(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
+            return new FileApplicationSettings(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
                     storedResponsesDir);
         }
     }
@@ -76,6 +76,7 @@ public class SettingsConfiguration {
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponseQuery,
                 JdbcClient jdbcClient) {
+
             return new JdbcApplicationSettings(jdbcClient, storedRequestsQuery, ampStoredRequestsQuery,
                     storedResponseQuery);
         }

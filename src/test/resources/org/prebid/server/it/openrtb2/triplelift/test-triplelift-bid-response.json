@@ -6,7 +6,7 @@
       "bid": [
         {
           "id": "7706636740145184841",
-          "impid": "test-imp-id",
+          "impid": "impId1",
           "price": 0.5,
           "adid": "29681110",
           "adm": "some-test-ad",

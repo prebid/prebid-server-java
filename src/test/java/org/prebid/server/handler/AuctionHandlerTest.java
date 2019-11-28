@@ -33,10 +33,11 @@ import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -112,6 +113,7 @@ public class AuctionHandlerTest extends VertxTest {
     private Clock clock;
     @Mock
     private GdprService gdprService;
+    private PrivacyExtractor privacyExtractor;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -152,6 +154,8 @@ public class AuctionHandlerTest extends VertxTest {
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, emptyMap(), null)));
 
+        privacyExtractor = new PrivacyExtractor(jacksonMapper);
+
         auctionHandler = new AuctionHandler(
                 applicationSettings,
                 bidderCatalog,
@@ -161,6 +165,7 @@ public class AuctionHandlerTest extends VertxTest {
                 httpAdapterConnector,
                 clock,
                 gdprService,
+                privacyExtractor,
                 jacksonMapper,
                 null,
                 false);
@@ -828,7 +833,7 @@ public class AuctionHandlerTest extends VertxTest {
                 metrics,
                 httpAdapterConnector,
                 clock, gdprService,
-                jacksonMapper,
+                privacyExtractor, jacksonMapper,
                 1,
                 false);
 

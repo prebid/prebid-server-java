@@ -95,7 +95,7 @@ public class AdformRequestUtilTest extends VertxTest {
     public void getGdprAppliesShouldReturnEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
         final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(2))));
+                Regs.of(null, mapper.valueToTree(ExtRegs.of(2, null))));
 
         // then
         assertThat(gdpr).isEmpty();
@@ -105,7 +105,7 @@ public class AdformRequestUtilTest extends VertxTest {
     public void getGdprAppliesShouldReturnOne() {
         // given and when
         final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
+                Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))));
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -115,7 +115,7 @@ public class AdformRequestUtilTest extends VertxTest {
     public void getGdprAppliesShouldReturnZero() {
         // given and when
         final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(0))));
+                Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null))));
 
         // then
         assertThat(gdpr).isEqualTo("0");

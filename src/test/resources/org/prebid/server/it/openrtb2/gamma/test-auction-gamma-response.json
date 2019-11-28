@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "7706636740145184841",
-          "impid": "test-imp-id",
+          "impid": "impId1",
           "price": 0.5,
           "adm": "some-test-ad",
           "adid": "29681110",
@@ -53,15 +53,15 @@
       "httpcalls": {
         "gamma": [
           {
-            "uri": "{{ gamma.exchange_uri }}/?id=id&zid=zid&wid=wid&bidid=bid&hb=pbmobile&device_ip=123.123.123.12&device_ua=Android+Chrome%2F60&device_ifa=ifaId",
-            "responsebody": "{\"id\":\"test-request-id\",\"seatbid\":[{\"seat\":\"958\",\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"sample.com\"],\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
+            "uri": "{{ gamma.exchange_uri }}/?id=id&zid=zid&wid=wid&bidid=impId1&hb=pbmobile&device_ip=123.123.123.12&device_ua=Android+Chrome%2F60&device_ifa=ifaId",
+            "responsebody": "{\"id\":\"test-request-id\",\"seatbid\":[{\"seat\":\"958\",\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"impId1\",\"price\":0.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"sample.com\"],\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
             "status": 200
           }
         ],
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"sample.com\"],\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"impId1\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"sample.com\"],\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"7e703396-6b75-4a10-9ef3-bc61ca7ce437\"}]}",
             "status": 200
           }
@@ -71,7 +71,7 @@
         "id": "bidid",
         "imp": [
           {
-            "id": "bid",
+            "id": "impId1",
             "banner": {
               "format": [
                 {

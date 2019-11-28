@@ -2,10 +2,12 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -25,11 +27,13 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class CurrencyConversionServiceTest extends VertxTest {
@@ -240,19 +244,25 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 .withMessage("no currency conversion available");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void initializeShouldMakeOneInitialRequestAndTwoScheduled() {
         // given
-        final Vertx vertx = Vertx.vertx();
+        given(vertx.setPeriodic(anyLong(), any())).willReturn(1L);
         final HttpClient httpClient = mock(HttpClient.class);
         givenHttpClientReturnsResponse(httpClient, 200, "{\"foo\": \"bar\"}");
 
-        // when
+        // when and then
         currencyService = createAndInitService(URL, 1000, vertx, httpClient);
 
-        // then
-        verify(httpClient, after(2100).times(3)).get(anyString(), anyLong());
-        vertx.close();
+        final ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        verify(vertx).setPeriodic(eq(1000L), handlerCaptor.capture());
+        // fire timer two times
+        final Handler<Long> handler = handlerCaptor.getValue();
+        handler.handle(1L);
+        handler.handle(1L);
+
+        verify(httpClient, times(3)).get(anyString(), anyLong());
     }
 
     private static CurrencyConversionService createAndInitService(String url, long refreshPeriod, Vertx vertx,

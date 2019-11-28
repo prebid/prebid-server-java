@@ -385,7 +385,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
-                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)))));
 
         // when
         final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
