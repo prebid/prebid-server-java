@@ -6,7 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -22,6 +22,7 @@ import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
@@ -32,17 +33,13 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
-import org.prebid.server.health.ApplicationChecker;
-import org.prebid.server.health.DatabaseHealthChecker;
-import org.prebid.server.health.GeoLocationHealthChecker;
-import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -56,7 +53,6 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -86,6 +82,7 @@ public class ServiceConfiguration {
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             EventsService eventsService,
             HttpClient httpClient,
+            Metrics metrics,
             Clock clock) {
 
         return new CacheService(
@@ -94,6 +91,7 @@ public class ServiceConfiguration {
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
                 eventsService,
+                metrics,
                 clock);
     }
 
@@ -205,7 +203,8 @@ public class ServiceConfiguration {
 
         return createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
                 httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects());
+                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
+                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
     }
 
     @Bean
@@ -227,14 +226,17 @@ public class ServiceConfiguration {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
                 httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects());
+                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
+                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
                 circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(), clock);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression, int maxRedirects) {
+                                                         boolean useCompression, int maxRedirects, boolean ssl,
+                                                         String jksPath, String jksPassword) {
+
         final HttpClientOptions options = new HttpClientOptions()
                 .setMaxPoolSize(maxPoolSize)
                 .setTryUseCompression(useCompression)
@@ -242,6 +244,16 @@ public class ServiceConfiguration {
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
                 .setMaxRedirects(maxRedirects + 1);
+
+        if (ssl) {
+            final JksOptions jksOptions = new JksOptions()
+                    .setPath(jksPath)
+                    .setPassword(jksPassword);
+
+            options
+                    .setSsl(true)
+                    .setKeyStoreOptions(jksOptions);
+        }
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
@@ -296,8 +308,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequester httpBidderRequester(HttpClient httpClient) {
-        return new HttpBidderRequester(httpClient);
+    HttpBidderRequester httpBidderRequester(
+            HttpClient httpClient,
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
     }
 
     @Bean
@@ -339,9 +354,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    StoredResponseProcessor storedResponseProcessor(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog) {
+    StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
+                                                    BidderCatalog bidderCatalog) {
 
         return new StoredResponseProcessor(applicationSettings, bidderCatalog);
     }
@@ -352,6 +366,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             Metrics metrics,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
+
         return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
     }
 
@@ -390,7 +405,7 @@ public class ServiceConfiguration {
 
     @Bean
     Clock clock() {
-        return Clock.systemDefaultZone();
+        return Clock.systemUTC();
     }
 
     @Bean
@@ -485,37 +500,6 @@ public class ServiceConfiguration {
 
             remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
-        }
-    }
-
-    @Configuration
-    @ConditionalOnProperty("status-response")
-    @ConditionalOnExpression("'${status-response}' != ''")
-    static class HealthCheckerConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
-        HealthChecker databaseChecker(
-                Vertx vertx,
-                JDBCClient jdbcClient,
-                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
-
-            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
-        }
-
-        @Bean
-        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
-        HealthChecker geoLocationChecker(
-                Vertx vertx,
-                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
-                GeoLocationService geoLocationService,
-                TimeoutFactory timeoutFactory) {
-            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
-        }
-
-        @Bean
-        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
-            return new ApplicationChecker(statusResponse);
         }
     }
 }

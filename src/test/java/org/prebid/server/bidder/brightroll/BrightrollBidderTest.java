@@ -63,7 +63,7 @@ public class BrightrollBidderTest extends VertxTest {
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
                 .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                 .build();
 
         // when
@@ -93,7 +93,7 @@ public class BrightrollBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                         .at(1)
                         .build()));
     }

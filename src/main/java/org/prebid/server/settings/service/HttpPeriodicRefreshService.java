@@ -14,6 +14,7 @@ import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.proto.response.HttpRefreshResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -57,7 +58,7 @@ import java.util.Objects;
  * To signal deletions, the endpoint may return { "deleted": true }
  * in place of the Stored Data if the "last-modified" param existed.
  */
-public class HttpPeriodicRefreshService {
+public class HttpPeriodicRefreshService implements Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpPeriodicRefreshService.class);
 
@@ -79,6 +80,7 @@ public class HttpPeriodicRefreshService {
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
+    @Override
     public void initialize() {
         getAll();
         if (refreshPeriod > 0) {

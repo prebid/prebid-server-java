@@ -19,7 +19,7 @@ adapters:
       vendor-id: 341
     usersync:
       url: //publisher-east.mobileadtrading.com/usersync?ru=
-      redirect-url: /setuid?bidder=somoaudience&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=${UID}
+      redirect-url: /setuid?bidder=somoaudience&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: somoaudience
       type: redirect
       support-cors: false

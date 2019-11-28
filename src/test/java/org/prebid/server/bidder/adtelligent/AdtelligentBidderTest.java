@@ -62,7 +62,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .user(User.builder()
                         .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                         .build())
-                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                 .build();
 
         // when
@@ -89,7 +89,7 @@ public class AdtelligentBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                         .build()));
     }
 

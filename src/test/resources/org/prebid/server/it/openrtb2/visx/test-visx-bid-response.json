@@ -6,7 +6,7 @@
         {
           "price": 0.500000,
           "adm": "some-test-ad",
-          "impid": "1",
+          "impid": "test-imp-id",
           "auid": 46,
           "id": "1",
           "h": 250,

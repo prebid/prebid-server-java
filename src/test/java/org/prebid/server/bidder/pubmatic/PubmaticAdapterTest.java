@@ -238,7 +238,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -278,7 +278,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .buyeruid("buyerUid")
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .source(Source.builder()
                                 .fd(1)
                                 .tid("tid")

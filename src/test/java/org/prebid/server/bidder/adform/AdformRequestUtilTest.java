@@ -86,7 +86,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getGdprAppliesShouldReturnEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
-        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(2))));
+        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(2, null))));
 
         // then
         assertThat(gdpr).isEmpty();
@@ -95,7 +95,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getGdprAppliesShouldReturnOne() {
         // given and when
-        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
+        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))));
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -104,7 +104,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getGdprAppliesShouldReturnZero() {
         // given and when
-        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(0))));
+        final String gdpr = AdformRequestUtil.getGdprApplies(Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null))));
 
         // then
         assertThat(gdpr).isEqualTo("0");

@@ -241,7 +241,7 @@ public class OpenxBidderTest extends VertxTest {
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                 .build();
 
         // when
@@ -286,7 +286,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                         .build())
-                                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest
                         BidRequest.builder()
@@ -309,7 +309,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                         .build())
-                                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest
                         BidRequest.builder()
@@ -330,7 +330,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                         .build())
-                                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
+                                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build());
     }
 
