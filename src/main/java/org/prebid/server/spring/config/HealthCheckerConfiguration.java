@@ -29,7 +29,7 @@ public class HealthCheckerConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
+    @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${geolocation.enabled} == true")
     HealthChecker geoLocationChecker(Vertx vertx,
                                      @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
                                      GeoLocationService geoLocationService,
