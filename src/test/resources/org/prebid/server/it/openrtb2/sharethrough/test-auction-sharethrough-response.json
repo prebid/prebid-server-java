@@ -50,7 +50,7 @@
       "httpcalls": {
         "sharethrough": [
           {
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=7&ttduid=id&stxuid=STR-UID",
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=7&ttduid=id&stxuid=STR-UID",
             "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":1000,\"deadline\":\"{{ DEADLINE_FORMATTED_TIME }}\",\"bidfloor\":3.5}",
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\"},\"version\":0}]}",
             "status": 200
