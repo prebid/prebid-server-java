@@ -50,8 +50,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpDatablocks extImpDatablocks = parseAndValidateImpExt(imp.getExt());
-                extToImps.putIfAbsent(extImpDatablocks, new ArrayList<>());
-                extToImps.get(extImpDatablocks).add(imp);
+                extToImps.computeIfAbsent(extImpDatablocks, ext -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
