@@ -163,19 +163,19 @@
         "openx": [
           {
             "uri": "{{ openx.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId011\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\",\"multifoo\":[\"bar1\",\"bar2\"]}}},{\"id\":\"impId02\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"OX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"delDomain\":\"se-demo-d.openx.net\",\"bc\":\"hb_pbs_1.0.0\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId011\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\",\"multifoo\":[\"bar1\",\"bar2\"]}}},{\"id\":\"impId02\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"OX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"delDomain\":\"se-demo-d.openx.net\",\"bc\":\"hb_pbs_1.0.0\"}}",
             "responsebody": "{\"id\":\"bidRequest00\",\"seatbid\":[{\"bid\":[{\"id\":\"600527793\",\"impid\":\"impId011\",\"price\":5.78,\"adm\":\"adm00\",\"crid\":\"crid00\",\"w\":300,\"h\":250},{\"id\":\"600527794\",\"impid\":\"impId02\",\"price\":5.78,\"adm\":\"adm001\",\"crid\":\"crid00\",\"w\":300,\"h\":250}],\"seat\":\"seatId00\",\"group\":0}]}",
             "status": 200
           },
           {
             "uri": "{{ openx.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId03\",\"video\":{\"mimes\":[\"video/x-flv\",\"video/mp4\"],\"w\":900,\"h\":250,\"skipmin\":0,\"skipafter\":0},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"OX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"delDomain\":\"se-demo-d.openx.net\",\"bc\":\"hb_pbs_1.0.0\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId03\",\"video\":{\"mimes\":[\"video/x-flv\",\"video/mp4\"],\"w\":900,\"h\":250,\"skipmin\":0,\"skipafter\":0},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"OX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"delDomain\":\"se-demo-d.openx.net\",\"bc\":\"hb_pbs_1.0.0\"}}",
             "responsebody": "{\"id\":\"bidRequest00\",\"seatbid\":[{\"bid\":[{\"id\":\"600527795\",\"impid\":\"impId03\",\"price\":5.78,\"adm\":\"adm002\",\"crid\":\"crid00\",\"w\":300,\"h\":250}],\"seat\":\"seatId00\",\"group\":0}]}",
             "status": 200
           },
           {
             "uri": "{{ openx.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId04\",\"video\":{\"mimes\":[\"video/x-flv\",\"video/mp4\"],\"w\":900,\"h\":250,\"skipmin\":0,\"skipafter\":0},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"OX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"delDomain\":\"se-demo-d.openx.net\",\"bc\":\"hb_pbs_1.0.0\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId04\",\"video\":{\"mimes\":[\"video/x-flv\",\"video/mp4\"],\"w\":900,\"h\":250,\"skipmin\":0,\"skipafter\":0},\"tagid\":\"539439964\",\"bidfloor\":0.1,\"ext\":{\"customParams\":{\"foo\":\"bar\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"OX-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"delDomain\":\"se-demo-d.openx.net\",\"bc\":\"hb_pbs_1.0.0\"}}",
             "responsebody": "{\"id\":\"bidRequest00\",\"seatbid\":[{\"bid\":[{\"id\":\"600527796\",\"impid\":\"impId04\",\"price\":5.78,\"adm\":\"adm003\",\"crid\":\"crid00\",\"w\":300,\"h\":250}],\"seat\":\"seatId00\",\"group\":0}]}",
             "status": 200
           }
@@ -315,7 +315,7 @@
         },
         "test": 1,
         "at": 1,
-        "tmax": 1000,
+        "tmax": 3000,
         "cur": [
           "USD"
         ],
@@ -371,6 +371,6 @@
       "openx": "{{ openx.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 1000
+    "tmaxrequest": 3000
   }
 }

@@ -47,7 +47,7 @@
         "audienceNetwork": [
           {
             "uri": "{{ audienceNetwork.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId5\",\"banner\":{\"format\":[{\"w\":320,\"h\":50}],\"w\":0,\"h\":50},\"tagid\":\"pub1_place1\",\"ext\":{\"platformid\":101}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"FB-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId5\",\"banner\":{\"format\":[{\"w\":320,\"h\":50}],\"w\":0,\"h\":50},\"tagid\":\"pub1_place1\",\"ext\":{\"platformid\":101}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"FB-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
             "responsebody": "{\"id\":\"bidResponseId5\",\"seatbid\":[{\"bid\":[{\"id\":\"347088686\",\"impid\":\"impId5\",\"price\":9.0,\"adm\":\"adm5\",\"crid\":\"crid5\",\"w\":0,\"h\":50}],\"seat\":\"seatId5\",\"group\":0}]}",
             "status": 200
           }
@@ -113,7 +113,7 @@
         },
         "test": 1,
         "at": 1,
-        "tmax": 1000,
+        "tmax": 3000,
         "cur": [
           "USD"
         ],
@@ -169,6 +169,6 @@
       "audienceNetwork": "{{ audienceNetwork.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 1000
+    "tmaxrequest": 3000
   }
 }
