@@ -62,6 +62,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchains;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -352,6 +353,63 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidders2).isNotNull();
         assertThat(bidders2.fields()).hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
+    }
+
+    @Test
+    public void shouldPassRequestWithInjectedSchainInSourceExt() {
+        // given
+        final String bidder1Name = "bidder1";
+        final String bidder2Name = "bidder2";
+        final String bidder3Name = "bidder3";
+        final Bidder<?> bidder1 = mock(Bidder.class);
+        final Bidder<?> bidder2 = mock(Bidder.class);
+        final Bidder<?> bidder3 = mock(Bidder.class);
+        givenBidder(bidder1Name, bidder1, givenEmptySeatBid());
+        givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
+        givenBidder(bidder3Name, bidder3, givenEmptySeatBid());
+
+        final ObjectNode schainObject = mapper.createObjectNode().put("var", "1");
+        final ObjectNode allSchainObject = mapper.createObjectNode().put("any", "any");
+        final ExtRequestPrebidSchains schain1 = ExtRequestPrebidSchains.of(Arrays.asList(bidder1Name, bidder2Name), schainObject);
+        final ExtRequestPrebidSchains allSchain = ExtRequestPrebidSchains.of(singletonList("*"), allSchainObject);
+        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(
+                ExtRequestPrebid.builder()
+                        .schains(Arrays.asList(schain1, allSchain))
+                        .build()));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(singletonMap(bidder1Name, 1), identity()),
+                givenImp(singletonMap(bidder2Name, 2), identity()),
+                givenImp(singletonMap(bidder3Name, 3), identity())),
+                reqBuilder -> reqBuilder.ext(ext));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest1 = bidRequest1Captor.getValue();
+        final JsonNode requestSchain1 = capturedBidRequest1.getSource().getExt().get("schain");
+        assertThat(requestSchain1).isNotNull();
+        assertThat(requestSchain1).isEqualTo(schainObject);
+        assertThat(capturedBidRequest1.getExt().get("prebid").get("schains")).isNull();
+
+        final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
+        final JsonNode requestSchain2 = capturedBidRequest2.getSource().getExt().get("schain");
+        assertThat(requestSchain2).isNotNull();
+        assertThat(requestSchain2).isEqualTo(schainObject);
+        assertThat(capturedBidRequest2.getExt().get("prebid").get("schains")).isNull();
+
+        final ArgumentCaptor<BidRequest> bidRequest3Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder3), bidRequest3Captor.capture(), any(), anyBoolean());
+        final BidRequest capturedBidRequest3 = bidRequest3Captor.getValue();
+        final JsonNode requestSchain3 = capturedBidRequest3.getSource().getExt().get("schain");
+        assertThat(requestSchain3).isNotNull();
+        assertThat(requestSchain3).isEqualTo(allSchainObject);
+        assertThat(capturedBidRequest3.getExt().get("prebid").get("schains")).isNull();
     }
 
     @Test

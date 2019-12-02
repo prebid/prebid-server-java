@@ -203,6 +203,32 @@
   },
   "ext": {
     "prebid": {
+      "schains": [
+        {
+          "bidders": [
+            "rubicon"
+          ],
+          "schain": {
+            "ver": "1.0",
+            "complete": 1,
+            "nodes": [
+              {
+                "asi": "superads.com",
+                "sid": "123",
+                "hp": 1
+              }
+            ]
+          }
+        },
+        {
+          "bidders": [
+            "*"
+          ],
+          "schain": {
+            "ver": "1.0"
+          }
+        }
+      ],
       "bidders": {
         "rubicon": {
           "integration": "dmbjs"
@@ -284,4 +310,5 @@
     "ext": {
       "us_privacy": "1YN"
     }
-  }}
+  }
+}
