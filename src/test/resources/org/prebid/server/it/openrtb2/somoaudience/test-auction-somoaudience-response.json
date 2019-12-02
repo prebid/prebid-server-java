@@ -162,19 +162,19 @@
         "somoaudience": [
           {
             "uri": "{{ somoaudience.exchange_uri }}?s=placementId02",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId16\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"bidfloor\":1.5},{\"id\":\"impId17\",\"banner\":{\"format\":[{\"w\":360,\"h\":240}]},\"bidfloor\":1.33}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":\"hb_pbs_1.0.0\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId16\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"bidfloor\":1.5},{\"id\":\"impId17\",\"banner\":{\"format\":[{\"w\":360,\"h\":240}]},\"bidfloor\":1.33}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":\"hb_pbs_1.0.0\"}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bidId01\",\"impid\":\"impId16\",\"price\":8.43,\"adm\":\"adm16\",\"crid\":\"crid16\",\"w\":300,\"h\":250},{\"id\":\"bidId02\",\"impid\":\"impId17\",\"price\":7.99,\"adm\":\"adm17\",\"crid\":\"crid17\",\"w\":360,\"h\":240}],\"seat\":\"seatId01\"}]}",
             "status": 200
           },
           {
             "uri": "{{ somoaudience.exchange_uri }}?s=placementId03",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId18\",\"video\":{\"mimes\":[\"video/mp4\"],\"protocols\":[2,5],\"w\":1024,\"h\":576,\"skipmin\":0,\"skipafter\":0},\"bidfloor\":2.1}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":\"hb_pbs_1.0.0\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId18\",\"video\":{\"mimes\":[\"video/mp4\"],\"protocols\":[2,5],\"w\":1024,\"h\":576,\"skipmin\":0,\"skipafter\":0},\"bidfloor\":2.1}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":\"hb_pbs_1.0.0\"}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bidId03\",\"impid\":\"impId18\",\"price\":9.99,\"adm\":\"adm18\",\"crid\":\"crid18\",\"w\":1024,\"h\":576}],\"seat\":\"seatId02\"}]}",
             "status": 200
           },
           {
             "uri": "{{ somoaudience.exchange_uri }}?s=placementId04",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId19\",\"native\":{\"request\":\"{\\\"ver\\\":\\\"1.1\\\",\\\"context\\\":1,\\\"contextsubtype\\\":11,\\\"plcmttype\\\":4,\\\"plcmtcnt\\\":1,\\\"assets\\\":[{\\\"id\\\":0,\\\"required\\\":1,\\\"title\\\":{\\\"len\\\":500}}]}\",\"ver\":\"1.1\"},\"bidfloor\":1.9}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":\"hb_pbs_1.0.0\"}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId19\",\"native\":{\"request\":\"{\\\"ver\\\":\\\"1.1\\\",\\\"context\\\":1,\\\"contextsubtype\\\":11,\\\"plcmttype\\\":4,\\\"plcmtcnt\\\":1,\\\"assets\\\":[{\\\"id\\\":0,\\\"required\\\":1,\\\"title\\\":{\\\"len\\\":500}}]}\",\"ver\":\"1.1\"},\"bidfloor\":1.9}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"SM-UID\",\"ext\":{\"consent\":\"consentValue\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":\"hb_pbs_1.0.0\"}}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bidId04\",\"impid\":\"impId19\",\"price\":10.0,\"adid\":\"adid19\",\"adm\":\"{\\\"assets\\\":[{\\\"id\\\": 0,\\\"title\\\":{\\\"text\\\":\\\"This is an example Prebid Native creative\\\"}}],\\\"jstracker\\\":\\\"<script src=\\\\\\\"http://www.dummyurl.js\\\\\\\"></script>\\\"}\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=69595837\",\"cid\":\"cid19\",\"crid\":\"crid19\",\"cat\":[\"IAB3-1\"]}],\"seat\":\"seatId03\"}]}",
             "status": 200
           }
@@ -291,7 +291,7 @@
         },
         "test": 1,
         "at": 1,
-        "tmax": 1000,
+        "tmax": 3000,
         "cur": [
           "USD"
         ],
@@ -347,6 +347,6 @@
       "somoaudience": "{{ somoaudience.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 1000
+    "tmaxrequest": 3000
   }
 }
