@@ -22,8 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(SpringRunner.class)
 public class FacebookTest extends IntegrationTest {
 
-    private static final String FACEBOOK = "audienceNetwork";
-
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromFacebook() throws IOException, JSONException {
         // given
@@ -67,7 +65,7 @@ public class FacebookTest extends IntegrationTest {
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/facebook/test-auction-facebook-response.json",
-                response, singletonList(FACEBOOK));
+                response, singletonList("audienceNetwork"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
