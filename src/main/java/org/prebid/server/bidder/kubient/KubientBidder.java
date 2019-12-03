@@ -22,9 +22,12 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * kubient {@link Bidder} implementation.
@@ -41,14 +44,12 @@ public class KubientBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
-
         String body;
         try {
             body = Json.encode(request);
         } catch (EncodeException e) {
-            errors.add(BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
-            return Result.of(Collections.emptyList(), errors);
+            final String message = String.format("Failed to encode request body, error: %s", e.getMessage());
+            return Result.emptyWithError(BidderError.badInput(message));
         }
 
         return Result.of(Collections.singletonList(
@@ -59,7 +60,7 @@ public class KubientBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(request)
                         .build()),
-                errors);
+                Collections.emptyList());
     }
 
     @Override
@@ -80,24 +81,26 @@ public class KubientBidder implements Bidder<BidRequest> {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
-        final List<BidderBid> bidderBids = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            if (seatBid != null) {
-                final List<Bid> bids = seatBid.getBid();
-                if (bids != null) {
-                    for (Bid bid : bids) {
-                        try {
-                            final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-                            bidderBids.add(BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY));
-                        } catch (PreBidException e) {
-                            errors.add(BidderError.badInput(e.getMessage()));
-                        }
-                    }
-                }
-            }
-        }
+        final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> toBidderBid(bidRequest, bid, errors))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
+    }
+
+    private BidderBid toBidderBid(BidRequest bidRequest, Bid bid, List<BidderError> errors) {
+        try {
+            final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
     }
 
     private BidType getBidType(String impId, List<Imp> imps) {
