@@ -48,7 +48,6 @@ import static org.assertj.core.api.Assertions.tuple;
 public class FacebookBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test/auction";
-    private static final String NON_SECURED_ENDPOINT_URL = "http://test/auction";
     private static final String PLATFORM_ID = "101";
     private static final String APP_ID = "123";
     private static final String APP_SECRET = "6237";
@@ -58,45 +57,38 @@ public class FacebookBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        facebookBidder = new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, APP_ID, APP_SECRET);
+        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_ID, APP_SECRET);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(null, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, APP_ID, APP_SECRET));
+                () -> new FacebookBidder(null, PLATFORM_ID, APP_ID, APP_SECRET));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, null, PLATFORM_ID, APP_ID, APP_SECRET));
+                () -> new FacebookBidder(ENDPOINT_URL, null, APP_ID, APP_SECRET));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, null, APP_ID, APP_SECRET));
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, null, APP_SECRET));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, null, APP_SECRET));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, APP_ID, null));
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_ID, null));
     }
 
     @Test
     public void creationShouldFailOnBlankArguments() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL,  " ", APP_ID, APP_SECRET))
+                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_ID, APP_SECRET))
                 .withMessageStartingWith("No facebook platform-id specified.");
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, " ", APP_SECRET))
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " ", APP_SECRET))
                 .withMessageStartingWith("No facebook app-id specified.");
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID, APP_ID, " "))
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_ID, " "))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder("invalid_url", NON_SECURED_ENDPOINT_URL, PLATFORM_ID,
-                        APP_ID, APP_SECRET))
-                .withMessage("URL supplied is not valid: invalid_url");
-
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder(ENDPOINT_URL, "invalid_url", PLATFORM_ID,
+                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID,
                         APP_ID, APP_SECRET))
                 .withMessage("URL supplied is not valid: invalid_url");
     }

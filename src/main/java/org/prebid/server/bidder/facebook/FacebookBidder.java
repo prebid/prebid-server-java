@@ -58,16 +58,12 @@ public class FacebookBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
-    // not needed anymore?
-    private final String nonSecureEndpointUrl;
     private final String platformId;
     private final String appId;
     private final String appSecret;
 
-    public FacebookBidder(String endpointUrl, String nonSecureEndpointUrl, String platformId, String appId,
-                          String appSecret) {
+    public FacebookBidder(String endpointUrl, String platformId, String appId, String appSecret) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.nonSecureEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(nonSecureEndpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
         this.appId = checkBlankString(Objects.requireNonNull(appId), "app-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");

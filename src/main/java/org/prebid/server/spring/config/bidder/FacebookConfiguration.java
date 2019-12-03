@@ -46,8 +46,7 @@ public class FacebookConfiguration {
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, null))
                 .bidderCreator(configProperties.getEnabled()
-                        ? () -> new FacebookBidder(configProperties.getEndpoint(),
-                        configProperties.getNonSecureEndpoint(), configProperties.getPlatformId(),
+                        ? () -> new FacebookBidder(configProperties.getEndpoint(), configProperties.getPlatformId(),
                         configProperties.getAppId(), configProperties.getAppSecret())
                         : null)
                 .assemble();
@@ -58,9 +57,6 @@ public class FacebookConfiguration {
     @EqualsAndHashCode(callSuper = true)
     @NoArgsConstructor
     private static class FacebookConfigurationProperties extends BidderConfigurationProperties {
-
-        @NotNull
-        private String nonSecureEndpoint;
 
         @NotNull
         private String platformId;

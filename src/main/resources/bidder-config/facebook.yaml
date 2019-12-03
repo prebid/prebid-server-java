@@ -2,7 +2,6 @@ adapters:
   facebook:
     enabled: false
     endpoint: https://an.facebook.com/placementbid.ortb
-    non-secure-endpoint: http://an.facebook.com/placementbid.ortb
     platform-id:
     app-id:
     app-secret:
