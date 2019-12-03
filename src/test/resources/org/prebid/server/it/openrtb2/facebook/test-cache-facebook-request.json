@@ -3,14 +3,46 @@
     {
       "type": "json",
       "value": {
-        "id": "347088686",
-        "impid": "impId5",
+        "id": "bid2",
+        "impid": "impId002",
+        "price": 15,
+        "adm": "{\"bid_id\":\"10\"}",
+        "adid": "10",
+        "crid": "10",
+        "w": 0,
+        "h": 0
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bid3",
+        "impid": "impId003",
+        "price": 10,
+        "adm": "{\"bid_id\":\"10\"}",
+        "adid": "10",
+        "crid": "10",
+        "w": 0,
+        "h": 0
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bid1",
+        "impid": "impId001",
         "price": 9,
-        "adm": "adm5",
-        "crid": "crid5",
+        "adm": "{\"bid_id\":\"10\"}",
+        "adid": "10",
+        "crid": "10",
         "w": 0,
         "h": 50
       }
+    },
+    {
+      "type": "xml",
+      "value": "{\"bid_id\":\"10\"}",
+      "expiry": 120
     }
   ]
 }

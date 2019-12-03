@@ -1,8 +1,9 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
@@ -26,10 +27,13 @@ import java.util.List;
  * the offered types.
  */
 @Data
-@Builder
+@SuperBuilder
+@NoArgsConstructor
 public class Native {
 
-    /** Request payload complying with the Native Ad Specification. (required) */
+    /**
+     * Request payload complying with the Native Ad Specification. (required)
+     */
     String request;
 
     /**
@@ -44,9 +48,13 @@ public class Native {
      */
     List<Integer> api;
 
-    /** Blocked creative attributes. Refer to List 5.3. */
+    /**
+     * Blocked creative attributes. Refer to List 5.3.
+     */
     List<Integer> battr;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

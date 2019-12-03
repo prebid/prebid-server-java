@@ -4,6 +4,8 @@ adapters:
     endpoint: https://an.facebook.com/placementbid.ortb
     non-secure-endpoint: http://an.facebook.com/placementbid.ortb
     platform-id:
+    app-id:
+    app-secret:
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:
