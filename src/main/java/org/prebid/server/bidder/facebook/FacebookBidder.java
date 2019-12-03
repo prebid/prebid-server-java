@@ -270,27 +270,27 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
         try {
             final BidResponse bidResponse = Json.decodeValue(response.getBody(), BidResponse.class);
-            final List<BidderError> errors = new ArrayList<>();
-            return Result.of(extractBids(bidResponse, bidRequest.getImp(), errors), errors);
+            return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, imps, errors);
-    }
+    private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
-        return bidResponse.getSeatbid().stream()
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> toBidderBid(bid, imps, errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+
+        return Result.of(bidderBids, errors);
     }
 
     private static BidderBid toBidderBid(Bid bid, List<Imp> imps, List<BidderError> errors) {
