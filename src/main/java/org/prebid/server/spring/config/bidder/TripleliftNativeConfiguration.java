@@ -43,7 +43,8 @@ public class TripleliftNativeConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new TripleliftNativeBidder(configProperties.getEndpoint(), configProperties.getExtraInfo()))
+                .bidderCreator(() -> new TripleliftNativeBidder(configProperties.getEndpoint(),
+                        configProperties.getExtraInfo()))
                 .assemble();
     }
 }

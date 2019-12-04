@@ -1,7 +1,7 @@
 adapters:
   triplelift_native:
     enabled: false
-    endpoint:
+    endpoint: http://
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:

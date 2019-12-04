@@ -1,8 +1,13 @@
 package org.prebid.server.bidder.tripleliftnative;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -15,17 +20,22 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.tripleliftnative.ExtImpTripleliftNative;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class TripleliftNativeBidderTest extends VertxTest {
 
@@ -33,24 +43,72 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
     private TripleliftNativeBidder tripleliftNativeBidder;
 
-//    @Before
-//    public void setUp() {
-//        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, configProperties.getExtraInfo());
-//    }
-//
-//    @Test
-//    public void creationShouldFailOnInvalidEndpointUrl() {
-//        assertThatIllegalArgumentException().isThrownBy(() -> new TripleliftNativeBidder("invalid_url", configProperties.getExtraInfo()));
-//    }
+    @Before
+    public void setUp() {
+        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[\"foo\",\"bar\",\"baz\"]"));
+    }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new TripleliftNativeBidder("invalid_url", emptyMap()));
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidJsonPublisherWhiteList() {
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "bad")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenNoNativeTypeImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2)
+                .extracting(BidderError::getMessage)
+                .containsOnly("Unsupported publisher for triplelift_native", "no native object specified");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenInvCodeIsNotSpecifiedImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .xNative(Native.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTripleliftNative.of("", new BigDecimal(23)))))
                         .build()))
-                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2)
+                .extracting(BidderError::getMessage)
+                .containsOnly("Unsupported publisher for triplelift_native", "no inv_code specified");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorsWhenSitePublisherIdIsNotInWhitelist() {
+        // given
+        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().id("test").build()).build())
+                .imp(singletonList(Imp.builder()
+                        .xNative(Native.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTripleliftNative.of("inventoryCode", new BigDecimal(23)))))
+                        .build()))
                 .build();
 
         // when
@@ -58,18 +116,89 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported publisher for triplelift_native");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequest() {
+    public void makeHttpRequestsShouldReturnErrorsWhenAppPublisherIdIsNotInWhitelist() {
         // given
+        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().publisher(Publisher.builder().id("test").build()).build())
+                .imp(singletonList(Imp.builder()
+                        .xNative(Native.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTripleliftNative.of("inventoryCode", new BigDecimal(23)))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported publisher for triplelift_native");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorsWhenNoPublisherIdIsSpecified() {
+        // given
+        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"));
+
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, 
-                                ExtImpTripleliftNative.of("inventoryCode", 23))))
+                        .xNative(Native.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTripleliftNative.of("inventoryCode", new BigDecimal(23)))))
                         .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported publisher for triplelift_native");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().publisher(Publisher.builder().id("foo").build()).build())
+                .imp(singletonList(Imp.builder()
+                        .xNative(Native.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(1).getMessage()).startsWith("No valid impressions for triplelift");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyTagIdAndBidFloorImp() {
+        // given
+        final Imp imp = Imp.builder()
+                .xNative(Native.builder().build())
+                .tagid("willChange")
+                .bidfloor(new BigDecimal(2))
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpTripleliftNative.of("inventoryCode", new BigDecimal(23)))))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().id("foo").build()).build())
+                .imp(singletonList(imp))
                 .id("request_id")
                 .build();
 
@@ -80,11 +209,13 @@ public class TripleliftNativeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(bidRequest);
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid, Imp::getBidfloor)
+                .containsOnly(tuple("inventoryCode", new BigDecimal(23)));
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
@@ -99,10 +230,9 @@ public class TripleliftNativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
@@ -113,7 +243,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListWhenBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
@@ -127,11 +257,11 @@ public class TripleliftNativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnXnativeBidTypeType() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -142,7 +272,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
     @Test

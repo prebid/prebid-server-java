@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 /**
  * Defines the contract for bidRequest.imp[i].ext.triplelift_native
  */
@@ -14,6 +16,6 @@ public class ExtImpTripleliftNative {
     @JsonProperty("inventoryCode")
     String inventoryCode;
 
-    Integer floor;
+    BigDecimal floor;
 }
 
