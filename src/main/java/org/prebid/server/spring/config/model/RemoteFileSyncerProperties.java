@@ -40,4 +40,3 @@ public class RemoteFileSyncerProperties {
     @NotNull
     private HttpClientProperties httpClient;
 }
-

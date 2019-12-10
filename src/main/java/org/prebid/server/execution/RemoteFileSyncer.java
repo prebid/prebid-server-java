@@ -24,7 +24,6 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 /**
  * Works with remote web resource.
@@ -34,7 +33,7 @@ public class RemoteFileSyncer {
     private static final Logger logger = LoggerFactory.getLogger(RemoteFileSyncer.class);
 
     private final String downloadUrl;  // url to resource to be downloaded
-    private final String saveFilePath; // full path on file system where usable file located
+    private final String saveFilePath; // full path on file system where downloaded file located
     private final String tmpFilePath; // full path on file system where tmp file located
     private final int retryCount; // how many times try to download
     private final long retryInterval; // how long to wait between failed retries
@@ -61,13 +60,13 @@ public class RemoteFileSyncer {
 
     public static RemoteFileSyncer create(String downloadUrl, String saveFilePath, String tmpFilePath, int retryCount,
                                           long retryInterval, long timeout, long updatePeriod, HttpClient httpClient,
-                                          Vertx vertx) {
+                                          Vertx vertx, FileSystem fileSystem) {
         HttpUtil.validateUrl(downloadUrl);
         Objects.requireNonNull(saveFilePath);
         Objects.requireNonNull(tmpFilePath);
         Objects.requireNonNull(vertx);
         Objects.requireNonNull(httpClient);
-        final FileSystem fileSystem = vertx.fileSystem();
+        Objects.requireNonNull(fileSystem);
 
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
         createAndCheckWritePermissionsFor(fileSystem, tmpFilePath);
@@ -96,166 +95,237 @@ public class RemoteFileSyncer {
     /**
      * Fetches remote file and executes given callback with filepath on finish.
      */
-    public void syncForFilepath(Consumer<String> syncConsumer) {
-        checkFileExist()
-                .compose(fileExists -> fileExists ? Future.succeededFuture() : syncFiles())
-                .setHandler(asyncDownload -> {
-                    if (asyncDownload.failed()) {
-                        logger.warn("File {0} sync failed", saveFilePath, asyncDownload.cause());
-                    } else {
-                        syncConsumer.accept(saveFilePath);
-                        logger.info("File {0} sync succeeded", saveFilePath);
-                    }
-                    configureAutoUpdates(syncConsumer);
-                });
+    public void syncForFilepath(RemoteFileProcessor remoteFileProcessor) {
+        downloadIfNotExist(remoteFileProcessor).setHandler(syncResult -> handleSync(remoteFileProcessor, syncResult));
     }
 
-    private void configureAutoUpdates(Consumer<String> syncConsumer) {
-        if (updatePeriod > 0) {
-            vertx.setTimer(updatePeriod, idUpdate -> tryUpdate().setHandler(asyncUpdate -> {
-                if (asyncUpdate.failed()) {
-                    logger.warn("File {0} update failed", saveFilePath, asyncUpdate.cause());
-                } else {
-                    if (asyncUpdate.result()) {
-                        syncConsumer.accept(saveFilePath);
-                        logger.info("File {0} updated", saveFilePath);
-                    } else {
-                        logger.info("Update is no need for {0}", saveFilePath);
-                    }
-                }
-
-                // setup new update regardless of result
-                vertx.setTimer(updatePeriod, idUpdateNew -> configureAutoUpdates(syncConsumer));
-            }));
-        }
+    private Future<Boolean> downloadIfNotExist(RemoteFileProcessor fileProcessor) {
+        final Future<Boolean> future = Future.future();
+        checkFileExist(saveFilePath).setHandler(existResult ->
+                handleFileExistingWithSync(existResult, fileProcessor, future));
+        return future;
     }
 
-    private Future<Boolean> checkFileExist() {
+    private Future<Boolean> checkFileExist(String filePath) {
         final Future<Boolean> result = Future.future();
-        fileSystem.exists(saveFilePath, async -> {
+        fileSystem.exists(filePath, async -> {
             if (async.succeeded()) {
                 result.complete(async.result());
             } else {
-                result.fail(String.format("Cant check if file exists %s", saveFilePath));
+                result.fail(String.format("Cant check if file exists %s", filePath));
             }
         });
         return result;
     }
 
-    private Future<Void> syncFiles() {
-        return tryDownloadWithRetries().compose(downloadResult -> swapFiles());
+    private void handleFileExistingWithSync(AsyncResult<Boolean> existResult, RemoteFileProcessor fileProcessor,
+                                            Future<Boolean> future) {
+        if (existResult.succeeded()) {
+            if (existResult.result()) {
+                fileProcessor.setDataPath(saveFilePath)
+                        .setHandler(serviceRespond -> handleServiceRespond(serviceRespond, future));
+            } else {
+                syncRemoteFiles().setHandler(future);
+            }
+        } else {
+            future.fail(existResult.cause());
+        }
     }
 
-    private Future<Void> tryDownloadWithRetries() {
+    private void handleServiceRespond(AsyncResult<?> processResult, Future<Boolean> future) {
+        if (processResult.failed()) {
+            final Throwable cause = processResult.cause();
+            cleanUp(saveFilePath).setHandler(removalResult -> handleCorruptedFileRemoval(removalResult, future, cause));
+        } else {
+            future.complete(false);
+            logger.info("Existing file {0} was successfully reused for service", saveFilePath);
+        }
+    }
+
+    private Future<Void> cleanUp(String filePath) {
+        final Future<Void> future = Future.future();
+        checkFileExist(filePath).setHandler(existResult -> handleFileExistsWithDelete(filePath, existResult, future));
+        return future;
+    }
+
+    private void handleFileExistsWithDelete(String filePath, AsyncResult<Boolean> existResult, Future<Void> future) {
+        if (existResult.succeeded()) {
+            if (existResult.result()) {
+                fileSystem.delete(filePath, future);
+            } else {
+                future.complete();
+            }
+        } else {
+            future.fail(new PreBidException(String.format("Cant check if file exists %s", filePath)));
+        }
+    }
+
+    private void handleCorruptedFileRemoval(AsyncResult<Void> removalResult, Future<Boolean> future,
+                                            Throwable serviceCause) {
+        if (removalResult.failed()) {
+            final Throwable cause = removalResult.cause();
+            future.fail(new PreBidException(
+                    String.format("Corrupted file %s cant be deleted. Please check permission or delete manually.",
+                            saveFilePath), cause));
+        } else {
+            logger.info("Existing file {0} cant be processed by service, try to download after removal",
+                    serviceCause, saveFilePath);
+
+            syncRemoteFiles().setHandler(future);
+        }
+    }
+
+    private Future<Boolean> syncRemoteFiles() {
+        return tryDownload()
+                .compose(downloadResult -> swapFiles())
+                .map(true);
+    }
+
+    private Future<Void> tryDownload() {
         final Future<Void> result = Future.future();
-        download().setHandler(downloadResult -> handleDownloadWithRetry(downloadResult, result));
+        cleanUp(tmpFilePath).setHandler(event -> handleTmpDelete(event, result));
         return result;
+    }
+
+    private void handleTmpDelete(AsyncResult<Void> tmpDeleteResult, Future<Void> result) {
+        if (tmpDeleteResult.failed()) {
+            result.fail(tmpDeleteResult.cause());
+        } else {
+            download().setHandler(downloadResult -> handleDownload(downloadResult, result));
+        }
+    }
+
+    private Future<Void> download() {
+        final Future<Void> future = Future.future();
+        final OpenOptions openOptions = new OpenOptions().setCreateNew(true);
+        fileSystem.open(tmpFilePath, openOptions, openResult -> handleFileOpenWithDownload(openResult, future));
+        return future;
+    }
+
+    private void handleFileOpenWithDownload(AsyncResult<AsyncFile> openResult, Future<Void> future) {
+        if (openResult.succeeded()) {
+            final AsyncFile asyncFile = openResult.result();
+            try {
+                httpClient.getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, future)).end();
+            } catch (Exception e) {
+                future.fail(e);
+            }
+        } else {
+            future.fail(openResult.cause());
+        }
+    }
+
+    private void pumpFileFromRequest(HttpClientResponse httpClientResponse, AsyncFile asyncFile, Future<Void> future) {
+        logger.info("Trying to download file from {0}", downloadUrl);
+        httpClientResponse.pause();
+        final Pump pump = Pump.pump(httpClientResponse, asyncFile);
+        pump.start();
+        httpClientResponse.resume();
+
+        final long idTimer = setTimeoutTimer(asyncFile, pump, future);
+
+        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, idTimer, future));
+    }
+
+    private long setTimeoutTimer(AsyncFile asyncFile, Pump pump, Future<Void> future) {
+        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, pump, future));
+    }
+
+    private void handleTimeout(AsyncFile asyncFile, Pump pump, Future<Void> future) {
+        pump.stop();
+        asyncFile.close();
+        if (!future.isComplete()) {
+            future.fail(new TimeoutException("Timeout on download"));
+        }
+    }
+
+    private void handleResponseEnd(AsyncFile asyncFile, long idTimer, Future<Void> future) {
+        vertx.cancelTimer(idTimer);
+        asyncFile.flush().close(future);
+    }
+
+    private void handleDownload(AsyncResult<Void> downloadResult, Future<Void> future) {
+        if (downloadResult.failed()) {
+            retryDownload(future, retryInterval, retryCount);
+        } else {
+            future.complete();
+        }
+    }
+
+    private void retryDownload(Future<Void> receivedFuture, long retryInterval, long retryCount) {
+        logger.info("Set retry {0} to download from {1}. {2} retries left", retryInterval, downloadUrl, retryCount);
+        vertx.setTimer(retryInterval, retryTimerId -> handleRetry(receivedFuture, retryInterval, retryCount));
+    }
+
+    private void handleRetry(Future<Void> receivedFuture, long retryInterval, long retryCount) {
+        if (retryCount > 0) {
+            final long next = retryCount - 1;
+            cleanUp(tmpFilePath).compose(ignore -> download())
+                    .setHandler(retryResult -> handleRetryResult(retryInterval, next, retryResult, receivedFuture));
+        } else {
+            cleanUp(tmpFilePath).setHandler(ignore -> receivedFuture.fail(new PreBidException(
+                    String.format("File sync failed after %s retries", this.retryCount - retryCount))));
+        }
+    }
+
+    private void handleRetryResult(long retryInterval, long next, AsyncResult<Void> retryResult, Future<Void> future) {
+        if (retryResult.succeeded()) {
+            future.complete();
+        } else {
+            retryDownload(future, retryInterval, next);
+        }
     }
 
     private Future<Void> swapFiles() {
         final Future<Void> result = Future.future();
-        logger.info("Sync {0} to {1}", saveFilePath, tmpFilePath);
+        logger.info("Sync {0} to {1}", tmpFilePath, saveFilePath);
 
         final CopyOptions copyOptions = new CopyOptions().setReplaceExisting(true);
         fileSystem.move(tmpFilePath, saveFilePath, copyOptions, result);
         return result;
     }
 
-    private Future<Void> download() {
-        final Future<Void> result = Future.future();
-        final OpenOptions openOptions = new OpenOptions().setCreateNew(true);
-        fileSystem.open(tmpFilePath, openOptions, openResult -> handleFileOpenWithDownload(openResult, result));
-        return result;
-    }
-
-    private void handleFileOpenWithDownload(AsyncResult<AsyncFile> openResult, Future<Void> result) {
-        if (openResult.succeeded()) {
-            final AsyncFile asyncFile = openResult.result();
-            try {
-                httpClient.getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, result))
-                        .end();
-            } catch (Exception ex) {
-                result.fail(ex);
+    private void handleSync(RemoteFileProcessor remoteFileProcessor, AsyncResult<Boolean> syncResult) {
+        if (syncResult.succeeded()) {
+            if (syncResult.result()) {
+                logger.info("Sync service for {0}", saveFilePath);
+                remoteFileProcessor.setDataPath(saveFilePath)
+                        .setHandler(this::logFileProcessStatus);
+            } else {
+                logger.info("Sync is not required for {0}", saveFilePath);
             }
         } else {
-            result.fail(openResult.cause());
+            logger.error("Cant sync file from {0}", syncResult.cause(), downloadUrl);
+        }
+
+        // setup new update regardless of the result
+        if (updatePeriod > 0) {
+            vertx.setTimer(updatePeriod, idUpdateNew -> configureAutoUpdates(remoteFileProcessor));
         }
     }
 
-    private void pumpFileFromRequest(HttpClientResponse httpClientResponse, AsyncFile asyncFile, Future<Void> result) {
-        httpClientResponse.pause();
-        final Pump pump = Pump.pump(httpClientResponse, asyncFile);
-        pump.start();
-        httpClientResponse.resume();
-        logger.info("Downloading {0}", tmpFilePath);
-
-        final long idTimer = setTimeoutTimer(asyncFile, result, pump);
-
-        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, idTimer, result));
-    }
-
-    private long setTimeoutTimer(AsyncFile asyncFile, Future<Void> future, Pump pump) {
-        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, future, pump));
-    }
-
-    private void handleTimeout(AsyncFile asyncFile, Future<Void> future, Pump pump) {
-        pump.stop();
-        asyncFile.close();
-        logger.info("Timeout on download {0}", tmpFilePath);
-        if (!future.isComplete()) {
-            future.fail(new TimeoutException("Timeout on download"));
-        }
-    }
-
-    private void handleResponseEnd(AsyncFile asyncFile, long idTimer, Future<Void> result) {
-        vertx.cancelTimer(idTimer);
-        asyncFile.flush().close(result);
-    }
-
-    private void handleDownloadWithRetry(AsyncResult<Void> downloadResult, Future<Void> result) {
-        if (downloadResult.failed()) {
-            retryDownload(retryInterval, retryCount, result);
+    private void logFileProcessStatus(AsyncResult<?> serviceRespond) {
+        if (serviceRespond.succeeded()) {
+            logger.info("Service successfully receive file {0}.", saveFilePath);
         } else {
-            result.complete();
+            logger.error("Service cant process file {0} and still unavailable.", saveFilePath);
         }
     }
 
-    private void retryDownload(long retryInterval, long retryCount, Future<Void> receivedFuture) {
-        vertx.setTimer(retryInterval, retryTimerId -> handleRetry(retryInterval, retryCount, receivedFuture));
-    }
-
-    private void handleRetry(long retryInterval, long retryCount, Future<Void> receivedFuture) {
-        if (retryCount > 0) {
-            final long next = retryCount - 1;
-            cleanUp().compose(aVoid -> download())
-                    .setHandler(retryResult -> handleRetryResult(retryResult, retryInterval, next, receivedFuture));
-        } else {
-            cleanUp().setHandler(aVoid -> receivedFuture.fail("File sync failed after retries"));
-        }
-    }
-
-    private Future<Void> cleanUp() {
-        return checkFileExist().compose(fileExists -> fileExists ? deleteTmpFile() : Future.succeededFuture());
-    }
-
-    private Future<Void> deleteTmpFile() {
-        final Future<Void> result = Future.future();
-        fileSystem.delete(tmpFilePath, result);
-        return result;
-    }
-
-    private void handleRetryResult(AsyncResult<Void> retryResult, long retryInterval, long next, Future<Void> result) {
-        if (retryResult.succeeded()) {
-            result.complete();
-        } else {
-            retryDownload(retryInterval, next, result);
-        }
+    private void configureAutoUpdates(RemoteFileProcessor remoteFileProcessor) {
+        logger.info("Check for updated for {0}", saveFilePath);
+        tryUpdate().setHandler(asyncUpdate -> {
+            if (asyncUpdate.failed()) {
+                logger.warn("File {0} update failed", asyncUpdate.cause(), saveFilePath);
+            }
+            handleSync(remoteFileProcessor, asyncUpdate);
+        });
     }
 
     private Future<Boolean> tryUpdate() {
-        return checkFileExist()
+        return checkFileExist(saveFilePath)
                 .compose(fileExists -> fileExists ? isNeedToUpdate() : Future.succeededFuture(true))
-                .compose(needUpdate -> needUpdate ? syncFiles().map(true) : Future.succeededFuture(false));
+                .compose(needUpdate -> needUpdate ? syncRemoteFiles() : Future.succeededFuture(false));
     }
 
     private Future<Boolean> isNeedToUpdate() {

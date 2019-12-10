@@ -5,7 +5,8 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -21,6 +22,7 @@ import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
@@ -28,22 +30,16 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.RemoteFileSyncer;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.vendorlist.VendorListService;
-import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
-import org.prebid.server.geolocation.MaxMindGeoLocationService;
-import org.prebid.server.health.ApplicationChecker;
-import org.prebid.server.health.DatabaseHealthChecker;
-import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
-import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -53,7 +49,6 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -67,6 +62,8 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
@@ -79,9 +76,9 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            @Value("${external-url}") String externalUrl,
             EventsService eventsService,
             HttpClient httpClient,
+            Metrics metrics,
             Clock clock) {
 
         return new CacheService(
@@ -90,6 +87,7 @@ public class ServiceConfiguration {
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
                 eventsService,
+                metrics,
                 clock);
     }
 
@@ -140,7 +138,11 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
@@ -150,9 +152,19 @@ public class ServiceConfiguration {
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency,
-                storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
+        final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new AuctionRequestFactory(maxRequestSize, enforceValidAccount, shouldCacheOnlyWinningBids,
+                adServerCurrency, blacklistedApps, blacklistedAccounts, storedRequestProcessor,
+                implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator,
                 new InterstitialProcessor(), timeoutResolver, timeoutFactory, applicationSettings);
+    }
+
+    private static List<String> splitCommaSeparatedString(String listString) {
+        return Stream.of(listString.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
     }
 
     @Bean
@@ -187,7 +199,8 @@ public class ServiceConfiguration {
 
         return createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
                 httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects());
+                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
+                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
     }
 
     @Bean
@@ -209,14 +222,17 @@ public class ServiceConfiguration {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
                 httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects());
+                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
+                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
                 circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(), clock);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression, int maxRedirects) {
+                                                         boolean useCompression, int maxRedirects, boolean ssl,
+                                                         String jksPath, String jksPassword) {
+
         final HttpClientOptions options = new HttpClientOptions()
                 .setMaxPoolSize(maxPoolSize)
                 .setTryUseCompression(useCompression)
@@ -224,6 +240,16 @@ public class ServiceConfiguration {
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
                 .setMaxRedirects(maxRedirects + 1);
+
+        if (ssl) {
+            final JksOptions jksOptions = new JksOptions()
+                    .setPath(jksPath)
+                    .setPassword(jksPassword);
+
+            options
+                    .setSsl(true)
+                    .setKeyStoreOptions(jksOptions);
+        }
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
@@ -234,10 +260,11 @@ public class ServiceConfiguration {
             @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
             @Value("${host-cookie.cookie-name:#{null}}") String hostCookieName,
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
-            @Value("${host-cookie.ttl-days}") Integer ttlDays) {
+            @Value("${host-cookie.ttl-days}") Integer ttlDays,
+            @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes) {
 
         return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
-                hostCookieDomain, ttlDays);
+                hostCookieDomain, ttlDays, maxCookieSizeBytes);
     }
 
     @Bean
@@ -257,12 +284,13 @@ public class ServiceConfiguration {
     @Bean
     GdprService gdprService(
             @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics,
             VendorListService vendorListService,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(geoLocationService, vendorListService, eeaCountries, defaultValue);
+        return new GdprService(geoLocationService, metrics, vendorListService, eeaCountries, defaultValue);
     }
 
     @Bean
@@ -276,18 +304,20 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequester httpBidderRequester(HttpClient httpClient) {
-        return new HttpBidderRequester(httpClient);
+    HttpBidderRequester httpBidderRequester(
+            HttpClient httpClient,
+            @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
+
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
     }
 
     @Bean
     BidResponseCreator bidResponseCreator(
+            CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService,
-            CacheService cacheService) {
+            EventsService eventsService) {
 
-        return new BidResponseCreator(bidderCatalog, eventsService, cacheService.getEndpointHost(),
-                cacheService.getEndpointPath(), cacheService.getCachedAssetURLTemplate());
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
     }
 
     @Bean
@@ -298,7 +328,6 @@ public class ServiceConfiguration {
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
-            CacheService cacheService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
@@ -306,8 +335,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, storedResponseProcessor, privacyEnforcementService,
-                httpBidderRequester, responseBidValidator, currencyConversionService, cacheService,
-                bidResponseCreator, bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
+                httpBidderRequester, responseBidValidator, currencyConversionService, bidResponseCreator,
+                bidResponsePostProcessor, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -321,9 +350,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    StoredResponseProcessor storedResponseProcessor(
-            ApplicationSettings applicationSettings,
-            BidderCatalog bidderCatalog) {
+    StoredResponseProcessor storedResponseProcessor(ApplicationSettings applicationSettings,
+                                                    BidderCatalog bidderCatalog) {
 
         return new StoredResponseProcessor(applicationSettings, bidderCatalog);
     }
@@ -333,7 +361,7 @@ public class ServiceConfiguration {
             GdprService gdprService,
             BidderCatalog bidderCatalog,
             Metrics metrics,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
+            @Value("${geolocation.enabled}") boolean useGeoLocation) {
         return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
     }
 
@@ -343,8 +371,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator) {
+    RequestValidator requestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
         return new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
@@ -373,12 +400,17 @@ public class ServiceConfiguration {
 
     @Bean
     Clock clock() {
-        return Clock.systemDefaultZone();
+        return Clock.systemUTC();
     }
 
     @Bean
     TimeoutFactory timeoutFactory(Clock clock) {
         return new TimeoutFactory(clock);
+    }
+
+    @Bean
+    LogModifier logModifier() {
+        return new LogModifier(LoggerFactory.getLogger(ServiceConfiguration.class));
     }
 
     @Bean
@@ -401,91 +433,5 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
-    }
-
-    @Configuration
-    @ConditionalOnProperty(prefix = "gdpr.geolocation", name = "enabled", havingValue = "true")
-    static class GeoLocationConfiguration {
-
-        @Bean
-        @ConfigurationProperties(prefix = "gdpr.geolocation.maxmind.remote-file-syncer")
-        RemoteFileSyncerProperties maxMindRemoteFileSyncerProperties() {
-            return new RemoteFileSyncerProperties();
-        }
-
-        /**
-         * Default geolocation service implementation.
-         */
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "false",
-                matchIfMissing = true)
-        GeoLocationService basicGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties, Vertx vertx) {
-
-            return createGeoLocationService(fileSyncerProperties, vertx);
-        }
-
-        @Bean
-        @ConfigurationProperties(prefix = "gdpr.geolocation.circuit-breaker")
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerProperties geolocationCircuitBreakerProperties() {
-            return new CircuitBreakerProperties();
-        }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
-                Vertx vertx,
-                Metrics metrics,
-                RemoteFileSyncerProperties fileSyncerProperties,
-                @Qualifier("geolocationCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
-                Clock clock) {
-
-            return new CircuitBreakerSecuredGeoLocationService(vertx,
-                    createGeoLocationService(fileSyncerProperties, vertx), metrics,
-                    circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                    circuitBreakerProperties.getClosingIntervalMs(), clock);
-        }
-
-        private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties,
-                                                            Vertx vertx) {
-
-            final HttpClientProperties httpClientProperties = fileSyncerProperties.getHttpClient();
-            final HttpClientOptions httpClientOptions = new HttpClientOptions()
-                    .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
-                    .setMaxRedirects(httpClientProperties.getMaxRedirects());
-
-            final RemoteFileSyncer remoteFileSyncer = RemoteFileSyncer.create(fileSyncerProperties.getDownloadUrl(),
-                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getTmpFilepath(),
-                    fileSyncerProperties.getRetryCount(), fileSyncerProperties.getRetryIntervalMs(),
-                    fileSyncerProperties.getTimeoutMs(), fileSyncerProperties.getUpdateIntervalMs(),
-                    vertx.createHttpClient(httpClientOptions), vertx);
-            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
-
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService::setDatabaseReader);
-
-            return maxMindGeoLocationService;
-        }
-    }
-
-    @Configuration
-    @ConditionalOnProperty("status-response")
-    @ConditionalOnExpression("'${status-response}' != ''")
-    static class HealthCheckerConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
-        HealthChecker databaseChecker(
-                Vertx vertx,
-                JDBCClient jdbcClient,
-                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
-
-            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
-        }
-
-        @Bean
-        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
-            return new ApplicationChecker(statusResponse);
-        }
     }
 }

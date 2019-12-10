@@ -40,10 +40,12 @@ Remote File Syncer can be related to particular entity like geolocation maxmind 
 Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
-- `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `<SERVICE>.remote-file-syncer.save-filepath` - full path to the usable file, which will be consumed by internal service.
+- `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
@@ -242,17 +244,6 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
-
-## Remote file syncer
-- `remote-file-syncer.download-url`: - url to external file.
-- `remote-file-syncer.save-filepath`: - full path to the usable file, which will be consumed by internal service.
-- `remote-file-syncer.tmp-filepath`: - full path to the temporary file.
-- `remote-file-syncer.retry-count`: - number of available retries.
-- `remote-file-syncer.retry-interval-ms`: - time interval between retries.
-- `remote-file-syncer.timeout-ms`: - operation timeout for downloading file.
-- `remote-file-syncer.update-interval-ms`: - time interval between updates of the usable file.
-- `remote-file-syncer.http-client.connect-timeout-ms`: - timeout for connecting to the external source. 
-- `remote-file-syncer.http-client.max-redirects`: - number of available redirects.
 
 ## Auction (Legacy)
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
