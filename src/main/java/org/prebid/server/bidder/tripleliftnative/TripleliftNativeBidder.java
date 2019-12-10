@@ -20,12 +20,13 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
-import org.prebid.server.proto.openrtb.ext.request.tripleliftnative.ExtImpTripleliftNative;
+import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -42,8 +43,8 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String UNKONWN_PUBLSIHER_ID = "unknown";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTripleliftNative>> TRIPLELIFT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTripleliftNative>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
             };
     private static final TypeReference<List<String>> WHITELIST_TYPE_REFERENCE =
             new TypeReference<List<String>>() {
@@ -115,7 +116,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
             throw new PreBidException("no native object specified");
         }
 
-        final ExtImpTripleliftNative impExt = parseExtImpTriplelift(imp);
+        final ExtImpTriplelift impExt = parseExtImpTriplelift(imp);
         final String inventoryCode = impExt.getInventoryCode();
         if (StringUtils.isBlank(inventoryCode)) {
             throw new PreBidException("no inv_code specified");
@@ -127,10 +128,19 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private static ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
+        try {
+            return Json.mapper.<ExtPrebid<?, ExtImpTriplelift>>convertValue(imp.getExt(),
+                    TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
     private static String effectivePublisherId(BidRequest bidRequest) {
         String publisherId = UNKONWN_PUBLSIHER_ID;
 
-        final Publisher publisher = publisher(bidRequest);
+        final Publisher publisher = findPublisher(bidRequest);
         if (publisher == null) {
             return publisherId;
         }
@@ -154,7 +164,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         return publisherId;
     }
 
-    private static Publisher publisher(BidRequest bidRequest) {
+    private static Publisher findPublisher(BidRequest bidRequest) {
         final App app = bidRequest.getApp();
         if (app != null) {
             return app.getPublisher();
@@ -168,23 +178,15 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private static ExtImpTripleliftNative parseExtImpTriplelift(Imp imp) {
-        try {
-            return Json.mapper.<ExtPrebid<?, ExtImpTripleliftNative>>convertValue(imp.getExt(),
-                    TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
+        final HttpResponse response = httpCall.getResponse();
+        if (response.getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = Json.decodeValue(response.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -199,7 +201,9 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.xNative, DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
