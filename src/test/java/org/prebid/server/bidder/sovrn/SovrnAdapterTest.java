@@ -237,7 +237,7 @@ public class SovrnAdapterTest extends VertxTest {
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
                                 .build()));
@@ -282,7 +282,7 @@ public class SovrnAdapterTest extends VertxTest {
                                 .buyeruid("110099")
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .source(Source.builder()
                                 .fd(1)
                                 .tid("tid1")

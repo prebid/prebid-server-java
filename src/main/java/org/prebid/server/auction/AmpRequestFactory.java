@@ -7,6 +7,8 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -22,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -47,9 +50,11 @@ public class AmpRequestFactory {
     private static final String H_REQUEST_PARAM = "h";
     private static final String MS_REQUEST_PARAM = "ms";
     private static final String CURL_REQUEST_PARAM = "curl";
+    private static final String ACCOUNT_REQUEST_PARAM = "account";
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
+    private static final String US_PRIVACY_PARAM = "us_privacy";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final StoredRequestProcessor storedRequestProcessor;
@@ -148,7 +153,7 @@ public class AmpRequestFactory {
                     || targeting.getIncludebidderkeys() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
-            setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
+            setDefaultCache = cache == null || cache.equals(ExtRequestPrebidCache.EMPTY);
         }
 
         final Integer debugQueryParam = debugFromQueryStringParam(context);
@@ -203,14 +208,17 @@ public class AmpRequestFactory {
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
         final User updatedUser = overrideUser(bidRequest.getUser(), request);
+        final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), request);
 
         final BidRequest result;
-        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null) {
+        if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
+                || updatedRegs != null) {
             result = bidRequest.toBuilder()
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
                     .user(updatedUser != null ? updatedUser : bidRequest.getUser())
+                    .regs(updatedRegs != null ? updatedRegs : bidRequest.getRegs())
                     .build();
         } else {
             result = bidRequest;
@@ -220,14 +228,23 @@ public class AmpRequestFactory {
 
     private static Site overrideSite(Site site, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
+        final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
-        final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final boolean hasSite = site != null;
+        final ObjectNode siteExt = hasSite ? site.getExt() : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
 
-        if (StringUtils.isNotBlank(canonicalUrl) || shouldSetExtAmp) {
-            final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp) {
+            final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
+            }
+            if (StringUtils.isNotBlank(accountId)) {
+                final Publisher publisher = hasSite ? site.getPublisher() : null;
+                final Publisher.PublisherBuilder publisherBuilder = publisher != null
+                        ? publisher.toBuilder() : Publisher.builder();
+
+                siteBuilder.publisher(publisherBuilder.id(accountId).build());
             }
             if (shouldSetExtAmp) {
                 final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
@@ -393,6 +410,33 @@ public class AmpRequestFactory {
         }
     }
 
+    private static Regs overrideRegs(Regs regs, HttpServerRequest request) {
+        final String usPrivacyParam = request.getParam(US_PRIVACY_PARAM);
+        if (StringUtils.isBlank(usPrivacyParam)) {
+            return null;
+        }
+
+        Integer coppa = null;
+        Integer gdpr = null;
+        if (regs != null) {
+            coppa = regs.getCoppa();
+            gdpr = extractExtRegs(regs.getExt()).getGdpr();
+        }
+
+        return Regs.of(coppa, Json.mapper.valueToTree(ExtRegs.of(gdpr, usPrivacyParam)));
+    }
+
+    /**
+     * Extracts {@link ExtRegs} from bidrequest.regs.ext {@link ObjectNode}.
+     */
+    private static ExtRegs extractExtRegs(ObjectNode extRegsNode) {
+        try {
+            return Json.mapper.treeToValue(extRegsNode, ExtRegs.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()));
+        }
+    }
+
     private static List<Format> parseMultiSizeParam(String ms) {
         final String[] formatStrings = ms.split(",", NO_LIMIT_SPLIT_MODE);
         final List<Format> formats = new ArrayList<>();
@@ -434,7 +478,7 @@ public class AmpRequestFactory {
             }
             if (setDefaultCache) {
                 prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                        ExtRequestPrebidCacheVastxml.of(null, null)));
+                        ExtRequestPrebidCacheVastxml.of(null, null), null));
             }
             if (updatedDebug != null) {
                 prebidBuilder.debug(updatedDebug);

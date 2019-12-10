@@ -7,6 +7,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -16,6 +17,7 @@ import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -73,6 +75,7 @@ import org.prebid.server.util.HttpUtil;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -92,7 +95,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RubiconBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
+    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
@@ -131,6 +134,28 @@ public class RubiconBidderTest extends VertxTest {
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "prebid-server/1.0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceDefaultParametersWithExtPrebidBiddersBidder() {
+        // given
+        final ObjectNode prebidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("bidders", mapper.createObjectNode()
+                        .set("bidder", mapper.createObjectNode()
+                                .put("integration", "test"))));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(prebidExt),
+                builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
+                        .build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedUrl = "http://rubiconproject.com/exchange.json?tk_xint=test";
+        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+                .returns(HttpMethod.POST, HttpRequest::getMethod)
+                .returns(expectedUrl, HttpRequest::getUri);
     }
 
     @Test
@@ -383,7 +408,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldFillUserIfUserAndConsentArePresent() {
+    public void makeHttpRequestsShouldFillUserIfUserAndConsentArePresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
@@ -426,7 +451,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldCopyUserGenderYobAndGeoToUserExtRp() {
+    public void makeHttpRequestsShouldCopyUserGenderYobAndGeoToUserExtRp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder()
@@ -452,7 +477,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldCopyUserExtDataFieldsToUserExtRp() {
+    public void makeHttpRequestsShouldCopyUserExtDataFieldsToUserExtRp() {
         // given
         final ObjectNode userExtDataNode = mapper.createObjectNode().put("property", "value");
 
@@ -480,10 +505,10 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtCannotBeParsed() {
+    public void makeHttpRequestsShouldFailWithPreBidExceptionIfUserExtCannotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().ext((ObjectNode) mapper.createObjectNode()
+                builder -> builder.user(User.builder().ext(mapper.createObjectNode()
                         .set("consent", mapper.createObjectNode())).build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -543,13 +568,13 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldCreateUserExtTpIdWithAdServerEidSource() {
+    public void makeHttpRequestsShouldCreateUserExtTpIdWithAdServerEidSource() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("adserver.org", null,
                                         singletonList(
-                                                ExtUserEidUid.of("adServerUid", ExtUserEidUidExt.of("TDID"))))))
+                                                ExtUserEidUid.of("adServerUid", ExtUserEidUidExt.of("TDID"))), null)))
                                 .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -564,18 +589,92 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(request -> mapper.treeToValue(request.getUser().getExt(), RubiconUserExt.class))
                 .containsOnly(RubiconUserExt.builder()
                         .eids(singletonList(ExtUserEid.of("adserver.org", null,
-                                singletonList(ExtUserEidUid.of("adServerUid", ExtUserEidUidExt.of("TDID"))))))
+                                singletonList(ExtUserEidUid.of("adServerUid", ExtUserEidUidExt.of("TDID"))), null)))
                         .tpid(singletonList(ExtUserTpIdRubicon.of("tdid", "adServerUid")))
                         .build());
     }
 
     @Test
-    public void shouldNotCreateUserExtTpIdWithAdServerEidSourceIfEidUidExtMissed() {
+    public void makeHttpRequestsShouldCreateUserExtTpIdForFirstLiveintentAndAdserver() {
+        // given
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.putArray("segments").add("999").add("888");
+        final ExtUserEid liveintentUid1 = ExtUserEid.of("liveintent.com", null,
+                singletonList(ExtUserEidUid.of("liveintentUid1", null)), uidExt);
+        final ExtUserEid liveintentUid2 = ExtUserEid.of("liveintent.com", null,
+                singletonList(ExtUserEidUid.of("liveintentUid2", null)), null);
+        final ExtUserEid adserverUid = ExtUserEid.of("adserver.org", null,
+                singletonList(ExtUserEidUid.of("adServerUid", ExtUserEidUidExt.of("TDID"))), null);
+        final ExtUserEid notSpecialSource = ExtUserEid.of("notSpecialSource", null,
+                singletonList(ExtUserEidUid.of("notSpecialSource", ExtUserEidUidExt.of("TDID"))), null);
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder()
+                                .eids(Arrays.asList(liveintentUid1, liveintentUid2, adserverUid, notSpecialSource))
+                                .build()))
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedRp = mapper.createObjectNode();
+        expectedRp.putArray("LIseg").add("999").add("888");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> mapper.treeToValue(request.getUser().getExt(), RubiconUserExt.class))
+                .containsOnly(RubiconUserExt.builder()
+                        .eids(Arrays.asList(liveintentUid1, liveintentUid2, adserverUid, notSpecialSource))
+                        .tpid(Arrays.asList(
+                                ExtUserTpIdRubicon.of("tdid", "adServerUid"),
+                                ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid1")))
+                        .rp(RubiconUserExtRp.of(expectedRp, null, null, null))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateUserExtTpIdWithLiveintentEidSourceAndRpFromEidExtWhenMultipleEidSources() {
+        // given
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.putArray("segments").add("999").add("888");
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of("liveintent.com", null,
+                                        singletonList(
+                                                ExtUserEidUid.of("liveintentUid", null)),
+                                        uidExt)))
+                                .build()))
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedRp = mapper.createObjectNode();
+        expectedRp.putArray("LIseg").add("999").add("888");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> mapper.treeToValue(request.getUser().getExt(), RubiconUserExt.class))
+                .containsOnly(RubiconUserExt.builder()
+                        .eids(singletonList(ExtUserEid.of("liveintent.com", null,
+                                singletonList(ExtUserEidUid.of("liveintentUid", null)), uidExt)))
+                        .tpid(singletonList(ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid")))
+                        .rp(RubiconUserExtRp.of(expectedRp, null, null, null))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotCreateUserExtTpIdWithAdServerEidSourceIfEidUidExtMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("adserver.org", null,
-                                        singletonList(ExtUserEidUid.of("id", null)))))
+                                        singletonList(ExtUserEidUid.of("id", null)), null)))
                                 .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -590,18 +689,18 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(request -> mapper.treeToValue(request.getUser().getExt(), RubiconUserExt.class))
                 .containsOnly(RubiconUserExt.builder()
                         .eids(singletonList(ExtUserEid.of("adserver.org", null,
-                                singletonList(ExtUserEidUid.of("id", null)))))
+                                singletonList(ExtUserEidUid.of("id", null)), null)))
                         .tpid(null)
                         .build());
     }
 
     @Test
-    public void shouldNotCreateUserExtTpIdWithAdServerEidSourceIfExtRtiPartnerMissed() {
+    public void makeHttpRequestsShouldNotCreateUserExtTpIdWithAdServerEidSourceIfExtRtiPartnerMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("adserver.org", null,
-                                        singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of(null))))))
+                                        singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of(null))), null)))
                                 .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -616,18 +715,18 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(request -> mapper.treeToValue(request.getUser().getExt(), RubiconUserExt.class))
                 .containsOnly(RubiconUserExt.builder()
                         .eids(singletonList(ExtUserEid.of("adserver.org", null,
-                                singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of(null))))))
+                                singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of(null))), null)))
                         .tpid(null)
                         .build());
     }
 
     @Test
-    public void shouldNotCreateUserExtTpIdWithUnknownEidSource() {
+    public void makeHttpRequestsShouldNotCreateUserExtTpIdWithUnknownEidSource() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("unknownSource", null,
-                                        singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of("eidUidId"))))))
+                                        singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of("eidUidId"))), null)))
                                 .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()), identity());
@@ -642,16 +741,16 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(request -> mapper.treeToValue(request.getUser().getExt(), RubiconUserExt.class))
                 .containsOnly(RubiconUserExt.builder()
                         .eids(singletonList(ExtUserEid.of("unknownSource", null,
-                                singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of("eidUidId"))))))
+                                singletonList(ExtUserEidUid.of("id", ExtUserEidUidExt.of("eidUidId"))), null)))
                         .tpid(null)
                         .build());
     }
 
     @Test
-    public void makeHttpRequestShouldFillRegsIfRegsAndGdprArePresent() {
+    public void makeHttpRequestsShouldFillRegsIfRegsAndGdprArePresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(50)))),
+                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(50, null)))),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -663,7 +762,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs).doesNotContainNull()
-                .containsOnly(Regs.of(null, mapper.valueToTree(ExtRegs.of(50))));
+                .containsOnly(Regs.of(null, mapper.valueToTree(ExtRegs.of(50, null))));
     }
 
     @Test
@@ -805,15 +904,24 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateRequestPerImp() {
         // given
-        final Imp imp = givenImp(builder -> builder.video(Video.builder().build()));
-        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
+        final Imp imp1 = givenImp(builder -> builder.video(Video.builder().build()));
+        final Imp imp2 = givenImp(builder -> builder.id("2").video(Video.builder().build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final BidRequest expectedBidRequest = BidRequest.builder()
+        final BidRequest expectedBidRequest1 = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(RubiconImpExt.of(
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
+                        .build()))
+                .build();
+        final BidRequest expectedBidRequest2 = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("2")
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
                                 RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
@@ -823,19 +931,47 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(expectedBidRequest, expectedBidRequest);
+                .containsOnly(expectedBidRequest1, expectedBidRequest2);
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyImpExtContextDataFieldsToRubiconImpExtRpTarget() {
+    public void makeHttpRequestsShouldCopyAndModifyImpExtContextDataFieldsToRubiconImpExtRpTarget() {
         // given
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value");
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value")
+                .put("adslot", "/test");
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotCopyAndModifyImpExtContextDataAdslotToRubiconImpExtRpTargetDfpAdUnitCode() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("adslot", 123);
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
 
         // when
@@ -1046,6 +1182,26 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage()  {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp.video(Video.builder().build()),
+                extImp -> extImp.video(RubiconVideoParams.builder().language("ua").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getContent)
+                .extracting(Content::getLanguage)
+                .containsOnly("ua");
+    }
+
+    @Test
     public void makeHttpRequestsShouldTakePrecedenceImpExtContextSearchOverSiteSearchAndCopyToRubiconImpExtRpTarget()
             throws IOException {
         // given
@@ -1226,6 +1382,58 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
                         NullNode.getInstance(),
                         RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSourceWithPchainIfDefinedInImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.pchain("pchain"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSource).doesNotContainNull()
+                .extracting(Source::getPchain)
+                .containsOnly("pchain");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateSourceWithPchainIfDefinedInImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.source(Source.builder().tid("tid").build()),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.pchain("pchain"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSource).doesNotContainNull()
+                .extracting(Source::getPchain)
+                .containsOnly("pchain");
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResultIfResponseStatusIsNoContent() {
+        // given
+        final HttpCall<BidRequest> httpCall = HttpCall.success(HttpRequest.<BidRequest>builder().build(),
+                HttpResponse.of(204, null, null), null);
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result).isEqualTo(Result.of(Collections.emptyList(), Collections.emptyList()));
     }
 
     @Test

@@ -18,6 +18,7 @@ public class BidRequestCacheInfo {
             .cacheVideoBidsTtl(null)
             .returnCreativeBids(false)
             .returnCreativeVideoBids(false)
+            .shouldCacheWinningBidsOnly(false)
             .build();
 
     boolean doCaching;
@@ -33,6 +34,8 @@ public class BidRequestCacheInfo {
     boolean returnCreativeBids;
 
     boolean returnCreativeVideoBids;
+
+    boolean shouldCacheWinningBidsOnly;
 
     public static BidRequestCacheInfo noCache() {
         return NO_CACHE;

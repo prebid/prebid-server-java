@@ -44,10 +44,8 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
 
     @Mock
     private CacheNotificationListener cacheNotificationListener;
-
     @Mock
     private HttpClient httpClient;
-
     @Mock
     private Vertx vertx;
 

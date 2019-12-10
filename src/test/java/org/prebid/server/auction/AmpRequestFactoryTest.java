@@ -8,6 +8,8 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -28,6 +30,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -201,7 +204,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
                                         BigDecimal.valueOf(0.1))))), null, null, true, true))
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
-                                ExtRequestPrebidCacheVastxml.of(null, null)))
+                                ExtRequestPrebidCacheVastxml.of(null, null), null))
                         .build());
     }
 
@@ -512,6 +515,76 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
                 .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
+    }
+
+
+    @Test
+    public void shouldReturnBidRequestWithSitePublisherIdOverriddenWithAccountParamValue() {
+        // given
+        given(httpRequest.getParam("account")).willReturn("accountId");
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(Site.builder().publisher(Publisher.builder().id("will-be-overridden").build()).build()),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher, Site::getExt)
+                .containsOnly(tuple(
+                        Publisher.builder().id("accountId").build(),
+                        mapper.valueToTree(ExtSite.of(1, null))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithSitePublisherIdFromAccountParamWhenSiteDoesNotExist() {
+        // given
+        given(httpRequest.getParam("account")).willReturn("accountId");
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(null),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher, Site::getExt)
+                .containsOnly(tuple(
+                        Publisher.builder().id("accountId").build(),
+                        mapper.valueToTree(ExtSite.of(1, null))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithSitePublisherIdFromAccountParamWhenSitePublisherDoesNotExist() {
+        // given
+        given(httpRequest.getParam("account")).willReturn("accountId");
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(Site.builder().build()),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher, Site::getExt)
+                .containsOnly(tuple(
+                        Publisher.builder().id("accountId").build(),
+                        mapper.valueToTree(ExtSite.of(1, null))));
     }
 
     @Test
@@ -1056,6 +1129,25 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .isEqualTo(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
                         .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenUsPrivacyParamIsExist() {
+        // given
+        given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
+
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder().build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(null, "us_privacy"))));
     }
 
     @Test

@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -73,7 +72,7 @@ import static org.mockito.BDDMockito.given;
 
 public class RequestValidatorTest extends VertxTest {
 
-    public static final String RUBICON = "rubicon";
+    private static final String RUBICON = "rubicon";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -1280,7 +1279,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null))))
+                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null))))
                 .build();
 
         // when
@@ -1418,49 +1417,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Media type price granularity error: must have at least one media type present");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenMediaTypePriceGranularityTypeNodesAreNull() {
-        // given
-        final NullNode nullNode = NullNode.getInstance();
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(nullNode, nullNode, nullNode),
-                                null, null, null))
-                        .build())))
-                .build();
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Media type price granularity error: must have at least one media type present");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenAnyPresentMediaTypePriceGranularityIsInvalid() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                                BigDecimal.valueOf(1))))), null, new TextNode("pricegranularity")),
-                                null, null, null))
-                        .build())))
-                .build();
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error while parsing request.ext.prebid.targeting.mediatypepricegranularity.xNative");
     }
 
     @Test
@@ -1682,7 +1638,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of(null, null, null))).build()))
+                                .eids(singletonList(ExtUserEid.of(null, null, null, null))).build()))
                         .build())
                 .build();
 
@@ -1700,7 +1656,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, null))).build()))
+                                .eids(singletonList(ExtUserEid.of("source", null, null, null))).build()))
                         .build())
                 .build();
 
@@ -1718,7 +1674,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, emptyList()))).build()))
+                                .eids(singletonList(ExtUserEid.of("source", null, emptyList(), null))).build()))
                         .build())
                 .build();
 
@@ -1737,7 +1693,7 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("source", null,
-                                        singletonList(ExtUserEidUid.of(null, null))))).build()))
+                                        singletonList(ExtUserEidUid.of(null, null)), null))).build()))
                         .build())
                 .build();
 
@@ -1757,9 +1713,9 @@ public class RequestValidatorTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtUser.builder()
                                 .eids(asList(
                                         ExtUserEid.of("source", null,
-                                                singletonList(ExtUserEidUid.of("id1", null))),
+                                                singletonList(ExtUserEidUid.of("id1", null)), null),
                                         ExtUserEid.of("source", null,
-                                                singletonList(ExtUserEidUid.of("id2", null)))))
+                                                singletonList(ExtUserEidUid.of("id2", null)), null)))
                                 .build()))
                         .build())
                 .build();
@@ -1820,7 +1776,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2));
+        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2, null));
         final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
 
         // when

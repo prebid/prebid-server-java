@@ -17,7 +17,7 @@ adapters:
       vendor-id: 76
     usersync:
       url: //ads.pubmatic.com/AdServer/js/user_sync.html?predirect=
-      redirect-url: /setuid?bidder=pubmatic&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=
+      redirect-url: /setuid?bidder=pubmatic&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: pubmatic
       type: iframe
       support-cors: false

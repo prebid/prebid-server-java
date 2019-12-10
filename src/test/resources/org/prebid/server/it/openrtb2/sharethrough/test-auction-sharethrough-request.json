@@ -18,10 +18,14 @@
           "iframeSize": [
             50,
             50
-          ]
+          ],
+          "bidfloor": 3.5
         }
       }
     }
+  ],
+  "badv": [
+    "testblocked"
   ],
   "device": {
     "pxratio": 4.2,
@@ -42,7 +46,7 @@
   },
   "test": 1,
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],
@@ -87,6 +91,16 @@
   },
   "user": {
     "ext": {
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "id"
+            }
+          ]
+        }
+      ],
       "digitrust": {
         "id": "id",
         "keyv": 123,

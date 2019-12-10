@@ -1,0 +1,11 @@
+  {
+    "puts": [
+      {
+        "value": "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression><![CDATA[http://localhost:8000/event?t=imp&b=bidid&a=14062&f=b]]></Impression><Creatives></Creatives></Wrapper></Ad></VAST>",
+        "bidid": "bidid",
+        "bidder": "rubicon",
+        "ttlseconds": 3600,
+        "type": "xml"
+      }
+    ]
+  }

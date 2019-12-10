@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,8 +47,12 @@ public class FileApplicationSettings implements ApplicationSettings {
     private final Map<String, String> storedIdToImp;
     private final Map<String, String> storedIdToSeatBid;
 
-    private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedIdToRequest,
-                                    Map<String, String> storedIdToImp, Map<String, String> storedIdToSeatBid) {
+    public FileApplicationSettings(FileSystem fileSystem, String settingsFileName, String storedRequestsDir,
+                                   String storedImpsDir, String storedResponsesDir) {
+
+        final SettingsFile settingsFile = readSettingsFile(Objects.requireNonNull(fileSystem),
+                Objects.requireNonNull(settingsFileName));
+
         accounts = toMap(settingsFile.getAccounts(),
                 Account::getId,
                 Function.identity());
@@ -56,29 +61,9 @@ public class FileApplicationSettings implements ApplicationSettings {
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
 
-        this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
-        this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
-        this.storedIdToSeatBid = Objects.requireNonNull(storedIdToSeatBid);
-    }
-
-    /**
-     * Instantiate {@link FileApplicationSettings} by and by looking for .json file
-     * extension and creates {@link Map} file names without .json extension to file content.
-     */
-    public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
-                                                 String storedRequestsDir, String storedImpsDir,
-                                                 String storedResponsesDir) {
-        Objects.requireNonNull(fileSystem);
-        Objects.requireNonNull(settingsFileName);
-        Objects.requireNonNull(storedRequestsDir);
-        Objects.requireNonNull(storedImpsDir);
-        Objects.requireNonNull(storedResponsesDir);
-
-        return new FileApplicationSettings(
-                readSettingsFile(fileSystem, settingsFileName),
-                readStoredData(fileSystem, storedRequestsDir),
-                readStoredData(fileSystem, storedImpsDir),
-                readStoredData(fileSystem, storedResponsesDir));
+        this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
+        this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
+        this.storedIdToSeatBid = readStoredData(fileSystem, Objects.requireNonNull(storedResponsesDir));
     }
 
     @Override
@@ -100,7 +85,10 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
                 ? StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList())
-                : StoredDataResult.of(storedIdToRequest, storedIdToImp, Stream.of(
+                : StoredDataResult.of(
+                existingStoredIdToJson(requestIds, storedIdToRequest),
+                existingStoredIdToJson(impIds, storedIdToImp),
+                Stream.of(
                         errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
                         errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
                         .flatMap(Collection::stream)
@@ -116,8 +104,9 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.succeededFuture(CollectionUtils.isEmpty(responseIds)
                 ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
-                : StoredResponseDataResult.of(storedIdToSeatBid, errorsForMissedIds(responseIds,
-                storedIdToSeatBid, StoredDataType.seatbid)));
+                : StoredResponseDataResult.of(
+                existingStoredIdToJson(responseIds, storedIdToSeatBid),
+                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
     }
 
     @Override
@@ -157,6 +146,21 @@ public class FileApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException("Not found"));
+    }
+
+    /**
+     * Returns corresponding stored id with json.
+     */
+    private static Map<String, String> existingStoredIdToJson(Set<String> requestedIds,
+                                                              Map<String, String> storedIdToJson) {
+        final Map<String, String> idToJson = new HashMap<>();
+        for (String id : requestedIds) {
+            final String json = storedIdToJson.get(id);
+            if (StringUtils.isNotBlank(json)) {
+                idToJson.put(id, json);
+            }
+        }
+        return idToJson;
     }
 
     /**

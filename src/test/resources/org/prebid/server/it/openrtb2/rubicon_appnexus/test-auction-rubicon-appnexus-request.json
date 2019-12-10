@@ -193,7 +193,7 @@
   },
   "test": 1,
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],
@@ -203,6 +203,11 @@
   },
   "ext": {
     "prebid": {
+      "bidders": {
+        "rubicon": {
+          "integration": "dmbjs"
+        }
+      },
       "aliases": {
         "appnexusAlias": "appnexus"
       },
@@ -255,6 +260,20 @@
           ]
         },
         {
+          "source": "liveintent.com",
+          "uids": [
+            {
+              "id": "efcf3a33-2eaf-4d6b-bf11-a411f134278c"
+            }
+          ],
+          "ext": {
+            "segments": [
+              "999",
+              "888"
+            ]
+          }
+        },
+        {
           "source": "pubcid",
           "id": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
         }
@@ -263,6 +282,6 @@
   },
   "regs": {
     "ext": {
+      "us_privacy": "1YN"
     }
-  }
-}
+  }}

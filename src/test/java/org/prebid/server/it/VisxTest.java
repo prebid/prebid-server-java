@@ -30,13 +30,13 @@ public class VisxTest extends IntegrationTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/visx/test-cache-visx-request.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/visx/test-cache-visx-request.json"), true, false))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/visx/test-cache-visx-response.json"))));
 
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
+                .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"visx":"VISX-UID"}}

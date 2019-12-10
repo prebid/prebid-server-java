@@ -43,8 +43,8 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class FacebookBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://facebook.com/openrtb2d";
-    private static final String NON_SECURED_ENDPOINT_URL = "http://facebook.com/openrtb2d";
+    private static final String ENDPOINT_URL = "https://test/auction";
+    private static final String NON_SECURED_ENDPOINT_URL = "http://test/auction";
     private static final String PLATFORM_ID = "101";
 
     private FacebookBidder facebookBidder;
@@ -287,7 +287,7 @@ public class FacebookBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
                 .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                 .site(Site.builder()
                         .publisher(Publisher.builder().build())
                         .build())
@@ -313,7 +313,7 @@ public class FacebookBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .site(Site.builder()
                                 .publisher(Publisher.builder()
                                         .id("pub1")
@@ -335,7 +335,7 @@ public class FacebookBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
                 .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                 .app(App.builder()
                         .publisher(Publisher.builder().build())
                         .build())
@@ -361,7 +361,7 @@ public class FacebookBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .app(App.builder()
                                 .publisher(Publisher.builder()
                                         .id("pub1")
@@ -421,9 +421,9 @@ public class FacebookBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
-                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -29,7 +29,7 @@
   "device": {
     "ua": "userAgent",
     "dnt": 2,
-    "ip": "192.168.244.1",
+    "ip": "193.168.244.1",
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
@@ -47,7 +47,7 @@
   },
   "test": 1,
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],

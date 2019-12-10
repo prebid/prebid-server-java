@@ -16,8 +16,8 @@ adapters:
       supported-vendors:
       vendor-id: 14
     usersync:
-      url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
-      redirect-url: /setuid?bidder=adkernelAdn&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=${UID}
+      url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      redirect-url: /setuid?bidder=adkernelAdn&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: adkernelAdn
       type: redirect
       support-cors: false

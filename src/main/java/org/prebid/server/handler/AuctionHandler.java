@@ -25,11 +25,12 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.GdprUtils;
-import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
@@ -234,11 +235,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
             vendorIds.add(gdprHostVendorId);
         }
 
-        final String gdpr = GdprUtils.gdprFrom(preBidRequestContext.getPreBidRequest().getRegs());
-        final String gdprConsent = GdprUtils.gdprConsentFrom(preBidRequestContext.getPreBidRequest().getUser());
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final Privacy privacy = PrivacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
         final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
 
-        return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdpr, gdprConsent, ip,
+        return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, privacy.getGdpr(), privacy.getConsent(), ip,
                 preBidRequestContext.getTimeout())
                 .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getVendorsToGdpr(), hostVendorIdIsMissing));
     }
@@ -402,10 +403,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .thenComparing(Bid::getResponseTimeMs));
 
                 for (final Bid bid : bids) {
+                    final boolean isFirstBid = bid == bids.get(0);
                     // IMPORTANT: see javadoc in Bid class
                     bid.setAdServerTargeting(joinMaps(
-                            keywordsCreator.makeFor(bid, bid == bids.get(0)),
-                            bid.getAdServerTargeting()));
+                            keywordsCreator.makeFor(bid, isFirstBid), bid.getAdServerTargeting()));
                 }
             }
         }
@@ -428,9 +429,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
             return;
         }
 
-        context.response().exceptionHandler(this::handleResponseException);
-
         context.response()
+                .exceptionHandler(this::handleResponseException)
                 .putHeader(HttpUtil.DATE_HEADER, date())
                 .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
@@ -439,7 +439,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send auction response", throwable);
+        logger.warn("Failed to send auction response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 

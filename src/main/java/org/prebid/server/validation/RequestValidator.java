@@ -213,7 +213,10 @@ public class RequestValidator {
      * Validates {@link ExtRequestTargeting}.
      */
     private static void validateTargeting(ExtRequestTargeting extRequestTargeting) throws ValidationException {
-        validateExtPriceGranularity(extRequestTargeting.getPricegranularity(), null);
+        final JsonNode pricegranularity = extRequestTargeting.getPricegranularity();
+        if (pricegranularity != null && !pricegranularity.isNull()) {
+            validateExtPriceGranularity(pricegranularity, null);
+        }
         validateMediaTypePriceGranularity(extRequestTargeting.getMediatypepricegranularity());
 
         final Boolean includeWinners = extRequestTargeting.getIncludewinners();
@@ -251,9 +254,9 @@ public class RequestValidator {
     private static void validateMediaTypePriceGranularity(ExtMediaTypePriceGranularity mediaTypePriceGranularity)
             throws ValidationException {
         if (mediaTypePriceGranularity != null) {
-            final JsonNode banner = mediaTypePriceGranularity.getBanner();
-            final JsonNode video = mediaTypePriceGranularity.getVideo();
-            final JsonNode xNative = mediaTypePriceGranularity.getXNative();
+            final ObjectNode banner = mediaTypePriceGranularity.getBanner();
+            final ObjectNode video = mediaTypePriceGranularity.getVideo();
+            final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
             final boolean isBannerNull = banner == null || banner.isNull();
             final boolean isVideoNull = video == null || video.isNull();
             final boolean isNativeNull = xNative == null || xNative.isNull();
@@ -360,11 +363,13 @@ public class RequestValidator {
     }
 
     private void validateApp(App app) throws ValidationException {
-        if (app != null && app.getExt() != null) {
-            try {
-                Json.mapper.treeToValue(app.getExt(), ExtApp.class);
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
+        if (app != null) {
+            if (app.getExt() != null) {
+                try {
+                    Json.mapper.treeToValue(app.getExt(), ExtApp.class);
+                } catch (JsonProcessingException e) {
+                    throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
+                }
             }
         }
     }
