@@ -19,7 +19,7 @@ adapters:
       supported-vendors:
       vendor-id: 14
     usersync:
-      url: https://search.v5prebid.datablocks.net/s2ssync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      url: https://sync.v5prebid.datablocks.net/s2ssync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
       redirect-url: /setuid?bidder=datablocks&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${uid}
       cookie-family-name: datablocks
       type: redirect
