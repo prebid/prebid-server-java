@@ -1,4 +1,4 @@
-package org.prebid.server.gdpr.vendorlist.proto;
+package org.prebid.server.privacy.gdpr.vendorlist.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

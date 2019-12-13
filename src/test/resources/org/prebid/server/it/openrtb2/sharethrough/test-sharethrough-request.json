@@ -2,6 +2,7 @@
   "badv": [
     "testblocked"
   ],
-  "tmax": 1000,
-  "deadline": "{{ DEADLINE_FORMATTED_TIME }}"
+  "tmax": 3000,
+  "deadline": "{{ DEADLINE_FORMATTED_TIME }}",
+  "bidfloor": 3.5
 }

@@ -318,7 +318,7 @@ public class ConversantAdapterTest extends VertxTest {
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -362,7 +362,7 @@ public class ConversantAdapterTest extends VertxTest {
                                 .buyeruid("buyerUid1")
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .source(Source.builder()
                                 .fd(1)
                                 .tid("tid1")

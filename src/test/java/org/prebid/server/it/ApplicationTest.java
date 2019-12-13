@@ -347,7 +347,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(spec)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, false, null))
+                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1NY", false, null))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -362,7 +362,9 @@ public class ApplicationTest extends IntegrationTest {
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
                                         "http://localhost:8000/setuid?bidder=rubicon"
-                                                + "&gdpr=1&gdpr_consent=" + gdprConsent + "&uid=host-cookie-uid",
+                                                + "&gdpr=1&gdpr_consent=" + gdprConsent
+                                                + "&us_privacy=1NY"
+                                                + "&uid=host-cookie-uid",
                                         "redirect", false))
                                 .build(),
                         BidderUsersyncStatus.builder()
@@ -371,6 +373,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .usersync(UsersyncInfo.of(
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                                + "%26us_privacy%3D1NY"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
                                 .build(),
@@ -565,6 +568,15 @@ public class ApplicationTest extends IntegrationTest {
     public void versionHandlerShouldRespondWithCommitRevision() {
         given(adminSpec)
                 .get("/version")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
+    public void adminHandlerShouldRespondWithOk() {
+        given(adminSpec)
+                .get("/admin?logging=error&records=1200")
                 .then()
                 .assertThat()
                 .statusCode(200);

@@ -9,6 +9,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -25,7 +26,7 @@ import java.util.Objects;
 /**
  * Service for price currency conversion between currencies.
  */
-public class CurrencyConversionService {
+public class CurrencyConversionService implements Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
 
@@ -60,6 +61,7 @@ public class CurrencyConversionService {
      * <p>
      * Must be called on Vertx event loop thread.
      */
+    @Override
     public void initialize() {
         vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates());
         populatesLatestCurrencyRates();
@@ -80,8 +82,8 @@ public class CurrencyConversionService {
      */
     private void populatesLatestCurrencyRates() {
         httpClient.get(currencyServerUrl, defaultTimeout)
-                .compose(CurrencyConversionService::processResponse)
-                .compose(this::updateCurrencyRates)
+                .map(CurrencyConversionService::processResponse)
+                .map(this::updateCurrencyRates)
                 .recover(CurrencyConversionService::failResponse);
     }
 
@@ -90,30 +92,27 @@ public class CurrencyConversionService {
      * and creates {@link Future} with {@link CurrencyConversionRates} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private static Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
+    private static CurrencyConversionRates processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
         final String body = response.getBody();
-        final CurrencyConversionRates currencyConversionRates;
         try {
-            currencyConversionRates = Json.mapper.readValue(body, CurrencyConversionRates.class);
+            return Json.mapper.readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
-
-        return Future.succeededFuture(currencyConversionRates);
     }
 
-    private Future<CurrencyConversionRates> updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
+    private CurrencyConversionRates updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
             latestCurrencyRates = receivedCurrencyRates;
             lastUpdated = ZonedDateTime.now(Clock.systemUTC());
         }
-        return Future.succeededFuture(currencyConversionRates);
+        return currencyConversionRates;
     }
 
     /**

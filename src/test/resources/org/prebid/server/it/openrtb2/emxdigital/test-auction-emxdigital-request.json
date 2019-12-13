@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "bid",
+      "id": "uuid",
       "banner": {
         "format": [
           {
@@ -37,7 +37,7 @@
   },
   "test": 1,
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],

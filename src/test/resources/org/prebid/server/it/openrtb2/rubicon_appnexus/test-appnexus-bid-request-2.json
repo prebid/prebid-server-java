@@ -96,7 +96,7 @@
   },
   "test": 1,
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],
@@ -106,6 +106,7 @@
   },
   "regs": {
     "ext": {
+      "us_privacy": "1YN"
     }
   },
   "ext": {
