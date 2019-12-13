@@ -8,4 +8,10 @@ import lombok.Value;
 public final class AppnexusBidExtAppnexus {
 
     Integer bidAdType;
+
+    Integer brandId;
+
+    Integer brandCategoryId;
+
+    AppnexusBidExtCreative creativeInfo;
 }
