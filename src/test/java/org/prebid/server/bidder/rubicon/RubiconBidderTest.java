@@ -1463,7 +1463,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, null, "USD"));
     }
 
     @Test
@@ -1482,7 +1482,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, null, "USD"));
     }
 
     @Test
@@ -1502,7 +1502,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, null, "USD"));
     }
 
     @Test
@@ -1518,7 +1518,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, null, "USD"));
     }
 
     @Test
@@ -1552,7 +1552,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, null, "USD"));
     }
 
     @Test
@@ -1572,7 +1572,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, null, "USD"));
     }
 
     @Test

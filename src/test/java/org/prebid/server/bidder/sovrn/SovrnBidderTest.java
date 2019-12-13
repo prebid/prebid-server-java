@@ -338,7 +338,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, null, null));
     }
 
     @Test

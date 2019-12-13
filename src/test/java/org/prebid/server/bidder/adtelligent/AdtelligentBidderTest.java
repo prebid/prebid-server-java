@@ -250,7 +250,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null, null));
     }
 
     @Test

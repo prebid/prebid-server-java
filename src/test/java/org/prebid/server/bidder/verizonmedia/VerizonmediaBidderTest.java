@@ -336,7 +336,7 @@ public class VerizonmediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), banner, null, "USD"));
     }
 
     @Test

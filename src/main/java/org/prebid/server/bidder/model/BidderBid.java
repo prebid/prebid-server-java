@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.model;
 
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidVideo;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
@@ -22,6 +23,11 @@ public class BidderBid {
      * This will become response.seatbid[i].bid.ext.prebid.type" in the final OpenRTB response
      */
     BidType type;
+
+    /**
+     * This will become response.seatbid[i].bid.ext.prebid.type" in the final OpenRTB response
+     */
+    BidVideo bidVideo;
 
     /**
      * Will be used for converting to ad server currency

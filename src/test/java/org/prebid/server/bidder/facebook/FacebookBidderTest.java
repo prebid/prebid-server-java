@@ -458,7 +458,7 @@ public class FacebookBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, null, null));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

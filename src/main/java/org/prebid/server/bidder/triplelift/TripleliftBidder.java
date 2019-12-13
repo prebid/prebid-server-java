@@ -125,7 +125,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                     final TripleliftResponseExt tripleliftResponseExt = Json.mapper.treeToValue(ext,
                             TripleliftResponseExt.class);
                     final BidderBid bidderBid = BidderBid.of(bid, getBidType(tripleliftResponseExt),
-                            DEFAULT_BID_CURRENCY);
+                            null, DEFAULT_BID_CURRENCY);
                     bidderBids.add(bidderBid);
                 } catch (JsonProcessingException e) {
                     errors.add(BidderError.badServerResponse(e.getMessage()));

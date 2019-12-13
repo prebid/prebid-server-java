@@ -269,7 +269,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null, null));
     }
 
     @Test
@@ -294,7 +294,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null, null));
     }
 
     @Test
@@ -318,7 +318,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, null, null));
     }
 
     @Test
@@ -341,7 +341,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.xNative, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.xNative, null, null));
     }
 
     @Test
@@ -363,7 +363,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null, null));
     }
 
     @Test
@@ -385,7 +385,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null, null));
     }
 
     @Test

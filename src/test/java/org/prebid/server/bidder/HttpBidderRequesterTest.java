@@ -189,7 +189,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         givenHttpClientReturnsResponse(200, "responseBody");
 
-        final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
+        final List<BidderBid> bids = asList(BidderBid.of(null, null, null, null), BidderBid.of(null, null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
@@ -394,7 +394,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
 
         given(bidder.makeBids(any(), any())).willReturn(
-                Result.of(singletonList(BidderBid.of(null, null, null)),
+                Result.of(singletonList(BidderBid.of(null, null, null, null)),
                         singletonList(BidderError.badServerResponse("makeBidsError"))));
 
         // when

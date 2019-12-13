@@ -543,7 +543,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(captor.getValue()).containsOnly(
                 BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                        BidderBid.of(thirdBid, banner, null)), emptyList(), emptyList()), 0),
+                        BidderBid.of(thirdBid, banner, null, null)), emptyList(), emptyList()), 0),
                 BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
     }
 
@@ -799,7 +799,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willReturn(singletonList(BidderResponse.of("someBidder",
                         BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bidId1").build(),
-                                BidType.banner, "USD")), null, emptyList()), 100)));
+                                BidType.banner, null, "USD")), null, emptyList()), 100)));
 
         givenBidResponseCreator(singletonList(Bid.builder().id("bidId1").build()));
 
@@ -1288,7 +1288,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, null, "CUR1");
         final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR2 to desired ad" +
                 " server currency USD. no currency conversion available");
 
@@ -1329,7 +1329,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(argumentCaptor.getValue()).hasSize(2);
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, null, "USD");
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
@@ -1430,7 +1430,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
                         Bid.builder().id("bidId").price(price)
-                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null, null)),
                 emptyList(),
                 emptyList()));
 
@@ -1670,18 +1670,18 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderBid givenBid(Bid bid) {
-        return BidderBid.of(bid, BidType.banner, null);
+        return BidderBid.of(bid, BidType.banner, null, null);
     }
 
     private static BidderBid givenBid(Bid bid, String cur) {
-        return BidderBid.of(bid, BidType.banner, cur);
+        return BidderBid.of(bid, BidType.banner, null, cur);
     }
 
     private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilder) {
         return bidBuilder.apply(Bid.builder()
                 .id("bidId")
                 .price(BigDecimal.ONE)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null, null, null), null))))
+                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null), null))))
                 .build();
     }
 

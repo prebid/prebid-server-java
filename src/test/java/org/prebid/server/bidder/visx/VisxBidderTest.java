@@ -153,9 +153,9 @@ public class VisxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(
-                        BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"),
-                        BidderBid.of(Bid.builder().impid("345").build(), banner, "USD"),
-                        BidderBid.of(Bid.builder().impid("567").build(), banner, "USD"));
+                        BidderBid.of(Bid.builder().impid("123").build(), banner, null, "USD"),
+                        BidderBid.of(Bid.builder().impid("345").build(), banner, null, "USD"),
+                        BidderBid.of(Bid.builder().impid("567").build(), banner, null, "USD"));
     }
 
     @Test

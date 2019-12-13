@@ -329,7 +329,7 @@ public class MgidBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null, "USD"));
     }
 
     @Test
@@ -349,7 +349,7 @@ public class MgidBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), xNative, null, "USD"));
     }
 
     @Test
@@ -369,7 +369,7 @@ public class MgidBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), banner, null, "USD"));
     }
 
     @Test

@@ -292,7 +292,7 @@ public class StoredResponseProcessor {
     }
 
     private BidderBid makeBidderBid(Bid bid, String bidCurrency, Map<String, BidType> impIdToBidType) {
-        return BidderBid.of(bid, getBidType(bid.getExt(), impIdToBidType.get(bid.getImpid())), bidCurrency);
+        return BidderBid.of(bid, getBidType(bid.getExt(), impIdToBidType.get(bid.getImpid())), null, bidCurrency);
     }
 
     private BidType getBidType(ObjectNode bidExt, BidType bidType) {

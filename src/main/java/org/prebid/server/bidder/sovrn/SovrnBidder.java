@@ -159,7 +159,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, null))
+                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, null, null))
                 .collect(Collectors.toList());
     }
 

@@ -427,7 +427,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").impid("321").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().id("321").impid("321").build(), banner, null, "USD"));
     }
 
     @Test

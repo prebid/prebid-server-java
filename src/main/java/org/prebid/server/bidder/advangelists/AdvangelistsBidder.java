@@ -215,7 +215,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), null, DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 

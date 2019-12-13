@@ -438,7 +438,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void mergeWithBidderResponsesShouldReturnMergedStoredSeatWithResponse() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
@@ -452,8 +452,8 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // then
         assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                asList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD"),
-                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                asList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, null, "USD"),
+                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
     }
 
@@ -461,7 +461,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void mergeWithBidderResponsesShouldMergeBidderResponsesWithoutCorrespondingStoredSeatBid() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
@@ -476,12 +476,12 @@ public class StoredResponseProcessorTest extends VertxTest {
         // then
         assertThat(result).contains(
                 BidderResponse.of("rubicon", BidderSeatBid.of(
-                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
+                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")),
                         emptyList(),
                         emptyList()), 100),
                 BidderResponse.of("appnexus", BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(),
-                                BidType.banner, "USD")), emptyList(), emptyList()), 0));
+                                BidType.banner, null, "USD")), emptyList(), emptyList()), 0));
     }
 
     @Test
@@ -498,7 +498,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // then
         assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD")),
+                singletonList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, null, "USD")),
                 emptyList(), emptyList()), 0));
     }
 
@@ -506,7 +506,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void mergeWithBidderResponsesShouldResolveCurrencyFromBidderResponse() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")), emptyList(),
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "EUR")), emptyList(),
                 emptyList()), 100));
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
@@ -520,8 +520,8 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // then
         assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
-                asList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "EUR"),
-                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")), emptyList(),
+                asList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, null, "EUR"),
+                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "EUR")), emptyList(),
                 emptyList()), 100));
     }
 
@@ -529,10 +529,10 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void mergeWithBidderResponsesShouldResolveBidTypeFromStoredBidExt() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
 
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null, null);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("rubicon").bid(singletonList(Bid.builder().ext((ObjectNode) Json.mapper.createObjectNode()
@@ -549,8 +549,8 @@ public class StoredResponseProcessorTest extends VertxTest {
         assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
                 asList(BidderBid.of(
                         Bid.builder().id("bid2").impid("storedImp").ext((ObjectNode) Json.mapper.createObjectNode()
-                                .set("prebid", Json.mapper.valueToTree(extBidPrebid))).build(), BidType.video, "USD"),
-                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                                .set("prebid", Json.mapper.valueToTree(extBidPrebid))).build(), BidType.video, null, "USD"),
+                        BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
     }
 
@@ -574,7 +574,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void mergeWithBidderResponsesShouldReturnSameResponseWhenThereAreNoStoredResponses() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
 
         final List<Imp> imps = singletonList(Imp.builder().banner(Banner.builder().build()).build());
@@ -585,7 +585,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // then
         assertThat(result).containsOnly(BidderResponse.of("rubicon", BidderSeatBid.of(
-                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, null, "USD")), emptyList(),
                 emptyList()), 100));
     }
 }

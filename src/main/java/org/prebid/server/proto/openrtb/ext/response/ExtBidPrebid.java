@@ -19,4 +19,6 @@ public class ExtBidPrebid {
     ExtResponseCache cache;
 
     Events events;
+
+    ExtBidPrebidVideo video;
 }

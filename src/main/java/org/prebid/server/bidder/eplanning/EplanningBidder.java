@@ -266,7 +266,7 @@ public class EplanningBidder implements Bidder<Void> {
                         .w(hbResponseAd.getWidth())
                         .h(hbResponseAd.getHeight())
                         .build(),
-                BidType.banner, null);
+                BidType.banner, null, null);
     }
 
     @Override

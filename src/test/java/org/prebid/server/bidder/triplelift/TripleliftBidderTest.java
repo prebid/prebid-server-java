@@ -212,7 +212,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, null, "USD"));
     }
 
     @Test
@@ -229,7 +229,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, null, "USD"));
     }
 
     @Test
@@ -246,7 +246,7 @@ public class TripleliftBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, null, "USD"));
     }
 
     @Test

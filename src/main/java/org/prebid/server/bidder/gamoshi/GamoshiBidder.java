@@ -161,7 +161,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid,
-                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), DEFAULT_BID_CURRENCY))
+                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), null, DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
