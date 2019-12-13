@@ -11,20 +11,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprPurpose;
-import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SetuidHandler implements Handler<RoutingContext> {
 
@@ -43,26 +45,31 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
-    private final BidderCatalog bidderCatalog;
     private final GdprService gdprService;
     private final Set<Integer> gdprVendorIds;
     private final boolean useGeoLocation;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
+    private final Set<String> activeCookieFamilyNames;
 
     public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, BidderCatalog bidderCatalog,
                          GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation,
                          AnalyticsReporter analyticsReporter, Metrics metrics, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprVendorIds = Collections.singleton(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+
+        activeCookieFamilyNames = bidderCatalog.names().stream()
+                .filter(bidderCatalog::isActive)
+                .map(bidderCatalog::usersyncerByName)
+                .map(Usersyncer::getCookieFamilyName)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -76,12 +83,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final String bidder = context.request().getParam(BIDDER_PARAM);
-        final boolean isBidderBlank = StringUtils.isBlank(bidder);
-        if (isBidderBlank || !bidderCatalog.isActive(bidder)) {
+        final String cookieName = context.request().getParam(BIDDER_PARAM);
+        final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
+        if (isCookieNameBlank || !activeCookieFamilyNames.contains(cookieName)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             final String body = "\"bidder\" query param is ";
-            respondWith(context, status, body + (isBidderBlank ? "required" : "invalid"));
+            respondWith(context, status, body + (isCookieNameBlank ? "required" : "invalid"));
             metrics.updateUserSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
@@ -92,7 +99,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip,
                 timeoutFactory.create(defaultTimeout))
-                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
+                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context,

@@ -11,26 +11,13 @@
     {
       "type": "json",
       "value": {
-        "id": "880290288",
-        "impid": "impId1",
-        "price": 8.43,
-        "adm": "<Impression><![CDATA[]]></Impression>",
-        "crid": "crid1",
-        "dealid": "dealId1",
+        "id": "466223845",
+        "impid": "impId2",
+        "price": 4.26,
+        "adm": "adm2",
+        "crid": "crid2",
         "w": 300,
-        "h": 250,
-        "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
-          }
-        }
+        "h": 600
       }
     },
     {
@@ -106,14 +93,25 @@
     {
       "type": "json",
       "value": {
-        "id": "466223845",
-        "impid": "impId2",
-        "price": 4.26,
-        "adm": "adm2",
-        "crid": "crid2",
-        "dealid": "dealId2",
+        "id": "880290288",
+        "impid": "impId1",
+        "price": 8.43,
+        "adm": "<Impression><![CDATA[]]></Impression>",
+        "crid": "crid1",
         "w": 300,
-        "h": 600
+        "h": 250,
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
       }
     },
     {

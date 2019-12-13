@@ -545,7 +545,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))),
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))),
                 builder -> builder.banner(Banner.builder().build()),
                 identity());
 
@@ -556,7 +556,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs)
-                .containsOnly(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))));
+                .containsOnly(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))));
     }
 
     @Test

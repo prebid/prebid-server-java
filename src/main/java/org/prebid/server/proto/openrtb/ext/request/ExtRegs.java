@@ -16,4 +16,11 @@ public class ExtRegs {
      * https://iabtechlab.com/wp-content/uploads/2018/02/OpenRTB_Advisory_GDPR_2018-02.pdf
      */
     Integer gdpr;
+
+    /**
+     * CCPA determined that U.S. Privacy applies to the transaction
+     * For more info on this parameter, see:
+     * https://iabtechlab.com/wp-content/uploads/2019/10/CCPA_Compliance_Framework_OpenRTB_Extension_Proposal_US_Privacy_IABTechLab_DRAFT_for_Public_Comment.pdf
+     */
+    String usPrivacy;
 }

@@ -20,9 +20,9 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.BidderInfo;
@@ -116,7 +116,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = notMaskedDevice();
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -177,7 +177,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final User user = notMaskedUser();
         final Device device = notMaskedDevice();
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -206,7 +206,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         given(gdprService.isGdprEnforced(any(), any(), any())).willReturn(false);
 
-        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(0)));
+        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(0, null)));
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(0));
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -237,7 +237,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         final User user = notMaskedUser();
         final Device device = notMaskedDevice();
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
         final String alias = "alias";
         final Map<String, User> bidderToUser = singletonMap(alias, user);
         final Map<String, String> aliases = singletonMap(alias, BIDDER_NAME);
@@ -483,7 +483,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final Regs regs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1, null)));
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -533,7 +533,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = notMaskedDevice();
-        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1)));
+        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)));
         final Map<String, User> bidderToUser = new HashMap<>();
         bidderToUser.put(bidder1Name, notMaskedUser());
         bidderToUser.put(bidder2Name, notMaskedUser());

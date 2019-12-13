@@ -31,6 +31,7 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.model.Account;
@@ -79,6 +80,8 @@ public class CacheServiceTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private EventsService eventsService;
+    @Mock
+    private Metrics metrics;
 
     private Clock clock;
 
@@ -96,7 +99,7 @@ public class CacheServiceTest extends VertxTest {
 
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=", eventsService, clock);
+                "http://cache-service-host/cache?uuid=", eventsService, metrics, clock);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -207,6 +210,8 @@ public class CacheServiceTest extends VertxTest {
         final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
+        verify(metrics).updateCacheRequestFailedTime(anyLong());
+
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("HTTP status code 503");
@@ -221,6 +226,8 @@ public class CacheServiceTest extends VertxTest {
         final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
+        verify(metrics).updateCacheRequestFailedTime(anyLong());
+
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class);
     }
@@ -244,7 +251,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=", eventsService, clock);
+                "https://cache-service-host:8080/cache?uuid=", eventsService, metrics, clock);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -288,6 +295,8 @@ public class CacheServiceTest extends VertxTest {
         final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout);
 
         // then
+        verify(metrics).updateCacheRequestSuccessTime(anyLong());
+
         final List<BidCacheResult> bidCacheResults = future.result();
         assertThat(bidCacheResults).hasSize(1)
                 .containsOnly(BidCacheResult.of("uuid1", "http://cache-service-host/cache?uuid=uuid1"));
@@ -538,7 +547,8 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, metrics,
+                clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -557,7 +567,8 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, metrics,
+                clock);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -575,7 +586,8 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
         cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, clock);
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, metrics,
+                clock);
 
         // when
         cacheService.cacheBidsOpenrtb(

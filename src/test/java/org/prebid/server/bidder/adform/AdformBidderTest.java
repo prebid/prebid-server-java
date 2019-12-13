@@ -61,7 +61,7 @@ public class AdformBidderTest extends VertxTest {
                                 ExtImpAdform.of(15L, "gross", "color:red", "red"))))
                         .build()))
                 .site(Site.builder().page("www.example.com").build())
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
+                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
                 .user(User.builder()
                         .buyeruid("buyeruid")
                         .ext(mapper.valueToTree(ExtUser.builder()

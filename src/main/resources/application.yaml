@@ -19,7 +19,13 @@ http-client:
   connect-timeout-ms: 2500
   use-compression: false
   max-redirects: 0
+  ssl: false
+  jks-path:
+  jks-password:
 external-url: http://localhost:8000
+host-id: localhost
+datacenter-region: local
+vendor: local
 default-timeout-ms: 900
 max-timeout-ms: 5000
 timeout-adjustment-ms: 30
@@ -46,6 +52,8 @@ cookie-sync:
   coop-sync:
     default: true
   default-timeout-ms: 2000
+logger-level-modifier:
+  enabled: false
 currency-converter:
   enabled: true
   url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
@@ -69,21 +77,28 @@ host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
+  max-cookie-size-bytes: 0
 gdpr:
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
+geolocation:
+  enabled: true
+  type: maxmind
+  maxmind:
+    remote-file-syncer:
+      download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
+      save-filepath: /var/tmp/prebid/GeoLite2-Country.tar.gz
+      retry-count: 3
+      retry-interval-ms: 3000
+      timeout-ms: 300000
+      http-client:
+        connect-timeout-ms: 2500
+        max-redirects: 3
+health-check:
+  database:
+    enabled: false
   geolocation:
-    enabled: true
-    maxmind:
-      remote-file-syncer:
-        download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
-        save-filepath: /var/tmp/prebid/GeoLite2-Country.tar.gz
-        retry-count: 3
-        retry-interval-ms: 3000
-        timeout-ms: 300000
-        http-client:
-          connect-timeout-ms: 2500
-          max-redirects: 3
+    enabled: false
