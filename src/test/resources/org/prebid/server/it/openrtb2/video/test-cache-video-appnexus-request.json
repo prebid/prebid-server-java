@@ -2,6 +2,10 @@
   "puts": [
     {
       "type": "xml",
+      "value": "some-test-ad-3"
+    },
+    {
+      "type": "xml",
       "value": "some-test-ad"
     },
     {

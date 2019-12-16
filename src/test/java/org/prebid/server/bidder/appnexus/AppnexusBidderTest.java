@@ -16,26 +16,35 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.BidVideo;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.json.Json;
 import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtCreative;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtVideo;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
+import org.prebid.server.bidder.appnexus.proto.AppnexusReqExt;
+import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
@@ -43,9 +52,12 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -90,15 +102,15 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddErrorIfAppExtPrebidCouldNotbeParsed() {
+    public void makeHttpRequestsShouldAddErrorIfAppExtPrebidCouldNotBeParsed() {
         // given
         final ObjectNode badAppExtPrebid = mapper.createObjectNode();
         badAppExtPrebid.put("prebid", "bad value");
 
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.app(App.builder().ext(badAppExtPrebid).build()),
-                builder -> builder.video(Video.builder().build()),
-                builder -> builder.placementId(20).invCode("invCode"));
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().ext(badAppExtPrebid).build()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("invCode"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -133,8 +145,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.video(Video.builder().build()),
-                builder -> builder.placementId(null).member(null).invCode("invCode"));
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(null).member(null).invCode("invCode"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -175,8 +187,8 @@ public class AppnexusBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtApp.of(
                                         ExtAppPrebid.of("some source", "any version"), null)))
                                 .build()),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -198,8 +210,8 @@ public class AppnexusBidderTest extends VertxTest {
                         .app(App.builder()
                                 .ext(mapper.valueToTree(ExtApp.of(null, null)))
                                 .build()),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -222,8 +234,8 @@ public class AppnexusBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtApp.of(
                                         ExtAppPrebid.of(null, "version"), null)))
                                 .build()),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -246,8 +258,8 @@ public class AppnexusBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtApp.of(
                                         ExtAppPrebid.of("source", null), null)))
                                 .build()),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -270,8 +282,8 @@ public class AppnexusBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtApp.of(
                                         ExtAppPrebid.of("some source", "any version"), null)))
                                 .build()),
-                builder -> builder.banner(Banner.builder().build()).displaymanagerver("string exists"),
-                builder -> builder.placementId(20));
+                impBuilder -> impBuilder.banner(Banner.builder().build()).displaymanagerver("string exists"),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -286,12 +298,116 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetRequestExtAppnexusTrueWhenPrimaryAdserverIsOne() {
+        // given
+        final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
+                .targeting(ExtRequestTargeting.builder().includebrandcategory(ExtIncludeBrandCategory.of(1, null, null)).build())
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .ext(mapper.valueToTree(AppnexusReqExt.of(null, requestPrebid))),
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(AppnexusReqExt::getAppnexus)
+                .containsOnly(AppnexusReqExtAppnexus.of(true, true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateRequestExtAppnexusTrueWhenPrimaryAdserverIsNotZero() {
+        // given
+        final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
+                .targeting(ExtRequestTargeting.builder().includebrandcategory(ExtIncludeBrandCategory.of(-120, null, null)).build())
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .ext(mapper.valueToTree(AppnexusReqExt.of(null, requestPrebid))),
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(AppnexusReqExt::getAppnexus)
+                .containsOnly(AppnexusReqExtAppnexus.of(true, true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenPrimaryAdserverIsZero() {
+        // given
+        final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
+                .targeting(ExtRequestTargeting.builder().includebrandcategory(ExtIncludeBrandCategory.of(0, null, null)).build())
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .ext(mapper.valueToTree(AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true), requestPrebid))),
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(AppnexusReqExt::getAppnexus)
+                .containsOnly(AppnexusReqExtAppnexus.of(false, true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenIncludeBrandCategoryIsMissing() {
+        // given
+        final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
+                .targeting(ExtRequestTargeting.builder().includebrandcategory(null).build())
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .ext(mapper.valueToTree(AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true), requestPrebid))),
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(AppnexusReqExt::getAppnexus)
+                .containsOnly(AppnexusReqExtAppnexus.of(false, true));
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetRequestUrlWithMemberIdParam() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 identity(),
-                builder -> builder.placementId(20).invCode("tagid").member("member_param"));
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid").member("member_param"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -308,7 +424,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 identity(),
-                builder -> builder.placementId(20).invCode("tagid"));
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -324,8 +440,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.video(Video.builder().build()),
-                builder -> builder.placementId(null).member("member").invCode(null));
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(null).member("member").invCode(null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -342,7 +458,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 identity(),
-                builder -> builder.placementId(null).member(null).invCode(null));
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(null).member(null).invCode(null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -363,7 +479,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 identity(),
-                builder -> builder.placementId(20).invCode("tagid").reserve(BigDecimal.TEN));
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid").reserve(BigDecimal.TEN));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -385,8 +501,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.xNative(Native.builder().build()),
-                builder -> builder.placementId(20).invCode("tagid"));
+                impBuilder -> impBuilder.xNative(Native.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -403,8 +519,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.video(Video.builder().build()),
-                builder -> builder.placementId(20).invCode("tagid"));
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -421,8 +537,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20).invCode("tagid"));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -439,9 +555,9 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(100).h(200).build()))
+                impBuilder -> impBuilder.banner(Banner.builder().format(singletonList(Format.builder().w(100).h(200).build()))
                         .build()),
-                builder -> builder.placementId(20).invCode("tagid").reserve(BigDecimal.TEN));
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid").reserve(BigDecimal.TEN));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -460,8 +576,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20).position("above"));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).position("above"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -478,8 +594,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20).position("below"));
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).position("below"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
@@ -496,8 +612,8 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20).trafficSourceCode("tsc").keywords(asList(
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).trafficSourceCode("tsc").keywords(asList(
                         AppnexusKeyVal.of("key1", asList("abc", "def")),
                         AppnexusKeyVal.of("key2", asList("123", "456")))));
 
@@ -522,11 +638,11 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnHttpRequestWithExtUserConsentField() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder
+                bidRequestBuilder -> bidRequestBuilder
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build()),
-                builder -> builder.banner(Banner.builder().build()),
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
                 identity());
 
         // when
@@ -544,9 +660,9 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnHttpRequestWithExtRegsGdprField() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder
+                bidRequestBuilder -> bidRequestBuilder
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))),
-                builder -> builder.banner(Banner.builder().build()),
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
                 identity());
 
         // when
@@ -560,12 +676,34 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestShouldReturnSplitedHttpRequestWhenImpMoreThanMaxImpPerRequest() {
+        // given
+        final List<Imp> imps = IntStream.rangeClosed(0, 35)
+                .mapToObj(ignore -> Imp.builder()
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder().placementId(10).build())))
+                        .build())
+                .collect(Collectors.toList());
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(4)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getImp)
+                .extracting(Collection::size)
+                .containsOnly(10, 10, 10, 6);
+    }
+
+    @Test
     public void makeHttpRequestsShouldHonorLegacyParams() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                builder -> builder.banner(Banner.builder().build()),
-                builder -> builder
+                impBuilder -> impBuilder.banner(Banner.builder().build()),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder
                         .placementId(null)
                         .legacyPlacementId(101)
                         .invCode(null)
@@ -606,7 +744,7 @@ public class AppnexusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBidTypeFromResponseIsBanner() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(BANNER_TYPE));
 
         // when
@@ -623,7 +761,7 @@ public class AppnexusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfBidTypeFromResponseIsVideo() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId").video(Video.builder().build()));
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(VIDEO_TYPE));
 
         // when
@@ -641,7 +779,7 @@ public class AppnexusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnAudioBidIfBidTypeFromResponseIsAudio() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AUDIO_TYPE));
 
         // when
@@ -659,7 +797,7 @@ public class AppnexusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(NATIVE_TYPE));
 
         // when
@@ -672,6 +810,62 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
                         expectedExtAppnexus))).impid("impId").build(), BidType.xNative, null, null));
+    }
+
+    @Test
+    public void makeBidsShouldSetBidCatWhenBrandCategoryIdIsMatch() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
+        final AppnexusBidExtAppnexus bidExtAppnexus = AppnexusBidExtAppnexus.builder().brandCategoryId(10).bidAdType(1).build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AppnexusBidExt.of(bidExtAppnexus)));
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .flatExtracting(Bid::getCat)
+                .containsOnly("IAB4-5");
+    }
+
+    @Test
+    public void makeBidsShouldClearBidCatWhenBrandCategoryIdIsNotMatchAndBidCatIsNotEmpty() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
+        final AppnexusBidExtAppnexus bidExtAppnexus = AppnexusBidExtAppnexus.builder().brandCategoryId(350).bidAdType(1).build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
+                bidBuilder -> bidBuilder.cat(singletonList("CLEAR")), AppnexusBidExt.of(bidExtAppnexus)));
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .flatExtracting(Bid::getCat)
+                .isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldSetBidVideoWhenAppnexusBidExtVideoDurationIsNotEmpty() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
+
+        final AppnexusBidExtCreative creativeInfo = AppnexusBidExtCreative.of(AppnexusBidExtVideo.of(120));
+        final AppnexusBidExtAppnexus bidExtAppnexus = AppnexusBidExtAppnexus.builder().bidAdType(1).creativeInfo(creativeInfo).build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AppnexusBidExt.of(bidExtAppnexus)));
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidVideo)
+                .containsOnly(BidVideo.of(120, null));
     }
 
     @Test
@@ -794,5 +988,18 @@ public class AppnexusBidderTest extends VertxTest {
                                 .build()))
                         .build()))
                 .build());
+    }
+
+    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer,
+                                           AppnexusBidExt extCustomizer) throws JsonProcessingException {
+        return mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder().ext(mapper.valueToTree(extCustomizer))).build()))
+                        .build()))
+                .build());
+    }
+
+    private static String givenBidResponse(AppnexusBidExt extCustomizer) throws JsonProcessingException {
+        return givenBidResponse(bidBuilder -> bidBuilder.impid("impId"), extCustomizer);
     }
 }

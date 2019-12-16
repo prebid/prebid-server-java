@@ -166,9 +166,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        return Result.of(
-                splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST),
-                errors);
+        return Result.of(splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST), errors);
     }
 
     private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
@@ -427,6 +425,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         if (iabCategory != null) {
             bid.setCat(Collections.singletonList(iabCategory));
         } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
+            //create empty categories array to force bid to be rejected
             bid.setCat(Collections.emptyList());
         }
 

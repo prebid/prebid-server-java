@@ -250,31 +250,6 @@
           "placement_id": 15016213
         }
       }
-    },
-    {
-      "id": "2_4",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "minduration": 30,
-        "maxduration": 30,
-        "protocols": [
-          2,
-          3,
-          5,
-          6
-        ],
-        "w": 640,
-        "h": 480,
-        "skipmin": 0,
-        "skipafter": 0
-      },
-      "ext": {
-        "appnexus": {
-          "placement_id": 15016213
-        }
-      }
     }
   ],
   "site": {

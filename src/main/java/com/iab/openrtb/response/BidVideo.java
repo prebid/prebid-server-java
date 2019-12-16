@@ -14,3 +14,4 @@ public class BidVideo {
 
     String primaryCategory;
 }
+

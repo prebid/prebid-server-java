@@ -17,6 +17,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
@@ -198,7 +199,11 @@ public class VideoHandler implements Handler<RoutingContext> {
                 continue;
             }
             final String impId = bid.getImpid();
-            final Integer podId = Integer.parseInt(impId.split("_")[0]);
+            final String podIdString = impId.split("_")[0];
+            if (!NumberUtils.isDigits(podIdString)) {
+                continue;
+            }
+            final Integer podId = Integer.parseInt(podIdString);
 
             final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
                     targeting.get("hb_pb"),
