@@ -1,0 +1,18 @@
+name: Docker Image CI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Publish to Github Package
+        uses: matootie/github-docker@v1.0.1
+        with:
+          username: rubicon-project
+          personalAccessToken: ${{secrets.GITHUB_TOKEN}}
+          repositoryName: rubicon-project/prebid-server-java
+          imageName: prebid-server
