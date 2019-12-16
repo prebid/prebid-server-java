@@ -239,9 +239,6 @@ public class VideoHandlerTest extends VertxTest {
         verify(httpResponse).end(eq("{\"adPods\":[]}"));
     }
 
-    //TODO caching failed for all bids
-    // No Send with errors
-
     @Test
     public void shouldRespondWithCorrectVideoResponseWithPodsError() {
         // given
