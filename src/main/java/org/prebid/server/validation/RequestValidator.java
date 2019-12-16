@@ -635,12 +635,6 @@ public class RequestValidator {
         return updatedAssets;
     }
 
-    private Asset assetWithId(Asset asset, int i) {
-        return asset.getId() != null
-                ? asset
-                : asset.toBuilder().id(i).build();
-    }
-
     private void validateNativeAsset(Asset asset, int impIndex, int assetIndex) throws ValidationException {
         final TitleObject title = asset.getTitle();
         final ImageObject image = asset.getImg();
