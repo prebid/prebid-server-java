@@ -27,9 +27,6 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {
@@ -41,15 +38,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "ID-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
-    }
+    "buyeruid": "ID-UID"
   },
   "test": 1,
   "at": 1,

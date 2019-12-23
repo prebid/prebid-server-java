@@ -41,9 +41,6 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {
@@ -55,15 +52,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "SCM-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
-    }
+    "buyeruid": "SCM-UID"
   },
   "test": 1,
   "at": 1,

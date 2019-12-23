@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,8 +51,12 @@ public class ExtRequestPrebid {
     ExtRequestPrebidData data;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.bidderconfig
+     */
+    List<ExtRequestPrebidBidderConfig> bidderconfig;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.bidders
      */
     ObjectNode bidders;
 }
-

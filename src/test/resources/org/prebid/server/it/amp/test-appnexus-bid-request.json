@@ -30,9 +30,6 @@
     "page": "https://google.com",
     "publisher": {
       "id": "accountId"
-    },
-    "ext": {
-      "amp": 1
     }
   },
   "device": {
