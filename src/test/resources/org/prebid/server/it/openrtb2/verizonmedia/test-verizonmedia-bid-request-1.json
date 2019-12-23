@@ -28,6 +28,9 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -38,8 +41,16 @@
     "language": "en",
     "ifa": "ifaId"
   },
-  "user": {},
-  "test": 1,
+  "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  },
   "at": 1,
   "tmax": 3000,
   "cur": [
