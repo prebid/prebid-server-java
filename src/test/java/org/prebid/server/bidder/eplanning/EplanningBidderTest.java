@@ -318,7 +318,7 @@ public class EplanningBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null, null));
+                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
     }
 
     @Test
@@ -357,7 +357,7 @@ public class EplanningBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null, null));
+                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
     }
 
     @Test

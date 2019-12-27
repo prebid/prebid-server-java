@@ -350,7 +350,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .crid("CrId")
                                 .w(300)
                                 .h(450)
-                                .build(), BidType.banner, null, "USD"));
+                                .build(), BidType.banner, "USD"));
     }
 
     @Test
@@ -400,7 +400,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 .crid("2")
                                 .w(640)
                                 .h(480)
-                                .build(), BidType.video, null, "USD"));
+                                .build(), BidType.video, "USD"));
     }
 
     @Test
@@ -429,7 +429,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         Bid.builder()
                                 .id("imp1AdmVideo")
                                 .impid("imp1")
-                                .build(), BidType.video, null, "USD"));
+                                .build(), BidType.video, "USD"));
     }
 
     @Test

@@ -120,7 +120,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypeForImp(bid.getImpid(), bidRequest.getImp()),
-                        null, DEFAULT_BID_CURRENCY))
+                        DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 

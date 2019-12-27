@@ -275,7 +275,7 @@ public class AdformBidder implements Bidder<Void> {
                             .crid(adformBid.getWinCrid())
                             .build(),
                     BidType.banner,
-                    null, currency));
+                    currency));
         }
 
         return bidderBids;

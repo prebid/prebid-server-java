@@ -247,7 +247,7 @@ public class AdformBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).containsOnly(BidderBid.of(
                 Bid.builder().id("id").impid("id").price(BigDecimal.ONE).adm("admBanner").w(400).h(300).dealid("dealId")
-                        .crid("gross").build(), BidType.banner, null, "currency"));
+                        .crid("gross").build(), BidType.banner, "currency"));
     }
 
     @Test
@@ -266,7 +266,7 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull().element(0).isEqualTo(BidderBid.of(
-                Bid.builder().id("id1").impid("id1").adm("admBanner").build(), BidType.banner, null, null));
+                Bid.builder().id("id1").impid("id1").adm("admBanner").build(), BidType.banner, null));
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {

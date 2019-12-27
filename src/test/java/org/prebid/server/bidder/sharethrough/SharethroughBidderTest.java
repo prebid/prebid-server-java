@@ -263,7 +263,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .h(20)
                         .adm(adm)
                         .build(),
-                BidType.banner, null, "USD");
+                BidType.banner, "USD");
 
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();

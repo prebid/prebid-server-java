@@ -138,7 +138,7 @@ public class VrtcalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), banner, null, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().build(), banner, "USD"));
     }
 
     @Test

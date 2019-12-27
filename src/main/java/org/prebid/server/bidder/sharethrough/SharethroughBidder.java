@@ -218,7 +218,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                                 .w(strUriParameters.getWidth())
                                 .build(),
                         DEFAULT_BID_TYPE,
-                        null, DEFAULT_BID_CURRENCY));
+                        DEFAULT_BID_CURRENCY));
     }
 
     @Override

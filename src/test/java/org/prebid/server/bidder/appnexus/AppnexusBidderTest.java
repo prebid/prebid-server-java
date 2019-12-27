@@ -16,7 +16,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.BidVideo;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.json.Json;
 import org.assertj.core.groups.Tuple;
@@ -25,8 +24,6 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtCreative;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtVideo;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -755,7 +752,7 @@ public class AppnexusBidderTest extends VertxTest {
         final AppnexusBidExtAppnexus expectedExtAppnexus = AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.banner, null, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.banner, null));
     }
 
     @Test
@@ -773,7 +770,7 @@ public class AppnexusBidderTest extends VertxTest {
         final AppnexusBidExtAppnexus expectedExtAppnexus = AppnexusBidExtAppnexus.builder().bidAdType(VIDEO_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.video, null, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.video, null));
     }
 
     @Test
@@ -791,7 +788,7 @@ public class AppnexusBidderTest extends VertxTest {
         final AppnexusBidExtAppnexus expectedExtAppnexus = AppnexusBidExtAppnexus.builder().bidAdType(AUDIO_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.audio, null, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.audio, null));
     }
 
     @Test
@@ -809,7 +806,7 @@ public class AppnexusBidderTest extends VertxTest {
         final AppnexusBidExtAppnexus expectedExtAppnexus = AppnexusBidExtAppnexus.builder().bidAdType(NATIVE_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.xNative, null, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.xNative, null));
     }
 
     @Test
@@ -847,25 +844,6 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .flatExtracting(Bid::getCat)
                 .isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldSetBidVideoWhenAppnexusBidExtVideoDurationIsNotEmpty() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-
-        final AppnexusBidExtCreative creativeInfo = AppnexusBidExtCreative.of(AppnexusBidExtVideo.of(120));
-        final AppnexusBidExtAppnexus bidExtAppnexus = AppnexusBidExtAppnexus.builder().bidAdType(1).creativeInfo(creativeInfo).build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AppnexusBidExt.of(bidExtAppnexus)));
-
-        // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidVideo)
-                .containsOnly(BidVideo.of(120, null));
     }
 
     @Test

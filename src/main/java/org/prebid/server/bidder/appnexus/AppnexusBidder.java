@@ -8,7 +8,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.BidVideo;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
@@ -19,8 +18,6 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtCreative;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtVideo;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -63,6 +60,9 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
     private static final int MAX_IMP_PER_REQUEST = 10;
     private static final Map<Integer, String> IAB_CATEGORIES = new HashMap<>();
+    private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
+            };
 
     static {
         IAB_CATEGORIES.put(1, "IAB20-3");
@@ -111,10 +111,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         IAB_CATEGORIES.put(71, "IAB22-2");
         IAB_CATEGORIES.put(74, "IAB8-5");
     }
-
-    private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
-            };
 
     private final String endpointUrl;
 
@@ -429,7 +425,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             bid.setCat(Collections.emptyList());
         }
 
-        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), bidVideo(appnexus), null);
+        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), null);
     }
 
     private static String iabCategory(Integer brandId) {
@@ -457,13 +453,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 throw new PreBidException(
                         String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
         }
-    }
-
-    private static BidVideo bidVideo(AppnexusBidExtAppnexus appnexusBidExtAppnexus) {
-        final AppnexusBidExtCreative creativeInfo = appnexusBidExtAppnexus.getCreativeInfo();
-        final AppnexusBidExtVideo appnexusBidExtVideo = creativeInfo != null ? creativeInfo.getVideo() : null;
-        final Integer duration = appnexusBidExtVideo != null ? appnexusBidExtVideo.getDuration() : null;
-        return duration != null ? BidVideo.of(duration, null) : null;
     }
 
     private static AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {

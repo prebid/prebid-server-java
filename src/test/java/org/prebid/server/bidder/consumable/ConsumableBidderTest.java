@@ -306,7 +306,7 @@ public class ConsumableBidderTest extends VertxTest {
                         Bid.builder()
                                 .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
                                 .adm("contents_body").w(120).h(90).exp(30).crid("123").build(),
-                        BidType.banner, null, null));
+                        BidType.banner, null));
     }
 
     @Test

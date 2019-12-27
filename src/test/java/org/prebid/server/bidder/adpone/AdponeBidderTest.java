@@ -157,7 +157,7 @@ public class AdponeBidderTest extends VertxTest {
         // then
         Assertions.assertThat(result.getErrors()).isEmpty();
         Assertions.assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(bid, BidType.banner, null, "USD"));
+                .containsOnly(BidderBid.of(bid, BidType.banner, "USD"));
     }
 
     @Test

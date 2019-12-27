@@ -201,7 +201,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType), null, null))
+                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType), null))
                 .collect(Collectors.toList());
     }
 

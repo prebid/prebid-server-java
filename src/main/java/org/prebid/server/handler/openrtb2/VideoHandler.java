@@ -153,7 +153,7 @@ public class VideoHandler implements Handler<RoutingContext> {
     }
 
     private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
-        final List<Bid> bids = bids(bidResponse);
+        final List<Bid> bids = bidsFrom(bidResponse);
         final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
         final List<ExtAdPod> adPods = bidsToAdPodWithTargeting(bids);
 
@@ -161,7 +161,7 @@ public class VideoHandler implements Handler<RoutingContext> {
             throw new PreBidException("caching failed for all bids");
         }
 
-        adPods.addAll(transformToAdPod(podErrors));
+        adPods.addAll(adPodsWithErrors(podErrors));
 
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;
@@ -178,7 +178,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         return VideoResponse.of(adPods, extResponseDebug, errors, null);
     }
 
-    private static List<Bid> bids(BidResponse bidResponse) {
+    private static List<Bid> bidsFrom(BidResponse bidResponse) {
         if (bidResponse != null && CollectionUtils.isNotEmpty(bidResponse.getSeatbid())) {
             return bidResponse.getSeatbid().stream()
                     .filter(Objects::nonNull)
@@ -237,7 +237,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         return targeting != null ? targeting : Collections.emptyMap();
     }
 
-    private static List<ExtAdPod> transformToAdPod(List<PodError> podErrors) {
+    private static List<ExtAdPod> adPodsWithErrors(List<PodError> podErrors) {
         return podErrors.stream()
                 .map(podError -> ExtAdPod.of(podError.getPodId(), null, podError.getPodErrors()))
                 .collect(Collectors.toList());

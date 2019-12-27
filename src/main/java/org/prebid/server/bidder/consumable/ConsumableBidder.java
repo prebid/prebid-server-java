@@ -205,7 +205,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                             .crid(String.valueOf(decision.getAdId()))
                             .exp(30)
                             .build();
-                    bidderBids.add(BidderBid.of(bid, BidType.banner, null, null));
+                    bidderBids.add(BidderBid.of(bid, BidType.banner, null));
                 }
             }
         }

@@ -132,7 +132,7 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
-                        null, DEFAULT_BID_CURRENCY))
+                        DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
