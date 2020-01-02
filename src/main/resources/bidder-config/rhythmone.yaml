@@ -17,8 +17,8 @@ adapters:
       supported-vendors:
       vendor-id: 36
     usersync:
-      url: //sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
-      redirect-url: /setuid?bidder=rhythmone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[RX_UUID]
+      url: //sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      redirect-url: /setuid?bidder=rhythmone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[RX_UUID]
       cookie-family-name: rhythmone
       type: redirect
       support-cors: false

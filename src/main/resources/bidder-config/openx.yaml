@@ -17,7 +17,7 @@ adapters:
       vendor-id: 69
     usersync:
       url: https://rtb.openx.net/sync/prebid?r=
-      redirect-url: /setuid?bidder=openx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=${UID}
+      redirect-url: /setuid?bidder=openx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: openx
       type: redirect
       support-cors: false

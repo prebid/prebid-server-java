@@ -10,6 +10,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.time.Instant;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
  * If data is not empty, depending on TYPE, it should be put to corresponding map with ID as a key and DATA as value.
  * </p>
  */
-public class JdbcPeriodicRefreshService {
+public class JdbcPeriodicRefreshService implements Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcPeriodicRefreshService.class);
 
@@ -84,6 +85,7 @@ public class JdbcPeriodicRefreshService {
         this.timeout = timeout;
     }
 
+    @Override
     public void initialize() {
         getAll();
         if (refreshPeriod > 0) {

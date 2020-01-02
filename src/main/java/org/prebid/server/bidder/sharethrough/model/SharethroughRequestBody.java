@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
@@ -20,4 +21,6 @@ public class SharethroughRequestBody {
 
     @JsonIgnore
     Boolean test;
+
+    BigDecimal bidfloor;
 }

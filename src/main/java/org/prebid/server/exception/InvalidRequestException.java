@@ -2,7 +2,6 @@ package org.prebid.server.exception;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("serial")
 public class InvalidRequestException extends RuntimeException {
@@ -20,7 +19,7 @@ public class InvalidRequestException extends RuntimeException {
     }
 
     public InvalidRequestException(List<String> messages) {
-        super(messages.stream().collect(Collectors.joining("\n")));
+        super(String.join("\n", messages));
         this.messages = messages;
     }
 

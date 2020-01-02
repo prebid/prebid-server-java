@@ -30,6 +30,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -40,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -77,6 +80,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
+    private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
     private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
@@ -112,7 +116,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
     }
@@ -135,7 +139,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
         // given
-        factory = new AuctionRequestFactory(1000, true, false, "USD",
+        factory = new AuctionRequestFactory(1000, true, false, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -157,7 +161,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
 
-        factory = new AuctionRequestFactory(1000, true, false, "USD",
+        factory = new AuctionRequestFactory(1000, true, false, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -187,7 +191,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, false, false, "USD",
+        factory = new AuctionRequestFactory(1, false, false, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -656,7 +660,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetDefaultIncludeBidderKeysToFalseIfIncludeBidderKeysIsMissedAndWinningonlyIsTrueInConfig() {
         // given
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
         givenBidRequest(BidRequest.builder()
@@ -683,7 +687,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidIsNull() {
         // given
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -708,7 +712,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenExtRequestPrebidCacheIsNull() {
         // given
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -733,7 +737,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNull() {
         // given
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -785,7 +789,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldSetCacheWinningonlyFromRequestWhenCacheWinningonlyIsPresent() {
         // given
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, true, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -812,7 +816,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotSetCacheWinningonlyFromConfigWhenCacheWinningonlyIsNullAndConfigValueIsFalse() {
         // given
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD",
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, false, false, "USD", BLACKLISTED_APPS,
                 BLACKLISTED_ACCOUNTS, storedRequestProcessor, paramsExtractor, uidsCookieService, bidderCatalog,
                 requestValidator, interstitialProcessor, timeoutResolver, timeoutFactory, applicationSettings);
 
@@ -990,9 +994,26 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .isInstanceOf(InvalidRequestException.class)
+                .isInstanceOf(BlacklistedAccountException.class)
                 .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
                         + "server host.");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenAppIdIsBlacklisted() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().id("bad_app").build())
+                .build());
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(BlacklistedAppException.class)
+                .hasMessage("Prebid-server does not process requests from App ID: bad_app");
     }
 
     @Test
@@ -1001,7 +1022,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of("parentAccount")))
+                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount"))))
                                 .build())
                         .build())
                 .build());
@@ -1042,12 +1063,35 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherIdWhenExtPublisherPrebidIsNull() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id("accountId")
+                                .ext(mapper.valueToTree(ExtPublisher.of(null))).build())
+                        .build())
+                .build());
+
+        final Account givenAccount = Account.builder().id("accountId").build();
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final Account account = factory.fromRequest(routingContext, 0L).result().getAccount();
+
+        // then
+        verify(applicationSettings).getAccountById(eq("accountId"), any());
+
+        assertThat(account).isSameAs(givenAccount);
+    }
+
+    @Test
     public void shouldReturnAuctionContextWithAccountIdTakenFromPublisherIdWhenExtParentIsEmpty() {
         // given
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of(""))).build())
+                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("")))).build())
                         .build())
                 .build());
 
@@ -1070,7 +1114,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of("parentAccount")))
+                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount"))))
                                 .build())
                         .build())
                 .build());

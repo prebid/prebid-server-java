@@ -27,9 +27,9 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.model.GdprResponse;
 
 import java.time.Clock;
 import java.time.Instant;

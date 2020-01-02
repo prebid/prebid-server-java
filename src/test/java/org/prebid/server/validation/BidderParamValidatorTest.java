@@ -363,7 +363,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenBeachfrontImpExtIsOk() {
         // given
-        final ExtImpBeachfront ext = ExtImpBeachfront.of("appId", 1f);
+        final ExtImpBeachfront ext = ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "adm");
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
@@ -382,7 +382,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(BEACHFRONT, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(2);
+        assertThat(messages.size()).isEqualTo(3);
     }
 
     @Test
