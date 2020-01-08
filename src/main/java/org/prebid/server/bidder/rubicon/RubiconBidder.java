@@ -92,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -737,11 +738,25 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static Bid updateBid(Bid bid, BidResponse bidResponse) {
         // Since Rubicon XAPI returns only one bid per response
-        // copy bidResponse.bidid to openrtb_response.seatbid.bid.bidid
-        if (Objects.equals(bid.getId(), "0")) {
-            bid.setId(bidResponse.getBidid());
-        }
+        // copy bidResponse.bidid to openrtb_response.seatbid.bid.id
+        final String bidId = Objects.equals(bid.getId(), "0") ? bidResponse.getBidid() : bid.getId();
+
+        // Since Rubicon XAPI returns openrtb_response.seatbid.bid.id not unique enough
+        // generate new value for it
+        final String uuid = generateUUIDFrom(bidResponse);
+        final String updatedBidId = bidId == null ? uuid : String.format("%s-%s", bidId, uuid);
+        bid.setId(updatedBidId);
+
         return bid;
+    }
+
+    private static String generateUUIDFrom(BidResponse bidResponse) {
+        try {
+            return UUID.nameUUIDFromBytes(Json.mapper.writeValueAsBytes(bidResponse)).toString();
+        } catch (JsonProcessingException e) {
+            // ignore serialization error
+            return UUID.randomUUID().toString();
+        }
     }
 
     private static BidType bidType(BidRequest bidRequest) {

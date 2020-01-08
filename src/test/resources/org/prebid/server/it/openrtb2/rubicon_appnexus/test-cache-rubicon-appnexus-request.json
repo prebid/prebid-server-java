@@ -11,7 +11,7 @@
     {
       "type": "json",
       "value": {
-        "id": "466223845",
+        "id": "466223845-8bb92323-ffb7-3c2c-9ed9-eac06abd5a7a",
         "impid": "impId2",
         "price": 4.26,
         "adm": "adm2",
@@ -93,7 +93,7 @@
     {
       "type": "json",
       "value": {
-        "id": "880290288",
+        "id": "880290288-4161091e-1dca-3778-a740-57f7ffb8ead1",
         "impid": "impId1",
         "price": 8.43,
         "adm": "<Impression><![CDATA[]]></Impression>",
@@ -143,7 +143,7 @@
     },
     {
       "type": "xml",
-      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8000/event?t=imp&b=880290288&a=5001&f=b]]></Impression>",
+      "value": "<Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8000/event?t=imp&b=880290288-4161091e-1dca-3778-a740-57f7ffb8ead1&a=5001&f=b]]></Impression>",
       "expiry": 120
     }
   ]

@@ -1182,7 +1182,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage()  {
+    public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 imp -> imp.video(Video.builder().build()),
@@ -1463,7 +1463,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder()
+                        .id("70daef28-ec31-30fb-969f-77449148c4ae").price(ONE).build(), banner, "USD"));
     }
 
     @Test
@@ -1482,7 +1483,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder()
+                        .id("70daef28-ec31-30fb-969f-77449148c4ae").price(ONE).build(), banner, "USD"));
     }
 
     @Test
@@ -1502,7 +1504,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder()
+                        .id("70daef28-ec31-30fb-969f-77449148c4ae").price(ONE).build(), video, "USD"));
     }
 
     @Test
@@ -1518,7 +1521,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder()
+                        .id("70daef28-ec31-30fb-969f-77449148c4ae").price(ONE).build(), video, "USD"));
     }
 
     @Test
@@ -1552,7 +1556,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder()
+                        .id("bidid1-60646583-5578-3fe9-ad40-5b3ded334b34").price(ONE).build(), banner, "USD"));
     }
 
     @Test
@@ -1572,7 +1577,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder()
+                        .id("non-zero-ec781326-83e6-31ae-b55f-0bdbaae13ac5").price(ONE).build(), banner, "USD"));
     }
 
     @Test
