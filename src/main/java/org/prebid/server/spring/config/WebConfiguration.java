@@ -212,7 +212,7 @@ public class WebConfiguration {
             Clock clock,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
+            @Value("${geolocation.enabled}") boolean useGeoLocation) {
 
         return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
                 metrics, httpAdapterConnector, clock, gdprService, hostVendorId, useGeoLocation);
@@ -265,7 +265,7 @@ public class WebConfiguration {
             CoopSyncPriorities coopSyncPriorities,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
@@ -282,7 +282,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {

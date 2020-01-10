@@ -28,7 +28,7 @@ public class SharethroughTest extends IntegrationTest {
     private static final Date TEST_TIME = new Date(1604455678999L); // hardcoded value in bidder
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
     private static final String TEST_FORMATTED_TIME = DATE_FORMAT.format(TEST_TIME);
-    private static final String DEADLINE_FORMATTED_TIME = DATE_FORMAT.format(new Date(TEST_TIME.getTime() + 1000L));
+    private static final String DEADLINE_FORMATTED_TIME = DATE_FORMAT.format(new Date(TEST_TIME.getTime() + 3000L));
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSharethrough() throws IOException, JSONException {
