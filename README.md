@@ -1,6 +1,12 @@
 ## This code is being used in production by multiple Prebid.org members, but is not the "official" version. See https://github.com/prebid/prebid-server/
 
 # Prebid Server
+[![GitHub version](https://badge.fury.io/gh/rubicon-project%2fprebid-server-java.svg)](http://badge.fury.io/gh/rubicon-project%2fprebid-server-java)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/context:java)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/alerts/)
+[![GitHub contributors](https://img.shields.io/github/contributors/rubicon-project/prebid-server-java.svg)](https://GitHub.com/rubicon-project/prebid-server-java/contributors/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/rubicon-project/prebid-server-java/blob/master/docs/contributing.md) 
+[![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/rubicon-project/prebid-server-java.svg)](https://GitHub.com/rubicon-project/prebid-server-java/pull/)
 
 Prebid Server is an open source implementation of Server-Side Header Bidding.
 It is managed by [Prebid.org](http://prebid.org/overview/what-is-prebid-org.html),

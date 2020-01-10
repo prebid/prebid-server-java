@@ -31,11 +31,8 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.LogModifier;
-import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
-import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -45,7 +42,6 @@ import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
-import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -416,7 +412,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PrivacyEnforcementService privacyEnforcementService(@Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+    PrivacyEnforcementService privacyEnforcementService(@Value("${geolocation.enabled}") boolean useGeoLocation,
                                                         GdprService gdprService,
                                                         BidderCatalog bidderCatalog,
                                                         Metrics metrics,
@@ -507,68 +503,5 @@ public class ServiceConfiguration {
 
         return new CurrencyConversionService(
                 currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient, mapper);
-    }
-
-    @Configuration
-    @ConditionalOnProperty(prefix = "gdpr.geolocation", name = "enabled", havingValue = "true")
-    static class GeoLocationConfiguration {
-
-        @Bean
-        @ConfigurationProperties(prefix = "gdpr.geolocation.maxmind.remote-file-syncer")
-        RemoteFileSyncerProperties maxMindRemoteFileSyncerProperties() {
-            return new RemoteFileSyncerProperties();
-        }
-
-        /**
-         * Default geolocation service implementation.
-         */
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "false",
-                matchIfMissing = true)
-        GeoLocationService basicGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties, Vertx vertx) {
-
-            return createGeoLocationService(fileSyncerProperties, vertx);
-        }
-
-        @Bean
-        @ConfigurationProperties(prefix = "gdpr.geolocation.circuit-breaker")
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerProperties geolocationCircuitBreakerProperties() {
-            return new CircuitBreakerProperties();
-        }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
-                Vertx vertx,
-                Metrics metrics,
-                RemoteFileSyncerProperties fileSyncerProperties,
-                @Qualifier("geolocationCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
-                Clock clock) {
-
-            return new CircuitBreakerSecuredGeoLocationService(vertx,
-                    createGeoLocationService(fileSyncerProperties, vertx), metrics,
-                    circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                    circuitBreakerProperties.getClosingIntervalMs(), clock);
-        }
-
-        private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties,
-                                                            Vertx vertx) {
-
-            final HttpClientProperties httpClientProperties = fileSyncerProperties.getHttpClient();
-            final HttpClientOptions httpClientOptions = new HttpClientOptions()
-                    .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
-                    .setMaxRedirects(httpClientProperties.getMaxRedirects());
-
-            final RemoteFileSyncer remoteFileSyncer = RemoteFileSyncer.create(fileSyncerProperties.getDownloadUrl(),
-                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getRetryCount(),
-                    fileSyncerProperties.getRetryIntervalMs(), fileSyncerProperties.getTimeoutMs(),
-                    vertx.createHttpClient(httpClientOptions), vertx);
-            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
-
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
-            return maxMindGeoLocationService;
-        }
     }
 }

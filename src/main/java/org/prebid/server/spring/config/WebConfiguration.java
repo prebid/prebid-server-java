@@ -224,7 +224,7 @@ public class WebConfiguration {
             PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
+            @Value("${geolocation.enabled}") boolean useGeoLocation) {
 
         return new AuctionHandler(
                 applicationSettings,
@@ -299,7 +299,7 @@ public class WebConfiguration {
             CoopSyncPriorities coopSyncPriorities,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
@@ -325,7 +325,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
