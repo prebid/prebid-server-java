@@ -87,17 +87,8 @@ public class PrivacyEnforcementService {
                         vendorToGdprPermission));
     }
 
-    private Future<Map<String, PrivacyEnforcementResult>> maskCcpa(Map<String, User> bidderToUser, Device device, User user) {
-        return Future.succeededFuture(bidderToUser.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        bidderUserEntry -> PrivacyEnforcementResult.of(
-                                maskUser(user, PrivacyEnforcementService::maskGeoDefault,
-                                        UnaryOperator.identity()),
-                                maskDevice(device, PrivacyEnforcementService::maskGeoDefault,
-                                        ip -> maskIpv6(ip, 1))))));
-    }
-
-    private Future<Map<String, PrivacyEnforcementResult>> maskCoppa(Map<String, User> bidderToUser, Device device, User user) {
+    private Future<Map<String, PrivacyEnforcementResult>> maskCoppa(Map<String, User> bidderToUser, Device device,
+                                                                    User user) {
         return Future.succeededFuture(bidderToUser.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         bidderUserEntry -> PrivacyEnforcementResult.of(
@@ -107,6 +98,17 @@ public class PrivacyEnforcementService {
                                         .gender(null)),
                                 maskDevice(device, PrivacyEnforcementService::maskGeoForCoppa,
                                         ip -> maskIpv6(ip, 2))))));
+    }
+
+    private Future<Map<String, PrivacyEnforcementResult>> maskCcpa(Map<String, User> bidderToUser, Device device,
+                                                                   User user) {
+        return Future.succeededFuture(bidderToUser.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        bidderUserEntry -> PrivacyEnforcementResult.of(
+                                maskUser(user, PrivacyEnforcementService::maskGeoDefault,
+                                        UnaryOperator.identity()),
+                                maskDevice(device, PrivacyEnforcementService::maskGeoDefault,
+                                        ip -> maskIpv6(ip, 1))))));
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa) {
@@ -232,25 +234,6 @@ public class PrivacyEnforcementService {
             }
         }
         return maskingRequired;
-    }
-
-    private static User maskUser(User user, boolean coppaMaskingRequired, boolean gdprMaskingRequired) {
-        if (user != null && (coppaMaskingRequired || gdprMaskingRequired)) {
-            final User.UserBuilder builder = user.toBuilder();
-            if (coppaMaskingRequired) {
-                builder
-                        .id(null)
-                        .yob(null)
-                        .gender(null);
-            }
-
-            builder
-                    .buyeruid(null)
-                    .geo(coppaMaskingRequired ? maskGeoForCoppa(user.getGeo()) : maskGeoDefault(user.getGeo()));
-
-            return nullIfEmpty(builder.build());
-        }
-        return user;
     }
 
     /**

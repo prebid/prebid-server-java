@@ -2,8 +2,6 @@ package org.prebid.server.privacy.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 
 @AllArgsConstructor(staticName = "of")

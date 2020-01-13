@@ -1,3 +1,4 @@
+
 # Full list of application configuration options
 
 This document describes all configuration properties available for Prebid Server.
@@ -232,6 +233,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+
+## CCPA
+- `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.

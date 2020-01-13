@@ -54,8 +54,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
-    private  static final String REJECTED_BY_GDPR = "Rejected by GDPR";
-    private  static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+    private static final String REJECTED_BY_GDPR = "Rejected by GDPR";
+    private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
     private final String externalUrl;
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -149,7 +149,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         vendorIds.add(gdprHostVendorId);
 
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
-        final Ccpa ccpa = Ccpa.of(cookieSyncRequest.getUsPrivacy()) ;
+        final Ccpa ccpa = Ccpa.of(cookieSyncRequest.getUsPrivacy());
         final Privacy privacy = Privacy.of(gdprAsString, gdprConsent, ccpa);
 
         if (privacyEnforcementService.isCcpaEnforced(ccpa)) {

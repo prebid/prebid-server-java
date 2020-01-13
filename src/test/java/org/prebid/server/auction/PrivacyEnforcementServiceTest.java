@@ -21,6 +21,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -83,7 +84,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, false);
     }
 
     @Test
@@ -475,8 +476,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForCcpaAndDoesNotCallGdprServicesWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero(){
+    public void shouldMaskForCcpaAndDoesNotCallGdprServicesWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
         // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
@@ -500,6 +502,36 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Device expectedDevice = givenGdprMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
         final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), expectedDevice);
         assertThat(result).hasSize(1).containsOnly(entry(BIDDER_NAME, expected));
+    }
+
+    @Test
+    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsFalse() {
+        // given
+        final Ccpa ccpa = Ccpa.of("1YYY");
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
+    }
+
+    @Test
+    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        final Ccpa ccpa = Ccpa.of("1YNY");
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
+    }
+
+
+    @Test
+    public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        final Ccpa ccpa = Ccpa.of("1YYY");
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isTrue();
     }
 
     @Test

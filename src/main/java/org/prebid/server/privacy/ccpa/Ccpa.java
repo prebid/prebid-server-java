@@ -20,7 +20,7 @@ public class Ccpa {
 
     private String usPrivacy;
 
-    public static Ccpa EMPTY = Ccpa.of("");
+    public static final Ccpa EMPTY = Ccpa.of("");
 
     public boolean isCCPAEnforced() {
         try {

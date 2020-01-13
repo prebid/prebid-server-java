@@ -84,6 +84,8 @@ gdpr:
   vendorlist:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
+ccpa:
+  enforce: false
 geolocation:
   enabled: true
   type: maxmind

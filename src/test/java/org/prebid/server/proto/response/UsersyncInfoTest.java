@@ -38,10 +38,10 @@ public class UsersyncInfoTest {
                         + "%26gdpr_consent%3D{{gdpr_consent}}"
                         + "%26us_privacy={{us_privacy}}",
                         null, null, null, false))
-                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YN"))).assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"))).assemble();
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YN");
+        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YNN");
     }
 
     @Test
@@ -77,12 +77,12 @@ public class UsersyncInfoTest {
                                 + "&us_privacy={{us_privacy}}"
                                 + "&uid=$UID",
                         "http://localhost:8000", null, false))
-                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YN"))).assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"))).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
                 "http://url/1/consent%241?redir=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder%3Dadnxs%26gdpr%3D1"
-                        + "%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YN%26uid%3D%24UID");
+                        + "%26gdpr_consent%3Dconsent%241%26us_privacy%3D1YNN%26uid%3D%24UID");
     }
 
     @Test

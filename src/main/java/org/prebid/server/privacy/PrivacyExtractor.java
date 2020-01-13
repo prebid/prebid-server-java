@@ -36,7 +36,8 @@ public class PrivacyExtractor {
         final ExtRegs extRegs = extRegs(regs);
         final ExtUser extUser = extUser(user);
 
-        final String gdpr = extRegs != null ? Integer.toString(extRegs.getGdpr()) : null;
+        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
 
