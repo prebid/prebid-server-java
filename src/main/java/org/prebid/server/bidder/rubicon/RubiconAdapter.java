@@ -244,7 +244,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static RubiconVideoExt makeVideoExt(RubiconVideoParams rubiconVideoParams) {
         return RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
-                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()));
+                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()), rubiconVideoParams.getVideoType());
     }
 
     private static RubiconBannerExt makeBannerExt(List<Format> sizes) {

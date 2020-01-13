@@ -57,6 +57,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -70,6 +71,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.VideoType;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -332,7 +334,32 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
-                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14)));
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillVideoExtAndAddVideoType() {
+
+        ExtImpPrebid value = ExtImpPrebid.of(null, null, null, true);
+        ExtImpRubicon build = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
+
+        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(value, build);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
+                .ext(mapper.valueToTree(ext)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), VideoType.REWARDED));
     }
 
     @Test
@@ -1182,7 +1209,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage()  {
+    public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 imp -> imp.video(Video.builder().build()),

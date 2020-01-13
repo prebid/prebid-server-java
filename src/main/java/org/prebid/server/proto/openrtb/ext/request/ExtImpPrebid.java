@@ -29,4 +29,13 @@ public class ExtImpPrebid {
      */
     @JsonProperty("storedbidresponse")
     List<ExtStoredBidResponse> storedBidResponse;
+
+    @JsonProperty("is_rewarded_inventory")
+    Boolean isRewardedInventory;
+
+    public static ExtImpPrebid of(ExtStoredRequest storedrequest,
+                                  ExtStoredAuctionResponse storedAuctionResponse,
+                                  List<ExtStoredBidResponse> storedBidResponse) {
+        return ExtImpPrebid.of(storedrequest, storedAuctionResponse, storedBidResponse, null);
+    }
 }

@@ -21,4 +21,7 @@ public class RubiconVideoParams {
     Integer skip;
 
     Integer skipdelay;
+
+    @JsonProperty("videotype")
+    VideoType videoType;
 }
