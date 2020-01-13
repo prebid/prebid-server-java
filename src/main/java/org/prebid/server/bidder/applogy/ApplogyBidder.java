@@ -71,7 +71,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
         final String body = Json.encode(outgoingRequest);
-        final String requestUrl = endpointUrl + "/applogy-exchange/" + firstImpExt.getToken();
+        final String requestUrl = endpointUrl + "/" + firstImpExt.getToken();
         final MultiMap headers = resolveHeaders();
 
         return Result.of(Collections.singletonList(
@@ -127,7 +127,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
 
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse("failed to decode json"));
         }
     }
@@ -154,16 +154,13 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Imp imp) {
-        if (imp.getBanner() != null) {
-            return BidType.banner;
-        } else if (imp.getVideo() != null) {
+        if (imp.getVideo() != null) {
             return BidType.video;
         } else if (imp.getXNative() != null) {
             return BidType.xNative;
         } else {
-            throw new PreBidException(
-                    String.format("ignoring bid, request doesn't contain any valid impression with id=%s", imp.getId())
-            );
+            return BidType.banner;
+
         }
     }
 

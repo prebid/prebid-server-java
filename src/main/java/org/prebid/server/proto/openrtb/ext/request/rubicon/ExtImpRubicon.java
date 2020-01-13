@@ -32,4 +32,7 @@ public class ExtImpRubicon {
     RubiconVideoParams video;
 
     String pchain;
+
+    @JsonProperty("is_rewarded_inventory")
+    Boolean isRewardedInventory;
 }

@@ -18,7 +18,7 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/appology.yaml", factory = YamlPropertySourceFactory.class)
+@PropertySource(value = "classpath:/bidder-config/applogy.yaml", factory = YamlPropertySourceFactory.class)
 public class ApplogyConfiguration {
 
     private static final String BIDDER_NAME = "applogy";
@@ -28,17 +28,17 @@ public class ApplogyConfiguration {
     private String externalUrl;
 
     @Autowired
-    @Qualifier("appologyConfigurationProperties")
+    @Qualifier("applogyConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
-    @Bean("appologyConfigurationProperties")
-    @ConfigurationProperties("adapters.appology")
+    @Bean("applogyConfigurationProperties")
+    @ConfigurationProperties("adapters.applogy")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps appologyBidderDeps() {
+    BidderDeps applogyBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))

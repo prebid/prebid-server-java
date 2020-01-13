@@ -1,5 +1,5 @@
 adapters:
-  appology:
+  applogy:
     enabled: true
     endpoint: http://localhost:8090
     pbs-enforces-gdpr: true

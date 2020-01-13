@@ -2,27 +2,40 @@ package org.prebid.server.bidder.applogy;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.*;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.model.*;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.applogy.ExtImpApplogy;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class ApplogyBidderTest extends VertxTest {
 
@@ -44,11 +57,10 @@ public class ApplogyBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipEmptyTokens() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()))))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpApplogy.of(null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
@@ -64,8 +76,12 @@ public class ApplogyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        givenImp(identity(), "1234"),
-                        givenImp(impBuilder -> impBuilder.banner(null).id("2").audio(Audio.builder().build()), "12345")))
+                        givenImp(identity()),
+                        givenImp(impBuilder -> impBuilder
+                                .banner(null)
+                                .id("2")
+                                .ext(mapper.valueToTree(ExtImpApplogy.of("token1")))
+                                .audio(Audio.builder().build()))))
                 .build();
 
         // when
@@ -78,7 +94,7 @@ public class ApplogyBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(givenImp(identity(), "1234"));
+                .containsOnly(givenImp(identity()));
     }
 
 
@@ -112,25 +128,161 @@ public class ApplogyBidderTest extends VertxTest {
     }
 
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenImp(impCustomizer, "");
+    @Test
+    public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(300).h(500).build()))
+                                .w(200)
+                                .h(150)
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsOnly(tuple(200, 150));
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, String token) {
-        return impCustomizer.apply(Imp.builder()
-                .id("1")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpApplogy.of(token)))))
+
+    @Test
+    public void makeHttpRequestsShouldSetBannerWidthAndHeightFromFirstFormatIfEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(Arrays.asList(Format.builder().w(300).h(500).build(),
+                                        Format.builder().w(450).h(150).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsOnly(tuple(300, 500));
+    }
+
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("failed to decode json");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+    }
+
+    @Test
+    public void extractTargetingShouldReturnEmptyMap() {
+        assertThat(applogyBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123")
+                .banner(Banner.builder().id("banner_id").build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpApplogy.of("token")))))
+                .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -140,5 +292,13 @@ public class ApplogyBidderTest extends VertxTest {
                         .build()))
                 .build();
     }
+
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return HttpCall.success(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
 
 }
