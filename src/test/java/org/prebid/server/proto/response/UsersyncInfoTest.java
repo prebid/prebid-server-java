@@ -2,6 +2,7 @@ package org.prebid.server.proto.response;
 
 import org.junit.Test;
 import org.prebid.server.bidder.Usersyncer;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +38,7 @@ public class UsersyncInfoTest {
                         + "%26gdpr_consent%3D{{gdpr_consent}}"
                         + "%26us_privacy={{us_privacy}}",
                         null, null, null, false))
-                .withPrivacy(Privacy.of("1", "consent$1", "1YN")).assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YN"))).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YN");
@@ -61,7 +62,7 @@ public class UsersyncInfoTest {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
                 .assembler(new Usersyncer(null, "http://url?redir=a%3Db", null, null, null, false))
-                .withPrivacy(Privacy.of("1", "consent", "YNN")).assemble();
+                .withPrivacy(Privacy.of("1", "consent", Ccpa.of("YNN"))).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=a%3Db");
@@ -76,7 +77,7 @@ public class UsersyncInfoTest {
                                 + "&us_privacy={{us_privacy}}"
                                 + "&uid=$UID",
                         "http://localhost:8000", null, false))
-                .withPrivacy(Privacy.of("1", "consent$1", "1YN")).assemble();
+                .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YN"))).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo(
