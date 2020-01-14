@@ -340,10 +340,10 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillVideoExtAndAddVideoType() {
 
-        ExtImpPrebid value = ExtImpPrebid.of(null, null, null, true);
-        ExtImpRubicon build = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
+        ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, true);
+        ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
 
-        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(value, build);
+        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -361,6 +361,58 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
                 .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), VideoType.REWARDED));
     }
+
+
+    @Test
+    public void makeHttpRequestsShouldFillVideoExtAndSkipVideoTypeIfRewardedIsNull() {
+
+        ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, null);
+        ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
+
+        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
+                .ext(mapper.valueToTree(ext)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillVideoExtAndSkipVideoTypeIfRewardedIsFalse() {
+
+        ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, false);
+        ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
+
+        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
+                .ext(mapper.valueToTree(ext)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
+    }
+
 
     @Test
     public void makeHttpRequestsShouldFillUserExtIfUserAndVisitorPresent() {

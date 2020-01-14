@@ -452,7 +452,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
-        boolean isRewardedInventory = prebidImpExt != null ? prebidImpExt.getIsRewardedInventory() : false;
+        boolean isRewardedInventory = false;
+        if (prebidImpExt != null) {
+            isRewardedInventory = prebidImpExt.getIsRewardedInventory() != null
+                    ? prebidImpExt.getIsRewardedInventory() : false;
+        }
         return rubiconVideoParams == null ? video : video.toBuilder()
                 .ext(Json.mapper.valueToTree(
                         RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
