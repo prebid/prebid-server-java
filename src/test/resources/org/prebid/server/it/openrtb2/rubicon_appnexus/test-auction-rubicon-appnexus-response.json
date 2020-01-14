@@ -460,6 +460,8 @@
                 },
                 "video": {
                   "size_id": 15,
+                  "playerWidth": 780,
+                  "playerHeight": "438",
                   "skip": 5,
                   "skipdelay": 1
                 }
