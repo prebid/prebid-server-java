@@ -10,10 +10,10 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,8 +36,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ApplogyBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpApplogy>> APPLOGY_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpApplogy>>() {
+            new TypeReference<>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -75,14 +76,10 @@ public class ApplogyBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
-                .headers(resolveHeaders())
+                .headers(HttpUtil.headers())
                 .body(body)
                 .payload(outgoingRequest)
                 .build();
-    }
-
-    private MultiMap resolveHeaders() {
-        return HttpUtil.headers();
     }
 
     private ExtImpApplogy parseAndValidateImpExt(Imp imp) {
@@ -112,7 +109,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
         Banner banner = imp.getBanner();
         if (banner != null) {
             if (banner.getH() == null || banner.getW() == null || banner.getH() == 0 || banner.getW() == 0) {
-                if (banner.getFormat() == null) {
+                if (banner.getFormat() == null || CollectionUtils.isEmpty(banner.getFormat())) {
                     throw new PreBidException("banner size information missing");
                 }
 
@@ -137,7 +134,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse("failed to decode json"));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -151,15 +148,15 @@ public class ApplogyBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> bidFromResponse(bidRequest, bid, errors))
+                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         return Result.of(bidderBids, errors);
     }
 
-    private static BidderBid bidFromResponse(BidRequest bidRequest, Bid bid, List<BidderError> errors) {
+    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors) {
         try {
-            final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+            final BidType bidType = getBidType(bid.getImpid(), imps);
             return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -188,3 +185,4 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     }
 
 }
+
