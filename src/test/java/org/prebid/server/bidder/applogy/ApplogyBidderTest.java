@@ -74,13 +74,21 @@ public class ApplogyBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
+        ExtPrebid<?, ExtImpApplogy> ext = ExtPrebid.of(null, ExtImpApplogy.of("token1"));
+        Imp imp = givenImp(
+                impBuilder -> impBuilder
+                        .banner(null)
+                        .id("2")
+                        .ext(mapper.valueToTree(ext))
+                        .banner(Banner.builder().w(300).h(400).build())
+        );
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        givenImp(identity()),
+                        imp,
                         givenImp(impBuilder -> impBuilder
                                 .banner(null)
                                 .id("2")
-                                .ext(mapper.valueToTree(ExtImpApplogy.of("token1")))
+                                .ext(mapper.valueToTree(ext))
                                 .audio(Audio.builder().build()))))
                 .build();
 
@@ -90,11 +98,11 @@ public class ApplogyBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput(
-                        "Applogy only supports banner, video and native media types. Ignoring imp id=2"));
+                        "Applogy only supports banner, video or native ads"));
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(givenImp(identity()));
+                .containsOnly(imp);
     }
 
 
@@ -218,25 +226,6 @@ public class ApplogyBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test

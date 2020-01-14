@@ -22,5 +22,4 @@ public class RubiconVideoParams {
 
     Integer skipdelay;
 
-    VideoType videoType;
 }

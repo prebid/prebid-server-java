@@ -1,7 +1,7 @@
 adapters:
   applogy:
-    enabled: true
-    endpoint: http://localhost:8090
+    enabled: false
+    endpoint: http://rtb.applogy.com/v1/prebid
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:

@@ -1,21 +1,24 @@
 {
   "id": "tid",
-  "imp": [
+  "imp":[
     {
-      "id": "impId001",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
+      "id":"impId002",
+      "video":{
+        "mimes":[
+          "video/mp4"
         ],
-        "w": 300,
-        "h": 250
+        "protocols":[
+          2,
+          5
+        ],
+        "w":1024,
+        "h":576,
+        "skipmin":0,
+        "skipafter":0
       },
-      "ext": {
-        "bidder": {
-          "token": "1234"
+      "ext":{
+        "bidder":{
+          "token":"12345"
         }
       }
     }

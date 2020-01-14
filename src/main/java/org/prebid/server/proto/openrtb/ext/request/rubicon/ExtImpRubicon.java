@@ -33,6 +33,4 @@ public class ExtImpRubicon {
 
     String pchain;
 
-    @JsonProperty("is_rewarded_inventory")
-    Boolean isRewardedInventory;
 }

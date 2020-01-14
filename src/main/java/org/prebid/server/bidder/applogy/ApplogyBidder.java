@@ -1,10 +1,12 @@
 package org.prebid.server.bidder.applogy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -12,7 +14,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,6 +22,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.applogy.ExtImpApplogy;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -34,10 +36,13 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ApplogyBidder implements Bidder<BidRequest> {
-
-    private final String endpointUrl;
+    private static final TypeReference<ExtPrebid<?, ExtImpApplogy>> APPLOGY_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpApplogy>>() {
+            };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
+
+    private final String endpointUrl;
 
     public ApplogyBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -46,43 +51,34 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> validImps = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> result = new ArrayList<>();
+
         for (Imp imp : request.getImp()) {
-            if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
-                errors.add(BidderError.badInput(
-                        String.format("Applogy only supports banner, video and native media types. Ignoring imp id=%s",
-                                imp.getId())));
-                continue;
+            try {
+                final ExtImpApplogy extImpApplogy = parseAndValidateImpExt(imp);
+                final Imp processImp = processImp(imp);
+                final String url = endpointUrl + "/" + extImpApplogy.getToken();
+                result.add(createSingleRequest(processImp, request, url));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
-            validImps.add(processImp(imp));
         }
 
-        if (validImps.isEmpty()) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
-        }
+        return Result.of(result, errors);
+    }
 
-        final ExtImpApplogy firstImpExt;
-        try {
-            firstImpExt = parseAndValidateImpExt(validImps.get(0));
-        } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
-        }
+    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
         final String body = Json.encode(outgoingRequest);
-        final String requestUrl = endpointUrl + "/" + firstImpExt.getToken();
-        final MultiMap headers = resolveHeaders();
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(requestUrl)
-                        .headers(headers)
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
-                errors);
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(url)
+                .headers(resolveHeaders())
+                .body(body)
+                .payload(outgoingRequest)
+                .build();
     }
 
     private MultiMap resolveHeaders() {
@@ -92,9 +88,14 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     private ExtImpApplogy parseAndValidateImpExt(Imp imp) {
         final ExtImpApplogy extImpApplogy;
         try {
-            extImpApplogy = Json.mapper.convertValue(imp.getExt().get("bidder"), ExtImpApplogy.class);
+            extImpApplogy = Json.mapper.convertValue(imp.getExt(), APPLOGY_EXT_TYPE_REFERENCE)
+                    .getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
+        }
+
+        if (extImpApplogy == null) {
+            throw new PreBidException("impression extensions required");
         }
 
         if (StringUtils.isBlank(extImpApplogy.getToken())) {
@@ -104,9 +105,17 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     }
 
     private Imp processImp(Imp imp) {
+        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
+            throw new PreBidException("Applogy only supports banner, video or native ads");
+        }
+
         Banner banner = imp.getBanner();
         if (banner != null) {
-            if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
+            if (banner.getH() == null || banner.getW() == null || banner.getH() == 0 || banner.getW() == 0) {
+                if (banner.getFormat() == null) {
+                    throw new PreBidException("banner size information missing");
+                }
+
                 final Format firstFormat = banner.getFormat().get(0);
                 final Banner modifiedBanner = banner.toBuilder()
                         .h(firstFormat.getH())
@@ -123,49 +132,59 @@ public class ApplogyBidder implements Bidder<BidRequest> {
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
+
         try {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
-
+            return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse("failed to decode json"));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Collections.emptyList();
+            return Result.of(Collections.emptyList(), Collections.emptyList());
         }
-        return bidsFromResponse(bidRequest, bidResponse);
-    }
-
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> requestImpIdToBidType = bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, ApplogyBidder::getBidType));
-
-        return bidResponse.getSeatbid().stream()
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid,
-                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), DEFAULT_BID_CURRENCY))
+                .map(bid -> bidFromResponse(bidRequest, bid, errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+        return Result.of(bidderBids, errors);
     }
 
-    private static BidType getBidType(Imp imp) {
-        if (imp.getVideo() != null) {
-            return BidType.video;
-        } else if (imp.getXNative() != null) {
-            return BidType.xNative;
-        } else {
-            return BidType.banner;
-
+    private static BidderBid bidFromResponse(BidRequest bidRequest, Bid bid, List<BidderError> errors) {
+        try {
+            final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
         }
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+            }
+        }
+        throw new PreBidException(String.format("Failed to find impression %s", impId));
     }
 
     @Override
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
     }
+
 }
