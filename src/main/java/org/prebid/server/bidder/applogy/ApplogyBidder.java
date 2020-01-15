@@ -82,25 +82,6 @@ public class ApplogyBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtImpApplogy parseAndValidateImpExt(Imp imp) {
-        final ExtImpApplogy extImpApplogy;
-        try {
-            extImpApplogy = Json.mapper.convertValue(imp.getExt(), APPLOGY_EXT_TYPE_REFERENCE)
-                    .getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-
-        if (extImpApplogy == null) {
-            throw new PreBidException("impression extensions required");
-        }
-
-        if (StringUtils.isBlank(extImpApplogy.getToken())) {
-            throw new PreBidException("token is empty");
-        }
-        return extImpApplogy;
-    }
-
     private Imp processImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
             throw new PreBidException("Applogy only supports banner, video or native ads");
@@ -122,6 +103,29 @@ public class ApplogyBidder implements Bidder<BidRequest> {
             }
         }
         return imp;
+    }
+
+    /**
+     * Applogy Bidder required to have Impression.ext {@link ExtImpApplogy}
+     * {@link ExtImpApplogy} is required to have token
+     **/
+    private ExtImpApplogy parseAndValidateImpExt(Imp imp) {
+        final ExtImpApplogy extImpApplogy;
+        try {
+            extImpApplogy = Json.mapper.convertValue(imp.getExt(), APPLOGY_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        if (extImpApplogy == null) {
+            throw new PreBidException("impression extensions required");
+        }
+
+        if (StringUtils.isBlank(extImpApplogy.getToken())) {
+            throw new PreBidException("token is empty");
+        }
+        return extImpApplogy;
     }
 
     @Override

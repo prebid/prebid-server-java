@@ -30,6 +30,7 @@ public class ApplogyTest extends IntegrationTest {
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/applogy/test-applogy-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/applogy/test-applogy-bid-response-1.json"))));
+
         // Applogy bid response for imp 002
         wireMockRule.stubFor(post(urlPathEqualTo("/applogy-exchange/12345"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -61,3 +62,4 @@ public class ApplogyTest extends IntegrationTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
+
