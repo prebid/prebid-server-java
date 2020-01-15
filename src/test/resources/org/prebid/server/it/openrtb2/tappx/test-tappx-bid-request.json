@@ -11,11 +11,13 @@
           }
         ]
       },
+      "bidfloor": 1.5,
       "ext": {
         "bidder": {
           "tappxkey": "pub-12345-android-9876",
-          "endpoint": "PREBIDTEMPLATE",
-          "host": "test.tappx.com/"
+          "endpoint": "tappx-exchange",
+          "host": "localhost:8090",
+          "bidfloor": 1.5
         }
       }
     }
