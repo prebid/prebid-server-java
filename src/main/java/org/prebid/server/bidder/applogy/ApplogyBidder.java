@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class ApplogyBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpApplogy>> APPLOGY_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
+            new TypeReference<ExtPrebid<?, ExtImpApplogy>>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
