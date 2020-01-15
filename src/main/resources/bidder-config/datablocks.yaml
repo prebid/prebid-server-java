@@ -1,0 +1,26 @@
+adapters:
+  datablocks:
+    enabled: false
+    endpoint: http://{{Host}}/openrtb2?sid={{SourceId}}
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: henry@datablocks.net
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 14
+    usersync:
+      url: https://sync.v5prebid.datablocks.net/s2ssync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      redirect-url: /setuid?bidder=datablocks&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${uid}
+      cookie-family-name: datablocks
+      type: redirect
+      support-cors: false
