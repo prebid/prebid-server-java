@@ -17,7 +17,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: http://sync.technoratimedia.com/services?srv=cs&pid=70&cb=
+      url: https://sync.technoratimedia.com/services?srv=cs&pid=70&cb=
       redirect-url: /setuid?bidder=synacormedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[USER_ID]
       cookie-family-name: synacormedia
       type: redirect
