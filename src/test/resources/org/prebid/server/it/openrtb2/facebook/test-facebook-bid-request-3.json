@@ -15,9 +15,6 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "pub3"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {
@@ -29,15 +26,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "FB-UID",
-    "ext": {
-      "consent": "consentValue",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      }
-    }
+    "buyeruid": "FB-UID"
   },
   "at": 1,
   "tmax": 3000,
