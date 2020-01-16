@@ -17,7 +17,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 public class FacebookTest extends IntegrationTest {
@@ -28,21 +27,18 @@ public class FacebookTest extends IntegrationTest {
         // facebook bid response for impId001
         wireMockRule.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
-                .withHeader("Auth-Token", equalTo("123|67234"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-1.json"))));
 
         // facebook bid response for impId002
         wireMockRule.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
-                .withHeader("Auth-Token", equalTo("123|67234"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-2.json"))));
 
         // facebook bid response for impId003
         wireMockRule.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
-                .withHeader("Auth-Token", equalTo("123|67234"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-3.json"))));
 

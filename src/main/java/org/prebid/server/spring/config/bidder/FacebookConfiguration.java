@@ -47,7 +47,7 @@ public class FacebookConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(usersync, null))
                 .bidderCreator(configProperties.getEnabled()
                         ? () -> new FacebookBidder(configProperties.getEndpoint(), configProperties.getPlatformId(),
-                        configProperties.getAppId(), configProperties.getAppSecret())
+                        configProperties.getAppSecret())
                         : null)
                 .assemble();
     }
@@ -60,9 +60,6 @@ public class FacebookConfiguration {
 
         @NotNull
         private String platformId;
-
-        @NotNull
-        private String appId;
 
         @NotNull
         private String appSecret;
