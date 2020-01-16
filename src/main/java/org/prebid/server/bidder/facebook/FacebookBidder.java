@@ -59,13 +59,11 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final String platformId;
-    private final String appId;
     private final String appSecret;
 
-    public FacebookBidder(String endpointUrl, String platformId, String appId, String appSecret) {
+    public FacebookBidder(String endpointUrl, String platformId, String appSecret) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
-        this.appId = checkBlankString(Objects.requireNonNull(appId), "app-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");
     }
 
@@ -85,7 +83,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         final MultiMap headers = HttpUtil.headers()
-                .add("Auth-Token", appId + "|" + appSecret)
                 .add("X-Fb-Pool-Routing-Token", bidRequest.getUser().getBuyeruid());
 
         final List<BidderError> errors = new ArrayList<>();

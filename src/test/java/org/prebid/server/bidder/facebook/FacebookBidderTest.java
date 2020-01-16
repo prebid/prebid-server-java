@@ -17,7 +17,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -49,7 +48,6 @@ public class FacebookBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test/auction";
     private static final String PLATFORM_ID = "101";
-    private static final String APP_ID = "123";
     private static final String APP_SECRET = "6237";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
@@ -57,39 +55,33 @@ public class FacebookBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_ID, APP_SECRET);
+        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_SECRET);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(null, PLATFORM_ID, APP_ID, APP_SECRET));
+                () -> new FacebookBidder(null, PLATFORM_ID, APP_SECRET));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, null, APP_ID, APP_SECRET));
+                () -> new FacebookBidder(ENDPOINT_URL, null, APP_SECRET));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, null, APP_SECRET));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_ID, null));
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, null));
     }
 
     @Test
     public void creationShouldFailOnBlankArguments() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_ID, APP_SECRET))
+                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_SECRET))
                 .withMessageStartingWith("No facebook platform-id specified.");
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " ", APP_SECRET))
-                .withMessageStartingWith("No facebook app-id specified.");
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_ID, " "))
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " "))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID,
-                        APP_ID, APP_SECRET))
+                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID, APP_SECRET))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -268,7 +260,6 @@ public class FacebookBidderTest extends VertxTest {
                 .containsOnly(
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
-                        tuple("Auth-Token", "123|6237"),
                         tuple("X-Fb-Pool-Routing-Token", "bUid"));
     }
 
@@ -501,8 +492,8 @@ public class FacebookBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -514,8 +505,8 @@ public class FacebookBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
