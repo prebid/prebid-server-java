@@ -22,6 +22,8 @@ import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -31,12 +33,12 @@ import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
-    private static final String VERSION = "1.0";
-
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTappx>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String VERSION = "1.1";
+    private static final String TYPE_CNN = "prebid";
 
     private final String endpointUrl;
 
@@ -60,13 +62,18 @@ public class TappxBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
 
+        final BigDecimal extBidfloor = extImpTappx.getBidfloor();
+        final BidRequest outgoingRequest = extBidfloor != null && extBidfloor.signum() > 0
+                ? modifyRequest(request, extBidfloor)
+                : request;
+
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(url)
-                        .body(Json.encode(request))
                         .headers(HttpUtil.headers())
-                        .payload(request)
+                        .uri(url)
+                        .body(Json.encode(outgoingRequest))
+                        .payload(outgoingRequest)
                         .build()),
                 Collections.emptyList());
     }
@@ -102,13 +109,14 @@ public class TappxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Tappx tappxkey undefined");
         }
 
-        String url = String.format("%s%s%s?tappxkey=%s", endpointUrl, host, endpoint, tappxkey);
+        String url = String.format("%s%s/%s?tappxkey=%s", endpointUrl, host, endpoint, tappxkey);
         if (test != null && test == 0) {
             int t = (int) System.nanoTime();
             url += "&ts=" + t;
         }
 
         url += "&v=" + VERSION;
+        url += "&type_cnn=" + TYPE_CNN;
 
         try {
             HttpUtil.validateUrl(url);
@@ -117,6 +125,17 @@ public class TappxBidder implements Bidder<BidRequest> {
         }
 
         return url;
+    }
+
+    /**
+     * Modify request's first imp.
+     */
+    private static BidRequest modifyRequest(BidRequest request, BigDecimal extBidfloor) {
+        final Imp modifiedFirstImp = request.getImp().get(0).toBuilder().bidfloor(extBidfloor).build();
+        final List<Imp> modifiedImps = new ArrayList<>(request.getImp());
+        modifiedImps.set(0, modifiedFirstImp);
+
+        return request.toBuilder().imp(modifiedImps).build();
     }
 
     @Override
