@@ -288,7 +288,7 @@ public class VendorListService {
     private static Future<Void> failResponse(Throwable exception, int version) {
         logger.warn("Error fetching vendor list via HTTP for version {0} with message: {1}",
                 version, exception.getMessage());
-        logger.info("Error fetching vendor list via HTTP {0}", version, exception);
+        logger.debug("Error fetching vendor list via HTTP {0}", version, exception);
         return Future.failedFuture(exception);
     }
 
