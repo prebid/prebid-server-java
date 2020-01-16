@@ -144,7 +144,7 @@ public class GamoshiBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://test.endpoint.com/r/supply/bidr?reqformat=RTB_JSON");
+                .containsOnly("https://test.endpoint.com/r/supply/bidr?bidder=prebid-server");
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("x-openrtb-version", "2.4"),
