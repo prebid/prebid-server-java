@@ -14,8 +14,7 @@
         "h": 400
       },
       "ext": {
-        "bidder": {
-        }
+        "bidder": {}
       }
     }
   ],
@@ -24,9 +23,6 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {
@@ -37,17 +33,7 @@
     "language": "en",
     "ifa": "ifaId"
   },
-  "user": {
-    "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
-      "consent": "consentValue"
-    }
-  },
-  "test": 1,
+  "user": {},
   "at": 1,
   "tmax": 1000,
   "cur": [
