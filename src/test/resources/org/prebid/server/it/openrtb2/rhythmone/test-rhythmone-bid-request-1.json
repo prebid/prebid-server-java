@@ -70,7 +70,6 @@
       "consent": "consentValue"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [
