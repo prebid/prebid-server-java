@@ -87,7 +87,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
             throw new PreBidException("Applogy only supports banner, video or native ads");
         }
 
-        Banner banner = imp.getBanner();
+        final Banner banner = imp.getBanner();
         if (banner != null) {
             if (banner.getH() == null || banner.getW() == null || banner.getH() == 0 || banner.getW() == 0) {
                 if (CollectionUtils.isEmpty(banner.getFormat())) {

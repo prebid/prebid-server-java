@@ -8,5 +8,4 @@ import lombok.Value;
 public class ExtImpApplogy {
 
     String token;
-
 }
