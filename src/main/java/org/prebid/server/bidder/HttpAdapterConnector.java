@@ -129,7 +129,8 @@ public class HttpAdapterConnector {
      */
     private static <T, R> Future<ExchangeCall<T, R>> failResponse(Throwable exception,
                                                                   BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
-        logger.warn("Error occurred while sending bid request to an exchange", exception);
+        logger.warn("Error occurred while sending bid request to an exchange: {0}", exception.getMessage());
+        logger.info("Error occurred while sending bid request to an exchange", exception);
         final BidderDebug bidderDebug = bidderDebugBuilder.build();
 
         final BidderError error = exception instanceof TimeoutException || exception instanceof ConnectTimeoutException

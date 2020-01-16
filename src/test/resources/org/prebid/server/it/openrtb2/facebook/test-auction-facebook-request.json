@@ -2,7 +2,7 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId5",
+      "id": "impId001",
       "banner": {
         "format": [
           {
@@ -16,6 +16,36 @@
       "ext": {
         "audienceNetwork": {
           "placementId": "pub1_place1"
+        }
+      }
+    },
+    {
+      "id": "impId002",
+      "video": {
+        "w": 300,
+        "h": 250,
+        "pos": 1,
+        "mimes": [
+          "video/mp4"
+        ]
+      },
+      "ext": {
+        "audienceNetwork":{
+          "placementId": "placement2",
+          "publisherId": "pub2"
+        }
+      }
+    },
+    {
+      "id": "impId003",
+      "native": {
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}}]}",
+        "ver": "1.1"
+      },
+      "ext": {
+        "audienceNetwork": {
+          "placementId": "placement3",
+          "publisherId": "pub3"
         }
       }
     }
@@ -42,10 +72,6 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

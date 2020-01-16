@@ -62,6 +62,7 @@
   "tmax": 5000,
   "regs": {
     "ext": {
+      "us_privacy": "YAM",
       "gdpr": 0
     }
   }

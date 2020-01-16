@@ -2,58 +2,59 @@
   "id": "tid",
   "imp": [
     {
-      "id": "adUnitCode5",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ],
-        "w": 300,
-        "h": 250
+      "id": "impId003",
+      "native": {
+        "w": -1,
+        "h": -1
       },
-      "tagid": "pub1_place1"
+      "tagid": "pub3_placement3"
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "pub1"
+      "id": "pub3"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
     "ua": "userAgent",
+    "dnt": 2,
     "ip": "193.168.244.1",
     "pxratio": 4.2,
     "language": "en",
-    "ifa": "ifaId",
-    "dnt": 10
+    "ifa": "ifaId"
   },
   "user": {
     "buyeruid": "FB-UID",
     "ext": {
-      "consent": "consent1",
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
-        "pref": 1
+        "pref": 0
       }
     }
   },
-  "regs": {
-    "ext": {
-      "gdpr": 1
-    }
-  },
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
+  "cur": [
+    "USD"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
   },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
   "ext": {
-    "platformid": 101
+    "platformid": "101",
+    "authentication_id": "5e667f61df1dad015c9f2a602e81a6ea155865570bc5cdeb68182a7c60ef78aa"
   }
 }
