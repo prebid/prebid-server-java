@@ -55,37 +55,6 @@
   },
   "ext": {
     "platformid": "101",
-    "authentication_id": "5e667f61df1dad015c9f2a602e81a6ea155865570bc5cdeb68182a7c60ef78aa",
-    "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      }
-    }
+    "authentication_id": "5e667f61df1dad015c9f2a602e81a6ea155865570bc5cdeb68182a7c60ef78aa" 
   }
 }
