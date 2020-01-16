@@ -286,7 +286,7 @@ public class VendorListService {
      * Handles errors occurred while HTTP request or response processing.
      */
     private static Future<Void> failResponse(Throwable exception, int version) {
-        logger.warn("Error fetching vendor list via HTTP for version {0}", exception, version);
+        logger.warn("Error fetching vendor list via HTTP for version {0}", version);
         return Future.failedFuture(exception);
     }
 
