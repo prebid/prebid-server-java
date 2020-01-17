@@ -187,6 +187,4 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
     }
-
 }
-

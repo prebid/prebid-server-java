@@ -300,7 +300,7 @@ public class AuctionRequestFactory {
                     parsedDomain = paramsExtractor.domainFrom(referer);
                 } catch (PreBidException e) {
                     logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
-                    logger.info("Error occurred while populating bid request", e);
+                    logger.debug("Error occurred while populating bid request", e);
                 }
             }
         }
@@ -706,7 +706,7 @@ public class AuctionRequestFactory {
     private static Future<Account> accountFallback(Throwable exception, Future<Account> response) {
         if (!(exception instanceof PreBidException)) {
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
-            logger.info("Error occurred while fetching account", exception);
+            logger.debug("Error occurred while fetching account", exception);
         }
         return response;
     }
