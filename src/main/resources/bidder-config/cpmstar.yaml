@@ -1,0 +1,24 @@
+adapters:
+  cpmstar:
+    enabled: false
+    endpoint: https://server.cpmstar.com/openrtbbidrq.aspx
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: work@cpmstar.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: cpmstar
+      type: redirect
+      support-cors: false
