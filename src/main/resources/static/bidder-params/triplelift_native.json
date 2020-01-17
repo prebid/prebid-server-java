@@ -13,20 +13,5 @@
       "type": "number"
     }
   },
-  "oneOf": [
-    {
-      "oneOf": [
-        {
-          "required": [
-            "inventoryCode"
-          ]
-        }
-      ]
-    }
-  ],
-  "not": {
-    "required": [
-      "floor"
-    ]
-  }
+  "required": ["inventoryCode"]
 }
