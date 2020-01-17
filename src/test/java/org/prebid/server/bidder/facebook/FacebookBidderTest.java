@@ -5,6 +5,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -272,6 +273,81 @@ public class FacebookBidderTest extends VertxTest {
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput("Invalid placementId param '~malformed'"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnBannerHeightError() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .w(0)
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
+                        .build()))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .site(Site.builder()
+                        .publisher(Publisher.builder().build())
+                        .build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("imp impId: valid banner height required"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnResultWithBannerHeightTakenFromFormat() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .w(0)
+                                .format(singletonList(Format.builder().h(250).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
+                        .build()))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .site(Site.builder()
+                        .publisher(Publisher.builder().build())
+                        .build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+
+        // then
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .containsExactly(BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("impId")
+                                .ext(mapper.valueToTree(FacebookExt.of(101)))
+                                .banner(Banner.builder()
+                                        .w(0)
+                                        .h(250)
+                                        .build())
+                                .tagid("pub1_placement1")
+                                .build()))
+                        .user(User.builder()
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .site(Site.builder()
+                                .publisher(Publisher.builder()
+                                        .id("pub1")
+                                        .build())
+                                .build())
+                        .build());
     }
 
     @Test

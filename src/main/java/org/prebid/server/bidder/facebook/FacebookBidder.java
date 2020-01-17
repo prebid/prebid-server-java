@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -50,7 +51,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             };
 
     private static final Integer LEGACY_BANNER_WIDTH = 320;
-    private static final Integer LEGACY_BANNER_HEIGHT = 50;
+    private static final List<Integer> LEGACY_BANNER_HEIGHT_LIST = List.of(50, 250);
 
     private final String endpointUrl;
     private final String nonSecureEndpointUrl;
@@ -222,13 +223,35 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         final Integer h = banner.getH();
-        final Integer w = banner.getW();
 
-        if (Objects.equals(w, LEGACY_BANNER_WIDTH) && Objects.equals(h, LEGACY_BANNER_HEIGHT)) {
+        if (h == null) {
+            if (banner.getFormat() != null) {
+                for (int i = 0; i < banner.getFormat().size(); i++) {
+                    final Format format = banner.getFormat().get(i);
+
+                    if (supportedBannerHeight(format.getH())) {
+                        return banner.toBuilder()
+                                .h(format.getH())
+                                .w(0)
+                                .format(null)
+                                .build();
+                    }
+                }
+            }
+            throw new PreBidException(String.format("imp %s: valid banner height required", imp.getId()));
+        }
+
+        if (supportedBannerHeight(h)) {
             // do not send legacy 320x50 size to facebook, instead use 0x50
             return banner.toBuilder().w(0).build();
         }
-        return banner;
+        throw new PreBidException(
+                String.format("imp %s: only banner heights 50 and 250 are supported", imp.getId())
+        );
+    }
+
+    private static boolean supportedBannerHeight(Integer h) {
+        return LEGACY_BANNER_HEIGHT_LIST.contains(h);
     }
 
     private String endpointUrl() {
