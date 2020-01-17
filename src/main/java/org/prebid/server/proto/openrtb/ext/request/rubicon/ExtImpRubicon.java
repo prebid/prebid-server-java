@@ -32,4 +32,5 @@ public class ExtImpRubicon {
     RubiconVideoParams video;
 
     String pchain;
+
 }
