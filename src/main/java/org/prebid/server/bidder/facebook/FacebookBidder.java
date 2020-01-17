@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -207,12 +208,30 @@ public class FacebookBidder implements Bidder<BidRequest> {
             return banner.toBuilder().w(0).h(0).format(null).build();
         }
 
-        if (!Objects.equals(banner.getH(), 50) && !Objects.equals(banner.getH(), 250)) {
+        if (banner.getH() == null) {
+            for (int i = 0; i < banner.getFormat().size(); i++) {
+                final Format format = banner.getFormat().get(i);
+                if (format != null && isBannerHeightValid(format.getH())) {
+                    return banner.toBuilder()
+                            .w(0)
+                            .h(format.getH())
+                            .format(null)
+                            .build();
+                }
+            }
+            throw new PreBidException(String.format("imp #%s: banner height required", imp.getId()));
+        }
+
+        if (!isBannerHeightValid(banner.getH())) {
             throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
                     imp.getId()));
         }
 
         return banner.toBuilder().w(-1).format(null).build();
+    }
+
+    private static boolean isBannerHeightValid(Integer h) {
+        return Objects.equals(h, 50) || Objects.equals(h, 250);
     }
 
     /**

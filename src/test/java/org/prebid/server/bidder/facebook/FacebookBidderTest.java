@@ -358,6 +358,45 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormat() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                        .banner(Banner.builder().w(0)
+                                .format(singletonList(Format.builder().h(250).build()))
+                                .build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsOnly(Banner.builder().h(250).w(0).build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldThrowErrorIfFormatHeightIsInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                        .banner(Banner.builder().w(0)
+                                .format(singletonList(Format.builder().h(300).build()))
+                                .build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+        .containsOnly(BidderError.badInput("imp #imp1: banner height required"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldModifyImpVideoAsExpected() {
         // given
         final BidRequest bidRequest = givenBidRequest(
