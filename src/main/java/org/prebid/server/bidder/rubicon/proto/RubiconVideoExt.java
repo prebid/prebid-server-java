@@ -17,5 +17,4 @@ public class RubiconVideoExt {
 
     @JsonProperty("videotype")
     VideoType videoType;
-
 }

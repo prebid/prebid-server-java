@@ -130,11 +130,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final boolean useFirstPartyData = useFirstPartyData(bidRequest);
-        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExtImpRubicon =
+        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
                 parseRubiconImpExts(bidRequest.getImp(), errors);
-        final String impLanguage = firstImpExtLanguage(impToExtImpRubicon.values());
+        final String impLanguage = firstImpExtLanguage(impToImpExt.values());
 
-        for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToExtImpRubicon.entrySet()) {
+        for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToImpExt.entrySet()) {
             try {
                 final Imp imp = impToExt.getKey();
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
@@ -219,16 +219,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> parseRubiconImpExts(
             List<Imp> imps, List<BidderError> errors
     ) {
-        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToRubiconExt = new HashMap<>();
+        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = new HashMap<>();
         for (final Imp imp : imps) {
             try {
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> rubiconImpExt = parseRubiconExt(imp);
-                impToRubiconExt.put(imp, rubiconImpExt);
+                impToImpExt.put(imp, rubiconImpExt);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        return impToRubiconExt;
+        return impToImpExt;
     }
 
     private static ExtPrebid<ExtImpPrebid, ExtImpRubicon> parseRubiconExt(Imp imp) {

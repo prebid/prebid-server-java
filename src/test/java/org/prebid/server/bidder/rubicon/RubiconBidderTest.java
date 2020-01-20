@@ -339,9 +339,9 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFillVideoExtAndAddVideoType() {
-
-        ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, true);
-        ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
+        // given
+        final ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, true);
+        final ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
 
         ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
 
@@ -365,11 +365,11 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFillVideoExtAndSkipVideoTypeIfRewardedIsNull() {
+        // given
+        final ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, null);
+        final ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
 
-        ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, null);
-        ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
-
-        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -390,11 +390,11 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFillVideoExtAndSkipVideoTypeIfRewardedIsFalse() {
+        // given
+        final ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, false);
+        final ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
 
-        ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, false);
-        ExtImpRubicon rubicon = ExtImpRubicon.builder().video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()).build();
-
-        ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));

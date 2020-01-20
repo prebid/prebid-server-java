@@ -33,7 +33,6 @@ public class ExtImpPrebid {
     /**
      * Defines the contract for bidrequest.imp[i].ext.prebid.is_rewarded_inventory
      */
-    @JsonProperty("is_rewarded_inventory")
     Boolean isRewardedInventory;
 
     public static ExtImpPrebid of(ExtStoredRequest storedrequest,
