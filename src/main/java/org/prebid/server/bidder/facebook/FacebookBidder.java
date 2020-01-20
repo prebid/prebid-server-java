@@ -58,6 +58,8 @@ public class FacebookBidder implements Bidder<BidRequest> {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
+    private static final List<Integer> SUPPORTED_BANNER_HEIGHT_LIST = List.of(250, 50);
+
     private final String endpointUrl;
     private final String platformId;
     private final String appSecret;
@@ -204,13 +206,15 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
     private static Banner modifyBanner(Imp imp, boolean impInstlEqOne) {
         final Banner banner = imp.getBanner();
+        if (banner == null) {
+            throw new PreBidException(String.format("imp #%s: Banner is null", imp.getId()));
+        }
         if (impInstlEqOne) {
             return banner.toBuilder().w(0).h(0).format(null).build();
         }
 
         if (banner.getH() == null) {
-            for (int i = 0; i < banner.getFormat().size(); i++) {
-                final Format format = banner.getFormat().get(i);
+            for (final Format format : banner.getFormat()) {
                 if (format != null && isBannerHeightValid(format.getH())) {
                     return banner.toBuilder()
                             .w(0)
@@ -231,7 +235,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isBannerHeightValid(Integer h) {
-        return Objects.equals(h, 50) || Objects.equals(h, 250);
+        return SUPPORTED_BANNER_HEIGHT_LIST.contains(h);
     }
 
     /**
