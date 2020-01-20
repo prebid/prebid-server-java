@@ -98,6 +98,12 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
+        // rubicon bid response for video
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-3.json")))
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-rubicon-bid-response-3.json"))));
+
         // appnexus bid response for imp 3
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
@@ -120,7 +126,7 @@ public class ApplicationTest extends IntegrationTest {
                                 "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
                 ));
 
-        // when
+//        // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
@@ -136,6 +142,23 @@ public class ApplicationTest extends IntegrationTest {
                 response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
+
+        // when
+        final Response responseForVideo = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
+                .body(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-request1.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionForVideoResponse = openrtbAuctionResponseFrom(
+                "openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response1.json",
+                responseForVideo, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
+
+        JSONAssert.assertEquals(expectedAuctionForVideoResponse, responseForVideo.asString(), openrtbCacheDebugComparator());
     }
 
     @Test

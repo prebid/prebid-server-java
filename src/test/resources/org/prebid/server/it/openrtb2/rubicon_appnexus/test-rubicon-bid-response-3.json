@@ -1,0 +1,32 @@
+{
+  "id": "bidResponseId1",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "880290288",
+          "impid": "impId1",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression>",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "rp": {
+              "targeting": [
+                {
+                  "key": "rpfl_1001",
+                  "values": [
+                    "2_tier0100"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "seat": "seatId1",
+      "group": 0
+    }
+  ]
+}

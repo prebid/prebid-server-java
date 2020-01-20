@@ -29,6 +29,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -138,8 +139,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             try {
                 final Imp imp = impToExt.getKey();
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
-                final BidRequest singleRequest = createSingleRequest(imp, ext, bidRequest, impLanguage,
-                        useFirstPartyData);
+                final BidRequest singleRequest = createSingleRequest(
+                        imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage, useFirstPartyData
+                );
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -251,19 +253,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private BidRequest createSingleRequest(Imp imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext,
+    private BidRequest createSingleRequest(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
                                            BidRequest bidRequest, String impLanguage, boolean useFirstPartyData) {
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
 
-        final ExtImpRubicon bidder = ext.getBidder();
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, ext, site, app, useFirstPartyData)))
-                .user(makeUser(bidRequest.getUser(), bidder))
+                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app, useFirstPartyData)))
+                .user(makeUser(bidRequest.getUser(), extRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
-                .site(makeSite(site, impLanguage, bidder))
-                .app(makeApp(app, bidder))
-                .source(makeSource(bidRequest.getSource(), bidder.getPchain()))
+                .site(makeSite(site, impLanguage, extRubicon))
+                .app(makeApp(app, extRubicon))
+                .source(makeSource(bidRequest.getSource(), extRubicon.getPchain()))
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
                 .build();
@@ -297,21 +298,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp makeImp(Imp imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext,
+    private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
                         Site site, App app, boolean useFirstPartyData) {
-        final ExtImpRubicon rubiconImpExt = ext.getBidder();
-        final ExtImpPrebid prebidImpExt = ext.getPrebid();
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(Json.mapper.valueToTree(makeImpExt(imp, rubiconImpExt, site, app, useFirstPartyData)));
+                .ext(Json.mapper.valueToTree(makeImpExt(imp, extRubicon, site, app, useFirstPartyData)));
 
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp.getVideo(), rubiconImpExt.getVideo(), prebidImpExt));
+                    .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
         } else {
             builder
-                    .banner(makeBanner(imp.getBanner(), overriddenSizes(rubiconImpExt)))
+                    .banner(makeBanner(imp.getBanner(), overriddenSizes(extRubicon)))
                     .video(null);
         }
 
@@ -452,16 +451,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
-        boolean isRewardedInventory = false;
-        if (prebidImpExt != null) {
-            isRewardedInventory = prebidImpExt.getIsRewardedInventory() != null
-                    ? prebidImpExt.getIsRewardedInventory() : false;
+        final VideoType videoType = prebidImpExt != null
+                && BooleanUtils.isTrue(prebidImpExt.getIsRewardedInventory()) ? VideoType.REWARDED : null;
+
+        if (rubiconVideoParams == null && videoType == null) {
+            return video;
         }
-        return rubiconVideoParams == null ? video : video.toBuilder()
+
+        final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
+        final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
+        final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+        return video.toBuilder()
                 .ext(Json.mapper.valueToTree(
-                        RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
-                                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()),
-                                isRewardedInventory ? VideoType.REWARDED : null)))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
                 .build();
     }
 
