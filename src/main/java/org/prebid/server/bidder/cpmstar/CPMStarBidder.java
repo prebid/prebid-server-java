@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -44,32 +43,35 @@ public class CPMStarBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
 
     public CPMStarBidder(String endpointUrl) {
-        this.endpointUrl = endpointUrl;
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         try {
-            final BidRequest bidRequest = processRequest(request);
-            return Result.of(
-                    Collections.singletonList(createSingleRequest(bidRequest)),
-                    errors
+            final BidRequest bidRequest = processRequest(request, errors);
+
+            return Result.of(Collections.singletonList(createSingleRequest(bidRequest)), errors);
+        } catch (IllegalArgumentException e) {
+            return Result.of(Collections.emptyList(),
+                    Collections.singletonList(BidderError.badInput(e.getMessage()))
             );
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
         }
-        return Result.of(Collections.emptyList(), errors);
     }
 
-    private BidRequest processRequest(BidRequest bidRequest) {
+    private BidRequest processRequest(BidRequest bidRequest, List<BidderError> errors) {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            throw new RuntimeException("No Imps in Bid Request");
+            throw new IllegalArgumentException("No Imps in Bid Request");
         }
 
         final List<Imp> validImpList = new ArrayList<>();
         for (final Imp imp : bidRequest.getImp()) {
-            validImpList.add(parseAndValidateImp(imp));
+            try {
+                validImpList.add(parseAndValidateImp(imp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
         return bidRequest.toBuilder().imp(validImpList).build();
     }
@@ -79,13 +81,14 @@ public class CPMStarBidder implements Bidder<BidRequest> {
             throw new PreBidException("Only Banner and Video bid-types are supported at this time");
         }
 
-        try {
-            ExtPrebid<?, ExtImpCPMStar> extImpCPMStarExtPrebid =
-                    Json.mapper.convertValue(imp.getExt(), CPM_STAR_EXT_TYPE_REFERENCE);
-            return imp.toBuilder().ext(Json.mapper.valueToTree(extImpCPMStarExtPrebid)).build();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+        final ExtPrebid<?, ExtImpCPMStar> ext =
+                Json.mapper.convertValue(imp.getExt(), CPM_STAR_EXT_TYPE_REFERENCE);
+
+        final ExtImpCPMStar bidder = ext.getBidder();
+        if (bidder == null) {
+            throw new PreBidException(String.format("imp id=%s: bidder.ext is null", imp.getId()));
         }
+        return imp.toBuilder().ext(Json.mapper.valueToTree(ext)).build();
     }
 
     private HttpRequest<BidRequest> createSingleRequest(BidRequest request) {
@@ -95,15 +98,10 @@ public class CPMStarBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(getHeaders())
+                .headers(HttpUtil.headers())
                 .body(body)
                 .payload(request)
                 .build();
-    }
-
-    private MultiMap getHeaders() {
-        MultiMap headers = HttpUtil.headers();
-        return headers;
     }
 
     @Override
