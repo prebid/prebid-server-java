@@ -41,6 +41,7 @@ import org.prebid.server.util.HttpUtil;
 
 import javax.crypto.Mac;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +59,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final List<Integer> SUPPORTED_BANNER_HEIGHT_LIST = List.of(250, 50);
+    private static final List<Integer> SUPPORTED_BANNER_HEIGHT_LIST = Arrays.asList(250, 50);
 
     private final String endpointUrl;
     private final String platformId;
