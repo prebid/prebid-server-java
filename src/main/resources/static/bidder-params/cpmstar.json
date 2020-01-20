@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CPMStar Adapter Params",
+  "description": "A schema which validates params accepted by CPMStar adapter",
+  "type": "object",
+  "properties": {
+    "placementId": {
+      "type": "integer",
+      "description": "placementId"
+    },
+    "subpoolId": {
+      "type": "integer",
+      "description": "subpoolId"
+    }
+  }
+}

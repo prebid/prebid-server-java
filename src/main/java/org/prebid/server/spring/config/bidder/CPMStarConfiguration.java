@@ -1,8 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.applogy.ApplogyBidder;
-import org.prebid.server.bidder.cpmstar.CPMStar;
+import org.prebid.server.bidder.cpmstar.CPMStarBidder;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -44,7 +43,7 @@ public class CPMStarConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new CPMStar(configProperties.getEndpoint()))
+                .bidderCreator(() -> new CPMStarBidder(configProperties.getEndpoint()))
                 .assemble();
     }
 }

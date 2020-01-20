@@ -7,7 +7,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: work@cpmstar.com
+      maintainer-email: prebid@cpmstar.com
       app-media-types:
         - banner
         - video
