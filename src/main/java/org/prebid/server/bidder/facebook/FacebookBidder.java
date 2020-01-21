@@ -59,7 +59,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final List<Integer> SUPPORTED_BANNER_HEIGHT_LIST = Arrays.asList(250, 50);
+    private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
     private final String endpointUrl;
     private final String platformId;
@@ -225,18 +225,17 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 }
             }
             throw new PreBidException(String.format("imp #%s: banner height required", imp.getId()));
+        } else {
+            if (!isBannerHeightValid(banner.getH())) {
+                throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
+                        imp.getId()));
+            }
+            return banner.toBuilder().w(0).format(null).build();
         }
-
-        if (!isBannerHeightValid(banner.getH())) {
-            throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
-                    imp.getId()));
-        }
-
-        return banner.toBuilder().w(-1).format(null).build();
     }
 
     private static boolean isBannerHeightValid(Integer h) {
-        return SUPPORTED_BANNER_HEIGHT_LIST.contains(h);
+        return SUPPORTED_BANNER_HEIGHT.contains(h);
     }
 
     /**
