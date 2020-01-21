@@ -7,30 +7,34 @@
           "id": "wehM-93KGr0_0_0",
           "impid": "impId12",
           "price": 0.5,
+          "adm": "<!-- admarkup -->",
+          "adid": "19005",
+          "adomain": [
+            "test.com"
+          ],
           "cid": "3706",
           "crid": "19005",
-          "adid": "19005",
-          "adm": "<!-- admarkup -->",
-          "cat": ["IAB2"],
-          "adomain": ["test.com"],
-          "h": 250,
+          "cat": [
+            "IAB2"
+          ],
           "w": 300,
+          "h": 250,
           "ext": {
             "prebid": {
               "type": "banner",
               "targeting": {
                 "hb_pb": "0.50",
-                "hb_size_tappx": "300x250",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_host_tappx": "{{ cache.host }}",
                 "hb_size": "300x250",
+                "hb_cache_path_tappx": "{{ cache.path }}",
+                "hb_bidder_tappx": "tappx",
                 "hb_bidder": "tappx",
                 "hb_cache_id_tappx": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                "hb_size_tappx": "300x250",
                 "hb_cache_id": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
-                "hb_bidder_tappx": "tappx",
-                "hb_pb_tappx": "0.50",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_tappx": "{{ cache.host }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_tappx": "{{ cache.path }}"
+                "hb_pb_tappx": "0.50"
               },
               "cache": {
                 "bids": {

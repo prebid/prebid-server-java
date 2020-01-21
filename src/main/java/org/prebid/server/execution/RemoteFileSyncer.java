@@ -5,16 +5,18 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.AsyncFile;
+import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.Pump;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 
@@ -33,38 +35,45 @@ public class RemoteFileSyncer {
 
     private final String downloadUrl;  // url to resource to be downloaded
     private final String saveFilePath; // full path on file system where downloaded file located
+    private final String tmpFilePath; // full path on file system where tmp file located
     private final int retryCount; // how many times try to download
     private final long retryInterval; // how long to wait between failed retries
     private final long timeout;
+    private final long updatePeriod;
     private final HttpClient httpClient;
     private final Vertx vertx;
     private final FileSystem fileSystem;
 
-    private RemoteFileSyncer(String downloadUrl, String saveFilePath, int retryCount,
-                             long retryInterval, long timeout, HttpClient httpClient, Vertx vertx,
+    private RemoteFileSyncer(String downloadUrl, String saveFilePath, String tmpFilePath, int retryCount,
+                             long retryInterval, long timeout, long updatePeriod, HttpClient httpClient, Vertx vertx,
                              FileSystem fileSystem) {
         this.downloadUrl = downloadUrl;
         this.saveFilePath = saveFilePath;
+        this.tmpFilePath = tmpFilePath;
         this.retryCount = retryCount;
         this.retryInterval = retryInterval;
         this.timeout = timeout;
+        this.updatePeriod = updatePeriod;
         this.httpClient = httpClient;
         this.vertx = vertx;
         this.fileSystem = fileSystem;
     }
 
-    public static RemoteFileSyncer create(String downloadUrl, String saveFilePath, int retryCount, long retryInterval,
-                                          long timeout, HttpClient httpClient, Vertx vertx) {
+    public static RemoteFileSyncer create(String downloadUrl, String saveFilePath, String tmpFilePath, int retryCount,
+                                          long retryInterval, long timeout, long updatePeriod, HttpClient httpClient,
+                                          Vertx vertx, FileSystem fileSystem) {
         HttpUtil.validateUrl(downloadUrl);
         Objects.requireNonNull(saveFilePath);
+        Objects.requireNonNull(tmpFilePath);
         Objects.requireNonNull(vertx);
         Objects.requireNonNull(httpClient);
-        final FileSystem fileSystem = vertx.fileSystem();
+        Objects.requireNonNull(fileSystem);
 
         createAndCheckWritePermissionsFor(fileSystem, saveFilePath);
+        createAndCheckWritePermissionsFor(fileSystem, tmpFilePath);
 
-        return new RemoteFileSyncer(downloadUrl, saveFilePath, retryCount, retryInterval, timeout, httpClient, vertx,
-                fileSystem);
+        return new RemoteFileSyncer(downloadUrl, saveFilePath, tmpFilePath, retryCount, retryInterval, timeout,
+                updatePeriod, httpClient, vertx, fileSystem);
     }
 
     /**
@@ -91,38 +100,70 @@ public class RemoteFileSyncer {
         downloadIfNotExist(remoteFileProcessor).setHandler(syncResult -> handleSync(remoteFileProcessor, syncResult));
     }
 
-    private Future<Void> downloadIfNotExist(RemoteFileProcessor fileProcessor) {
-        final Promise<Void> promise = Promise.promise();
-        fileSystem.exists(saveFilePath, existResult -> handleFileExisting(promise, existResult, fileProcessor));
+    private Future<Boolean> downloadIfNotExist(RemoteFileProcessor fileProcessor) {
+        final Promise<Boolean> promise = Promise.promise();
+        checkFileExist(saveFilePath).setHandler(existResult ->
+                handleFileExistingWithSync(existResult, fileProcessor, promise));
         return promise.future();
     }
 
-    private void handleFileExisting(Promise<Void> promise, AsyncResult<Boolean> existResult,
-                                    RemoteFileProcessor fileProcessor) {
+    private Future<Boolean> checkFileExist(String filePath) {
+        final Promise<Boolean> promise = Promise.promise();
+        fileSystem.exists(filePath, async -> {
+            if (async.succeeded()) {
+                promise.complete(async.result());
+            } else {
+                promise.fail(String.format("Cant check if file exists %s", filePath));
+            }
+        });
+        return promise.future();
+    }
+
+    private void handleFileExistingWithSync(AsyncResult<Boolean> existResult, RemoteFileProcessor fileProcessor,
+                                            Promise<Boolean> promise) {
         if (existResult.succeeded()) {
             if (existResult.result()) {
                 fileProcessor.setDataPath(saveFilePath)
                         .setHandler(serviceRespond -> handleServiceRespond(serviceRespond, promise));
             } else {
-                tryDownload(promise);
+                syncRemoteFiles().setHandler(promise);
             }
         } else {
             promise.fail(existResult.cause());
         }
     }
 
-    private void handleServiceRespond(AsyncResult<?> processResult, Promise<Void> promise) {
+    private void handleServiceRespond(AsyncResult<?> processResult, Promise<Boolean> promise) {
         if (processResult.failed()) {
             final Throwable cause = processResult.cause();
-            cleanUp().setHandler(removalResult -> handleCorruptedFileRemoval(removalResult, promise, cause));
+            cleanUp(saveFilePath).setHandler(removalResult -> handleCorruptedFileRemoval(removalResult, promise,
+                    cause));
         } else {
+            promise.complete(false);
             logger.info("Existing file {0} was successfully reused for service", saveFilePath);
         }
     }
 
-    private void handleCorruptedFileRemoval(
-            AsyncResult<Void> removalResult, Promise<Void> promise, Throwable serviceCause) {
+    private Future<Void> cleanUp(String filePath) {
+        final Promise<Void> promise = Promise.promise();
+        checkFileExist(filePath).setHandler(existResult -> handleFileExistsWithDelete(filePath, existResult, promise));
+        return promise.future();
+    }
 
+    private void handleFileExistsWithDelete(String filePath, AsyncResult<Boolean> existResult, Promise<Void> promise) {
+        if (existResult.succeeded()) {
+            if (existResult.result()) {
+                fileSystem.delete(filePath, promise);
+            } else {
+                promise.complete();
+            }
+        } else {
+            promise.fail(new PreBidException(String.format("Cant check if file exists %s", filePath)));
+        }
+    }
+
+    private void handleCorruptedFileRemoval(
+            AsyncResult<Void> removalResult, Promise<Boolean> promise, Throwable serviceCause) {
         if (removalResult.failed()) {
             final Throwable cause = removalResult.cause();
             promise.fail(new PreBidException(
@@ -132,29 +173,42 @@ public class RemoteFileSyncer {
             logger.info("Existing file {0} cant be processed by service, try to download after removal",
                     serviceCause, saveFilePath);
 
-            tryDownload(promise);
+            syncRemoteFiles().setHandler(promise);
         }
     }
 
-    private void tryDownload(Promise<Void> promise) {
-        download().setHandler(downloadResult -> handleDownload(promise, downloadResult));
+    private Future<Boolean> syncRemoteFiles() {
+        return tryDownload()
+                .compose(downloadResult -> swapFiles())
+                .map(true);
+    }
+
+    private Future<Void> tryDownload() {
+        final Promise<Void> promise = Promise.promise();
+        cleanUp(tmpFilePath).setHandler(event -> handleTmpDelete(event, promise));
+        return promise.future();
+    }
+
+    private void handleTmpDelete(AsyncResult<Void> tmpDeleteResult, Promise<Void> promise) {
+        if (tmpDeleteResult.failed()) {
+            promise.fail(tmpDeleteResult.cause());
+        } else {
+            download().setHandler(downloadResult -> handleDownload(downloadResult, promise));
+        }
     }
 
     private Future<Void> download() {
         final Promise<Void> promise = Promise.promise();
         final OpenOptions openOptions = new OpenOptions().setCreateNew(true);
-        fileSystem.open(saveFilePath, openOptions, openResult -> handleFileOpenWithDownload(promise, openResult));
+        fileSystem.open(tmpFilePath, openOptions, openResult -> handleFileOpenWithDownload(openResult, promise));
         return promise.future();
     }
 
-    private void handleFileOpenWithDownload(Promise<Void> promise, AsyncResult<AsyncFile> openResult) {
+    private void handleFileOpenWithDownload(AsyncResult<AsyncFile> openResult, Promise<Void> promise) {
         if (openResult.succeeded()) {
             final AsyncFile asyncFile = openResult.result();
             try {
-                // .getNow is not working
-                final HttpClientRequest httpClientRequest = httpClient
-                        .getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, promise));
-                httpClientRequest.end();
+                httpClient.getAbs(downloadUrl, response -> pumpFileFromRequest(response, asyncFile, promise)).end();
             } catch (Exception e) {
                 promise.fail(e);
             }
@@ -166,22 +220,22 @@ public class RemoteFileSyncer {
     private void pumpFileFromRequest(
             HttpClientResponse httpClientResponse, AsyncFile asyncFile, Promise<Void> promise) {
 
-        logger.info("Trying to download from {0}", downloadUrl);
+        logger.info("Trying to download file from {0}", downloadUrl);
         httpClientResponse.pause();
         final Pump pump = Pump.pump(httpClientResponse, asyncFile);
         pump.start();
         httpClientResponse.resume();
 
-        final long idTimer = setTimeoutTimer(asyncFile, promise, pump);
+        final long idTimer = setTimeoutTimer(asyncFile, pump, promise);
 
-        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, promise, idTimer));
+        httpClientResponse.endHandler(responseEndResult -> handleResponseEnd(asyncFile, idTimer, promise));
     }
 
-    private long setTimeoutTimer(AsyncFile asyncFile, Promise<Void> promise, Pump pump) {
-        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, promise, pump));
+    private long setTimeoutTimer(AsyncFile asyncFile, Pump pump, Promise<Void> promise) {
+        return vertx.setTimer(timeout, timerId -> handleTimeout(asyncFile, pump, promise));
     }
 
-    private void handleTimeout(AsyncFile asyncFile, Promise<Void> promise, Pump pump) {
+    private void handleTimeout(AsyncFile asyncFile, Pump pump, Promise<Void> promise) {
         pump.stop();
         asyncFile.close();
         if (!promise.future().isComplete()) {
@@ -189,12 +243,12 @@ public class RemoteFileSyncer {
         }
     }
 
-    private void handleResponseEnd(AsyncFile asyncFile, Promise<Void> promise, long idTimer) {
+    private void handleResponseEnd(AsyncFile asyncFile, long idTimer, Promise<Void> promise) {
         vertx.cancelTimer(idTimer);
         asyncFile.flush().close(promise);
     }
 
-    private void handleDownload(Promise<Void> promise, AsyncResult<Void> downloadResult) {
+    private void handleDownload(AsyncResult<Void> downloadResult, Promise<Void> promise) {
         if (downloadResult.failed()) {
             retryDownload(promise, retryInterval, retryCount);
         } else {
@@ -210,34 +264,16 @@ public class RemoteFileSyncer {
     private void handleRetry(Promise<Void> receivedPromise, long retryInterval, long retryCount) {
         if (retryCount > 0) {
             final long next = retryCount - 1;
-            cleanUp().compose(aVoid -> download())
-                    .setHandler(retryResult -> handleRetryResult(receivedPromise, retryInterval, next, retryResult));
+            cleanUp(tmpFilePath).compose(ignore -> download())
+                    .setHandler(retryResult -> handleRetryResult(retryInterval, next, retryResult, receivedPromise));
         } else {
-            cleanUp().setHandler(aVoid -> receivedPromise.fail(new PreBidException("File sync failed after retries")));
+            cleanUp(tmpFilePath).setHandler(ignore -> receivedPromise.fail(new PreBidException(
+                    String.format("File sync failed after %s retries", this.retryCount - retryCount))));
         }
     }
 
-    private Future<Void> cleanUp() {
-        final Promise<Void> promise = Promise.promise();
-        fileSystem.exists(saveFilePath, existResult -> handleFileExistsWithDelete(promise, existResult));
-        return promise.future();
-    }
-
-    private void handleFileExistsWithDelete(Promise<Void> promise, AsyncResult<Boolean> existResult) {
-        if (existResult.succeeded()) {
-            if (existResult.result()) {
-                fileSystem.delete(saveFilePath, promise);
-            } else {
-                promise.complete();
-            }
-        } else {
-            promise.fail(new PreBidException(String.format("Cant check if file exists %s", saveFilePath)));
-        }
-    }
-
-    private void handleRetryResult(
-            Promise<Void> promise, long retryInterval, long next, AsyncResult<Void> retryResult) {
-
+    private void handleRetryResult(long retryInterval, long next, AsyncResult<Void> retryResult,
+                                   Promise<Void> promise) {
         if (retryResult.succeeded()) {
             promise.complete();
         } else {
@@ -245,12 +281,31 @@ public class RemoteFileSyncer {
         }
     }
 
-    private void handleSync(RemoteFileProcessor remoteFileProcessor, AsyncResult<Void> syncResult) {
+    private Future<Void> swapFiles() {
+        final Promise<Void> promise = Promise.promise();
+        logger.info("Sync {0} to {1}", tmpFilePath, saveFilePath);
+
+        final CopyOptions copyOptions = new CopyOptions().setReplaceExisting(true);
+        fileSystem.move(tmpFilePath, saveFilePath, copyOptions, promise);
+        return promise.future();
+    }
+
+    private void handleSync(RemoteFileProcessor remoteFileProcessor, AsyncResult<Boolean> syncResult) {
         if (syncResult.succeeded()) {
-            remoteFileProcessor.setDataPath(saveFilePath)
-                    .setHandler(this::logFileProcessStatus);
+            if (syncResult.result()) {
+                logger.info("Sync service for {0}", saveFilePath);
+                remoteFileProcessor.setDataPath(saveFilePath)
+                        .setHandler(this::logFileProcessStatus);
+            } else {
+                logger.info("Sync is not required for {0}", saveFilePath);
+            }
         } else {
-            logger.error("Cant download file from {0}", syncResult.cause(), downloadUrl);
+            logger.error("Cant sync file from {0}", syncResult.cause(), downloadUrl);
+        }
+
+        // setup new update regardless of the result
+        if (updatePeriod > 0) {
+            vertx.setTimer(updatePeriod, idUpdateNew -> configureAutoUpdates(remoteFileProcessor));
         }
     }
 
@@ -259,6 +314,46 @@ public class RemoteFileSyncer {
             logger.info("Service successfully receive file {0}.", saveFilePath);
         } else {
             logger.error("Service cant process file {0} and still unavailable.", saveFilePath);
+        }
+    }
+
+    private void configureAutoUpdates(RemoteFileProcessor remoteFileProcessor) {
+        logger.info("Check for updated for {0}", saveFilePath);
+        tryUpdate().setHandler(asyncUpdate -> {
+            if (asyncUpdate.failed()) {
+                logger.warn("File {0} update failed", asyncUpdate.cause(), saveFilePath);
+            }
+            handleSync(remoteFileProcessor, asyncUpdate);
+        });
+    }
+
+    private Future<Boolean> tryUpdate() {
+        return checkFileExist(saveFilePath)
+                .compose(fileExists -> fileExists ? isNeedToUpdate() : Future.succeededFuture(true))
+                .compose(needUpdate -> needUpdate ? syncRemoteFiles() : Future.succeededFuture(false));
+    }
+
+    private Future<Boolean> isNeedToUpdate() {
+        final Promise<Boolean> isNeedToUpdate = Promise.promise();
+        httpClient.headAbs(downloadUrl, response -> checkNewVersion(response, isNeedToUpdate))
+                .exceptionHandler(isNeedToUpdate::fail)
+                .end();
+        return isNeedToUpdate.future();
+    }
+
+    private void checkNewVersion(HttpClientResponse response, Promise<Boolean> isNeedToUpdate) {
+        final String contentLengthParameter = response.getHeader(HttpHeaders.CONTENT_LENGTH);
+        if (StringUtils.isNumeric(contentLengthParameter) && !contentLengthParameter.equals("0")) {
+            final long contentLength = Long.parseLong(contentLengthParameter);
+            fileSystem.props(saveFilePath, filePropsResult -> {
+                if (filePropsResult.succeeded()) {
+                    isNeedToUpdate.complete(filePropsResult.result().size() != contentLength);
+                } else {
+                    isNeedToUpdate.fail(filePropsResult.cause());
+                }
+            });
+        } else {
+            isNeedToUpdate.fail(String.format("ContentLength is invalid: %s", contentLengthParameter));
         }
     }
 }

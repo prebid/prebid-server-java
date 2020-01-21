@@ -20,6 +20,18 @@ public class UsersyncInfoTest {
     }
 
     @Test
+    public void assembleUsersyncInfoShouldAppendEncodedRedirectUrlAndNotEncodedQueryParamsToUsersyncUrl() {
+        // given and when
+        final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
+                .assembler(new Usersyncer(null, "http://url/redirect=", "/setuid?gdpr={{gdpr}}?gdpr={{gdpr}}",
+                        "http://localhost:8000", null, false)).assemble();
+
+        // then
+        assertThat(result.getUrl()).isEqualTo(
+                "http://url/redirect=http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fgdpr%3D%7B%7Bgdpr%7D%7D?gdpr={{gdpr}}");
+    }
+
+    @Test
     public void assembleUsersyncInfoShouldIgnoreRedirectUrlIfNotDefined() {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler

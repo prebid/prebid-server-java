@@ -130,7 +130,7 @@ public class CacheService {
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failResponse(new TimeoutException("Timeout has been exceeded"));
+            return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
         final long startTime = clock.millis();
@@ -143,14 +143,10 @@ public class CacheService {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private Future<BidCacheResponse> failResponse(Throwable exception) {
-        logger.warn("Error occurred while interacting with cache service", exception);
-        return Future.failedFuture(exception);
-    }
-
     private Future<BidCacheResponse> failResponse(Throwable exception, long startTime) {
         metrics.updateCacheRequestFailedTime(clock.millis() - startTime);
-        logger.warn("Error occurred while interacting with cache service", exception);
+        logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
+        logger.debug("Error occurred while interacting with cache service", exception);
         return Future.failedFuture(exception);
     }
 
@@ -345,7 +341,8 @@ public class CacheService {
      * Handles errors occurred while HTTP request or response processing.
      */
     private CacheServiceResult failResponseOpenrtb(Throwable exception, CacheHttpRequest request, long startTime) {
-        logger.warn("Error occurred while interacting with cache service", exception);
+        logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
+        logger.debug("Error occurred while interacting with cache service", exception);
 
         final CacheHttpCall httpCall = CacheHttpCall.of(request, null, responseTime(startTime));
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());

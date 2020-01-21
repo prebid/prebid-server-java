@@ -3,9 +3,10 @@ adapters:
     enabled: false
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     pbs-enforces-gdpr: true
-    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
+    modifying-vast-xml-allowed: true
+    generate-bid-id: false
     XAPI:
       Username:
       Password:

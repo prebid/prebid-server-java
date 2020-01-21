@@ -10,4 +10,7 @@ public class ExtImpFacebook {
 
     @JsonProperty("placementId")
     String placementId;
+
+    @JsonProperty("publisherId")
+    String publisherId;
 }

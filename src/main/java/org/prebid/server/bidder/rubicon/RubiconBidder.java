@@ -92,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -115,11 +116,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final MultiMap headers;
     private final Set<String> supportedVendors;
+    private final boolean generateBidId;
 
-    public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword, List<String> supportedVendors) {
+    public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword, List<String> supportedVendors,
+                         boolean generateBidId) {
         endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
         this.supportedVendors = new HashSet<>(supportedVendors);
+        this.generateBidId = generateBidId;
     }
 
     @Override
@@ -717,13 +721,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return source;
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -735,10 +739,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private static Bid updateBid(Bid bid, BidResponse bidResponse) {
-        // Since Rubicon XAPI returns only one bid per response
-        // copy bidResponse.bidid to openrtb_response.seatbid.bid.bidid
-        if (Objects.equals(bid.getId(), "0")) {
+    private Bid updateBid(Bid bid, BidResponse bidResponse) {
+        if (generateBidId) {
+            // Since Rubicon XAPI returns openrtb_response.seatbid.bid.id not unique enough
+            // generate new value for it
+            bid.setId(UUID.randomUUID().toString());
+        } else if (Objects.equals(bid.getId(), "0")) {
+            // Since Rubicon XAPI returns only one bid per response
+            // copy bidResponse.bidid to openrtb_response.seatbid.bid.id
             bid.setId(bidResponse.getBidid());
         }
         return bid;
