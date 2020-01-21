@@ -71,7 +71,6 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.VideoType;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -362,7 +361,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
-                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), VideoType.REWARDED));
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), "rewarded"));
     }
 
     @Test

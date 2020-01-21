@@ -79,7 +79,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.VideoType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -451,8 +450,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
-        final VideoType videoType = prebidImpExt != null
-                && BooleanUtils.isTrue(prebidImpExt.getIsRewardedInventory()) ? VideoType.REWARDED : null;
+        final String videoType = prebidImpExt != null
+                && BooleanUtils.isTrue(prebidImpExt.getIsRewardedInventory()) ? "rewarded" : null;
 
         if (rubiconVideoParams == null && videoType == null) {
             return video;
