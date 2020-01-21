@@ -337,10 +337,10 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillVideoExtAndAddVideoType() {
+    public void makeHttpRequestsShouldTransferRewardedVideoFlagIntoRewardedVideoObject() {
         // given
         final ExtImpPrebid prebid =
-                ExtImpPrebid.of(null, null, null, true);
+                ExtImpPrebid.builder().isRewardedInventory(true).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
@@ -365,10 +365,9 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillVideoExtAndSkipVideoTypeIfRewardedIsNull() {
+    public void makeHttpRequestsShouldIgnoreRewardedVideoLogic() {
         // given
-        final ExtImpPrebid prebid = ExtImpPrebid
-                .of(null, null, null, null);
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
@@ -393,10 +392,10 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsIfVideoParamIsNull() {
+    public void makeHttpRequestsShouldNotFailIfVideoParamIsNull() {
         // given
         final ExtImpPrebid prebid = ExtImpPrebid
-                .of(null, null, null, null);
+                .builder().build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(null)
                 .build();
@@ -414,9 +413,9 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillVideoExtAndSkipVideoTypeIfRewardedIsFalse() {
+    public void makeHttpRequestsShouldIgnoreRewardedVideoFlag() {
         // given
-        final ExtImpPrebid prebid = ExtImpPrebid.of(null, null, null, false);
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(false).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
