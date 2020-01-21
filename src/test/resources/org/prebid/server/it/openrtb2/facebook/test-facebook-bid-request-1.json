@@ -2,28 +2,19 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId5",
+      "id": "impId001",
       "banner": {
-        "format": [
-          {
-            "w": 320,
-            "h": 50
-          }
-        ],
-        "w": 0,
+        "w": -1,
         "h": 50
       },
-      "tagid": "pub1_place1",
-      "ext": {
-        "platformid": 101
-      }
+      "tagid": "pub1_place1"
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "pub1"
     },
     "ext": {
       "amp": 0
@@ -40,12 +31,12 @@
   "user": {
     "buyeruid": "FB-UID",
     "ext": {
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      },
-      "consent": "consentValue"
+      }
     }
   },
   "at": 1,
@@ -63,40 +54,7 @@
     }
   },
   "ext": {
-    "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      }
-    }
+    "platformid": "101",
+    "authentication_id": "5e667f61df1dad015c9f2a602e81a6ea155865570bc5cdeb68182a7c60ef78aa"
   }
 }

@@ -77,7 +77,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
         final String body = mapper.encode(outgoingRequest);
 
-        final String requestUrl = endpointUrl + "/r/" + firstImpExt.getSupplyPartnerId() + "/bidr?reqformat=RTB_JSON";
+        final String requestUrl = endpointUrl + "/r/" + firstImpExt.getSupplyPartnerId() + "/bidr?bidder=prebid-server";
         final MultiMap headers = resolveHeaders(request.getDevice());
 
         return Result.of(Collections.singletonList(

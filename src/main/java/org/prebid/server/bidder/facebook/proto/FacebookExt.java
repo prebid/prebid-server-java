@@ -7,5 +7,7 @@ import lombok.Value;
 @Value
 public class FacebookExt {
 
-    Integer platformid;
+    String platformid;
+
+    String authenticationId;
 }

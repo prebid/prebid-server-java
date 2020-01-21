@@ -53,7 +53,8 @@ public class RubiconConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(usersync, null))
                 .bidderCreator(() -> new RubiconBidder(configProperties.getEndpoint(),
                         configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(),
-                        configProperties.getMetaInfo().getSupportedVendors(), mapper))
+                        configProperties.getMetaInfo().getSupportedVendors(), configProperties.getGenerateBidId(),
+                        mapper))
                 .adapterCreator(() -> new RubiconAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
                         configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(), mapper))
                 .assemble();
@@ -68,6 +69,9 @@ public class RubiconConfiguration {
         @Valid
         @NotNull
         private XAPI xapi = new XAPI();
+
+        @NotNull
+        private Boolean generateBidId;
     }
 
     @Data

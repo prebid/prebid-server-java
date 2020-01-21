@@ -1132,14 +1132,26 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithoutRegsExtWhenNoPrivacyPolicyIsExist() {
+        // given
+        givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
     public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenUsPrivacyParamIsExist() {
         // given
         given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
 
         givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(null))),
                 Imp.builder().build());
 
         // when
@@ -1148,6 +1160,26 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getRegs())
                 .isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, "us_privacy"))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyAndGdprWhenUsPrivacyParamAndGdprIsExist() {
+        // given
+        given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
+
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder().build())
+                        .regs(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "replaced"))))
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "us_privacy"))));
     }
 
     @Test

@@ -109,7 +109,7 @@ public class BidResponseCreator {
             result = Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
-                    .nbr(2)  // signal "Invalid Request"
+                    .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
                     .ext(mapper.mapper().valueToTree(toExtBidResponse(
                             bidderResponses, bidRequest, CacheServiceResult.empty(), debugEnabled, null)))

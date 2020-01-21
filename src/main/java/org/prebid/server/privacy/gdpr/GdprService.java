@@ -236,7 +236,7 @@ public class GdprService {
             return geoLocationService.lookup(ipAddress, timeout)
                     .map(GeoInfo::getCountry)
                     .map(resolvedCountry -> createGdprInfoWithCountry(gdprConsent, resolvedCountry))
-                    .otherwise(updateMetricsAndReturnDefault(gdprConsent));
+                    .otherwise(exception -> updateMetricsAndReturnDefault(exception, gdprConsent));
         }
 
         // use default
@@ -284,7 +284,8 @@ public class GdprService {
     /**
      * Updates Geo {@link Metrics} and returns default {@link GdprInfoWithCountry}.
      */
-    private GdprInfoWithCountry updateMetricsAndReturnDefault(String gdprConsent) {
+    private GdprInfoWithCountry updateMetricsAndReturnDefault(Throwable exception, String gdprConsent) {
+        logger.info("Geolocation lookup failed", exception);
         metrics.updateGeoLocationMetric(false);
         return defaultGdprInfoWithCountry(gdprConsent);
     }
