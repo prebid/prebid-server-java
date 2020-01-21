@@ -45,12 +45,12 @@ public class PubnativeBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        pubnativeBidder = new PubnativeBidder(ENDPOINT_URL);
+        pubnativeBidder = new PubnativeBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new PubnativeBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new PubnativeBidder("invalid_url", jacksonMapper));
     }
 
     @Test

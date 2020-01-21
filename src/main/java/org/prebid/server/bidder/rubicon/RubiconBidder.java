@@ -120,7 +120,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private final MultiMap headers;
 
-
     public RubiconBidder(String endpoint,
                          String xapiUsername,
                          String xapiPassword,
@@ -134,7 +133,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
 
         this.headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
-
     }
 
     @Override
