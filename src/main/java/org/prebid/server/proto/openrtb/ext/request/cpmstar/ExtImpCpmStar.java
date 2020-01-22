@@ -6,12 +6,12 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpCPMStar {
+public class ExtImpCpmStar {
 
     @JsonProperty("placementId")
     Integer placementId;
 
     @JsonProperty("subpoolId")
-    Integer subpoolId;
+    Integer subPoolId;
 }
 

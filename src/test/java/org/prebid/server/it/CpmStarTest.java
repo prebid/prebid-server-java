@@ -19,7 +19,7 @@ import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class CPMStarTest extends IntegrationTest {
+public class CpmStarTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromCPMStar() throws IOException, JSONException {
@@ -42,7 +42,7 @@ public class CPMStarTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids", "eyJ1aWRzIjp7ImdhbW9zaGkiOiJHTS1VSUQifX0=")
+                .cookie("uids", "eyJ1aWRzIjp7ImNwbXN0YXIiOiJDUy1VSUQifX0=")
                 .body(jsonFrom("openrtb2/cpmstar/test-auction-cpmstar-request.json"))
                 .post("/openrtb2/auction");
 

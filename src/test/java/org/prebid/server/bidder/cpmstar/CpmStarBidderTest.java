@@ -5,12 +5,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCPMStar;
+import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCpmStar;
 
 import java.util.List;
 import java.util.function.Function;
@@ -32,23 +32,23 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class CPMStarBidderTest extends VertxTest {
+public class CpmStarBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private CPMStarBidder cpmStarBidder;
+    private CpmStarBidder cpmStarBidder;
 
     @Before
     public void setUp() {
-        cpmStarBidder = new CPMStarBidder(ENDPOINT_URL);
+        cpmStarBidder = new CpmStarBidder(ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new CPMStarBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new CpmStarBidder("invalid_url"));
     }
 
     @Test
@@ -70,22 +70,22 @@ public class CPMStarBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtPrebid<?, ExtImpCPMStar> ext = ExtPrebid.of(null, ExtImpCPMStar.of(12, 132));
-        Imp imp = givenImp(
+        final ExtPrebid<?, ExtImpCpmStar> ext = ExtPrebid.of(null, ExtImpCpmStar.of(12, 132));
+        final Imp bannerImp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
                         .id("2")
                         .ext(mapper.valueToTree(ext))
                         .banner(Banner.builder().w(300).h(400).build())
         );
+        final Imp audioImp = givenImp(impBuilder -> impBuilder
+                .banner(null)
+                .id("2")
+                .ext(mapper.valueToTree(ext))
+                .audio(Audio.builder().build()));
+
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        imp,
-                        givenImp(impBuilder -> impBuilder
-                                .banner(null)
-                                .id("2")
-                                .ext(mapper.valueToTree(ext))
-                                .audio(Audio.builder().build()))))
+                .imp(asList(bannerImp, audioImp))
                 .build();
 
         // when
@@ -95,52 +95,7 @@ public class CPMStarBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput(
                         "Only Banner and Video bid-types are supported at this time"));
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .containsOnly(imp);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .w(200)
-                                .h(150)
-                                .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = cpmStarBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(200, 150));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateCorrectURL() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = cpmStarBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL);
+        assertThat(result.getValue()).hasSize(0);
     }
 
     @Test
@@ -173,7 +128,7 @@ public class CPMStarBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWithUnknownBidTypeIfNotSupportedBidType() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidHaveNotSupportedBidType() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
@@ -186,7 +141,25 @@ public class CPMStarBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Failed to find impression 123"));
+                .containsOnly(BidderError.badInput("bid id=null could not find valid impid=123"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenNoCorrespondingId() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("12").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = cpmStarBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("bid id=null could not find valid impid=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -204,25 +177,7 @@ public class CPMStarBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Failed to find impression 123"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("12").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = cpmStarBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Failed to find impression 123"));
+                .containsOnly(BidderError.badInput("bid id=null could not find valid impid=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -245,7 +200,7 @@ public class CPMStarBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -256,7 +211,7 @@ public class CPMStarBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -313,14 +268,15 @@ public class CPMStarBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpCPMStar.of(12, 123)))))
+                .banner(Banner.builder().id("banner_id").build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCpmStar.of(12, 123)))))
                 .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        final Bid bid = bidCustomizer.apply(Bid.builder()).build();
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid))
                         .build()))
                 .build();
     }

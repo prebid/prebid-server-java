@@ -11,7 +11,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -20,7 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCPMStar;
+import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCpmStar;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -32,17 +31,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class CPMStarBidder implements Bidder<BidRequest> {
+public class CpmStarBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpCPMStar>> CPM_STAR_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpCPMStar>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpCpmStar>> CPM_STAR_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpCpmStar>>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
 
-    public CPMStarBidder(String endpointUrl) {
+    public CpmStarBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
@@ -50,58 +49,48 @@ public class CPMStarBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         try {
-            final BidRequest bidRequest = processRequest(request, errors);
+            final BidRequest bidRequest = processRequest(request);
 
-            return Result.of(Collections.singletonList(createSingleRequest(bidRequest)), errors);
-        } catch (IllegalArgumentException e) {
-            return Result.of(Collections.emptyList(),
-                    Collections.singletonList(BidderError.badInput(e.getMessage()))
+            return Result.of(
+                    Collections.singletonList(HttpRequest.<BidRequest>builder()
+                            .method(HttpMethod.POST)
+                            .uri(endpointUrl)
+                            .headers(HttpUtil.headers())
+                            .body(Json.encode(bidRequest))
+                            .payload(request)
+                            .build()),
+                    errors
             );
+        } catch (PreBidException e) {
+            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
     }
 
-    private BidRequest processRequest(BidRequest bidRequest, List<BidderError> errors) {
-        if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            throw new IllegalArgumentException("No Imps in Bid Request");
-        }
-
+    private BidRequest processRequest(BidRequest bidRequest) {
         final List<Imp> validImpList = new ArrayList<>();
         for (final Imp imp : bidRequest.getImp()) {
-            try {
-                validImpList.add(parseAndValidateImp(imp));
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
+            ExtImpCpmStar extImpCpmStar = parseImp(imp);
+            validImpList.add(createImp(extImpCpmStar, imp));
         }
         return bidRequest.toBuilder().imp(validImpList).build();
     }
 
-    private Imp parseAndValidateImp(Imp imp) {
+    private ExtImpCpmStar parseImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException("Only Banner and Video bid-types are supported at this time");
         }
-
-        final ExtPrebid<?, ExtImpCPMStar> ext =
-                Json.mapper.convertValue(imp.getExt(), CPM_STAR_EXT_TYPE_REFERENCE);
-
-        final ExtImpCPMStar bidder = ext.getBidder();
-        if (bidder == null) {
-            throw new PreBidException(String.format("imp id=%s: bidder.ext is null", imp.getId()));
+        try {
+            return Json.mapper.convertValue(imp.getExt(), CPM_STAR_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
         }
-        return imp.toBuilder().ext(Json.mapper.valueToTree(ext)).build();
     }
 
-    private HttpRequest<BidRequest> createSingleRequest(BidRequest request) {
-
-        final String body = Json.encode(request);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .body(body)
-                .payload(request)
-                .build();
+    private Imp createImp(ExtImpCpmStar extImpCpmStar, Imp imp) {
+        if (extImpCpmStar == null) {
+            throw new PreBidException(String.format("imp id=%s: bidder.ext is null", imp.getId()));
+        }
+        return imp.toBuilder().ext(Json.mapper.valueToTree(extImpCpmStar)).build();
     }
 
     @Override
@@ -122,29 +111,33 @@ public class CPMStarBidder implements Bidder<BidRequest> {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
+        final List<Bid> responseBids = bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> bidFromResponse(request.getImp(), bid, errors))
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        return Result.of(bidderBids, errors);
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, errors);
+        return Result.of(result, errors);
     }
 
-    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors) {
-        try {
-            final BidType bidType = getBidType(bid.getImpid(), imps);
-            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
+    private static List<BidderBid> bidsFromResponse(List<Imp> imps, List<Bid> responseBids, List<BidderError> errors) {
+        final List<BidderBid> bidderBids = new ArrayList<>();
+        for (Bid bid : responseBids) {
+            try {
+                final BidType bidType = resolveBidType(bid.getImpid(), imps);
+                bidderBids.add(BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(
+                        String.format("bid id=%s %s", bid.getId(), e.getMessage()))
+                );
+            }
         }
+        return bidderBids;
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
@@ -154,7 +147,7 @@ public class CPMStarBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        throw new PreBidException(String.format("could not find valid impid=%s", impId));
     }
 
     @Override

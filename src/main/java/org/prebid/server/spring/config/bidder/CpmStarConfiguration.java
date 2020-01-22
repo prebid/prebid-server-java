@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.cpmstar.CPMStarBidder;
+import org.prebid.server.bidder.cpmstar.CpmStarBidder;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -19,7 +19,7 @@ import javax.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/cpmstar.yaml", factory = YamlPropertySourceFactory.class)
-public class CPMStarConfiguration {
+public class CpmStarConfiguration {
 
     private static final String BIDDER_NAME = "cpmstar";
 
@@ -43,7 +43,7 @@ public class CPMStarConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new CPMStarBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new CpmStarBidder(configProperties.getEndpoint()))
                 .assemble();
     }
 }
