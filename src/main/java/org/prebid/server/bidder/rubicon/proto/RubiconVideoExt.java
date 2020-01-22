@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon.proto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -14,6 +13,5 @@ public class RubiconVideoExt {
 
     RubiconVideoExtRp rp;
 
-    @JsonProperty("videotype")
-    String videoType;
+    String videotype;
 }
