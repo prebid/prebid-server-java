@@ -47,7 +47,6 @@ public class CpmStarBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
         try {
             final BidRequest bidRequest = processRequest(request);
 
@@ -59,7 +58,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                             .body(Json.encode(bidRequest))
                             .payload(request)
                             .build()),
-                    errors
+                    Collections.emptyList()
             );
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));

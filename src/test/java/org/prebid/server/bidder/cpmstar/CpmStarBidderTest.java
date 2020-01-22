@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -71,12 +70,11 @@ public class CpmStarBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
         final ExtPrebid<?, ExtImpCpmStar> ext = ExtPrebid.of(null, ExtImpCpmStar.of(12, 132));
-        final Imp bannerImp = givenImp(
-                impBuilder -> impBuilder
-                        .banner(null)
-                        .id("2")
-                        .ext(mapper.valueToTree(ext))
-                        .banner(Banner.builder().w(300).h(400).build())
+        final Imp bannerImp = givenImp(impBuilder -> impBuilder
+                .banner(null)
+                .id("2")
+                .ext(mapper.valueToTree(ext))
+                .banner(Banner.builder().w(300).h(400).build())
         );
         final Imp audioImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
@@ -164,24 +162,6 @@ public class CpmStarBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWithUnknownBidTypeIfDiffId() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("12").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = cpmStarBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("bid id=null could not find valid impid=123"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
@@ -196,7 +176,7 @@ public class CpmStarBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
