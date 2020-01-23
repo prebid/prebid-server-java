@@ -14,7 +14,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -297,11 +296,12 @@ public class AmpHandler implements Handler<RoutingContext> {
             if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                errorMessages = ((InvalidRequestException) exception).getMessages().stream()
+                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
+                errorMessages = invalidRequestException.getMessages().stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
-                logModifier.get().accept(logger, logMessageFrom(exception, message, context));
+                logModifier.get().accept(logger, logMessageFrom(invalidRequestException, message, context));
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = message;
@@ -353,8 +353,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         return origin;
     }
 
-    private static String logMessageFrom(Throwable exception, String message, RoutingContext context) {
-        return exception.getCause() instanceof DecodeException
+    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
+        return exception.isNeedEnhancedLogging()
                 ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
                 : message;
     }
