@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -22,8 +23,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
@@ -130,36 +131,36 @@ public class AuctionHandler implements Handler<RoutingContext> {
             body = Json.encode(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof BlacklistedAppException || exception instanceof BlacklistedAccountException) {
-                metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String errorMessage = exception.getMessage();
-                logger.debug("Blacklisted: {0}", errorMessage);
-
-                errorMessages = Collections.singletonList(errorMessage);
-                status = HttpResponseStatus.FORBIDDEN.code();
-                body = String.format("Blacklisted: %s", errorMessage);
-
-            } else if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                errorMessages = ((InvalidRequestException) exception).getMessages();
-                final String logMessage = String.format("Invalid request format: %s", errorMessages);
-                logModifier.get().accept(logger, logMessage);
+                errorMessages = ((InvalidRequestException) exception).getMessages().stream()
+                        .map(msg -> String.format("Invalid request format: %s", msg))
+                        .collect(Collectors.toList());
+                final String message = String.join("\n", errorMessages);
+                logModifier.get().accept(logger, logMessageFrom(exception, message, context));
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
-                body = errorMessages.stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.joining("\n"));
+                body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
-                final String errorMessage = exception.getMessage();
-                logger.info("Unauthorized: {0}", errorMessage);
+                final String message = String.format("Unauthorized: %s", exception.getMessage());
+                logger.info(message);
 
-                errorMessages = Collections.singletonList(errorMessage);
+                errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
-                body = String.format("Unauthorised: %s", errorMessage);
+                body = message;
+            } else if (exception instanceof BlacklistedAppException
+                    || exception instanceof BlacklistedAccountException) {
+                metricRequestStatus = exception instanceof BlacklistedAccountException
+                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                logger.debug(message);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.FORBIDDEN.code();
+                body = message;
             } else {
                 metricRequestStatus = MetricName.err;
                 logger.error("Critical error while running the auction", exception);
@@ -174,6 +175,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
         respondWith(context, status, body, startTime, requestType, metricRequestStatus, auctionEvent);
+    }
+
+    private static String logMessageFrom(Throwable exception, String message, RoutingContext context) {
+        return exception.getCause() instanceof DecodeException
+                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
+                : message;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,

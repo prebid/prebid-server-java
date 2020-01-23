@@ -219,7 +219,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
-                .element(0).asString().startsWith("Failed to decode:");
+                .element(0).asString().startsWith("Error decoding bidRequest: Failed to decode:");
     }
 
     @Test
@@ -840,11 +840,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldAddMissingAliases() {
         // given
         final Imp imp1 = Imp.builder()
-                .ext((ObjectNode) Json.mapper.createObjectNode()
+                .ext(Json.mapper.createObjectNode()
                         .set("requestScopedBidderAlias", Json.mapper.createObjectNode()))
                 .build();
         final Imp imp2 = Imp.builder()
-                .ext((ObjectNode) Json.mapper.createObjectNode()
+                .ext(Json.mapper.createObjectNode()
                         .set("configScopedBidderAlias", Json.mapper.createObjectNode()))
                 .build();
 

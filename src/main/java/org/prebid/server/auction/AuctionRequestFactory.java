@@ -179,7 +179,7 @@ public class AuctionRequestFactory {
         try {
             return Json.decodeValue(body, BidRequest.class);
         } catch (DecodeException e) {
-            throw new InvalidRequestException(e.getMessage());
+            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()), e);
         }
     }
 
