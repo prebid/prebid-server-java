@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 50
     usersync:
-      url: //cm.adform.net/cookie?redirect_url=
+      url: https://cm.adform.net/cookie?redirect_url=
       redirect-url: /setuid?bidder=adform&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: adform
       type: redirect
