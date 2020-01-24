@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -362,6 +363,11 @@ public class VideoRequestFactory {
         final List<String> badv = videoRequest.getBadv();
         if (CollectionUtils.isNotEmpty(badv)) {
             bidRequestBuilder.badv(badv);
+        }
+
+        final Regs regs = videoRequest.getRegs();
+        if (regs != null) {
+            bidRequestBuilder.regs(regs);
         }
 
         final Long videoTmax = timeoutResolver.resolve(videoRequest.getTmax());

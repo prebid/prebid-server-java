@@ -51,6 +51,11 @@
     "gender": "F",
     "keywords": "Hotels, Travelling"
   },
+  "regs": {
+    "ext": {
+      "us_privacy": "1YN"
+    }
+  },
   "at": 1,
   "tmax": 2000,
   "cur": [
