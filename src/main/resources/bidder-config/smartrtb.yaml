@@ -1,0 +1,24 @@
+adapters:
+  smartrtb:
+    enabled: false
+    endpoint: http://market-east.smrtb.com/json/publisher/rtb?pubid={{.PublisherID}}
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: "engineering@smrtb.com"
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: smartrtb
+      type: redirect
+      support-cors: false
