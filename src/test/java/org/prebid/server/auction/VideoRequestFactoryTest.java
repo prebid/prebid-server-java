@@ -29,8 +29,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.AuctionContextWithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -358,11 +357,14 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .len(900)
                 .livestream(0)
                 .build();
+
+        final long tmax = 5000L;
         givenValidDataResult(requestBuilder -> requestBuilder.user(user)
-                .content(content)
-                .cacheconfig(CacheConfig.of(42))
-                .bcat(singletonList("bcat"))
-                .badv(singletonList("badv")),
+                        .content(content)
+                        .tmax(tmax)
+                        .cacheconfig(CacheConfig.of(42))
+                        .bcat(singletonList("bcat"))
+                        .badv(singletonList("badv")),
                 UnaryOperator.identity());
 
         // when
@@ -393,14 +395,16 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .imp(Arrays.asList(expectedImp1, expectedImp2))
                 .user(User.builder().buyeruid("appnexus").yob(123).gender("gender").keywords("keywords").build())
                 .site(Site.builder().id("siteId").content(content).build())
-                .tmax(5000L)
                 .bcat(singletonList("bcat"))
                 .badv(singletonList("badv"))
                 .cur(singletonList("USD"))
+                .tmax(0L)
                 .ext(Json.mapper.valueToTree(ExtBidRequest.of(ext)))
                 .build();
 
         assertThat(captor.getValue()).isEqualTo(expectedMergedRequest);
+
+        verify(timeoutResolver).resolve(tmax);
     }
 
     @Test
@@ -415,7 +419,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 Arrays.asList(podWithoutId, podWithoutDurationSec, podWithBadDurationSec, podWithoutConfigId, podWithDuplicatedId)));
 
         // when
-        final Future<Tuple2<AuctionContext, List<PodError>>> result = factory.fromRequest(routingContext, 0L);
+        final Future<AuctionContextWithPodErrors> result = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -442,7 +446,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture());
 
         // when
-        final Future<Tuple2<AuctionContext, List<PodError>>> result = factory.fromRequest(routingContext, 0L);
+        final Future<AuctionContextWithPodErrors> result = factory.fromRequest(routingContext, 0L);
 
         // then
         final PodError expectedPod1 =
@@ -450,7 +454,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final PodError expectedPod2 =
                 PodError.of(222, 1, singletonList("request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: 1"));
 
-        assertThat(result.result().getRight())
+        assertThat(result.result().getPodErrors())
                 .isEqualTo(Arrays.asList(expectedPod1, expectedPod2));
     }
 
@@ -462,7 +466,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.pods(Arrays.asList(pod1, pod2)));
 
         // when
-        final Future<Tuple2<AuctionContext, List<PodError>>> result = factory.fromRequest(routingContext, 0L);
+        final Future<AuctionContextWithPodErrors> result = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -535,7 +539,7 @@ public class VideoRequestFactoryTest extends VertxTest {
             final BidRequestVideo videoRequest = BidRequestVideo.builder().storedrequestid("stored").build();
             given(routingContext.getBody()).willReturn(Buffer.buffer(Json.mapper.writeValueAsString(videoRequest)));
 
-            final ParsedStoredDataResult<BidRequestVideo, Imp> dataResult =
+            final ParsedStoredDataResult dataResult =
                     ParsedStoredDataResult.of(bidRequestVideo, idToImp, emptyList());
             given(storedRequestProcessor.processVideoRequest(any(), any(), any()))
                     .willReturn(Future.succeededFuture(dataResult));

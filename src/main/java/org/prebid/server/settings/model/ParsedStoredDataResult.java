@@ -1,5 +1,7 @@
 package org.prebid.server.settings.model;
 
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.video.BidRequestVideo;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -8,11 +10,11 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ParsedStoredDataResult<S, I> {
+public class ParsedStoredDataResult {
 
-    S storedData;
+    BidRequestVideo storedData;
 
-    Map<String, I> idToImps;
+    Map<String, Imp> idToImps;
 
     List<String> errors;
 }

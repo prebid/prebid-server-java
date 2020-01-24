@@ -127,9 +127,8 @@ public class StoredRequestProcessor {
     /**
      * Fetches ParsedStoredDataResult&lt;BidRequestVideo, Imp&gt; from stored request.
      */
-    Future<ParsedStoredDataResult<BidRequestVideo, Imp>> processVideoRequest(String storedBidRequestId,
-                                                                             Set<String> podIds,
-                                                                             BidRequestVideo receivedRequest) {
+    Future<ParsedStoredDataResult> processVideoRequest(String storedBidRequestId, Set<String> podIds,
+                                                       BidRequestVideo receivedRequest) {
         final Set<String> storedRequestIds = new HashSet<>();
         if (StringUtils.isNotBlank(storedBidRequestId)) {
             storedRequestIds.add(storedBidRequestId);
@@ -141,9 +140,9 @@ public class StoredRequestProcessor {
                         String.format("Stored request fetching failed: %s", exception.getMessage()))));
     }
 
-    private ParsedStoredDataResult<BidRequestVideo, Imp> parsedStoredDataResult(StoredDataResult storedDataResult,
-                                                                                BidRequestVideo receivedRequest,
-                                                                                String storedBidRequestId) {
+    private ParsedStoredDataResult parsedStoredDataResult(StoredDataResult storedDataResult,
+                                                          BidRequestVideo receivedRequest,
+                                                          String storedBidRequestId) {
         final Map<String, Imp> idToImps = new HashMap<>();
         final List<String> errors = storedDataResult.getErrors();
 

@@ -181,9 +181,10 @@ public class SettingsConfiguration {
         HttpApplicationSettings httpApplicationSettings(
                 HttpClient httpClient,
                 @Value("${settings.http.endpoint}") String endpoint,
-                @Value("${settings.http.amp-endpoint}") String ampEndpoint) {
+                @Value("${settings.http.amp-endpoint}") String ampEndpoint,
+                @Value("${settings.http.video-endpoint}") String videoEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
+            return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint, videoEndpoint);
         }
     }
 

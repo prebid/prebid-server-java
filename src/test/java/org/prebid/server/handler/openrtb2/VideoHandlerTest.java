@@ -25,6 +25,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionContextWithPodErrors;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
@@ -295,17 +296,19 @@ public class VideoHandlerTest extends VertxTest {
         return captor.getValue();
     }
 
-    private Tuple2<AuctionContext, List<PodError>> givenAuctionContext(
+    private AuctionContextWithPodErrors givenAuctionContext(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             List<PodError> errors) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
                 .imp(emptyList())).build();
 
-        return Tuple2.of(AuctionContext.builder()
+        final AuctionContext auctionContext = AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
-                .build(), errors);
+                .build();
+
+        return AuctionContextWithPodErrors.of(auctionContext, errors);
     }
 
     private static HttpContext givenHttpContext() {

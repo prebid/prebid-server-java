@@ -178,6 +178,7 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+- `settings.http.video-endpoint` - the url to fetch video stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.

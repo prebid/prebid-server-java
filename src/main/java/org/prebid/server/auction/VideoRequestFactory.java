@@ -25,6 +25,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionContextWithPodErrors;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
@@ -75,7 +76,7 @@ public class VideoRequestFactory {
     /**
      * Creates {@link AuctionContext} and {@link List} of {@link PodError} based on {@link RoutingContext}.
      */
-    public Future<Tuple2<AuctionContext, List<PodError>>> fromRequest(RoutingContext routingContext, long startTime) {
+    public Future<AuctionContextWithPodErrors> fromRequest(RoutingContext routingContext, long startTime) {
 
         final BidRequestVideo incomingBidRequest;
         try {
@@ -93,7 +94,8 @@ public class VideoRequestFactory {
         return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
                 .compose(bidRequestToPodError -> auctionRequestFactory
                         .toAuctionContext(routingContext, bidRequestToPodError.getLeft(), startTime, timeoutResolver)
-                        .map(auctionContext -> Tuple2.of(auctionContext, bidRequestToPodError.getRight())));
+                        .map(auctionContext ->
+                                AuctionContextWithPodErrors.of(auctionContext, bidRequestToPodError.getRight())));
     }
 
     /**
@@ -121,7 +123,7 @@ public class VideoRequestFactory {
 
     private static Set<String> podConfigIds(BidRequestVideo incomingBidRequest) {
         final Podconfig podconfig = incomingBidRequest.getPodconfig();
-        if (podconfig != null) {
+        if (podconfig != null && CollectionUtils.isNotEmpty(podconfig.getPods())) {
             return podconfig.getPods().stream()
                     .map(Pod::getConfigId)
                     .filter(Objects::nonNull)
@@ -137,7 +139,7 @@ public class VideoRequestFactory {
                                                                         String storedVideoId,
                                                                         Set<String> podConfigIds) {
         return storedRequestProcessor.processVideoRequest(storedVideoId, podConfigIds, bidRequestVideo)
-                .map(storedData -> doAndReturn(() -> validateStoredBidRequest(storedData.getStoredData()), storedData))
+                .map(this::validateStoredBidRequest)
                 .map(this::mergeWithDefaultBidRequest)
                 .map(bidRequestToErrors -> Tuple2.of(auctionRequestFactory
                                 .fillImplicitParameters(bidRequestToErrors.getLeft(), routingContext, timeoutResolver),
@@ -147,15 +149,12 @@ public class VideoRequestFactory {
                                 requestToPodErrors.getRight()));
     }
 
-    private static <T> T doAndReturn(Runnable runnable, T returned) {
-        runnable.run();
-        return returned;
-    }
-
     /**
      * Throws {@link InvalidRequestException} in case of invalid {@link BidRequestVideo}.
      */
-    private void validateStoredBidRequest(BidRequestVideo bidRequestVideo) {
+    private ParsedStoredDataResult validateStoredBidRequest(ParsedStoredDataResult storedData) {
+
+        final BidRequestVideo bidRequestVideo = storedData.getStoredData();
         if (enforceStoredRequest && StringUtils.isBlank(bidRequestVideo.getStoredrequestid())) {
             throw new InvalidRequestException("request missing required field: storedrequestid");
         }
@@ -175,6 +174,8 @@ public class VideoRequestFactory {
 
         validateSiteAndApp(bidRequestVideo.getSite(), bidRequestVideo.getApp());
         validateVideo(bidRequestVideo.getVideo());
+
+        return storedData;
     }
 
     private void validateSiteAndApp(Site site, App app) {
@@ -309,7 +310,7 @@ public class VideoRequestFactory {
 
     // Should be called only after validation
     private Tuple2<BidRequest, List<PodError>> mergeWithDefaultBidRequest(
-            ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
+            ParsedStoredDataResult storedData) {
 
         // We should create imps first. We avoid too much Tuples for PodError
         final Tuple2<List<Imp>, List<PodError>> impsToErrors = mergeImpsForResponse(storedData);
@@ -363,12 +364,8 @@ public class VideoRequestFactory {
             bidRequestBuilder.badv(badv);
         }
 
-        final Long videoTmax = videoRequest.getTmax();
-        if (videoTmax == null || videoTmax == 0) {
-            bidRequestBuilder.tmax(DEFAULT_TMAX);
-        } else {
-            bidRequestBuilder.tmax(videoRequest.getTmax());
-        }
+        final Long videoTmax = timeoutResolver.resolve(videoRequest.getTmax());
+        bidRequestBuilder.tmax(videoTmax);
 
         addRequiredOpenRtbFields(bidRequestBuilder);
 
@@ -428,9 +425,7 @@ public class VideoRequestFactory {
         return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebid));
     }
 
-    private static Tuple2<List<Imp>, List<PodError>> mergeImpsForResponse(
-            ParsedStoredDataResult<BidRequestVideo, Imp> storedData) {
-
+    private static Tuple2<List<Imp>, List<PodError>> mergeImpsForResponse(ParsedStoredDataResult storedData) {
         final BidRequestVideo videoRequest = storedData.getStoredData();
         final Map<String, Imp> idToImps = storedData.getIdToImps();
         final Tuple2<List<Pod>, List<PodError>> validPodsToPodErrors = validPods(videoRequest, idToImps.keySet());

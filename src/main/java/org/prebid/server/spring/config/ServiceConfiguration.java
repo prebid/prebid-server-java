@@ -180,7 +180,7 @@ public class ServiceConfiguration {
 
     @Bean
     VideoRequestFactory videoRequestFactory(
-            @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
             List<String> blacklistedAccounts,
             StoredRequestProcessor storedRequestProcessor,

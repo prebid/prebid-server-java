@@ -23,6 +23,8 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionContextWithPodErrors;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -49,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /*
@@ -122,29 +123,30 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         videoRequestFactory.fromRequest(routingContext, startTime)
-                .map(contextToErrors -> doAndTupleRight(context -> context.toBuilder()
-                                .requestTypeMetric(REQUEST_TYPE_METRIC)
-                                .build(),
-                        contextToErrors))
-                .map(contextToErrors -> doAndTupleRight(
-                        context -> addToEvent(context, videoEventBuilder::auctionContext, context),
-                        contextToErrors))
+                .map(contextToErrors -> updateAuctionContextWithPodErrors(contextToErrors, videoEventBuilder))
 
-                .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getLeft())
-                        .map(bidResponse -> Tuple2.of(
-                                Tuple2.of(bidResponse, contextToErrors.getLeft()),
-                                contextToErrors.getRight())))
+                .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getAuctionContext())
+                        .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
 
-                .map(result -> toVideoResponse(result.getLeft().getRight().getBidRequest(), result.getLeft().getLeft(),
-                        result.getRight()))
+                .map(result -> toVideoResponse(result.getRight().getAuctionContext().getBidRequest(),
+                        result.getLeft(), result.getRight().getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
                         startTime));
     }
 
-    private static <T, R, E> Tuple2<R, E> doAndTupleRight(Function<T, R> consumer, Tuple2<T, E> tuple2) {
-        return Tuple2.of(consumer.apply(tuple2.getLeft()), tuple2.getRight());
+    private AuctionContextWithPodErrors updateAuctionContextWithPodErrors(AuctionContextWithPodErrors contextToErrors,
+                                                                          VideoEvent.VideoEventBuilder eventBuilder) {
+        final AuctionContext typeMetricAuctionContext = contextToErrors.getAuctionContext().toBuilder()
+                .requestTypeMetric(REQUEST_TYPE_METRIC)
+                .build();
+
+        addToEvent(typeMetricAuctionContext, eventBuilder::auctionContext, typeMetricAuctionContext);
+
+        return AuctionContextWithPodErrors.of(
+                typeMetricAuctionContext, contextToErrors.getPodErrors());
+
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -155,7 +157,7 @@ public class VideoHandler implements Handler<RoutingContext> {
     private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
         final List<Bid> bids = bidsFrom(bidResponse);
         final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
-        final List<ExtAdPod> adPods = bidsToAdPodWithTargeting(bids);
+        final List<ExtAdPod> adPods = adPodsWithTargetingFrom(bids);
 
         if (anyBidsReturned && CollectionUtils.isEmpty(adPods)) {
             throw new PreBidException("caching failed for all bids");
@@ -191,7 +193,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         }
     }
 
-    private List<ExtAdPod> bidsToAdPodWithTargeting(List<Bid> bids) {
+    private List<ExtAdPod> adPodsWithTargetingFrom(List<Bid> bids) {
         final List<ExtAdPod> adPods = new ArrayList<>();
         for (Bid bid : bids) {
             final Map<String, String> targeting = targeting(bid);
