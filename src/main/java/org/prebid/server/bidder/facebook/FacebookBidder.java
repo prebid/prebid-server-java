@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -40,6 +41,7 @@ import org.prebid.server.util.HttpUtil;
 
 import javax.crypto.Mac;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +58,8 @@ public class FacebookBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
+
+    private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
     private final String endpointUrl;
     private final String platformId;
@@ -203,16 +207,35 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
     private static Banner modifyBanner(Imp imp, boolean impInstlEqOne) {
         final Banner banner = imp.getBanner();
+        if (banner == null) {
+            throw new PreBidException(String.format("imp #%s: Banner is null", imp.getId()));
+        }
         if (impInstlEqOne) {
             return banner.toBuilder().w(0).h(0).format(null).build();
         }
 
-        if (!Objects.equals(banner.getH(), 50) && !Objects.equals(banner.getH(), 250)) {
-            throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
-                    imp.getId()));
+        if (banner.getH() == null) {
+            for (final Format format : banner.getFormat()) {
+                if (format != null && isBannerHeightValid(format.getH())) {
+                    return banner.toBuilder()
+                            .w(0)
+                            .h(format.getH())
+                            .format(null)
+                            .build();
+                }
+            }
+            throw new PreBidException(String.format("imp #%s: banner height required", imp.getId()));
+        } else {
+            if (!isBannerHeightValid(banner.getH())) {
+                throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
+                        imp.getId()));
+            }
+            return banner.toBuilder().w(0).format(null).build();
         }
+    }
 
-        return banner.toBuilder().w(-1).format(null).build();
+    private static boolean isBannerHeightValid(Integer h) {
+        return SUPPORTED_BANNER_HEIGHT.contains(h);
     }
 
     /**
