@@ -29,7 +29,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.AuctionContextWithPodErrors;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -63,7 +64,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private StoredRequestProcessor storedRequestProcessor;
+    private VideoStoredRequestProcessor videoStoredRequestProcessor;
 
     @Mock
     private AuctionRequestFactory auctionRequestFactory;
@@ -82,8 +83,10 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.getParam(anyString())).willReturn("test");
 
-        factory = new VideoRequestFactory(Integer.MAX_VALUE, false, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build(), null);
+//        factory = new VideoRequestFactory(Integer.MAX_VALUE, false, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
+//                BidRequest.builder().build(), null);
+
+        factory = new VideoRequestFactory(Integer.MAX_VALUE, false, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
     }
 
     @Test
@@ -105,8 +108,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfStoredRequestIsEnforcedAndIdIsNotProvided() {
         // given
         given(routingContext.getBody()).willReturn(Json.encodeToBuffer(BidRequestVideo.builder().build()));
-        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build(), null);
+        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -121,8 +123,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFailWhenRequestStoredrequestidIsMissing() {
         // given
-        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build(), null);
+        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
 
         givenValidDataResult(builder -> builder.storedrequestid(null), UnaryOperator.identity());
 
@@ -229,8 +230,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFailWhenSiteIdAndSitePageIsMissing() {
         // given
-        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build(), null);
+        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
 
         givenValidDataResult(requestBuilder -> requestBuilder.site(Site.builder().build()), UnaryOperator.identity());
 
@@ -314,8 +314,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new VideoRequestFactory(2, true, BLACKLISTED_ACCOUNTS, storedRequestProcessor, auctionRequestFactory, timeoutResolver,
-                BidRequest.builder().build(), null);
+        factory = new VideoRequestFactory(2, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -419,7 +418,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 Arrays.asList(podWithoutId, podWithoutDurationSec, podWithBadDurationSec, podWithoutConfigId, podWithDuplicatedId)));
 
         // when
-        final Future<AuctionContextWithPodErrors> result = factory.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -446,7 +445,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture());
 
         // when
-        final Future<AuctionContextWithPodErrors> result = factory.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
 
         // then
         final PodError expectedPod1 =
@@ -466,7 +465,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         givenValidDataResult(UnaryOperator.identity(), podconfigBuilder -> podconfigBuilder.pods(Arrays.asList(pod1, pod2)));
 
         // when
-        final Future<AuctionContextWithPodErrors> result = factory.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -531,18 +530,16 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .site(Site.builder().id("siteId").build())
                 .video(VideoVideo.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
-        givenDataResult(videoRequest, storedIdToImps);
+//        givenDataResult(videoRequest, storedIdToImps);
     }
 
-    private void givenDataResult(BidRequestVideo bidRequestVideo, Map<String, Imp> idToImp) {
+    private void givenDataResult(BidRequest bidRequest) {
         try {
             final BidRequestVideo videoRequest = BidRequestVideo.builder().storedrequestid("stored").build();
             given(routingContext.getBody()).willReturn(Buffer.buffer(Json.mapper.writeValueAsString(videoRequest)));
 
-            final ParsedStoredDataResult dataResult =
-                    ParsedStoredDataResult.of(bidRequestVideo, idToImp, emptyList());
-            given(storedRequestProcessor.processVideoRequest(any(), any(), any()))
-                    .willReturn(Future.succeededFuture(dataResult));
+            given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any()))
+                    .willReturn(Future.succeededFuture(WithPodErrors.of(bidRequest, emptyList())));
             given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
             given(auctionRequestFactory.validateRequest(any())).will(answerWithFirstArgument());
 

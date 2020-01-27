@@ -24,9 +24,9 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.AuctionContextWithPodErrors;
-import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -71,6 +71,8 @@ public class VideoHandlerTest extends VertxTest {
     @Mock
     private VideoRequestFactory videoRequestFactory;
     @Mock
+    private VideoResponseFactory videoResponseFactory;
+    @Mock
     private ExchangeService exchangeService;
     @Mock
     private AnalyticsReporter analyticsReporter;
@@ -108,7 +110,7 @@ public class VideoHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        videoHandler = new VideoHandler(videoRequestFactory, exchangeService, analyticsReporter, metrics, clock);
+        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics, clock);
     }
 
     @Test
@@ -296,7 +298,7 @@ public class VideoHandlerTest extends VertxTest {
         return captor.getValue();
     }
 
-    private AuctionContextWithPodErrors givenAuctionContext(
+    private WithPodErrors<AuctionContext> givenAuctionContext(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             List<PodError> errors) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
@@ -308,7 +310,7 @@ public class VideoHandlerTest extends VertxTest {
                 .timeout(timeout)
                 .build();
 
-        return AuctionContextWithPodErrors.of(auctionContext, errors);
+        return WithPodErrors.of(auctionContext, errors);
     }
 
     private static HttpContext givenHttpContext() {

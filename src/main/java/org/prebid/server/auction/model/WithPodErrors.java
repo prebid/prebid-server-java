@@ -8,9 +8,10 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class AuctionContextWithPodErrors {
+public class WithPodErrors<T> {
 
-    AuctionContext auctionContext;
+    T data;
 
     List<PodError> podErrors;
+
 }

@@ -22,6 +22,8 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -45,6 +47,7 @@ import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -182,16 +185,39 @@ public class ServiceConfiguration {
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
-            List<String> blacklistedAccounts,
-            StoredRequestProcessor storedRequestProcessor,
+            VideoStoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
-            TimeoutResolver timeoutResolver,
-            BidRequest defaultVideoBidRequest,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency) {
+            TimeoutResolver timeoutResolver) {
 
-        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, blacklistedAccounts,
-                storedRequestProcessor, auctionRequestFactory, timeoutResolver, defaultVideoBidRequest,
+        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
+                auctionRequestFactory, timeoutResolver);
+    }
+
+    @Bean
+    VideoResponseFactory videoResponseFactory() {
+        return new VideoResponseFactory();
+    }
+
+    @Bean
+    VideoStoredRequestProcessor videoStoredRequestProcessor(
+            ApplicationSettings applicationSettings,
+            VideoRequestValidator videoRequestValidator,
+            @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            List<String> blacklistedAccounts,
+            BidRequest defaultVideoBidRequest,
+            Metrics metrics,
+            TimeoutFactory timeoutFactory,
+            TimeoutResolver timeoutResolver,
+            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency) {
+        return new VideoStoredRequestProcessor(applicationSettings, videoRequestValidator, enforceStoredRequest,
+                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
                 adServerCurrency);
+    }
+
+    @Bean
+    VideoRequestValidator videoRequestValidator() {
+        return new VideoRequestValidator();
     }
 
     @Bean

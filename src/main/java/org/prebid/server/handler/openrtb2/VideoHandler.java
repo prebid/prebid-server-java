@@ -1,13 +1,5 @@
 package org.prebid.server.handler.openrtb2;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.video.PodError;
-import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
@@ -16,54 +8,41 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.AuctionContextWithPodErrors;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
-import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
-import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+// TODO WILL BE REMOVED
 /*
 1. Parse "storedrequestid" field from simplified endpoint request body.
 2. If config flag to require that field is set (which it will be for us) and this field is not given then error
  out here.
 3. Load the stored request JSON for the given storedrequestid, if the id was invalid then error out here.
 4. Use "json-patch" 3rd party library to merge the request body JSON data into the stored request JSON data.
-5. Unmarshal the merged JSON data into a Go structure.
+5. Unmarshal the merged JSON data into a Java structure.
 6. Add fields from merged JSON data that correspond to an OpenRTB request into the OpenRTB bid request we are building.
     a. Unmarshal certain OpenRTB defined structs directly into the OpenRTB bid request.
     b. In cases where customized logic is needed just copy/fill the fields in directly.
-7. Call setFieldsImplicitly from auction.go to get basic data from the HTTP request into an OpenRTB bid request to
+7. Call setFieldsImplicitly from auction to get basic data from the HTTP request into an OpenRTB bid request to
 start building the OpenRTB bid request.
 8. Loop through ad pods to build array of Imps into OpenRTB request, for each pod:
     a. Load the stored impression to use as the basis for impressions generated for this pod from
@@ -85,24 +64,20 @@ public class VideoHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VideoHandler.class);
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
-            };
-    private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
-            new TypeReference<ExtBidResponse>() {
-            };
-
     private static final MetricName REQUEST_TYPE_METRIC = MetricName.video;
 
     private final VideoRequestFactory videoRequestFactory;
+    private final VideoResponseFactory videoResponseFactory;
     private final ExchangeService exchangeService;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
 
-    public VideoHandler(VideoRequestFactory videoRequestFactory, ExchangeService exchangeService,
-                        AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock) {
+    public VideoHandler(VideoRequestFactory videoRequestFactory, VideoResponseFactory videoResponseFactory,
+                        ExchangeService exchangeService, AnalyticsReporter analyticsReporter, Metrics metrics,
+                        Clock clock) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
+        this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
@@ -125,10 +100,10 @@ public class VideoHandler implements Handler<RoutingContext> {
         videoRequestFactory.fromRequest(routingContext, startTime)
                 .map(contextToErrors -> updateAuctionContextWithPodErrors(contextToErrors, videoEventBuilder))
 
-                .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getAuctionContext())
+                .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
 
-                .map(result -> toVideoResponse(result.getRight().getAuctionContext().getBidRequest(),
+                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData().getBidRequest(),
                         result.getLeft(), result.getRight().getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
@@ -136,155 +111,22 @@ public class VideoHandler implements Handler<RoutingContext> {
                         startTime));
     }
 
-    private AuctionContextWithPodErrors updateAuctionContextWithPodErrors(AuctionContextWithPodErrors contextToErrors,
-                                                                          VideoEvent.VideoEventBuilder eventBuilder) {
-        final AuctionContext typeMetricAuctionContext = contextToErrors.getAuctionContext().toBuilder()
+    private WithPodErrors<AuctionContext> updateAuctionContextWithPodErrors(
+            WithPodErrors<AuctionContext> contextToErrors, VideoEvent.VideoEventBuilder eventBuilder) {
+
+        final AuctionContext typeMetricAuctionContext = contextToErrors.getData().toBuilder()
                 .requestTypeMetric(REQUEST_TYPE_METRIC)
                 .build();
 
         addToEvent(typeMetricAuctionContext, eventBuilder::auctionContext, typeMetricAuctionContext);
 
-        return AuctionContextWithPodErrors.of(
-                typeMetricAuctionContext, contextToErrors.getPodErrors());
+        return WithPodErrors.of(typeMetricAuctionContext, contextToErrors.getPodErrors());
 
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
         consumer.accept(field);
         return result;
-    }
-
-    private VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
-        final List<Bid> bids = bidsFrom(bidResponse);
-        final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
-        final List<ExtAdPod> adPods = adPodsWithTargetingFrom(bids);
-
-        if (anyBidsReturned && CollectionUtils.isEmpty(adPods)) {
-            throw new PreBidException("caching failed for all bids");
-        }
-
-        adPods.addAll(adPodsWithErrors(podErrors));
-
-        final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
-        // Fetch debug and errors information from response if requested
-        if (isDebugEnabled(bidRequest)) {
-            final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
-
-            extResponseDebug = extResponseDebugFrom(extBidResponse);
-            errors = errorsFrom(extBidResponse);
-        } else {
-            extResponseDebug = null;
-            errors = null;
-        }
-        return VideoResponse.of(adPods, extResponseDebug, errors, null);
-    }
-
-    private static List<Bid> bidsFrom(BidResponse bidResponse) {
-        if (bidResponse != null && CollectionUtils.isNotEmpty(bidResponse.getSeatbid())) {
-            return bidResponse.getSeatbid().stream()
-                    .filter(Objects::nonNull)
-                    .map(SeatBid::getBid)
-                    .filter(Objects::nonNull)
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    private List<ExtAdPod> adPodsWithTargetingFrom(List<Bid> bids) {
-        final List<ExtAdPod> adPods = new ArrayList<>();
-        for (Bid bid : bids) {
-            final Map<String, String> targeting = targeting(bid);
-            if (targeting.get("hb_uuid") == null) {
-                continue;
-            }
-            final String impId = bid.getImpid();
-            final String podIdString = impId.split("_")[0];
-            if (!NumberUtils.isDigits(podIdString)) {
-                continue;
-            }
-            final Integer podId = Integer.parseInt(podIdString);
-
-            final ExtResponseVideoTargeting videoTargeting = ExtResponseVideoTargeting.of(
-                    targeting.get("hb_pb"),
-                    targeting.get("hb_pb_cat_dur"),
-                    targeting.get("hb_uuid"));
-
-            ExtAdPod adPod = adPods.stream()
-                    .filter(extAdPod -> extAdPod.getPodid().equals(podId))
-                    .findFirst()
-                    .orElse(null);
-
-            if (adPod == null) {
-                adPod = ExtAdPod.of(podId, new ArrayList<>(), null);
-                adPods.add(adPod);
-            }
-            adPod.getTargeting().add(videoTargeting);
-        }
-        return adPods;
-    }
-
-    private Map<String, String> targeting(Bid bid) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
-        try {
-            extBid = Json.mapper.convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            return Collections.emptyMap();
-        }
-
-        final ExtBidPrebid extBidPrebid = extBid != null ? extBid.getPrebid() : null;
-        final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
-        return targeting != null ? targeting : Collections.emptyMap();
-    }
-
-    private static List<ExtAdPod> adPodsWithErrors(List<PodError> podErrors) {
-        return podErrors.stream()
-                .map(podError -> ExtAdPod.of(podError.getPodId(), null, podError.getPodErrors()))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Determines debug flag from {@link BidRequest}.
-     */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-        final ExtBidRequest extBidRequest = extBidRequestFrom(bidRequest);
-        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from {@link BidRequest}.
-     */
-    private static ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
-        try {
-            return bidRequest.getExt() != null
-                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class)
-                    : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
-        }
-    }
-
-    private static ExtBidResponse extResponseFrom(BidResponse bidResponse) {
-        try {
-            return Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking Video bid response: %s", e.getMessage()), e);
-        }
-    }
-
-    private static ExtResponseDebug extResponseDebugFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getDebug() : null;
-    }
-
-    private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
-        return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 
     private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,

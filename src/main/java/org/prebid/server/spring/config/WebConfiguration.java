@@ -21,6 +21,7 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
@@ -262,12 +263,14 @@ public class WebConfiguration {
     @Bean
     VideoHandler openrtbVideoHandler(
             VideoRequestFactory videoRequestFactory,
+            VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock) {
 
-        return new VideoHandler(videoRequestFactory, exchangeService, analyticsReporter, metrics, clock);
+        return new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics,
+                clock);
     }
 
     @Bean
