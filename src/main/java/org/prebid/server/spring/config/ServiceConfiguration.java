@@ -184,7 +184,7 @@ public class ServiceConfiguration {
     @Bean
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
-            @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${appnexus.video.stored-required}") boolean enforceStoredRequest,
             VideoStoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
             TimeoutResolver timeoutResolver) {
@@ -201,7 +201,7 @@ public class ServiceConfiguration {
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
             ApplicationSettings applicationSettings,
-            @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${appnexus.video.stored-required}") boolean enforceStoredRequest,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             BidRequest defaultVideoBidRequest,
             Metrics metrics,
