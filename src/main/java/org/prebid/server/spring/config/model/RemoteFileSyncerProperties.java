@@ -19,6 +19,9 @@ public class RemoteFileSyncerProperties {
     @NotBlank
     private String saveFilepath;
 
+    @NotBlank
+    private String tmpFilepath;
+
     @NotNull
     @Min(1)
     private Integer retryCount;
@@ -30,6 +33,9 @@ public class RemoteFileSyncerProperties {
     @NotNull
     @Min(1)
     private Long timeoutMs;
+
+    @NotNull
+    private Long updateIntervalMs;
 
     @NotNull
     private HttpClientProperties httpClient;

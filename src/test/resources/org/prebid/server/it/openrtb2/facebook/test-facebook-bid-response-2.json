@@ -1,0 +1,20 @@
+{
+  "id": "bidResponseId2",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid2",
+          "impid": "impId002",
+          "price": 15.00,
+          "adm": "{\"bid_id\":\"10\"}",
+          "crid": "crid5",
+          "w": 0,
+          "h": 0
+        }
+      ],
+      "seat": "seatId4",
+      "group": 0
+    }
+  ]
+}

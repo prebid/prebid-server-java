@@ -296,7 +296,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 null, ACCOUNT, timeout, false).result();
 
         // then
-        assertThat(bidResponse).returns(2, BidResponse::getNbr);
+        assertThat(bidResponse).returns(0, BidResponse::getNbr);
         assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
@@ -314,7 +314,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 null, ACCOUNT, timeout, false).result();
 
         // then
-        assertThat(bidResponse).returns(2, BidResponse::getNbr);
+        assertThat(bidResponse).returns(0, BidResponse::getNbr);
         assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());

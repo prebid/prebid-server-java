@@ -40,10 +40,12 @@ Remote File Syncer can be related to particular entity like geolocation maxmind 
 Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
-- `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `<SERVICE>.remote-file-syncer.save-filepath` - full path to the usable file, which will be consumed by internal service.
+- `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 

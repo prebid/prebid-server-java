@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 81
     usersync:
-      url: //bh.contextweb.com/rtset?pid=561205&ev=1&rurl=
+      url: https://bh.contextweb.com/rtset?pid=561205&ev=1&rurl=
       redirect-url: /setuid?bidder=pulsepoint&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=%%VGUID%%
       cookie-family-name: pulsepoint
       type: redirect

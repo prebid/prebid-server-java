@@ -2,8 +2,8 @@ adapters:
   facebook:
     enabled: false
     endpoint: https://an.facebook.com/placementbid.ortb
-    non-secure-endpoint: http://an.facebook.com/placementbid.ortb
     platform-id:
+    app-secret:
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:
@@ -11,9 +11,13 @@ adapters:
     meta-info:
       maintainer-email: info@prebid.org
       app-media-types:
+        - banner
+        - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 0
     usersync:

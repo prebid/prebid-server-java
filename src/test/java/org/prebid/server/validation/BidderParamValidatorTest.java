@@ -250,7 +250,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenFacebookImpExtIsOk() {
         // given
-        final ExtImpFacebook ext = ExtImpFacebook.of("placementId");
+        final ExtImpFacebook ext = ExtImpFacebook.of("placementId", "publisherId");
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 

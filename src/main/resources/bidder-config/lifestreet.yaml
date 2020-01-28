@@ -16,7 +16,7 @@ adapters:
       supported-vendors:
       vendor-id: 67
     usersync:
-      url: //ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl=
+      url: https://ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl=
       redirect-url: /setuid?bidder=lifestreet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$$visitor_cookie$$
       cookie-family-name: lifestreet
       type: redirect
