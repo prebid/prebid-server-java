@@ -201,23 +201,20 @@ public class ServiceConfiguration {
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
             ApplicationSettings applicationSettings,
-            VideoRequestValidator videoRequestValidator,
             @Value("${appnexus.video.stored-required:#{false}}") boolean enforceStoredRequest,
-            List<String> blacklistedAccounts,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             BidRequest defaultVideoBidRequest,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             TimeoutResolver timeoutResolver,
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency) {
-        return new VideoStoredRequestProcessor(applicationSettings, videoRequestValidator, enforceStoredRequest,
+
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
                 blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
                 adServerCurrency);
-    }
-
-    @Bean
-    VideoRequestValidator videoRequestValidator() {
-        return new VideoRequestValidator();
     }
 
     @Bean

@@ -61,17 +61,17 @@ public class VideoStoredRequestProcessor {
 
     private static final String DEFAULT_CURRENCY = "USD";
     private static final String DEFAULT_BUYERUID = "appnexus";
-    private final List<String> blacklistedAccounts;
-    private final boolean enforceStoredRequest;
-    private final VideoRequestValidator validator;
-    private final BidRequest defaultBidRequest;
-    private final String currency;
 
     private final ApplicationSettings applicationSettings;
-    private final TimeoutFactory timeoutFactory;
-    private final TimeoutResolver timeoutResolver;
+    private final VideoRequestValidator validator;
+    private final boolean enforceStoredRequest;
+    private final List<String> blacklistedAccounts;
+    private final BidRequest defaultBidRequest;
     private final Metrics metrics;
+    private final TimeoutResolver timeoutResolver;
+    private final TimeoutFactory timeoutFactory;
     private final long defaultTimeout;
+    private final String currency;
 
     public VideoStoredRequestProcessor(ApplicationSettings applicationSettings, VideoRequestValidator validator,
                                        boolean enforceStoredRequest, List<String> blacklistedAccounts,
@@ -134,7 +134,11 @@ public class VideoStoredRequestProcessor {
     private BidRequestVideo mergeBidRequest(BidRequestVideo originalRequest, String storedRequestId,
                                             StoredDataResult storedDataResult) {
         final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
-        return StringUtils.isNotBlank(storedRequestId)
+        if (enforceStoredRequest && StringUtils.isBlank(storedRequest)) {
+            throw new InvalidRequestException("Stored request is enforced but not found");
+        }
+
+        return StringUtils.isNotBlank(storedRequest)
                 ? JsonMergeUtil.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
                 : originalRequest;
     }
@@ -142,10 +146,9 @@ public class VideoStoredRequestProcessor {
     private WithPodErrors<List<Imp>> mergeStoredImps(Podconfig podconfig, VideoVideo video,
                                                      Map<String, String> storedImpIdToJsonImp) {
         final Map<String, Imp> storedImpIdToImp = storedIdToStoredImp(storedImpIdToJsonImp);
-        final Tuple2<List<Pod>, List<PodError>> validPodsToPodErrors = validator.validPods(podconfig,
-                storedImpIdToImp.keySet());
-        final List<Pod> validPods = validPodsToPodErrors.getLeft();
-        final List<PodError> podErrors = validPodsToPodErrors.getRight();
+        final WithPodErrors<List<Pod>> validPodsToPodErrors = validator.validPods(podconfig, storedImpIdToImp.keySet());
+        final List<Pod> validPods = validPodsToPodErrors.getData();
+        final List<PodError> podErrors = validPodsToPodErrors.getPodErrors();
 
         if (CollectionUtils.isEmpty(validPods)) {
             final String errorMessage = podErrors.stream()
@@ -245,13 +248,12 @@ public class VideoStoredRequestProcessor {
                 .build();
     }
 
-    // Should be called only after validation
-    private BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest, List<Imp> imps) {
+    private BidRequest mergeWithDefaultBidRequest(BidRequestVideo validatedVideoRequest, List<Imp> imps) {
         final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest.toBuilder();
-        final Site site = videoRequest.getSite();
+        final Site site = validatedVideoRequest.getSite();
         if (site != null) {
             final Site.SiteBuilder siteBuilder = site.toBuilder();
-            final Content content = videoRequest.getContent();
+            final Content content = validatedVideoRequest.getContent();
             if (content != null) {
                 siteBuilder.content(content);
             }
@@ -259,22 +261,22 @@ public class VideoStoredRequestProcessor {
             bidRequestBuilder.site(siteBuilder.build());
         }
 
-        final App app = videoRequest.getApp();
+        final App app = validatedVideoRequest.getApp();
         if (app != null) {
             final App.AppBuilder appBuilder = app.toBuilder();
-            final Content content = videoRequest.getContent();
+            final Content content = validatedVideoRequest.getContent();
             if (content != null) {
                 appBuilder.content(content);
             }
             bidRequestBuilder.app(appBuilder.build());
         }
 
-        final Device device = videoRequest.getDevice();
+        final Device device = validatedVideoRequest.getDevice();
         if (device != null) {
             bidRequestBuilder.device(device);
         }
 
-        final VideoUser user = videoRequest.getUser();
+        final VideoUser user = validatedVideoRequest.getUser();
         if (user != null) {
             final User updatedUser = User.builder()
                     .buyeruid(DEFAULT_BUYERUID)
@@ -285,22 +287,22 @@ public class VideoStoredRequestProcessor {
             bidRequestBuilder.user(updatedUser);
         }
 
-        final List<String> bcat = videoRequest.getBcat();
+        final List<String> bcat = validatedVideoRequest.getBcat();
         if (CollectionUtils.isNotEmpty(bcat)) {
             bidRequestBuilder.bcat(bcat);
         }
 
-        final List<String> badv = videoRequest.getBadv();
+        final List<String> badv = validatedVideoRequest.getBadv();
         if (CollectionUtils.isNotEmpty(badv)) {
             bidRequestBuilder.badv(badv);
         }
 
-        final Regs regs = videoRequest.getRegs();
+        final Regs regs = validatedVideoRequest.getRegs();
         if (regs != null) {
             bidRequestBuilder.regs(regs);
         }
 
-        final Long videoTmax = timeoutResolver.resolve(videoRequest.getTmax());
+        final Long videoTmax = timeoutResolver.resolve(validatedVideoRequest.getTmax());
         bidRequestBuilder.tmax(videoTmax);
 
         addRequiredOpenRtbFields(bidRequestBuilder);
@@ -308,8 +310,8 @@ public class VideoStoredRequestProcessor {
         return bidRequestBuilder
                 .id("bid_id")
                 .imp(imps)
-                .ext(createBidExtension(videoRequest))
-                .test(videoRequest.getTest())
+                .ext(createBidExtension(validatedVideoRequest))
+                .test(validatedVideoRequest.getTest())
                 .build();
     }
 

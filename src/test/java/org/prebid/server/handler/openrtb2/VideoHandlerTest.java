@@ -2,15 +2,12 @@ package org.prebid.server.handler.openrtb2;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.video.PodError;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -33,23 +30,16 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
-import org.prebid.server.proto.openrtb.ext.response.ExtResponseVideoTargeting;
 import org.prebid.server.proto.response.VideoResponse;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -231,65 +221,20 @@ public class VideoHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
+        given(videoResponseFactory.toVideoResponse(any(), any(), any()))
+                .willReturn(VideoResponse.of(emptyList(), null, null, null));
+
         // when
         videoHandler.handle(routingContext);
 
         // then
         verify(exchangeService).holdAuction(any());
+        verify(videoResponseFactory).toVideoResponse(any(), any(), any());
+
         assertThat(httpResponse.headers()).hasSize(1)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{\"adPods\":[]}"));
-    }
-
-    @Test
-    public void shouldRespondWithCorrectVideoResponseWithPodsError() {
-        // given
-        final Map<String, String> targeting1 = new HashMap<>();
-        targeting1.put("hb_uuid", "value1");
-        targeting1.put("hb_pb", "hb_pb");
-        targeting1.put("hb_pb_cat_dur", "hb_pb_cat_dur");
-
-        final Bid bid0 = Bid.builder()
-                .impid("0_0")
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, targeting1, null, null, null), mapper.createObjectNode())))
-                .build();
-        final Bid bid1 = Bid.builder()
-                .impid("1_1")
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, targeting1, null, null, null), mapper.createObjectNode())))
-                .build();
-        final Bid bid2 = Bid.builder()
-                .impid("2_1")
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null), mapper.createObjectNode())))
-                .build();
-
-        final PodError podError = PodError.of(3, 0, singletonList("Bad pod"));
-        given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), singletonList(podError))));
-
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder()
-                        .seatbid(singletonList(SeatBid.builder()
-                                .seat("bidder1")
-                                .bid(Arrays.asList(bid0, bid1, bid2))
-                                .build()))
-                        .build()));
-
-        // when
-        videoHandler.handle(routingContext);
-
-        // then
-        final ExtAdPod expectedExtAdPod0 = ExtAdPod.of(0,
-                singletonList(ExtResponseVideoTargeting.of("hb_pb", "hb_pb_cat_dur", "value1")), null);
-        final ExtAdPod expectedExtAdPod1 = ExtAdPod.of(
-                1, singletonList(ExtResponseVideoTargeting.of("hb_pb", "hb_pb_cat_dur", "value1")), null);
-        final ExtAdPod expectedErroredExtAdPod3 = ExtAdPod.of(3, null, singletonList("Bad pod"));
-        final List<ExtAdPod> expectedAdPodResponse = Arrays.asList(expectedExtAdPod0, expectedExtAdPod1, expectedErroredExtAdPod3);
-
-        verify(httpResponse).end(eq(Json.encode(VideoResponse.of(expectedAdPodResponse, null, null, null))));
     }
 
     private AuctionContext captureAuctionContext() {

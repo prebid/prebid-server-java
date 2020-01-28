@@ -10,7 +10,7 @@ import com.iab.openrtb.request.video.VideoVideo;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 
 import java.util.ArrayList;
@@ -99,7 +99,7 @@ public class VideoRequestValidator {
         }
     }
 
-    public Tuple2<List<Pod>, List<PodError>> validPods(Podconfig podconfig, Set<String> storedPodConfigIds) {
+    public WithPodErrors<List<Pod>> validPods(Podconfig podconfig, Set<String> storedPodConfigIds) {
         final List<Pod> pods = podconfig.getPods();
         final List<PodError> podErrors = validateEachPod(pods);
         final List<Integer> errorPodIds = podErrors.stream()
@@ -120,7 +120,7 @@ public class VideoRequestValidator {
             }
         }
 
-        return Tuple2.of(validPods, podErrors);
+        return WithPodErrors.of(validPods, podErrors);
     }
 
     private static List<PodError> validateEachPod(List<Pod> pods) {
