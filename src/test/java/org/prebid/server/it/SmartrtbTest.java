@@ -27,15 +27,9 @@ public class SmartrtbTest extends IntegrationTest {
         wireMockRule.stubFor(post(urlPathEqualTo("/smartrtb-exchange/1234"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-response-1.json"))));
-
-        // Smartrtb bid response for imp 002
-        wireMockRule.stubFor(post(urlPathEqualTo("/smartrtb-exchange/12345"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-response-2.json"))));
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-response.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))

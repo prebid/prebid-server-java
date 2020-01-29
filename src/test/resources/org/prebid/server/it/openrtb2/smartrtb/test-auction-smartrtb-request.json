@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId001",
+      "tagid": "N4zTDq3PPEHBIODv7cXK",
       "banner": {
         "format": [
           {
@@ -13,14 +14,15 @@
       },
       "ext": {
         "smartrtb": {
-          "publisherId": "1234",
-          "zoneId": "N4zTDq3PPEHBIODv7cXK",
-          "forceBid": true
+          "pub_id": "1234",
+          "zone_id": "N4zTDq3PPEHBIODv7cXK",
+          "force_bid": true
         }
       }
     },
     {
       "id": "impId002",
+      "tagid": "N4zTDq3PPEHBIODv7cXK",
       "video": {
         "mimes": [
           "video/mp4"
@@ -29,14 +31,16 @@
           2,
           5
         ],
+        "skipafter": 0,
+        "skipmin": 0,
         "w": 1024,
         "h": 576
       },
       "ext": {
         "smartrtb": {
-          "publisherId": "12345",
-          "zoneId": "N4zTDq3PPEHBIODv7cXK",
-          "forceBid": true
+          "pub_id": "12345",
+          "zone_id": "N4zTDq3PPEHBIODv7cXK",
+          "force_bid": true
         }
       }
     }
@@ -44,10 +48,17 @@
   "device": {
     "pxratio": 4.2,
     "dnt": 2,
+    "ip": "193.168.244.1",
     "language": "en",
-    "ifa": "ifaId"
+    "ifa": "ifaId",
+    "ua": "userAgent"
   },
   "site": {
+    "domain": "example.com",
+    "ext": {
+      "amp": 0
+    },
+    "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
     }
@@ -64,6 +75,8 @@
   "ext": {
     "prebid": {
       "targeting": {
+        "includebidderkeys": true,
+        "includewinners": true,
         "pricegranularity": {
           "precision": 2,
           "ranges": [

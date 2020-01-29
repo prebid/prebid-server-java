@@ -5,15 +5,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import java.util.Arrays;
-import java.util.Collections;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +28,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
+import org.prebid.server.util.HttpUtil;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -38,7 +41,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class SmartrtbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
     private SmartrtbBidder smartrtbBidder;
 
@@ -53,71 +56,12 @@ public class SmartrtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSkipEmptyPublisherId() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSmartrtb.of(null,"125","222",false)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Publisher ID is empty"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSkipEmptyZoneId() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSmartrtb.of("111","123",null,false)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Zone ID is empty"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtPrebid<?,  ExtImpSmartrtb> ext = ExtPrebid.of(null,
-                ExtImpSmartrtb.of("Publisher ID is empty","123","Zone ID is empty",false));
-        Imp imp = givenImp(
-                impBuilder -> impBuilder
-                        .banner(null)
-                        .id("2")
-                        .ext(mapper.valueToTree(ext))
-                        .banner(Banner.builder().w(300).h(400).build())
-        );
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        imp,
-                        givenImp(impBuilder -> impBuilder
-                                .banner(null)
-                                .id("2")
-                                .ext(mapper.valueToTree(ext))
-                                .audio(Audio.builder().build()))))
+                        givenImp(identity()),
+                        givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()))))
                 .build();
 
         // when
@@ -129,94 +73,22 @@ public class SmartrtbBidderTest extends VertxTest {
                         "SmartRTB only supports banner and video"));
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .containsOnly(imp);
+                .flatExtracting(BidRequest::getImp);
     }
 
     @Test
-    public void makeHttpRequestShouldReturnErrorIfImpFormatIsNull() {
+    public void  makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .w(0)
-                                .h(0)
-                                .build()));
-
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("banner size information missing"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnErrorIfImpFormatIsEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(Collections.emptyList())
-                                .w(0)
-                                .h(0)
-                                .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("banner size information missing"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .w(200)
-                                .h(150)
-                                .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(200, 150));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetBannerWidthAndHeightFromFirstFormatIfEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(Arrays.asList(Format.builder().w(300).h(500).build(),
-                                        Format.builder().w(450).h(150).build()))
-                                .build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getW, Banner::getH)
-                .containsOnly(tuple(300, 500));
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors().get(1).getMessage()).startsWith("Cannot infer publisher ID from bid ext");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
     }
 
     @Test
@@ -234,7 +106,48 @@ public class SmartrtbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL + "/publisherId");
+        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL + "publisherID");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetExpectedRequestUrlAndDefaultHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("https://test.endpoint.com/publisherID");
+        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("x-openrtb-version", "2.5"),
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAdditionalHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .device(Device.builder().ua("ua").ip("ip").dnt(1).language("en").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
+                        tuple(HttpUtil.DNT_HEADER.toString(), "1"),
+                        tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"));
     }
 
     @Test
@@ -389,7 +302,7 @@ public class SmartrtbBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSmartrtb.of("publisherId","123","Zone ID is empty",false)))))
+                        ExtImpSmartrtb.of("publisherID","123","Zone ID is empty",true)))))
                 .build();
     }
 

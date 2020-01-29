@@ -6,13 +6,10 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpSmartrtb {
+public class ExtRequestSmartrtb {
 
     @JsonProperty("pub_id")
     String pubId;
-
-    @JsonProperty("med_id")
-    String medId;
 
     @JsonProperty("zone_id")
     String zoneId;

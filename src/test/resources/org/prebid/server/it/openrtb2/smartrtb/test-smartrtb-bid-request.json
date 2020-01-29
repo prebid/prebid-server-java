@@ -1,0 +1,124 @@
+{
+  "at": 1,
+  "cur": [
+    "USD"
+  ],
+  "device": {
+    "dnt": 2,
+    "ifa": "ifaId",
+    "ip": "193.168.244.1",
+    "language": "en",
+    "pxratio": 4.2,
+    "ua": "userAgent"
+  },
+  "ext": {
+    "prebid": {
+      "cache": {
+        "bids": {
+        },
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "targeting": {
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.811
+            }
+          }
+        },
+        "includebidderkeys": true,
+        "includewinners": true,
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "increment": 0.1,
+              "max": 20
+            }
+          ]
+        }
+      }
+    }
+  },
+  "id": "tid",
+  "imp": [
+    {
+      "banner": {
+        "format": [
+          {
+            "h": 250,
+            "w": 300
+          }
+        ]
+      },
+      "ext": {
+        "bidder": {
+          "force_bid": true,
+          "pub_id": "1234",
+          "zone_id": "N4zTDq3PPEHBIODv7cXK"
+        }
+      },
+      "id": "impId001",
+      "tagid": "N4zTDq3PPEHBIODv7cXK"
+    },
+    {
+      "ext": {
+        "bidder": {
+          "force_bid": true,
+          "pub_id": "12345",
+          "zone_id": "N4zTDq3PPEHBIODv7cXK"
+        }
+      },
+      "id": "impId002",
+      "tagid": "N4zTDq3PPEHBIODv7cXK",
+      "video": {
+        "h": 576,
+        "mimes": [
+          "video/mp4"
+        ],
+        "protocols": [
+          2,
+          5
+        ],
+        "skipafter": 0,
+        "skipmin": 0,
+        "w": 1024
+      }
+    }
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "site": {
+    "domain": "example.com",
+    "ext": {
+      "amp": 0
+    },
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "tmax": 3000,
+  "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  }
+}
