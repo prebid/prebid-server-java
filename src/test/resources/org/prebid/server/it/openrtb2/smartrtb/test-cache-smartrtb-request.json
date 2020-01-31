@@ -3,15 +3,15 @@
     {
       "type": "json",
       "value": {
-        "adid": "adid001",
-        "adm": "adm001",
-        "cid": "cid001",
-        "crid": "crid001",
-        "h": 250,
-        "id": "bid001",
-        "impid": "impId001",
-        "price": 3.33,
-        "w": 300
+        "adm": "<b>hi</b>",
+        "cid": "test_cid",
+        "crid": "test_banner_crid",
+        "ext": {
+          "format": "BANNER"
+        },
+        "id": "1",
+        "impid": "imp123",
+        "price": 0.01
       }
     }
   ]

@@ -1,9 +1,23 @@
 package org.prebid.server.bidder.smartrtb;
 
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
+import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
+import org.prebid.server.exception.PreBidException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -13,27 +27,12 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * SmartRTB {@link Bidder} implementation.
@@ -49,6 +48,10 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
 
+    private static final String CREATIVE_TYPE_BANNER = "BANNER";
+
+    private static final String CREATIVE_TYPE_VIDEO = "VIDEO";
+
     public SmartrtbBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
@@ -58,19 +61,17 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
         String pubId = null;
-        String zoneId = null;
-        Boolean forceBid = null;
 
         for (Imp imp : request.getImp()) {
             try {
                 final Imp validImp = validateImp(imp);
                 final ExtImpSmartrtb extImp = parseImpExt(imp);
 
-                if (StringUtils.isEmpty(pubId) && StringUtils.isNoneEmpty(extImp.getPubId())) {
+                if (StringUtils.isBlank(pubId) && StringUtils.isNoneEmpty(extImp.getPubId())) {
                     pubId = extImp.getPubId();
                 }
 
-                zoneId = extImp.getZoneId();
+                String zoneId = extImp.getZoneId();
                 final Imp updatedImp = StringUtils.isNotEmpty(zoneId)
                         ? validImp.toBuilder().tagid(zoneId).build()
                         : imp;
@@ -85,13 +86,13 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput("Cannot infer publisher ID from bid ext"));
             return Result.of(null, errors);
         } else {
-            ExtRequestSmartrtb.of(pubId, zoneId, forceBid);
+            ExtRequestSmartrtb.of(pubId, null, null);
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
         final String body = Json.encode(outgoingRequest);
         final String requestUrl = endpointUrl + pubId;
-        final MultiMap headers = resolveHeaders(request.getDevice());
+        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -119,73 +120,66 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static MultiMap resolveHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers()
-                .add("x-openrtb-version", "2.5");
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Forwarded-For", device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Accept-Language", device.getLanguage());
-
-            final Integer dnt = device.getDnt();
-            if (dnt != null) {
-                headers.add("DNT", dnt.toString());
-            }
-        }
-        return headers;
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
+        } else if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.BAD_REQUEST.code()) {
+            return Result.emptyWithError(BidderError.badInput("Invalid request."));
+        } else if (httpCall.getResponse().getStatusCode() != HttpResponseStatus.OK.code()) {
+            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
+                    httpCall.getResponse().getStatusCode())));
         }
 
+        final BidResponse bidResponse;
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return extractBids(httpCall.getRequest().getPayload(), bidResponse);
-        } catch (DecodeException e) {
+            bidResponse = decodeBodyToBidResponse(httpCall);
+        } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
 
-    private static Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        return Result.of(bidderBids, errors);
-    }
+        final List<BidderBid> bidderBids = new ArrayList<>();
+        for (SeatBid seatBid : bidResponse.getSeatbid()) {
+            for (Bid bid : seatBid.getBid()) {
+                final ObjectNode ext = bid.getExt();
+                if (ext == null) {
+                    return Result.emptyWithError(BidderError.badServerResponse(String.format(
+                            "Invalid bid extension from endpoint.")));
+                }
+                try {
+                    final SmartrtbResponseExt smartrtbResponseExt = Json.mapper.treeToValue(ext,
+                            SmartrtbResponseExt.class);
 
-    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors) {
-        try {
-            final BidType bidType = getBidType(bid.getImpid(), imps);
-            return BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
-        }
-    }
-
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
+                    BidType bidType = null;
+                    switch (smartrtbResponseExt.getFormat()) {
+                        case CREATIVE_TYPE_BANNER:
+                            bidType = BidType.banner;
+                            break;
+                        case CREATIVE_TYPE_VIDEO:
+                            bidType = BidType.video;
+                            break;
+                        default:
+                            return Result.emptyWithError(BidderError.badServerResponse(String.format(
+                                    "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
+                    }
+                    SmartrtbResponseExt.of(null);
+                    final BidderBid bidderBid = BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+                    bidderBids.add(bidderBid);
+                } catch (JsonProcessingException e) {
+                    return Result.emptyWithError(BidderError.badServerResponse(String.format(
+                            "Invalid bid extension from endpoint.")));
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        return Result.of(bidderBids, Collections.emptyList());
+    }
+
+    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+        try {
+            return Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     @Override

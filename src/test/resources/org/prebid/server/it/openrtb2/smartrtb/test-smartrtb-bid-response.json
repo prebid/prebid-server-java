@@ -4,15 +4,15 @@
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "impId001",
-          "price": 3.33,
-          "adid": "adid001",
-          "crid": "crid001",
-          "cid": "cid001",
-          "adm": "adm001",
-          "h": 250,
-          "w": 300
+          "adm": "<b>hi</b>",
+          "crid": "test_banner_crid",
+          "cid": "test_cid",
+          "impid": "imp123",
+          "id": "1",
+          "price": 0.01,
+          "ext": {
+            "format": "BANNER"
+          }
         }
       ]
     }
