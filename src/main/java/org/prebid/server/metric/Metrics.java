@@ -164,6 +164,12 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void increaseAccountRejectedRequestCounter(String accountId) {
+        final AccountMetrics accountMetrics = forAccount(accountId);
+        //rejected
+        accountMetrics.requests().incCounter(MetricName.rejected);
+    }
+
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
         final AdapterMetrics adapterMetrics = forAdapter(resolveMetricsBidderName(bidder));
 

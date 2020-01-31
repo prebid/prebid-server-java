@@ -38,6 +38,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.LogModifier;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -63,6 +64,7 @@ import java.util.stream.Collectors;
 public class AmpHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
+    private static final ConditionalLogger CONDITIONAL_LOGGER = new ConditionalLogger(logger);
 
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
@@ -317,12 +319,14 @@ public class AmpHandler implements Handler<RoutingContext> {
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String errorMessage = exception.getMessage();
-                logger.info("Unauthorized: {0}", errorMessage);
+                CONDITIONAL_LOGGER.info(String.format("Unauthorized: %s", errorMessage), 100);
 
                 errorMessages = Collections.singletonList(errorMessage);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = String.format("Unauthorised: %s", errorMessage);
+                String userId = ((UnauthorizedAccountException) exception).getUserId();
+                metrics.increaseAccountRejectedRequestCounter(userId);
             } else {
                 final String message = exception.getMessage();
 
