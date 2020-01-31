@@ -30,8 +30,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
@@ -545,6 +545,19 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
+    }
+
+    @Test
+    public void shouldIncrementRejectedMetricsIfUnknownUser() {
+        //given
+        given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(
+                Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id", "1"))
+        );
+        //when
+        auctionHandler.handle(routingContext);
+
+        //then
+        verify(metrics).increaseAccountRejectedRequestCounter(eq("1"));
     }
 
     @Test
