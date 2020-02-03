@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -17,6 +18,7 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -25,6 +27,7 @@ import java.util.function.Function;
 public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
+    private static final ConditionalLogger CONDITIONAL_LOGGER = new ConditionalLogger(logger);
 
     private final Function<String, CircuitBreaker> circuitBreakerCreator;
     private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();
@@ -49,7 +52,8 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void circuitOpened(String name) {
-        logger.warn("Http client request to {0} is failed, circuit opened.", name);
+        CONDITIONAL_LOGGER.warn(String.format("Http client request to %s is failed, circuit opened.", name),
+                5, TimeUnit.SECONDS);
         metrics.updateHttpClientCircuitBreakerMetric(true);
     }
 
