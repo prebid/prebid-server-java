@@ -106,7 +106,6 @@
       ]
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [
@@ -123,6 +122,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "aliases": {
         "appnexusAlias": "appnexus"
       },

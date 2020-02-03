@@ -45,7 +45,6 @@ The following is a "hello world" request which fetches the [Prebid sample ad](ht
       }
     }
   ],
-  "test": 1,
   "tmax": 500
 }
 ```
@@ -270,6 +269,7 @@ This can be used to request bids from the same Bidder with different params. For
   ],
   "ext": {
     "prebid": {
+      "debug": 1
       "aliases": {
         "districtm": "appnexus"
       }
