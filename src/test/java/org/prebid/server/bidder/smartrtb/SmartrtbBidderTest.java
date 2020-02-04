@@ -134,7 +134,6 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
@@ -145,14 +144,11 @@ public class SmartrtbBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
         // when
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid bid extension from endpoint.");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(BidderError.badServerResponse("Invalid bid extension from endpoint."));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -168,9 +164,8 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().ext(null).build(), banner, "USD"));
     }
 
     @Test
@@ -185,8 +180,7 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported creative type wrong type");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(BidderError.badServerResponse("Unsupported creative type wrong type"));
     }
 
     @Test

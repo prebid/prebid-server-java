@@ -1,10 +1,5 @@
 package org.prebid.server.bidder.smartrtb;
 
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.HttpUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -14,6 +9,11 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
+import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -43,13 +43,9 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSmartrtb>> SMARTRTB_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpSmartrtb>>() {
             };
-
     private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
-
     private static final String CREATIVE_TYPE_BANNER = "BANNER";
-
     private static final String CREATIVE_TYPE_VIDEO = "VIDEO";
 
     public SmartrtbBidder(String endpointUrl) {
@@ -71,7 +67,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                     pubId = extImp.getPubId();
                 }
 
-                String zoneId = extImp.getZoneId();
+                final String zoneId = extImp.getZoneId();
                 final Imp updatedImp = StringUtils.isNotEmpty(zoneId)
                         ? validImp.toBuilder().tagid(zoneId).build()
                         : imp;
@@ -122,13 +118,14 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
+        final int statusCode = httpCall.getResponse().getStatusCode();
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
-        } else if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.BAD_REQUEST.code()) {
+        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
             return Result.emptyWithError(BidderError.badInput("Invalid request."));
-        } else if (httpCall.getResponse().getStatusCode() != HttpResponseStatus.OK.code()) {
+        } else if (statusCode != HttpResponseStatus.OK.code()) {
             return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
-                    httpCall.getResponse().getStatusCode())));
+                    statusCode)));
         }
 
         final BidResponse bidResponse;
@@ -142,33 +139,27 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         for (SeatBid seatBid : bidResponse.getSeatbid()) {
             for (Bid bid : seatBid.getBid()) {
                 final ObjectNode ext = bid.getExt();
-                if (ext == null) {
-                    return Result.emptyWithError(BidderError.badServerResponse(String.format(
-                            "Invalid bid extension from endpoint.")));
-                }
+                final SmartrtbResponseExt smartrtbResponseExt;
                 try {
-                    final SmartrtbResponseExt smartrtbResponseExt = Json.mapper.treeToValue(ext,
-                            SmartrtbResponseExt.class);
-
-                    BidType bidType = null;
-                    switch (smartrtbResponseExt.getFormat()) {
-                        case CREATIVE_TYPE_BANNER:
-                            bidType = BidType.banner;
-                            break;
-                        case CREATIVE_TYPE_VIDEO:
-                            bidType = BidType.video;
-                            break;
-                        default:
-                            return Result.emptyWithError(BidderError.badServerResponse(String.format(
-                                    "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
-                    }
-                    SmartrtbResponseExt.of(null);
-                    final BidderBid bidderBid = BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
-                    bidderBids.add(bidderBid);
-                } catch (JsonProcessingException e) {
-                    return Result.emptyWithError(BidderError.badServerResponse(String.format(
-                            "Invalid bid extension from endpoint.")));
+                    smartrtbResponseExt = parseResponseExt(ext);
+                } catch (PreBidException e) {
+                    return Result.emptyWithError(BidderError.badServerResponse("Invalid bid extension from endpoint."));
                 }
+                final BidType bidType;
+                switch (smartrtbResponseExt.getFormat()) {
+                    case CREATIVE_TYPE_BANNER:
+                        bidType = BidType.banner;
+                        break;
+                    case CREATIVE_TYPE_VIDEO:
+                        bidType = BidType.video;
+                        break;
+                    default:
+                        return Result.emptyWithError(BidderError.badServerResponse(String.format(
+                                "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
+                }
+                final Bid updatedBid = bid.toBuilder().ext(null).build();
+                final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, DEFAULT_BID_CURRENCY);
+                bidderBids.add(bidderBid);
             }
         }
         return Result.of(bidderBids, Collections.emptyList());
@@ -178,6 +169,17 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         try {
             return Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private SmartrtbResponseExt parseResponseExt(ObjectNode ext) {
+        if (ext == null) {
+            throw new PreBidException("Invalid bid extension from endpoint.");
+        }
+        try {
+            return Json.mapper.treeToValue(ext, SmartrtbResponseExt.class);
+        } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }

@@ -6,9 +6,6 @@
         "adm": "<b>hi</b>",
         "cid": "test_cid",
         "crid": "test_banner_crid",
-        "ext": {
-          "format": "BANNER"
-        },
         "id": "1",
         "impid": "imp123",
         "price": 0.01
