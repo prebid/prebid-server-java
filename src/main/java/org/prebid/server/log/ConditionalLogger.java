@@ -64,10 +64,7 @@ public class ConditionalLogger {
 
     public void log(String key, long amount, TimeUnit unit, Consumer<Logger> onLog) {
         messageToWait.compute(key, (k, result) -> {
-            if (result == null) {
-                result = recalculateDate(amount, unit);
-            }
-            if (currentTimeMillis() >= result.get()) {
+            if (result == null || currentTimeMillis() >= result.get()) {
                 result = recalculateDate(amount, unit);
                 onLog.accept(logger);
             }
