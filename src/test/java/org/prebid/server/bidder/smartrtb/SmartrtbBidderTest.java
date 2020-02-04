@@ -148,7 +148,7 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(BidderError.badServerResponse("Invalid bid extension from endpoint."));
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Invalid bid extension from endpoint."));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -180,7 +180,7 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(BidderError.badServerResponse("Unsupported creative type wrong type"));
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Unsupported creative type wrong type."));
     }
 
     @Test
