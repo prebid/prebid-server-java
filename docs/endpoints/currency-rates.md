@@ -2,7 +2,7 @@
 
 This /currency-rates endpoint is bound to `admin.port`.
 
-Unavailable if currency conversion is disabled (`currency-converter.enabled` config property)
+Unavailable if currency conversion is disabled (`currency-converter.external-rates.enabled` config property)
 
 This endpoint will return a json with the latest update timestamp.
 

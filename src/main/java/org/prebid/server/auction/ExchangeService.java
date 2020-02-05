@@ -103,7 +103,7 @@ public class ExchangeService {
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
-        this.currencyService = currencyService;
+        this.currencyService = Objects.requireNonNull(currencyService);
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.metrics = Objects.requireNonNull(metrics);
@@ -815,9 +815,8 @@ public class ExchangeService {
             final String bidCurrency = bidderBid.getBidCurrency();
             final BigDecimal price = bid.getPrice();
             try {
-                final BigDecimal finalPrice = currencyService != null
-                        ? currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency)
-                        : price;
+                final BigDecimal finalPrice =
+                        currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency);
 
                 final BigDecimal adjustedPrice = priceAdjustmentFactor != null
                         && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0

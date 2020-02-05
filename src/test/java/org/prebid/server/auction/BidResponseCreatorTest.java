@@ -43,9 +43,13 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -54,12 +58,14 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.VideoStoredDataResult;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -98,6 +104,8 @@ public class BidResponseCreatorTest extends VertxTest {
     private BidderCatalog bidderCatalog;
     @Mock
     private EventsService eventsService;
+    @Mock
+    private StoredRequestProcessor storedRequestProcessor;
 
     private Timeout timeout;
 
@@ -109,7 +117,10 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheService.getEndpointPath()).willReturn("testPath");
         given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
 
-        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService);
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
+                .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
+
+        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -382,7 +393,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .price(BigDecimal.ONE)
                         .adm("adm")
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                ExtBidPrebid.of(banner, null, null, null, null), singletonMap("bidExt", 1))))
+                                ExtBidPrebid.of(banner, null, null, null, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
 
@@ -516,7 +527,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(Bid.builder()
                         .id("bidId")
                         .price(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null), null)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null, null), null)))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
@@ -922,6 +933,106 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(entry("bidder1", 100), entry("cache", 666));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void impToStoredVideoJsonShouldTolerateWhenStoredVideoFetchIsFailed() {
+        // given
+        final Imp imp = Imp.builder().id("impId1").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), ExtOptions.of(true), null, null), null)))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(imp);
+
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any())).willReturn(Future.failedFuture("Fetch failed"));
+
+        // when
+        final Future<BidResponse> result =
+                bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, false);
+
+        // then
+        verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp)), any(), eq(timeout));
+
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
+    public void impToStoredVideoJsonShouldInjectStoredVideoWhenExtOptionsIsTrueAndVideoNotEmpty() {
+        // given
+        final Imp imp1 = Imp.builder().id("impId1").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), ExtOptions.of(true), null, null), null)))
+                .build();
+        final Imp imp2 = Imp.builder().id("impId2").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st2"), ExtOptions.of(false), null, null), null)))
+                .build();
+        final Imp imp3 = Imp.builder().id("impId3").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st3"), ExtOptions.of(true), null, null), null)))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(imp1, imp2, imp3);
+
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(2)).build();
+        final Bid bid3 = Bid.builder().id("bidId3").impid("impId3").price(BigDecimal.valueOf(3)).build();
+        final List<BidderBid> bidderBids = Arrays.asList(
+                BidderBid.of(bid1, banner, "USD"),
+                BidderBid.of(bid2, banner, "USD"),
+                BidderBid.of(bid3, banner, "USD"));
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
+
+        final Video storedVideo = Video.builder().maxduration(100).h(2).w(2).build();
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
+                .willReturn(Future.succeededFuture(VideoStoredDataResult.of(singletonMap("impId1", storedVideo), emptyList())));
+
+        // when
+        final Future<BidResponse> result =
+                bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, false);
+
+        // then
+        verify(storedRequestProcessor).videoStoredDataResult(eq(Arrays.asList(imp1, imp3)), any(), eq(timeout));
+
+        assertThat(result.result().getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(3)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getStoredRequestAttributes())
+                .containsOnly(storedVideo, null, null);
+    }
+
+    @Test
+    public void impToStoredVideoJsonShouldAddErrorsWithPrebidBidderWhenStoredVideoRequestFailed() {
+        // given
+        final Imp imp1 = Imp.builder().id("impId1").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), ExtOptions.of(true), null, null), null)))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(imp1);
+
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderBid> bidderBids = Arrays.asList(
+                BidderBid.of(bid1, banner, "USD"));
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
+
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
+                .willReturn(Future.failedFuture("Bad timeout"));
+
+        // when
+        final Future<BidResponse> result =
+                bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, false);
+
+        // then
+        verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp1)), any(), eq(timeout));
+
+        assertThat(result.result().getExt()).isEqualTo(
+                mapper.valueToTree(ExtBidResponse.of(null, singletonMap(
+                        "prebid", singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                                "Bad timeout"))), singletonMap("bidder1", 100), 1000L, null)));
     }
 
     @Test

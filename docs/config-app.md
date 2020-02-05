@@ -102,10 +102,10 @@ But feel free to add additional bidder's specific options.
 - `logger-level-modifier.enabled` - enable the `/admin` endpoint.
 
 ## Currency Converter
-- `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
-- `currency-converter.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
-- `currency-converter.default-timeout-ms` - default operation timeout for fetching currency rates.
-- `currency-converter.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
+- `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
+- `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
+- `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.

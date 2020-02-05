@@ -43,6 +43,7 @@ import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
+import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
@@ -361,9 +362,10 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService) {
+            EventsService eventsService,
+            StoredRequestProcessor storedRequestProcessor) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
     }
 
     @Bean
@@ -470,14 +472,19 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
     CurrencyConversionService currencyConversionService(
-            @Value("${currency-converter.url}") String currencyServerUrl,
-            @Value("${currency-converter.default-timeout-ms}") long defaultTimeout,
-            @Value("${currency-converter.refresh-period-ms}") long refreshPeriod,
+            @Autowired(required = false) ExternalConversionProperties externalConversionProperties) {
+        return new CurrencyConversionService(externalConversionProperties);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
+    ExternalConversionProperties externalConversionProperties(
+            @Value("${currency-converter.external-rates.url}") String currencyServerUrl,
+            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeout,
+            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriod,
             Vertx vertx,
             HttpClient httpClient) {
-
-        return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
+        return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
     }
 }
