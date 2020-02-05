@@ -114,7 +114,12 @@
   ],
   "source": {
     "fd": 1,
-    "tid": "tid"
+    "tid": "tid",
+    "ext": {
+      "schain": {
+        "ver": "1.0"
+      }
+    }
   },
   "regs": {
     "ext": {
