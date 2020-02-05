@@ -612,10 +612,10 @@ public class StoredRequestProcessorTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(impBuilder -> impBuilder.id("id1").ext(
                 Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), null, null, null), null))));
+                        ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("st1")).build(), null))));
         final Imp imp2 = givenImp(impBuilder -> impBuilder.id("id2").ext(
                 Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st2"), null, null, null), null))));
+                        ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("st2")).build(), null))));
 
         final Video storedVideo = Video.builder().maxduration(100).h(2).w(2).build();
         final Imp storedImp1 = Imp.builder().video(storedVideo).build();
@@ -643,10 +643,10 @@ public class StoredRequestProcessorTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(impBuilder -> impBuilder.id("id1").ext(
                 Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), null, null, null), null))));
+                        ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("st1")).build(), null))));
         final Imp imp2 = givenImp(impBuilder -> impBuilder.id("id2").ext(
                 Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st2"), null, null, null), null))));
+                        ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("st2")).build(), null))));
 
         final Imp storedImp1 = Imp.builder().build();
 
