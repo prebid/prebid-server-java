@@ -53,7 +53,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.schains
      */
-    List<ExtRequestPrebidSchains> schains;
+    List<ExtRequestPrebidSchain> schains;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.bidders

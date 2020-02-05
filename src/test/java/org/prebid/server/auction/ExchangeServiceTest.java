@@ -62,7 +62,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchains;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -370,8 +370,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode schainObject = mapper.createObjectNode().put("var", "1");
         final ObjectNode allSchainObject = mapper.createObjectNode().put("any", "any");
-        final ExtRequestPrebidSchains schain1 = ExtRequestPrebidSchains.of(Arrays.asList(bidder1Name, bidder2Name), schainObject);
-        final ExtRequestPrebidSchains allSchain = ExtRequestPrebidSchains.of(singletonList("*"), allSchainObject);
+        final ExtRequestPrebidSchain schain1 = ExtRequestPrebidSchain.of(Arrays.asList(bidder1Name, bidder2Name), schainObject);
+        final ExtRequestPrebidSchain allSchain = ExtRequestPrebidSchain.of(singletonList("*"), allSchainObject);
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(
                 ExtRequestPrebid.builder()
                         .schains(Arrays.asList(schain1, allSchain))

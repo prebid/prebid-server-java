@@ -45,7 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchains;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
@@ -487,14 +487,14 @@ public class ExchangeService {
      */
     private static Map<String, ObjectNode> bidderToPrebidSchains(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
-        final List<ExtRequestPrebidSchains> schains = prebid == null ? null : prebid.getSchains();
+        final List<ExtRequestPrebidSchain> schains = prebid == null ? null : prebid.getSchains();
 
         if (CollectionUtils.isEmpty(schains)) {
             return Collections.emptyMap();
         }
 
         final Map<String, ObjectNode> bidderToPrebidSchains = new HashMap<>();
-        for (ExtRequestPrebidSchains schain : schains) {
+        for (ExtRequestPrebidSchain schain : schains) {
             final List<String> schainBidders = schain.getBidders();
             if (CollectionUtils.isNotEmpty(schainBidders)) {
                 schainBidders.forEach(bidder -> bidderToPrebidSchains.put(bidder, schain.getSchain()));
@@ -614,8 +614,7 @@ public class ExchangeService {
     }
 
     /**
-     * Checks whether to pass the site.ext.data depending on request having a first party data
-     * allowed for given bidder or not.
+     * Make Source with corresponding request.ext.prebid.schains
      */
     private static Source prepareSource(String bidder, Map<String, ObjectNode> bidderToSchain, Source receivedSource) {
         final ObjectNode defaultSchain = bidderToSchain.get(GENERIC_SCHAIN_KEY);
@@ -637,23 +636,22 @@ public class ExchangeService {
     /**
      * Removes all bidders except the given bidder from bidrequest.ext.prebid.data.bidders and
      * bidrequest.ext.prebid.bidders to hide list of allowed bidders from initial request.
-     * Also mask bidrequest.source.ext.schain.
+     * Also mask bidrequest.ext.prebid.schains.
      */
     private static ObjectNode prepareExt(String bidder, List<String> firstPartyDataBidders,
                                          Map<String, JsonNode> bidderToPrebidBidders, ExtBidRequest requestExt,
                                          ObjectNode requestExtNode) {
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
-        if (extPrebid == null) {
+        final List<ExtRequestPrebidSchain> extPrebidSchains = extPrebid != null ? extPrebid.getSchains() : null;
+        final boolean suppressSchains = extPrebidSchains != null;
+
+        if (firstPartyDataBidders.isEmpty() && bidderToPrebidBidders.isEmpty() && !suppressSchains) {
             return requestExtNode;
         }
 
-        if (firstPartyDataBidders.isEmpty() && bidderToPrebidBidders.isEmpty()) {
-            if (extPrebid.getSchains() != null) {
-                return Json.mapper.valueToTree(ExtBidRequest.of(extPrebid.toBuilder().schains(null).build()));
-            }
-
-            return requestExtNode;
-        }
+        final ExtRequestPrebid.ExtRequestPrebidBuilder extPrebidBuilder = extPrebid != null
+                ? extPrebid.toBuilder()
+                : ExtRequestPrebid.builder();
 
         final ExtRequestPrebidData prebidData = firstPartyDataBidders.contains(bidder)
                 ? ExtRequestPrebidData.of(Collections.singletonList(bidder))
@@ -664,7 +662,7 @@ public class ExchangeService {
                 ? Json.mapper.valueToTree(ExtPrebidBidders.of(prebidParameters))
                 : null;
 
-        return Json.mapper.valueToTree(ExtBidRequest.of(requestExt.getPrebid().toBuilder()
+        return Json.mapper.valueToTree(ExtBidRequest.of(extPrebidBuilder
                 .data(prebidData)
                 .bidders(bidders)
                 .schains(null)

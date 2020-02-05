@@ -11,7 +11,7 @@ import java.util.List;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtRequestPrebidSchains {
+public class ExtRequestPrebidSchain {
 
     /**
      * Defines the contract for bidrequest.ext.prebid.schains[i].bidders
