@@ -277,7 +277,8 @@ public class ApplicationTest extends IntegrationTest {
                         "&timeout=10000000" +
                         "&slot=overwrite-tagId" +
                         "&curl=https%3A%2F%2Fgoogle.com" +
-                        "&account=accountId");
+                        "&account=accountId" +
+                        "&us_privacy=YAM");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),

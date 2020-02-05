@@ -24,4 +24,6 @@ public class ExtBidPrebid {
     Video storedRequestAttributes;
 
     Events events;
+
+    ExtBidPrebidVideo video;
 }

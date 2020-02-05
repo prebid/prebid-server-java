@@ -113,7 +113,7 @@ public class BidResponseCreator {
             result = Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
-                    .nbr(2)  // signal "Invalid Request"
+                    .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
                     .ext(Json.mapper.valueToTree(toExtBidResponse(bidderResponses, bidRequest,
                             CacheServiceResult.empty(), VideoStoredDataResult.empty(), debugEnabled, null)))
@@ -638,7 +638,7 @@ public class BidResponseCreator {
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
         final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), account.getId()) : null;
 
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidType, targetingKeywords, cache, storedVideo, events);
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidType, targetingKeywords, cache, storedVideo, events, null);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(Json.mapper.valueToTree(bidExt));
 

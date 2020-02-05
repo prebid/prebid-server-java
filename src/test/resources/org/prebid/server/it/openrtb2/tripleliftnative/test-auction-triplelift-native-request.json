@@ -1,0 +1,87 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "native": {
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}"
+      },
+      "ext": {
+        "triplelift_native": {
+          "inventoryCode": "foo"
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "site": {
+    "publisher": {
+      "id": "test"
+    }
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 3000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

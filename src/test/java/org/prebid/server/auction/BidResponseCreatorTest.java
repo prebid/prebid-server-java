@@ -307,7 +307,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 null, ACCOUNT, timeout, false).result();
 
         // then
-        assertThat(bidResponse).returns(2, BidResponse::getNbr);
+        assertThat(bidResponse).returns(0, BidResponse::getNbr);
         assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
@@ -325,7 +325,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 null, ACCOUNT, timeout, false).result();
 
         // then
-        assertThat(bidResponse).returns(2, BidResponse::getNbr);
+        assertThat(bidResponse).returns(0, BidResponse::getNbr);
         assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
@@ -602,12 +602,17 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateTargetingKeywordsFromMediaTypePriceGranularities() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))), ExtMediaTypePriceGranularity.of(Json.mapper.valueToTree(
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                BigDecimal.valueOf(0.5))));
+        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(Json.mapper.valueToTree(
                 ExtPriceGranularity.of(3, singletonList(
-                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null),
-                null, true, true);
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null);
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(Json.mapper.valueToTree(priceGranularity))
+                .mediatypepricegranularity(mediaTypePriceGranuality)
+                .includewinners(true)
+                .includebidderkeys(true)
+                .build();
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -776,9 +781,13 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldNotPopulateWinningBidTargetingIfIncludeWinnersFlagIsFalse() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))), null, null, false, true);
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(Json.mapper.valueToTree(
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
+                .includewinners(false)
+                .includebidderkeys(true)
+                .build();
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -812,9 +821,13 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldNotPopulateBidderKeysTargetingIfIncludeBidderKeysFlagIsFalse() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtRequestTargeting targeting = ExtRequestTargeting.of(Json.mapper.valueToTree(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))), null, null, true, false);
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(Json.mapper.valueToTree(
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
+                .includewinners(true)
+                .includebidderkeys(false)
+                .build();
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -1107,9 +1120,13 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static ExtRequestTargeting givenTargeting() {
-        return ExtRequestTargeting.of(Json.mapper.valueToTree(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))), null, null, true, true);
+        return ExtRequestTargeting.builder()
+                .pricegranularity(Json.mapper.valueToTree(
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
+                .includewinners(true)
+                .includebidderkeys(true)
+                .build();
     }
 
     private static ExtPrebid<ExtBidPrebid, ?> toExtPrebid(ObjectNode ext) {

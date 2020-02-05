@@ -70,9 +70,8 @@
       "id": "publisherId"
     }
   },
-  "test": 1,
   "at": 1,
-  "tmax": 1000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],
@@ -82,10 +81,6 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

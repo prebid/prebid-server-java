@@ -1,10 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -24,8 +21,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
+import org.prebid.server.util.JsonMergeUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -182,19 +179,20 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
                                               Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
-        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult), impToStoredId,
-                storedDataResult);
+        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult),
+                impToStoredId, storedDataResult);
     }
 
     /**
-     * Merges {@link BidRequest} from original request with request from stored request source. Values from
-     * original request has higher priority than stored request values.
+     * Merges original request with request from stored request source. Values from original request
+     * has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequest(BidRequest bidRequest, String storedRequestId,
+    private BidRequest mergeBidRequest(BidRequest originalRequest, String storedRequestId,
                                        StoredDataResult storedDataResult) {
-        return storedRequestId != null
-                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, BidRequest.class)
-                : bidRequest;
+        final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
+        return StringUtils.isNotBlank(storedRequestId)
+                ? JsonMergeUtil.merge(originalRequest, storedRequest, storedRequestId, BidRequest.class)
+                : originalRequest;
     }
 
     /**
@@ -211,39 +209,12 @@ public class StoredRequestProcessor {
             final Imp imp = mergedImps.get(i);
             final String storedRequestId = impToStoredId.get(imp);
             if (storedRequestId != null) {
-                final Imp mergedImp = merge(imp, storedDataResult.getStoredIdToImp(), storedRequestId, Imp.class);
+                final String storedImp = storedDataResult.getStoredIdToImp().get(storedRequestId);
+                final Imp mergedImp = JsonMergeUtil.merge(imp, storedImp, storedRequestId, Imp.class);
                 mergedImps.set(i, mergedImp);
             }
         }
         return bidRequest.toBuilder().imp(mergedImps).build();
-    }
-
-    /**
-     * Merges passed object with json retrieved from stored data map by id
-     * and cast it to appropriate class. In case of any exception during merging, throws {@link InvalidRequestException}
-     * with reason message.
-     */
-    private <T> T merge(T originalObject, Map<String, String> storedData, String id, Class<T> classToCast) {
-        final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
-        final JsonNode storedRequestJsonNode;
-        try {
-            storedRequestJsonNode = Json.mapper.readTree(storedData.get(id));
-        } catch (IOException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't parse Json for stored request with id %s", id));
-        }
-        try {
-            // Http request fields have higher priority and will override fields from stored requests
-            // in case they have different values
-            return Json.mapper.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
-                    classToCast);
-        } catch (JsonPatchException e) {
-            throw new InvalidRequestException(String.format(
-                    "Couldn't create merge patch from origin object node for id %s: %s", id, e.getMessage()));
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
-        }
     }
 
     /**

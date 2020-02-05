@@ -95,7 +95,18 @@ public class UsersyncInfo {
         }
 
         public UsersyncInfo assemble() {
-            return new UsersyncInfo(usersyncUrl + HttpUtil.encodeUrl(redirectUrl), type, supportCORS);
+            redirectUrl = StringUtils.countMatches(redirectUrl, '?') > 1
+                    ? resolveQueryParams(redirectUrl)
+                    : HttpUtil.encodeUrl(redirectUrl);
+
+            return new UsersyncInfo(usersyncUrl + redirectUrl, type, supportCORS);
+        }
+
+        private static String resolveQueryParams(String redirectUrl) {
+            final int queryParamsIndex = redirectUrl.lastIndexOf('?');
+            final String queryParams = redirectUrl.substring(queryParamsIndex);
+
+            return HttpUtil.encodeUrl(redirectUrl.substring(0, queryParamsIndex)) + queryParams;
         }
     }
 }

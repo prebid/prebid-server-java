@@ -40,10 +40,12 @@ Remote File Syncer can be related to particular entity like geolocation maxmind 
 Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
-- `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `<SERVICE>.remote-file-syncer.save-filepath` - full path to the usable file, which will be consumed by internal service.
+- `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
@@ -64,6 +66,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+
+## Video
+- `auction.video.stored-required` - flag forces to merge with stored request
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -171,13 +179,14 @@ For database data source available next options:
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
 - `settings.database.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make database client more robust.
-- `settings.database.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
+- `settings.database.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
 - `settings.database.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
 - `settings.database.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+- `settings.http.video-endpoint` - the url to fetch video stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
@@ -232,7 +241,16 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
-- `gdpr.geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
+
+## Geo Location
+- `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
+- `geolocation.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make geo location client more robust.
+- `geolocation.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
+- `geolocation.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `geolocation.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
+- `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
+- `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
+- `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
 
 ## Auction (Legacy)
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
@@ -240,5 +258,6 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 
 ## General settings
+- `host-id` - the  ID of node where prebid server deployed.
 - `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
 - `admin.port` - the port to listen on administration requests.

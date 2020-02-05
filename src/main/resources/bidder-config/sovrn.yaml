@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 13
     usersync:
-      url: //ap.lijit.com/pixel?redir=
+      url: https://ap.lijit.com/pixel?redir=
       redirect-url: /setuid?bidder=sovrn&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: sovrn
       type: redirect

@@ -13,6 +13,5 @@
       "description": "The minimum price acceptable for a bid"
     }
   },
-
   "required": ["tagid"]
 }

@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
@@ -7,7 +8,6 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
-import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -21,6 +21,9 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -32,15 +35,8 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.LogModifier;
-import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
-import org.prebid.server.geolocation.MaxMindGeoLocationService;
-import org.prebid.server.health.ApplicationChecker;
-import org.prebid.server.health.DatabaseHealthChecker;
-import org.prebid.server.health.GeoLocationHealthChecker;
-import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.gdpr.GdprService;
@@ -48,17 +44,16 @@ import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
-import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -184,6 +179,47 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver) {
 
         return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver);
+    }
+
+    @Bean
+    VideoRequestFactory videoRequestFactory(
+            @Value("${auction.max-request-size}") int maxRequestSize,
+            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            VideoStoredRequestProcessor storedRequestProcessor,
+            AuctionRequestFactory auctionRequestFactory,
+            TimeoutResolver timeoutResolver) {
+
+        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
+                auctionRequestFactory, timeoutResolver);
+    }
+
+    @Bean
+    VideoResponseFactory videoResponseFactory() {
+        return new VideoResponseFactory();
+    }
+
+    @Bean
+    VideoStoredRequestProcessor videoStoredRequestProcessor(
+            ApplicationSettings applicationSettings,
+            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            BidRequest defaultVideoBidRequest,
+            Metrics metrics,
+            TimeoutFactory timeoutFactory,
+            TimeoutResolver timeoutResolver,
+            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency) {
+
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
+                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
+                adServerCurrency);
+    }
+
+    @Bean
+    BidRequest defaultVideoBidRequest() {
+        return BidRequest.builder().build();
     }
 
     @Bean
@@ -372,8 +408,7 @@ public class ServiceConfiguration {
             GdprService gdprService,
             BidderCatalog bidderCatalog,
             Metrics metrics,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
-
+            @Value("${geolocation.enabled}") boolean useGeoLocation) {
         return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
     }
 
@@ -445,99 +480,5 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient);
-    }
-
-    @Configuration
-    @ConditionalOnProperty(prefix = "gdpr.geolocation", name = "enabled", havingValue = "true")
-    static class GeoLocationConfiguration {
-
-        @Bean
-        @ConfigurationProperties(prefix = "gdpr.geolocation.maxmind.remote-file-syncer")
-        RemoteFileSyncerProperties maxMindRemoteFileSyncerProperties() {
-            return new RemoteFileSyncerProperties();
-        }
-
-        /**
-         * Default geolocation service implementation.
-         */
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "false",
-                matchIfMissing = true)
-        GeoLocationService basicGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties, Vertx vertx) {
-
-            return createGeoLocationService(fileSyncerProperties, vertx);
-        }
-
-        @Bean
-        @ConfigurationProperties(prefix = "gdpr.geolocation.circuit-breaker")
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerProperties geolocationCircuitBreakerProperties() {
-            return new CircuitBreakerProperties();
-        }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "gdpr.geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
-                Vertx vertx,
-                Metrics metrics,
-                RemoteFileSyncerProperties fileSyncerProperties,
-                @Qualifier("geolocationCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
-                Clock clock) {
-
-            return new CircuitBreakerSecuredGeoLocationService(vertx,
-                    createGeoLocationService(fileSyncerProperties, vertx), metrics,
-                    circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                    circuitBreakerProperties.getClosingIntervalMs(), clock);
-        }
-
-        private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties fileSyncerProperties,
-                                                            Vertx vertx) {
-
-            final HttpClientProperties httpClientProperties = fileSyncerProperties.getHttpClient();
-            final HttpClientOptions httpClientOptions = new HttpClientOptions()
-                    .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
-                    .setMaxRedirects(httpClientProperties.getMaxRedirects());
-
-            final RemoteFileSyncer remoteFileSyncer = RemoteFileSyncer.create(fileSyncerProperties.getDownloadUrl(),
-                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getRetryCount(),
-                    fileSyncerProperties.getRetryIntervalMs(), fileSyncerProperties.getTimeoutMs(),
-                    vertx.createHttpClient(httpClientOptions), vertx);
-            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
-
-            remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
-            return maxMindGeoLocationService;
-        }
-    }
-
-    @Configuration
-    @ConditionalOnProperty("status-response")
-    @ConditionalOnExpression("'${status-response}' != ''")
-    static class HealthCheckerConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
-        HealthChecker databaseChecker(
-                Vertx vertx,
-                JDBCClient jdbcClient,
-                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
-
-            return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
-        }
-
-        @Bean
-        @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${gdpr.geolocation.enabled} == true")
-        HealthChecker geoLocationChecker(
-                Vertx vertx,
-                @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
-                GeoLocationService geoLocationService,
-                TimeoutFactory timeoutFactory) {
-            return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
-        }
-
-        @Bean
-        HealthChecker applicationChecker(@Value("${status-response}") String statusResponse) {
-            return new ApplicationChecker(statusResponse);
-        }
     }
 }

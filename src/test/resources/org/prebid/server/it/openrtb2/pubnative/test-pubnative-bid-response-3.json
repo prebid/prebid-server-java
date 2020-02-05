@@ -1,0 +1,18 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid003",
+          "impid": "impId003",
+          "price": 9.99,
+          "adid": "adid003",
+          "crid": "crid003",
+          "cid": "cid003",
+          "adm": "adm003"
+        }
+      ]
+    }
+  ]
+}

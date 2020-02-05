@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
@@ -46,11 +45,10 @@ public class FacebookConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, null))
-                .bidderCreator(() -> new FacebookBidder(configProperties.getEndpoint(),
-                        configProperties.getNonSecureEndpoint(), configProperties.getPlatformId()))
-                .adapterCreator(
-                        () -> new FacebookAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
-                                configProperties.getNonSecureEndpoint(), configProperties.getPlatformId()))
+                .bidderCreator(configProperties.getEnabled()
+                        ? () -> new FacebookBidder(configProperties.getEndpoint(), configProperties.getPlatformId(),
+                        configProperties.getAppSecret())
+                        : null)
                 .assemble();
     }
 
@@ -61,9 +59,9 @@ public class FacebookConfiguration {
     private static class FacebookConfigurationProperties extends BidderConfigurationProperties {
 
         @NotNull
-        private String nonSecureEndpoint;
+        private String platformId;
 
         @NotNull
-        private String platformId;
+        private String appSecret;
     }
 }
