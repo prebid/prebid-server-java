@@ -94,11 +94,24 @@
   "tmax": 3000,
   "source": {
     "fd": 1,
-    "tid": "tid"
+    "tid": "tid",
+    "ext": {
+      "schain": {
+        "ver": "1.0",
+        "complete": 1,
+        "nodes": [
+          {
+            "asi": "superads.com",
+            "sid": "123",
+            "hp": 1
+          }
+        ]
+      }
+    }
   },
   "regs": {
     "ext": {
-      "us_privacy": "1YN"
+      "us_privacy": "1YNN"
     }
   }
 }

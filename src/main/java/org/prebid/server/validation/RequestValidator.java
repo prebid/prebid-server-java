@@ -37,6 +37,8 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -493,6 +495,13 @@ public class RequestValidator {
                 if (gdpr != null && gdpr != 0 && gdpr != 1) {
                     throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
                 }
+                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
+                try {
+                    Ccpa.validateUsPrivacy(usPrivacy);
+                } catch (PreBidException ex) {
+                    throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
+                }
+
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
             }
@@ -551,13 +560,16 @@ public class RequestValidator {
             throws ValidationException {
 
         final int type = context != null ? context : 0;
-        final int subType = contextSubType != null ? contextSubType : 0;
+        if (type == 0) {
+            return;
+        }
 
-        if (type != 0 && (type < ContextType.CONTENT.getValue() || type > ContextType.PRODUCT.getValue())) {
+        if (type < ContextType.CONTENT.getValue() || type > ContextType.PRODUCT.getValue()) {
             throw new ValidationException(
                     "request.imp[%d].native.request.context is invalid. See " + documentationOnPage(39), index);
         }
 
+        final int subType = contextSubType != null ? contextSubType : 0;
         if (subType < 0) {
             throw new ValidationException(
                     "request.imp[%d].native.request.contextsubtype is invalid. See " + documentationOnPage(39), index);
@@ -595,11 +607,14 @@ public class RequestValidator {
     }
 
     private void validateNativePlacementType(Integer placementType, int index) throws ValidationException {
-        if (placementType != null && (placementType < PlacementType.FEED.getValue()
-                || placementType > PlacementType.RECOMMENDATION_WIDGET.getValue())) {
+        final int type = placementType != null ? placementType : 0;
+        if (type == 0) {
+            return;
+        }
+
+        if (type < PlacementType.FEED.getValue() || type > PlacementType.RECOMMENDATION_WIDGET.getValue()) {
             throw new ValidationException(
-                    "request.imp[%d].native.request.plcmttype is invalid. See " + documentationOnPage(40),
-                    index, placementType);
+                    "request.imp[%d].native.request.plcmttype is invalid. See " + documentationOnPage(40), index, type);
         }
     }
 
@@ -613,18 +628,23 @@ public class RequestValidator {
         for (int i = 0; i < assets.size(); i++) {
             final Asset asset = assets.get(i);
             validateNativeAsset(asset, impIndex, i);
-            updatedAssets.add(asset.toBuilder().id(i).build());
+
+            final Asset updatedAsset = asset.getId() != null ? asset : asset.toBuilder().id(i).build();
+            final boolean hasAssetWithId = updatedAssets.stream()
+                    .map(Asset::getId)
+                    .anyMatch(id -> id.equals(updatedAsset.getId()));
+
+            if (hasAssetWithId) {
+                throw new ValidationException("request.imp[%d].native.request.assets[%d].id is already being used by "
+                        + "another asset. Each asset ID must be unique.", impIndex, i);
+            }
+
+            updatedAssets.add(updatedAsset);
         }
         return updatedAssets;
     }
 
     private void validateNativeAsset(Asset asset, int impIndex, int assetIndex) throws ValidationException {
-        if (asset.getId() != null) {
-            throw new ValidationException("request.imp[%d].native.request.assets[%d].id must not be defined. Prebid"
-                    + " Server will set this automatically, using the index of the asset in the array as the ID",
-                    impIndex, assetIndex);
-        }
-
         final TitleObject title = asset.getTitle();
         final ImageObject image = asset.getImg();
         final VideoObject video = asset.getVideo();
@@ -641,7 +661,6 @@ public class RequestValidator {
         }
 
         validateNativeAssetTitle(title, impIndex, assetIndex);
-        validateNativeAssetImage(image, impIndex, assetIndex);
         validateNativeAssetVideo(video, impIndex, assetIndex);
         validateNativeAssetData(data, impIndex, assetIndex);
     }
@@ -650,28 +669,6 @@ public class RequestValidator {
         if (title != null && (title.getLen() == null || title.getLen() < 1)) {
             throw new ValidationException(
                     "request.imp[%d].native.request.assets[%d].title.len must be a positive integer",
-                    impIndex, assetIndex);
-        }
-    }
-
-    private void validateNativeAssetImage(ImageObject image, int impIndex, int assetIndex) throws ValidationException {
-        if (image == null) {
-            return;
-        }
-
-        final boolean isNotPresentWidth = image.getW() == null || image.getW() == 0;
-        final boolean isNotPresentWidthMin = image.getWmin() == null || image.getWmin() == 0;
-        if (isNotPresentWidth && isNotPresentWidthMin) {
-            throw new ValidationException(
-                    "request.imp[%d].native.request.assets[%d].img must contain at least one of \"w\" or \"wmin\"",
-                    impIndex, assetIndex);
-        }
-
-        final boolean isNotPresentHeight = image.getH() == null || image.getH() == 0;
-        final boolean isNotPresentHeightMin = image.getHmin() == null || image.getHmin() == 0;
-        if (isNotPresentHeight && isNotPresentHeightMin) {
-            throw new ValidationException(
-                    "request.imp[%d].native.request.assets[%d].img must contain at least one of \"h\" or \"hmin\"",
                     impIndex, assetIndex);
         }
     }

@@ -20,6 +20,9 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
@@ -45,6 +48,7 @@ import org.prebid.server.handler.VtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
+import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.metric.Metrics;
@@ -149,6 +153,7 @@ public class WebConfiguration {
                   AuctionHandler auctionHandler,
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
+                  VideoHandler openrtbVideoHandler,
                   StatusHandler statusHandler,
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
@@ -169,6 +174,7 @@ public class WebConfiguration {
         router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
+        router.post("/openrtb2/video").handler(openrtbVideoHandler);
         router.get("/status").handler(statusHandler);
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
@@ -256,6 +262,19 @@ public class WebConfiguration {
     }
 
     @Bean
+    VideoHandler openrtbVideoHandler(
+            VideoRequestFactory videoRequestFactory,
+            VideoResponseFactory videoResponseFactory,
+            ExchangeService exchangeService,
+            CompositeAnalyticsReporter analyticsReporter,
+            Metrics metrics,
+            Clock clock) {
+
+        return new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics,
+                clock);
+    }
+
+    @Bean
     StatusHandler statusHandler(List<HealthChecker> healthCheckers) {
         healthCheckers.stream()
                 .filter(PeriodicHealthChecker.class::isInstance)
@@ -272,6 +291,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
             GdprService gdprService,
+            PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
@@ -279,8 +299,8 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, hostVendorId, useGeoLocation, defaultCoopSync, coopSyncPriorities.getPri(),
-                analyticsReporter, metrics, timeoutFactory);
+                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
+                coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -436,7 +456,7 @@ public class WebConfiguration {
         }
 
         @Bean
-        @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
+        @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
             return new CurrencyRatesHandler(currencyConversionRates);
         }

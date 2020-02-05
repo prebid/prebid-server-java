@@ -56,6 +56,11 @@ public class ExtRequestPrebid {
     List<ExtRequestPrebidBidderConfig> bidderconfig;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.schains
+     */
+    List<ExtRequestPrebidSchain> schains;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.bidders
      */
     ObjectNode bidders;

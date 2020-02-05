@@ -16,7 +16,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: //sync.adtelligent.com/csync?t=p&ep=0&redir=
+      url: https://sync.adtelligent.com/csync?t=p&ep=0&redir=
       redirect-url: /setuid?bidder=adtelligent&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={uid}
       cookie-family-name: adtelligent
       type: redirect
