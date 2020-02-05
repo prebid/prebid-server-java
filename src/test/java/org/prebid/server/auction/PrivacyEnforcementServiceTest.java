@@ -21,6 +21,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -83,7 +84,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, false);
     }
 
     @Test
@@ -269,37 +270,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForCoppaWhenRegsCoppaIsOne() {
-        // given
-        given(gdprService.isGdprEnforced(any(), any(), any())).willReturn(false);
-
-        final Regs regs = Regs.of(1, null);
-        final User user = notMaskedUser();
-        final Device device = notMaskedDevice();
-        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
-                bidRequestBuilder -> bidRequestBuilder
-                        .user(user)
-                        .device(device)
-                        .regs(regs));
-
-        // when
-        final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, null, singletonList(BIDDER_NAME), emptyMap(), bidRequest, false, timeout)
-                .result();
-
-        // then
-        verify(gdprService).isGdprEnforced(isNull(), eq(false), eq(singleton(15)));
-        verifyNoMoreInteractions(gdprService);
-
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), deviceCoppaMasked());
-        assertThat(result).hasSize(1)
-                .containsOnly(entry(BIDDER_NAME, expected));
-    }
-
-    @Test
     public void shouldMaskForGdprWhenGdprEnforcedIsTrueAndResultByVendorWithEnforcementResponse() {
         // given
         final ExtUser extUser = ExtUser.builder().build();
@@ -367,14 +337,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForGdprAndCoppaWhenGdprEnforcedIsFalseAndDeviceLmtIsOneAndRegsCoppaIsOne() {
+    public void shouldMaskForGdprAndCoppaWhenGdprEnforcedIsFalseAndDeviceLmtIsOne() {
         // given
         given(gdprService.isGdprEnforced(any(), any(), any())).willReturn(false);
 
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final Regs regs = Regs.of(1, null);
+        final Regs regs = Regs.of(0, null);
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -396,8 +366,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verifyNoMoreInteractions(metrics);
 
         //Coppa includes all masked fields for Gdpr
-        final Device expectedDevice = givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), expectedDevice);
+        final Device expectedDevice = givenGdprMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), expectedDevice);
         assertThat(result).hasSize(1)
                 .containsOnly(entry(BIDDER_NAME, expected));
     }
@@ -438,7 +408,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final Regs regs = Regs.of(1, null);
+        final Regs regs = Regs.of(0, null);
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -478,7 +448,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForGdprAndCoppaWhenDeviceLmtIsOneAndRegsCoppaIsOneAndExtRegsGdprIsOneAndGdprServiceRespondWithEnforcement() {
+    public void shouldMaskForCoppaWhenDeviceLmtIsOneAndRegsCoppaIsOneAndDoesNotCallGdprServices() {
         // given
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
@@ -499,17 +469,69 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .result();
 
         // then
-        verify(gdprService).isGdprEnforced(eq("1"), eq(true), eq(singleton(15)));
-        verify(gdprService).resultByVendor(eq(singleton(15)), eq("1"), any(), any(), eq(timeout));
-        verifyNoMoreInteractions(gdprService);
-        verify(metrics).updateGdprMaskedMetric(eq(BIDDER_NAME));
-        verifyNoMoreInteractions(metrics);
-
-        //Coppa includes all masked fields for Gdpr
+        verifyZeroInteractions(gdprService);
         final Device expectedDevice = givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
         final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userCoppaMasked(), expectedDevice);
-        assertThat(result).hasSize(1)
-                .containsOnly(entry(BIDDER_NAME, expected));
+        assertThat(result).hasSize(1).containsOnly(entry(BIDDER_NAME, expected));
+    }
+
+    @Test
+    public void shouldMaskForCcpaAndDoesNotCallGdprServicesWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        final ExtUser extUser = ExtUser.builder().build();
+        final User user = notMaskedUser();
+        final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
+        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1YYY")));
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(device)
+                        .regs(regs));
+
+        // when
+        final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
+                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .result();
+
+        // then
+        verifyZeroInteractions(gdprService);
+        final Device expectedDevice = givenGdprMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
+        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), expectedDevice);
+        assertThat(result).hasSize(1).containsOnly(entry(BIDDER_NAME, expected));
+    }
+
+    @Test
+    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsFalse() {
+        // given
+        final Ccpa ccpa = Ccpa.of("1YYY");
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
+    }
+
+    @Test
+    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        final Ccpa ccpa = Ccpa.of("1YNY");
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
+    }
+
+
+    @Test
+    public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        final Ccpa ccpa = Ccpa.of("1YYY");
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isTrue();
     }
 
     @Test
@@ -599,7 +621,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static Device deviceCoppaMasked() {
         return Device.builder()
                 .ip("192.168.0.0")
-                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
+                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0:0")
                 .geo(Geo.builder().country("US").build())
                 .build();
     }
