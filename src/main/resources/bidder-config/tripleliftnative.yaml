@@ -1,0 +1,22 @@
+adapters:
+  triplelift_native:
+    enabled: false
+    endpoint: http://
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@triplelift.com
+      app-media-types:
+        - native
+      site-media-types:
+        - native
+      supported-vendors:
+      vendor-id: 28
+    usersync:
+      url: https://eb2.3lift.com/sync?gpdr={{.GDPR}}&cmp_cs={{.GDPRConsent}}&us_privacy={{us_privacy}}
+      redirect-url:
+      cookie-family-name: triplelift_native
+      type: redirect
+      support-cors: false

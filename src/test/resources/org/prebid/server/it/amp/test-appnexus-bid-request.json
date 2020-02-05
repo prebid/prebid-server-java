@@ -46,6 +46,7 @@
   ],
   "regs": {
     "ext": {
+      "us_privacy": "YAM",
       "gdpr": 0
     }
   },

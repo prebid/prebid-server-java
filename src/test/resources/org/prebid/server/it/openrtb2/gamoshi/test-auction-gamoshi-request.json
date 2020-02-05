@@ -48,7 +48,6 @@
       "id": "publisherId"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [
@@ -60,10 +59,6 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
