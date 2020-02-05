@@ -1,5 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.Video;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -17,6 +19,9 @@ public class ExtBidPrebid {
     Map<String, String> targeting;
 
     ExtResponseCache cache;
+
+    @JsonProperty("storedrequestattributes")
+    Video storedRequestAttributes;
 
     Events events;
 

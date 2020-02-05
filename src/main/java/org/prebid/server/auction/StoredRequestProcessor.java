@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
@@ -19,6 +20,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Executes stored request processing
@@ -103,6 +106,59 @@ public class StoredRequestProcessor {
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
+    }
+
+    /**
+     * Fetches stored request.video and map existing values to imp.id.
+     */
+    Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, List<String> errors, Timeout timeout) {
+        final Map<String, String> storedIdToImpId =
+                mapStoredRequestHolderToStoredRequestId(imps, StoredRequestProcessor::getStoredRequestFromImp)
+                        .entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getValue,
+                                impIdToStoredId -> impIdToStoredId.getKey().getId()));
+
+        return applicationSettings.getStoredData(Collections.emptySet(), storedIdToImpId.keySet(), timeout)
+                .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
+    }
+
+    private static VideoStoredDataResult makeVideoStoredDataResult(StoredDataResult storedDataResult,
+                                                                   Map<String, String> storedIdToImpId,
+                                                                   List<String> errors) {
+        final Map<String, String> storedIdToStoredImp = storedDataResult.getStoredIdToImp();
+        final Map<String, Video> impIdToStoredVideo = new HashMap<>();
+
+        for (Map.Entry<String, String> storedIdToImpIdEntry : storedIdToImpId.entrySet()) {
+            final String storedId = storedIdToImpIdEntry.getKey();
+            final String storedImp = storedIdToStoredImp.get(storedId);
+            if (storedImp == null) {
+                errors.add(String.format("No stored Imp for stored id %s", storedId));
+                continue;
+            }
+
+            final String impId = storedIdToImpIdEntry.getValue();
+            final Video video = parseVideoFromImp(storedImp);
+            if (video == null) {
+                errors.add(String.format("No stored video found for Imp with id %s", impId));
+                continue;
+            }
+
+            impIdToStoredVideo.put(impId, video);
+        }
+
+        return VideoStoredDataResult.of(impIdToStoredVideo, errors);
+    }
+
+    private static Video parseVideoFromImp(String storedJson) {
+        if (StringUtils.isNotBlank(storedJson)) {
+            try {
+                final Imp imp = Json.mapper.readValue(storedJson, Imp.class);
+                return imp.getVideo();
+            } catch (JsonProcessingException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,

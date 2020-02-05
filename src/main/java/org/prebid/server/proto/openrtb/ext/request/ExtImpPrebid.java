@@ -19,6 +19,11 @@ public class ExtImpPrebid {
     ExtStoredRequest storedrequest;
 
     /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.options
+     */
+    ExtOptions options;
+
+    /**
      * Defines the contract for bidrequest.imp[i].ext.prebid.storedAuctionResponse
      */
     @JsonProperty("storedauctionresponse")
