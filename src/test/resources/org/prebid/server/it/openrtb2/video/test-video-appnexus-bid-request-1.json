@@ -278,11 +278,11 @@
   },
   "regs": {
     "ext": {
-      "us_privacy": "1YN"
+        "us_privacy": "1YNN"
     }
   },
   "at": 1,
-  "tmax": 2000,
+  "tmax": 3000,
   "cur": [
     "USD"
   ],

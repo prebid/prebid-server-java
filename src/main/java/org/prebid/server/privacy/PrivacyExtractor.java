@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -17,7 +18,7 @@ public class PrivacyExtractor {
 
     private static final String DEFAULT_CONSENT_VALUE = "";
     private static final String DEFAULT_GDPR_VALUE = "";
-    private static final String DEFAULT_CCPA_VALUE = "";
+    private static final Ccpa DEFAULT_CCPA_VALUE = Ccpa.EMPTY;
 
     private PrivacyExtractor() {
     }
@@ -35,11 +36,12 @@ public class PrivacyExtractor {
         final ExtRegs extRegs = extRegs(regs);
         final ExtUser extUser = extUser(user);
 
-        final String gdpr = extRegs != null ? Integer.toString(extRegs.getGdpr()) : null;
+        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        final String ccpa = extRegs != null ? extRegs.getUsPrivacy() : null;
+        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
 
-        return toValidPrivacy(gdpr, consent, ccpa);
+        return toValidPrivacy(gdpr, consent, usPrivacy);
     }
 
     private static ExtRegs extRegs(Regs regs) {
@@ -60,12 +62,12 @@ public class PrivacyExtractor {
         }
     }
 
-    private static Privacy toValidPrivacy(String gdpr, String consent, String ccpa) {
+    private static Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy) {
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
         final String validConsent = consent == null ? DEFAULT_CONSENT_VALUE : consent;
-        final String validCCPA = ccpa == null ? DEFAULT_CCPA_VALUE : ccpa;
+        final Ccpa validCCPA = usPrivacy == null ? DEFAULT_CCPA_VALUE : Ccpa.of(usPrivacy);
         return Privacy.of(validGdpr, validConsent, validCCPA);
     }
 }

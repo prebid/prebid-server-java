@@ -20,6 +20,7 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.bidder.BidderCatalog;
@@ -290,6 +291,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
             GdprService gdprService,
+            PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${cookie-sync.coop-sync.default}") boolean defaultCoopSync,
@@ -297,8 +299,8 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, hostVendorId, useGeoLocation, defaultCoopSync, coopSyncPriorities.getPri(),
-                analyticsReporter, metrics, timeoutFactory);
+                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
+                coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean

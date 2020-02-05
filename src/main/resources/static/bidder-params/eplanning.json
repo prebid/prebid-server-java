@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "https://json-schema.org/draft-04/schema#",
   "title": "EPlanning Adapter Params",
   "description": "A schema which validates params accepted by the EPlanning adapter",
   "type": "object",

@@ -409,8 +409,9 @@ public class ServiceConfiguration {
             GdprService gdprService,
             BidderCatalog bidderCatalog,
             Metrics metrics,
-            @Value("${geolocation.enabled}") boolean useGeoLocation) {
-        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation);
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
+            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
