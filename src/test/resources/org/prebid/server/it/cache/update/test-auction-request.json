@@ -9,6 +9,21 @@
           }
         }
       }
+    },
+    {
+      "video": {
+        "minduration": 15
+      },
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-rubicon-stored-video-cache-update"
+          },
+          "options": {
+            "echovideoattrs": true
+          }
+        }
+      }
     }
   ],
   "at": 1,

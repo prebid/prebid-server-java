@@ -174,6 +174,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return fetchStoredData(selectAmpQuery, requestIds, Collections.emptySet(), timeout);
     }
 
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return Future.failedFuture("Not Supported");
+    }
+
     /**
      * Fetches stored requests from database for the given query.
      */

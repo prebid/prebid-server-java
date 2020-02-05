@@ -78,7 +78,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId")
                 .ext(Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null), null)))
+                        ExtImp.of(ExtImpPrebid.of(null, null, ExtStoredAuctionResponse.of("1"), null), null)))
                 .build());
 
         given(applicationSettings.getStoredResponses(any(), any()))
@@ -120,7 +120,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldAddImpToRequiredRequestWhenItsStoredBidResponseIsEmpty() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId1")
-                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                         emptyList()), null)))
                 .build());
 
@@ -131,7 +131,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
                 singletonList(Imp.builder().id("impId1")
-                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                                 emptyList()), null)))
                         .build()),
                 emptyList()));
@@ -142,7 +142,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldReturnFailedFutureWhenErrorHappenedDuringRetrievingStoredResponse() {
         // given
         final List<Imp> imps = singletonList(Imp.builder()
-                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null),
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, ExtStoredAuctionResponse.of("1"), null),
                         null)))
                 .build());
 
@@ -164,7 +164,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldReturnSeatBidsForBidStoredResponseId() throws JsonProcessingException {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId1")
-                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                         asList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"),
                                 ExtStoredBidResponse.of("appnexus", "storedBidResponseId2"))), null)))
                 .build());
@@ -201,9 +201,9 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = asList(
                 Imp.builder().id("impId1")
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null,
-                                ExtStoredAuctionResponse.of("storedAuctionRequest"), null), null))).build(),
+                                null, ExtStoredAuctionResponse.of("storedAuctionRequest"), null), null))).build(),
                 Imp.builder().id("impId2")
-                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                                 singletonList(ExtStoredBidResponse.of("rubicon", "storedBidRequest"))),
                                 null)))
                         .build());
@@ -234,7 +234,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
     @Test
     public void getStoredResponseResultShouldRemoveMockedBiddersFromImps() throws JsonProcessingException {
-        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                 singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"))), null));
         impExt.put("rubicon", 1);
         impExt.put("appnexus", 2);
@@ -256,7 +256,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 emptyMap(), timeout);
 
         // then
-        final ObjectNode impExtResult = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+        final ObjectNode impExtResult = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                 singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"))), null));
         impExtResult.put("appnexus", 2);
 
@@ -272,9 +272,9 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = asList(
                 Imp.builder().id("impId1")
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null,
-                                ExtStoredAuctionResponse.of("storedAuctionRequest"), null), null))).build(),
+                                null, ExtStoredAuctionResponse.of("storedAuctionRequest"), null), null))).build(),
                 Imp.builder().id("impId2")
-                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+                        .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                                 singletonList(ExtStoredBidResponse.of("rubicon", "storedBidRequest"))), null)))
                         .build());
 
@@ -306,7 +306,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldSupportAliasesWhenDecidingIfImpRequiredRequestToExchange()
             throws JsonProcessingException {
-        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                 singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"))), null));
         impExt.put("rubicon", 1);
         impExt.put("appnexusAlias", 2);
@@ -328,7 +328,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 singletonMap("appnexusAlias", "appnexus"), timeout);
 
         // then
-        final ObjectNode impExtResult = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+        final ObjectNode impExtResult = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                 singletonList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"))), null));
         impExtResult.put("appnexusAlias", 2);
 
@@ -357,7 +357,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenBidderIsMissedInStoredBidResponse() {
         // given
-        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                 singletonList(ExtStoredBidResponse.of(null, "storedBidResponseId1"))), null));
         final List<Imp> imps = singletonList(Imp.builder().id("impId").ext(impExt).build());
 
@@ -374,7 +374,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void getStoredResponseResultShouldReturnFailedFutureWhenIdIsMissedInStoredBidResponse() {
         // given
-        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null,
+        final ObjectNode impExt = Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, null,
                 singletonList(ExtStoredBidResponse.of("rubicon", null))), null));
         final List<Imp> imps = singletonList(Imp.builder().ext(impExt).id("impId").build());
 
@@ -393,7 +393,7 @@ public class StoredResponseProcessorTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final List<Imp> imps = singletonList(Imp.builder()
-                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null),
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, ExtStoredAuctionResponse.of("1"), null),
                         null)))
                 .build());
 
@@ -417,7 +417,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldReturnFailedFutureSeatBidsCantBeParsed() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId")
-                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, ExtStoredAuctionResponse.of("1"), null),
+                .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null, null, ExtStoredAuctionResponse.of("1"), null),
                         null))).build());
 
         given(applicationSettings.getStoredResponses(any(), any()))
@@ -532,10 +532,10 @@ public class StoredResponseProcessorTest extends VertxTest {
                 singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                 emptyList()), 100));
 
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null, null, null);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().ext((ObjectNode) Json.mapper.createObjectNode()
+                .seat("rubicon").bid(singletonList(Bid.builder().ext(Json.mapper.createObjectNode()
                         .set("prebid", Json.mapper.valueToTree(extBidPrebid))).id("bid2").impid("storedImp").build()))
                 .build());
 
@@ -548,7 +548,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         // then
         assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
                 asList(BidderBid.of(
-                        Bid.builder().id("bid2").impid("storedImp").ext((ObjectNode) Json.mapper.createObjectNode()
+                        Bid.builder().id("bid2").impid("storedImp").ext(Json.mapper.createObjectNode()
                                 .set("prebid", Json.mapper.valueToTree(extBidPrebid))).build(), BidType.video, "USD"),
                         BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                 emptyList()), 100));
@@ -560,7 +560,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final ObjectNode extBidPrebid = Json.mapper.createObjectNode().put("type", "invalid");
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().ext((ObjectNode) Json.mapper.createObjectNode()
+                .seat("rubicon").bid(singletonList(Bid.builder().ext(Json.mapper.createObjectNode()
                         .set("prebid", extBidPrebid)).id("bid2").impid("storedImp").build())).build());
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());

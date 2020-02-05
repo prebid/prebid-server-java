@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -116,7 +117,7 @@ public class PrivacyExtractorTest extends VertxTest {
         final Privacy privacy = PrivacyExtractor.validPrivacyFrom(regs, user);
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", "YAN"));
+        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("YAN")));
     }
 }
 
