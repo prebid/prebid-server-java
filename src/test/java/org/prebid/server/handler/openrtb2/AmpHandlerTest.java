@@ -266,7 +266,7 @@ public class AmpHandlerTest extends VertxTest {
                 .containsOnly(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
-        verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
+        verify(httpResponse).end(eq("Unauthorized: Account id is not provided"));
     }
 
     @Test
@@ -676,7 +676,7 @@ public class AmpHandlerTest extends VertxTest {
                 .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
                 .origin("http://example.com")
                 .status(400)
-                .errors(singletonList("Request is invalid"))
+                .errors(singletonList("Invalid request format: Request is invalid"))
                 .build());
     }
 

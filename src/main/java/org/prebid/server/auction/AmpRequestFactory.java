@@ -75,7 +75,7 @@ public class AmpRequestFactory {
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
         final String tagId = routingContext.request().getParam(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
-            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
+            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id", true));
         }
 
         return createBidRequest(routingContext, tagId)

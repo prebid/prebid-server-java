@@ -232,7 +232,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
+        verify(httpResponse).end(eq("Unauthorized: Account id is not provided"));
     }
 
     @Test
@@ -564,7 +564,7 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())
                 .status(400)
-                .errors(singletonList("Request is invalid"))
+                .errors(singletonList("Invalid request format: Request is invalid"))
                 .build());
     }
 
