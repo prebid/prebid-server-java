@@ -120,7 +120,7 @@ public class ApplicationTest extends IntegrationTest {
                                 "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
                 ));
 
-        // when
+//        // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")

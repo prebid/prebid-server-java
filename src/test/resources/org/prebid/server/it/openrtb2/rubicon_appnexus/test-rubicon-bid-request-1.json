@@ -23,6 +23,7 @@
         "ext": {
           "skip": 5,
           "skipdelay": 1,
+          "videotype": "rewarded",
           "rp": {
             "size_id": 15
           }

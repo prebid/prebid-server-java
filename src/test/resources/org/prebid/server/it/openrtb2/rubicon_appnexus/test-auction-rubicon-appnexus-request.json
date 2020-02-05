@@ -49,6 +49,9 @@
             "skip": 5,
             "skipdelay": 1
           }
+        },
+        "prebid": {
+          "is_rewarded_inventory": 1
         }
       }
     },
