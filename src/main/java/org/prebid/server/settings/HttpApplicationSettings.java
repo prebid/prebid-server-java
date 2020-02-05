@@ -64,11 +64,13 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private HttpClient httpClient;
     private String endpoint;
     private String ampEndpoint;
+    private String videoEndpoint;
 
-    public HttpApplicationSettings(HttpClient httpClient, String endpoint, String ampEndpoint) {
+    public HttpApplicationSettings(HttpClient httpClient, String endpoint, String ampEndpoint, String videoEndpoint) {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
     }
 
     /**
@@ -111,6 +113,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
+    }
+
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,

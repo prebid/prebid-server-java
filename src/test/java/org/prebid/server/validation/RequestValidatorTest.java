@@ -1315,8 +1315,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null,
-                                null, null))
+                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("pricegranularity")).build())
                         .build())))
                 .build();
         // when
@@ -1332,8 +1331,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1349,9 +1349,11 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity
-                                .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0))))), null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity
+                                        .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                BigDecimal.valueOf(0))))))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1367,9 +1369,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1385,10 +1388,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(-1, singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1402,13 +1405,15 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenMediaTypePriceGranularityTypesAreAllNull() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
+
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(null, null, null),
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .mediatypepricegranularity(ExtMediaTypePriceGranularity.of(null, null, null))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1422,15 +1427,17 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWithCorrectMediaType() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
+        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(
+                mapper.valueToTree(ExtPriceGranularity.of(-1, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                        BigDecimal.valueOf(1))))), null, null);
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
-                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                                BigDecimal.valueOf(1))))), null, null),
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .mediatypepricegranularity(mediaTypePriceGranuality)
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1444,12 +1451,15 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageForInvalidTargeting() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, null, false, false))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .includebidderkeys(false)
+                                .includewinners(false)
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1463,12 +1473,14 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValue() {
+        final ExtPriceGranularity priceGranuality = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranuality))
+                                .build())
                         .build())))
                 .build();
 
@@ -1483,13 +1495,15 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValueInTheMiddleOfRangeList() {
         // given
+        final ExtPriceGranularity priceGranuality = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranuality))
+                                .build())
                         .build())))
                 .build();
 
@@ -1504,12 +1518,14 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenIncrementIsNegativeInNotLeadingElement() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .build())
                         .build())))
                 .build();
 
@@ -2056,19 +2072,22 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorWhenElementInAssetsHasIdSet()
+    public void validateShouldReturnValidationResultWithErrorWhenElementInAssetsHasWhichIsNotUnique()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder().id(1).build())));
+                nativeReqCustomizer.assets(asList(
+                        Asset.builder().id(1).build(),
+                        // this should get ID set on second iteration (i = 1) and result in conflict with previous id
+                        Asset.builder().build())));
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].id must not be defined. Prebid Server will"
-                        + " set this automatically, using the index of the asset in the array as the ID");
+                .containsOnly("request.imp[0].native.request.assets[1].id is already being used by another asset. "
+                        + "Each asset ID must be unique.");
     }
 
     @Test
@@ -2197,172 +2216,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].native.request.assets[0].title.len must be a positive integer");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageWidthsNull() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest0 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .w(null).wmin(null)
-                                .h(1).hmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result0 = requestValidator.validate(bidRequest0);
-
-        // then
-        assertThat(result0.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageWidthsZero() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest1 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .w(0).wmin(0)
-                                .h(1).hmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result1 = requestValidator.validate(bidRequest1);
-
-        // then
-        assertThat(result1.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageWidthNullAndWidthMinZero()
-            throws JsonProcessingException {
-
-        // given
-        final BidRequest bidRequest2 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .w(null).wmin(0)
-                                .h(1).hmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result2 = requestValidator.validate(bidRequest2);
-
-        // then
-        assertThat(result2.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageWidthZeroAndWidthMinNull()
-            throws JsonProcessingException {
-
-        // given
-        final BidRequest bidRequest2 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .w(0).wmin(null)
-                                .h(1).hmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result2 = requestValidator.validate(bidRequest2);
-
-        // then
-        assertThat(result2.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageHeightsNull() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest0 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .h(null).hmin(null)
-                                .w(1).wmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result0 = requestValidator.validate(bidRequest0);
-
-        // then
-        assertThat(result0.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageHeightsZero() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .h(0).hmin(0)
-                                .w(1).wmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageHeightZeroAndHeightMinNull()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .h(0).hmin(null)
-                                .w(1).wmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorWhenImageHeightNullAndHeightMinZero()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
-                nativeReqCustomizer.assets(singletonList(Asset.builder()
-                        .img(ImageObject.builder()
-                                .h(0).hmin(0)
-                                .w(1).wmin(1)
-                                .build())
-                        .build())));
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
     }
 
     @Test

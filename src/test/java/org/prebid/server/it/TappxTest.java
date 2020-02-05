@@ -26,10 +26,10 @@ public class TappxTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromTappx() throws IOException, JSONException {
         // given
         // tappx bid response for imp 12
-        wireMockRule.stubFor(post(urlPathEqualTo("/tappx-exchange/test.tappx.com/PREBIDTEMPLATE"))
+        wireMockRule.stubFor(post(urlPathEqualTo("/tappx-exchange"))
                 .withQueryParam("tappxkey", equalTo("pub-12345-android-9876"))
-                .withQueryParam("v", equalTo("1.0"))
-
+                .withQueryParam("v", equalTo("1.1"))
+                .withQueryParam("type_cnn", equalTo("prebid"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/tappx/test-tappx-bid-request.json")))

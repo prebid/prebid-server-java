@@ -22,8 +22,8 @@ public class ExceptionHandler implements Handler<Throwable> {
     }
 
     @Override
-    public void handle(Throwable throwable) {
-        logger.warn("Error while establishing HTTP connection", throwable);
+    public void handle(Throwable exception) {
+        logger.warn("Error while establishing HTTP connection", exception);
         metrics.updateConnectionAcceptErrors();
     }
 }

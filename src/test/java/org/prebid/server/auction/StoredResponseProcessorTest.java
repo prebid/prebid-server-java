@@ -549,10 +549,10 @@ public class StoredResponseProcessorTest extends VertxTest {
                 singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                 emptyList()), 100));
 
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null, null, null);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().ext((ObjectNode) Json.mapper.createObjectNode()
+                .seat("rubicon").bid(singletonList(Bid.builder().ext(Json.mapper.createObjectNode()
                         .set("prebid", Json.mapper.valueToTree(extBidPrebid))).id("bid2").impid("storedImp").build()))
                 .build());
 
@@ -565,7 +565,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         // then
         assertThat(result).contains(BidderResponse.of("rubicon", BidderSeatBid.of(
                 asList(BidderBid.of(
-                        Bid.builder().id("bid2").impid("storedImp").ext((ObjectNode) Json.mapper.createObjectNode()
+                        Bid.builder().id("bid2").impid("storedImp").ext(Json.mapper.createObjectNode()
                                 .set("prebid", Json.mapper.valueToTree(extBidPrebid))).build(), BidType.video, "USD"),
                         BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                 emptyList()), 100));
@@ -577,7 +577,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final ObjectNode extBidPrebid = Json.mapper.createObjectNode().put("type", "invalid");
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
-                .seat("rubicon").bid(singletonList(Bid.builder().ext((ObjectNode) Json.mapper.createObjectNode()
+                .seat("rubicon").bid(singletonList(Bid.builder().ext(Json.mapper.createObjectNode()
                         .set("prebid", extBidPrebid)).id("bid2").impid("storedImp").build())).build());
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());

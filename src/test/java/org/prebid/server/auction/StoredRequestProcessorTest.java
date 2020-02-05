@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -7,6 +8,7 @@ import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
+import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.junit.Before;
@@ -28,11 +30,16 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.VideoStoredDataResult;
 
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -42,6 +49,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
@@ -317,6 +325,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         // given
         final Imp imp = givenImp(impBuilder -> impBuilder
                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder().storedrequest(null).build(), null))));
+
         final BidRequest bidRequest = givenBidRequest(builder -> builder.imp(singletonList(imp)));
 
         // when
@@ -355,6 +364,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.result().getImp().get(1)).isEqualTo(Imp.builder()
                 .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))
+
                 .build());
     }
 
@@ -405,6 +415,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         Json.mapper.valueToTree(
                                 ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))))));
 
+
         given(applicationSettings.getStoredData(anySet(), anySet(), any()))
                 .willReturn((Future.failedFuture(new Exception("Error during file fetching"))));
 
@@ -425,6 +436,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 impBuilder -> impBuilder.ext(
                         Json.mapper.valueToTree(
                                 ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))))));
+
 
         given(applicationSettings.getStoredData(anySet(), anySet(), any()))
                 .willReturn((Future.succeededFuture(
@@ -447,6 +459,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 impBuilder -> impBuilder.ext(
                         Json.mapper.valueToTree(
                                 ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))))));
+
 
         final Map<String, String> storedImpFetchResult = singletonMap("123", mapper.writeValueAsString(
                 Json.mapper.createObjectNode().put("secure", "stringValue")));
@@ -535,6 +548,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(
                                 ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("not_found")).build(), null)))))));
 
+
         given(applicationSettings.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
                         singletonMap("123", "stored_request"), singletonMap("321", "stored_imp"), emptyList())));
@@ -591,6 +605,66 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         // then
         verify(metrics).updateStoredRequestMetric(false);
+    }
+
+    @Test
+    public void impToStoredVideoJsonShouldReturnExpectedVideoStoredDataResult() throws JsonProcessingException {
+        // given
+        final Imp imp1 = givenImp(impBuilder -> impBuilder.id("id1").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), null, null, null), null))));
+        final Imp imp2 = givenImp(impBuilder -> impBuilder.id("id2").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st2"), null, null, null), null))));
+
+        final Video storedVideo = Video.builder().maxduration(100).h(2).w(2).build();
+        final Imp storedImp1 = Imp.builder().video(storedVideo).build();
+        final Imp storedImp2 = Imp.builder().video(storedVideo).build();
+
+        final Map<String, String> storedIdToJson = new HashMap<>();
+        storedIdToJson.put("st1", mapper.writeValueAsString(storedImp1));
+        storedIdToJson.put("st2", mapper.writeValueAsString(storedImp2));
+
+        given(applicationSettings.getStoredData(any(), any(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedIdToJson, emptyList())));
+
+        // when
+        final Future<VideoStoredDataResult> result = storedRequestProcessor.videoStoredDataResult(Arrays.asList(imp1, imp2), emptyList(), null);
+
+        // then
+        verify(applicationSettings).getStoredData(any(), eq(new HashSet<>(Arrays.asList("st1", "st2"))), any());
+
+        assertThat(result.result().getImpIdToStoredVideo()).containsOnly(entry("id2", storedVideo), entry("id1", storedVideo));
+        assertThat(result.result().getErrors()).isEmpty();
+    }
+
+    @Test
+    public void impToStoredVideoJsonShouldReturnExpectedVideoStoredDataResultErrors() throws JsonProcessingException {
+        // given
+        final Imp imp1 = givenImp(impBuilder -> impBuilder.id("id1").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), null, null, null), null))));
+        final Imp imp2 = givenImp(impBuilder -> impBuilder.id("id2").ext(
+                Json.mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st2"), null, null, null), null))));
+
+        final Imp storedImp1 = Imp.builder().build();
+
+        final Map<String, String> storedIdToJson = new HashMap<>();
+        storedIdToJson.put("st1", mapper.writeValueAsString(storedImp1));
+
+        given(applicationSettings.getStoredData(any(), any(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedIdToJson, emptyList())));
+
+        // when
+        final Future<VideoStoredDataResult> result = storedRequestProcessor.videoStoredDataResult(Arrays.asList(imp1, imp2), new ArrayList<>(), null);
+
+        // then
+        verify(applicationSettings).getStoredData(any(), eq(new HashSet<>(Arrays.asList("st1", "st2"))), any());
+
+        assertThat(result.result().getErrors()).containsOnly(
+                "No stored Imp for stored id st2",
+                "No stored video found for Imp with id id1");
     }
 
     private static BidRequest givenBidRequest(

@@ -55,10 +55,11 @@ cookie-sync:
 logger-level-modifier:
   enabled: false
 currency-converter:
-  enabled: true
-  url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
-  default-timeout-ms: 4000
-  refresh-period-ms: 900000
+  external-rates:
+    enabled: true
+    url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
+    default-timeout-ms: 4000
+    refresh-period-ms: 900000
 metrics:
   metricType: flushingCounter
   accounts:
@@ -89,11 +90,13 @@ geolocation:
   type: maxmind
   maxmind:
     remote-file-syncer:
-      download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz
-      save-filepath: /var/tmp/prebid/GeoLite2-Country.tar.gz
+      download-url: https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz
+      save-filepath: /var/tmp/prebid/GeoLite2-City.tar.gz
+      tmp-filepath: /var/tmp/prebid/tmp/GeoLite2-City.tar.gz
       retry-count: 3
       retry-interval-ms: 3000
       timeout-ms: 300000
+      update-interval-ms: 0
       http-client:
         connect-timeout-ms: 2500
         max-redirects: 3

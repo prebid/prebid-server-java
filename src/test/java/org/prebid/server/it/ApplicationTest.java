@@ -277,7 +277,8 @@ public class ApplicationTest extends IntegrationTest {
                         "&timeout=10000000" +
                         "&slot=overwrite-tagId" +
                         "&curl=https%3A%2F%2Fgoogle.com" +
-                        "&account=accountId");
+                        "&account=accountId" +
+                        "&us_privacy=YAM");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
@@ -541,8 +542,12 @@ public class ApplicationTest extends IntegrationTest {
 
         // rubicon bid response
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response1.json"))));
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response2.json"))));
 
         // when
         final Response response = given(spec)
@@ -558,8 +563,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "cache/update/test-auction-response.json",
-                response, singletonList(RUBICON));
+                "cache/update/test-auction-response.json", response, singletonList(RUBICON));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

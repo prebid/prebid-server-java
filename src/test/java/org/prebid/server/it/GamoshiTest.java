@@ -26,7 +26,7 @@ public class GamoshiTest extends IntegrationTest {
         // given
         // Gamoshi bid response for imp 001 and 002
         wireMockRule.stubFor(post(urlPathEqualTo("/gamoshi-exchange/r/1701/bidr"))
-                .withQueryParam("reqformat", equalTo("RTB_JSON"))
+                .withQueryParam("bidder", equalTo("prebid-server"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withHeader("User-Agent", equalTo("userAgent"))

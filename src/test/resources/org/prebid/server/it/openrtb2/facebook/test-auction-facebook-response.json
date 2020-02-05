@@ -4,11 +4,45 @@
     {
       "bid": [
         {
-          "id": "347088686",
-          "impid": "impId5",
+          "id": "bid3",
+          "impid": "impId003",
+          "price": 10.0,
+          "adm": "{\"bid_id\":\"10\"}",
+          "adid": "10",
+          "crid": "10",
+          "w": 0,
+          "h": 0,
+          "ext": {
+            "prebid": {
+              "type": "native",
+              "targeting": {
+                "hb_pb": "10.00",
+                "hb_bidder_audienceNetwork": "audienceNetwork",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_audienceNetwork": "{{ cache.path }}",
+                "hb_cache_id_audienceNetwork": "446d71ac-0337-4871-9fda-4552323a269b",
+                "hb_bidder": "audienceNetwork",
+                "hb_cache_id": "446d71ac-0337-4871-9fda-4552323a269b",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_audienceNetwork": "10.00",
+                "hb_cache_host_audienceNetwork": "{{ cache.host }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}446d71ac-0337-4871-9fda-4552323a269b",
+                  "cacheId": "446d71ac-0337-4871-9fda-4552323a269b"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "bid1",
+          "impid": "impId001",
           "price": 9.0,
-          "adm": "adm5",
-          "crid": "crid5",
+          "adm": "{\"bid_id\":\"10\"}",
+          "adid": "10",
+          "crid": "10",
           "w": 0,
           "h": 50,
           "ext": {
@@ -17,19 +51,58 @@
               "targeting": {
                 "hb_pb": "9.00",
                 "hb_bidder_audienceNetwork": "audienceNetwork",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_audienceNetwork": "{{ cache.path }}",
+                "hb_cache_id_audienceNetwork": "3d90394a-0301-4faf-b0e8-5d26a88f6ef0",
+                "hb_bidder": "audienceNetwork",
+                "hb_cache_id": "3d90394a-0301-4faf-b0e8-5d26a88f6ef0",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_audienceNetwork": "9.00",
+                "hb_cache_host_audienceNetwork": "{{ cache.host }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}3d90394a-0301-4faf-b0e8-5d26a88f6ef0",
+                  "cacheId": "3d90394a-0301-4faf-b0e8-5d26a88f6ef0"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "bid2",
+          "impid": "impId002",
+          "price": 15.0,
+          "adm": "{\"bid_id\":\"10\"}",
+          "adid": "10",
+          "crid": "10",
+          "w": 0,
+          "h": 0,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "15.00",
+                "hb_bidder_audienceNetwork": "audienceNetwork",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "6d7addba-3984-4a69-b84f-6f1daa02b407",
+                "hb_uuid_audienceNetwork": "6d7addba-3984-4a69-b84f-6f1daa02b407",
+                "hb_cache_path_audienceNetwork": "{{ cache.path }}",
                 "hb_cache_id_audienceNetwork": "9bde9bf0-7726-4789-9f5a-b948131d778d",
                 "hb_bidder": "audienceNetwork",
                 "hb_cache_id": "9bde9bf0-7726-4789-9f5a-b948131d778d",
-                "hb_pb_audienceNetwork": "9.00",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_audienceNetwork": "{{ cache.host }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_audienceNetwork": "{{ cache.path }}"
+                "hb_pb_audienceNetwork": "15.00",
+                "hb_cache_host_audienceNetwork": "{{ cache.host }}"
               },
               "cache": {
                 "bids": {
                   "url": "{{ cache.resource_url }}9bde9bf0-7726-4789-9f5a-b948131d778d",
                   "cacheId": "9bde9bf0-7726-4789-9f5a-b948131d778d"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}6d7addba-3984-4a69-b84f-6f1daa02b407",
+                  "cacheId": "6d7addba-3984-4a69-b84f-6f1daa02b407"
                 }
               }
             }

@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -114,6 +113,11 @@ public class FileApplicationSettings implements ApplicationSettings {
         return getStoredData(requestIds, Collections.emptySet(), timeout);
     }
 
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return getStoredData(requestIds, impIds, timeout);
+    }
+
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {
         return list != null ? list.stream().collect(Collectors.toMap(keyMapper, valueMapper)) : Collections.emptyMap();
     }
@@ -152,15 +156,10 @@ public class FileApplicationSettings implements ApplicationSettings {
      * Returns corresponding stored id with json.
      */
     private static Map<String, String> existingStoredIdToJson(Set<String> requestedIds,
-                                                              Map<String, String> storedIdToJson) {
-        final Map<String, String> idToJson = new HashMap<>();
-        for (String id : requestedIds) {
-            final String json = storedIdToJson.get(id);
-            if (StringUtils.isNotBlank(json)) {
-                idToJson.put(id, json);
-            }
-        }
-        return idToJson;
+                                  Map<String, String> storedIdToJson) {
+        return requestedIds.stream()
+                .filter(storedIdToJson::containsKey)
+                .collect(Collectors.toMap(Function.identity(), storedIdToJson::get));
     }
 
     /**
