@@ -563,8 +563,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "cache/update/test-auction-response.json",
-                response, singletonList(RUBICON));
+                "cache/update/test-auction-response.json", response, singletonList(RUBICON));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

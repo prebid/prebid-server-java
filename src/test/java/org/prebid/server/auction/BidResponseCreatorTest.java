@@ -393,7 +393,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .price(BigDecimal.ONE)
                         .adm("adm")
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                ExtBidPrebid.of(banner, null, null, null, null), singletonMap("bidExt", 1))))
+                                ExtBidPrebid.of(banner, null, null, null, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
 
@@ -527,7 +527,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(Bid.builder()
                         .id("bidId")
                         .price(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null), null)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null, null), null)))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
