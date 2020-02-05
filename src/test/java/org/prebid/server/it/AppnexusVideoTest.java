@@ -28,7 +28,7 @@ public class AppnexusVideoTest extends IntegrationTest {
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/video/test-video-appnexus-bid-request-1.json")))
-        .willReturn(aResponse().withBody(jsonFrom("openrtb2/video/test-video-appnexus-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/video/test-video-appnexus-bid-response-1.json"))));
 
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))

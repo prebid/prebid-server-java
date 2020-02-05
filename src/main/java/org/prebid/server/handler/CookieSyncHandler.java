@@ -83,7 +83,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         activeBidders = activeBidders(bidderCatalog);
         this.gdprService = Objects.requireNonNull(gdprService);
-        this.privacyEnforcementService = privacyEnforcementService;
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
         this.defaultCoopSync = defaultCoopSync;

@@ -72,12 +72,11 @@ public class PrivacyEnforcementService {
         final Device device = bidRequest.getDevice();
         final User user = bidRequest.getUser();
 
-        final Privacy privacy = PrivacyExtractor.validPrivacyFrom(regs, user);
-
         if (isCoppaMaskingRequired(regs)) {
             return maskCoppa(bidderToUser, device, user);
         }
 
+        final Privacy privacy = PrivacyExtractor.validPrivacyFrom(regs, user);
         if (isCcpaEnforced(privacy.getCcpa())) {
             return maskCcpa(bidderToUser, device, user);
         }
