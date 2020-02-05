@@ -1,0 +1,24 @@
+adapters:
+  kubient:
+    enabled: false
+    endpoint: http://kbntx.ch/prebid
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: support@kubient.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: kubient
+      type: redirect
+      support-cors: false

@@ -53,7 +53,7 @@ public class CachingApplicationSettingsTest {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 
         cachingApplicationSettings = new CachingApplicationSettings(applicationSettings, new SettingsCache(360, 100),
-                new SettingsCache(360, 100), 360, 100);
+                new SettingsCache(360, 100), new SettingsCache(360, 100), 360, 100);
     }
 
     @Test

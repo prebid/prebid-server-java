@@ -299,7 +299,8 @@ public class AuctionRequestFactory {
                 try {
                     parsedDomain = paramsExtractor.domainFrom(referer);
                 } catch (PreBidException e) {
-                    logger.warn("Error occurred while populating bid request", e);
+                    logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+                    logger.debug("Error occurred while populating bid request", e);
                 }
             }
         }
@@ -470,13 +471,16 @@ public class AuctionRequestFactory {
 
         final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            result = ExtRequestTargeting.of(
-                    populatePriceGranularity(targeting, isPriceGranularityNull, isPriceGranularityTextual,
-                            impMediaTypes),
-                    targeting.getMediatypepricegranularity(),
-                    targeting.getCurrency(),
-                    isIncludeWinnersNull ? true : targeting.getIncludewinners(),
-                    isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
+            result = ExtRequestTargeting.builder()
+                    .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
+                            isPriceGranularityTextual, impMediaTypes))
+                    .mediatypepricegranularity(targeting.getMediatypepricegranularity())
+                    .currency(targeting.getCurrency())
+                    .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
+                    .includebidderkeys(isIncludeBidderKeysNull
+                            ? !isWinningOnly(prebid.getCache())
+                            : targeting.getIncludebidderkeys())
+                    .build();
         } else {
             result = null;
         }
@@ -704,7 +708,8 @@ public class AuctionRequestFactory {
      */
     private static Future<Account> accountFallback(Throwable exception, Future<Account> response) {
         if (!(exception instanceof PreBidException)) {
-            logger.warn("Error occurred while fetching account", exception);
+            logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
+            logger.debug("Error occurred while fetching account", exception);
         }
         return response;
     }

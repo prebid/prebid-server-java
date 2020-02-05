@@ -41,10 +41,12 @@ Remote File Syncer can be related to particular entity like geolocation maxmind 
 Removes and downloads file again if depending service cant process probably corrupted file in the first start.
 
 - `<SERVICE>.remote-file-syncer.download-url` - url to database file to download.
-- `<SERVICE>.remote-file-syncer.save-filepath` - local path to downloaded database file.
+- `<SERVICE>.remote-file-syncer.save-filepath` - full path to the usable file, which will be consumed by internal service.
+- `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
+- `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
@@ -65,6 +67,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+
+## Video
+- `auction.video.stored-required` - flag forces to merge with stored request
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -179,6 +187,7 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+- `settings.http.video-endpoint` - the url to fetch video stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.

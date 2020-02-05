@@ -200,9 +200,13 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
-                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                                        BigDecimal.valueOf(0.1))))), null, null, true, true))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
+                                                BigDecimal.valueOf(0.1))))))
+                                .includewinners(true)
+                                .includebidderkeys(true)
+                                .build())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
                         .build());
@@ -240,8 +244,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
-                                        null, null, null))),
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .build())),
                 Imp.builder().build());
 
         // when
@@ -265,8 +270,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
-                                        null, false, null))),
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .includewinners(false)
+                                        .build())),
                 Imp.builder().build());
 
         // when
@@ -287,8 +294,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(
                 builder -> builder
-                        .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(null, null, null, false, null))),
+                        .ext(givenBidRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
                 Imp.builder().build());
 
         // when
@@ -311,8 +317,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
-                                        null, null, false))),
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .includebidderkeys(false)
+                                        .build())),
                 Imp.builder().build());
 
         // when
@@ -333,7 +341,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(
                 builder -> builder
-                        .ext(givenBidRequestExt(ExtRequestTargeting.of(null, null, null, false, null))),
+                        .ext(givenBidRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
                 Imp.builder().build());
 
         // when
@@ -1132,14 +1140,26 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithoutRegsExtWhenNoPrivacyPolicyIsExist() {
+        // given
+        givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
     public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenUsPrivacyParamIsExist() {
         // given
         given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
 
         givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(null))),
                 Imp.builder().build());
 
         // when
@@ -1148,6 +1168,26 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getRegs())
                 .isEqualTo(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(null, "us_privacy"))));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyAndGdprWhenUsPrivacyParamAndGdprIsExist() {
+        // given
+        given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
+
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder().build())
+                        .regs(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "replaced"))))
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs())
+                .isEqualTo(Regs.of(1, Json.mapper.valueToTree(ExtRegs.of(1, "us_privacy"))));
     }
 
     @Test

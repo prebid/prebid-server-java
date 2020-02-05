@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
@@ -20,6 +21,9 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -43,6 +47,7 @@ import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -174,6 +179,47 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver) {
 
         return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver);
+    }
+
+    @Bean
+    VideoRequestFactory videoRequestFactory(
+            @Value("${auction.max-request-size}") int maxRequestSize,
+            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            VideoStoredRequestProcessor storedRequestProcessor,
+            AuctionRequestFactory auctionRequestFactory,
+            TimeoutResolver timeoutResolver) {
+
+        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
+                auctionRequestFactory, timeoutResolver);
+    }
+
+    @Bean
+    VideoResponseFactory videoResponseFactory() {
+        return new VideoResponseFactory();
+    }
+
+    @Bean
+    VideoStoredRequestProcessor videoStoredRequestProcessor(
+            ApplicationSettings applicationSettings,
+            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            BidRequest defaultVideoBidRequest,
+            Metrics metrics,
+            TimeoutFactory timeoutFactory,
+            TimeoutResolver timeoutResolver,
+            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency) {
+
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
+                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
+                adServerCurrency);
+    }
+
+    @Bean
+    BidRequest defaultVideoBidRequest() {
+        return BidRequest.builder().build();
     }
 
     @Bean
@@ -315,9 +361,10 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
-            EventsService eventsService) {
+            EventsService eventsService,
+            StoredRequestProcessor storedRequestProcessor) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
     }
 
     @Bean

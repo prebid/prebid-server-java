@@ -438,8 +438,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         metrics.updateRequestTimeMetric(clock.millis() - startTime);
     }
 
-    private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send auction response: {0}", throwable.getMessage());
+    private void handleResponseException(Throwable exception) {
+        logger.warn("Failed to send auction response: {0}", exception.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 

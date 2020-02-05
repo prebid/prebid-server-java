@@ -17,7 +17,7 @@ adapters:
       supported-vendors:
       vendor-id: 24
     usersync:
-      url: //prebid-match.dotomi.com/prebid/match?rurl=
+      url: https://prebid-match.dotomi.com/prebid/match?rurl=
       redirect-url: /setuid?bidder=conversant&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: conversant
       type: redirect
