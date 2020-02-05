@@ -67,6 +67,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Video
+- `auction.video.stored-required` - flag forces to merge with stored request
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
 
@@ -180,6 +186,7 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+- `settings.http.video-endpoint` - the url to fetch video stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.

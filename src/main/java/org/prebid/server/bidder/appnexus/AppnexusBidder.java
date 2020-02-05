@@ -21,15 +21,20 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
+import org.prebid.server.bidder.appnexus.proto.AppnexusReqExt;
+import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -38,6 +43,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,10 +58,59 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
-
+    private static final int MAX_IMP_PER_REQUEST = 10;
+    private static final Map<Integer, String> IAB_CATEGORIES = new HashMap<>();
     private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
             };
+
+    static {
+        IAB_CATEGORIES.put(1, "IAB20-3");
+        IAB_CATEGORIES.put(2, "IAB18-5");
+        IAB_CATEGORIES.put(3, "IAB10-1");
+        IAB_CATEGORIES.put(4, "IAB2-3");
+        IAB_CATEGORIES.put(5, "IAB19-8");
+        IAB_CATEGORIES.put(7, "IAB18-1");
+        IAB_CATEGORIES.put(8, "IAB14-1");
+        IAB_CATEGORIES.put(9, "IAB5-1");
+        IAB_CATEGORIES.put(10, "IAB4-5");
+        IAB_CATEGORIES.put(11, "IAB13-4");
+        IAB_CATEGORIES.put(13, "IAB19-2");
+        IAB_CATEGORIES.put(12, "IAB8-7");
+        IAB_CATEGORIES.put(14, "IAB7-1");
+        IAB_CATEGORIES.put(15, "IAB20-18");
+        IAB_CATEGORIES.put(16, "IAB10-7");
+        IAB_CATEGORIES.put(17, "IAB19-18");
+        IAB_CATEGORIES.put(18, "IAB13-6");
+        IAB_CATEGORIES.put(19, "IAB18-4");
+        IAB_CATEGORIES.put(20, "IAB1-5");
+        IAB_CATEGORIES.put(21, "IAB1-6");
+        IAB_CATEGORIES.put(23, "IAB19-13");
+        IAB_CATEGORIES.put(24, "IAB22-2");
+        IAB_CATEGORIES.put(27, "IAB19-6");
+        IAB_CATEGORIES.put(28, "IAB1-7");
+        IAB_CATEGORIES.put(29, "IAB9-5");
+        IAB_CATEGORIES.put(30, "IAB20-7");
+        IAB_CATEGORIES.put(31, "IAB20-17");
+        IAB_CATEGORIES.put(32, "IAB7-32");
+        IAB_CATEGORIES.put(33, "IAB16-5");
+        IAB_CATEGORIES.put(34, "IAB19-34");
+        IAB_CATEGORIES.put(37, "IAB11-4");
+        IAB_CATEGORIES.put(38, "IAB23");
+        IAB_CATEGORIES.put(39, "IAB9-30");
+        IAB_CATEGORIES.put(41, "IAB7-44");
+        IAB_CATEGORIES.put(51, "IAB17-12");
+        IAB_CATEGORIES.put(53, "IAB3-1");
+        IAB_CATEGORIES.put(55, "IAB13-2");
+        IAB_CATEGORIES.put(61, "IAB21-3");
+        IAB_CATEGORIES.put(62, "IAB6-4");
+        IAB_CATEGORIES.put(63, "IAB15-10");
+        IAB_CATEGORIES.put(65, "IAB11-2");
+        IAB_CATEGORIES.put(67, "IAB9-9");
+        IAB_CATEGORIES.put(69, "IAB7-1");
+        IAB_CATEGORIES.put(71, "IAB22-2");
+        IAB_CATEGORIES.put(74, "IAB8-5");
+    }
 
     private final String endpointUrl;
 
@@ -96,18 +151,18 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             url = endpointUrl;
         }
 
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
-        final String body = Json.encode(outgoingRequest);
+        final BidRequest outgoingRequest;
+        try {
+            final ObjectNode updatedRequestExt = updatedBidRequestExt(bidRequest);
+            outgoingRequest = updatedRequestExt != null
+                    ? bidRequest.toBuilder().ext(updatedRequestExt).build()
+                    : bidRequest;
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return Result.of(Collections.emptyList(), errors);
+        }
 
-        return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .build()),
-                errors);
+        return Result.of(splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST), errors);
     }
 
     private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
@@ -140,6 +195,71 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                     String.format("All request.imp[i].ext.appnexus.member params must match. Request contained: %s",
                             String.join(", ", uniqueIds)));
         }
+    }
+
+    private static ObjectNode updatedBidRequestExt(BidRequest bidRequest) {
+        final ObjectNode requestExt = bidRequest.getExt();
+        if (requestExt != null && !requestExt.isNull()) {
+            final AppnexusReqExt appnexusReqExt = parseRequestExt(requestExt);
+            if (isIncludeBrandCategory(appnexusReqExt)) {
+                final AppnexusReqExt updateAppnexusReqExt =
+                        AppnexusReqExt.of(AppnexusReqExtAppnexus.of(true, true), appnexusReqExt.getPrebid());
+                return Json.mapper.valueToTree(updateAppnexusReqExt);
+            }
+        }
+        return null;
+    }
+
+    private static AppnexusReqExt parseRequestExt(ObjectNode requestExt) {
+        try {
+            return Json.mapper.convertValue(requestExt, AppnexusReqExt.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private static boolean isIncludeBrandCategory(AppnexusReqExt appnexusReqExt) {
+        final ExtRequestPrebid prebid = appnexusReqExt.getPrebid();
+        final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
+        final ExtIncludeBrandCategory includebrandcategory = targeting != null
+                ? targeting.getIncludebrandcategory()
+                : null;
+        return includebrandcategory != null && includebrandcategory.getPrimaryAdserver() != 0;
+    }
+
+    private static List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest outgoingRequest, List<Imp> processedImps,
+                                                                   String url, int maxImpPerRequest) {
+        // Let's say there are 35 impressions and limit impressions per request equals to 10.
+        // In this case we need to create 4 requests with 10, 10, 10 and 5 impressions.
+        // With this formula initial capacity=(35+10-1)/10 = 4
+        final int impSize = processedImps.size();
+        final int numberOfRequests = (impSize + maxImpPerRequest - 1) / maxImpPerRequest;
+        final List<HttpRequest<BidRequest>> spitedRequests = new ArrayList<>(numberOfRequests);
+
+        int startIndex = 0;
+        boolean impsLeft = true;
+        while (impsLeft) {
+            int endIndex = startIndex + maxImpPerRequest;
+            if (endIndex >= impSize) {
+                impsLeft = false;
+                endIndex = impSize;
+            }
+            spitedRequests.add(createHttpRequest(outgoingRequest, processedImps.subList(startIndex, endIndex), url));
+            startIndex = endIndex;
+        }
+
+        return spitedRequests;
+    }
+
+    private static HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest, List<Imp> imps, String url) {
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(url)
+                .body(Json.encode(outgoingRequest))
+                .headers(HttpUtil.headers())
+                .payload(outgoingRequest)
+                .build();
     }
 
     private static ImpWithMemberId makeImpWithMemberId(Imp imp, String defaultDisplayManagerVer) {
@@ -287,17 +407,35 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid), null))
+                .map(AppnexusBidder::bidderBid)
                 .collect(Collectors.toList());
     }
 
-    private static BidType bidType(Bid bid) {
+    private static BidderBid bidderBid(Bid bid) {
         final AppnexusBidExtAppnexus appnexus = parseAppnexusBidExt(bid.getExt()).getAppnexus();
         if (appnexus == null) {
             throw new PreBidException("bidResponse.bid.ext.appnexus should be defined");
         }
 
-        final Integer bidAdType = appnexus.getBidAdType();
+        final String iabCategory = iabCategory(appnexus.getBrandCategoryId());
+        if (iabCategory != null) {
+            bid.setCat(Collections.singletonList(iabCategory));
+        } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
+            //create empty categories array to force bid to be rejected
+            bid.setCat(Collections.emptyList());
+        }
+
+        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), null);
+    }
+
+    private static String iabCategory(Integer brandId) {
+        if (brandId == null) {
+            return null;
+        }
+        return IAB_CATEGORIES.get(brandId);
+    }
+
+    private static BidType bidType(Integer bidAdType) {
         if (bidAdType == null) {
             throw new PreBidException("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
         }
