@@ -1,0 +1,50 @@
+{
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "cache": "{{ cache.response_time_ms }}",
+      "smartrtb": "{{ smartrtb.response_time_ms }}"
+    },
+    "tmaxrequest": 3000
+  },
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "adm": "<b>hi</b>",
+          "cid": "test_cid",
+          "crid": "test_banner_crid",
+          "ext": {
+            "prebid": {
+              "cache": {
+                "bids": {
+                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                  "url": "http://localhost:8090/cache?uuid=f0ab9105-cb21-4e59-b433-70f5ad6671cb"
+                }
+              },
+              "targeting": {
+                "hb_bidder": "smartrtb",
+                "hb_bidder_smartrtb": "smartrtb",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_smartrtb": "localhost:8090",
+                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_cache_id_smartrtb": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_cache_path": "/cache",
+                "hb_cache_path_smartrtb": "/cache",
+                "hb_pb": "0.00",
+                "hb_pb_smartrtb": "0.00"
+              },
+              "type": "banner"
+            }
+          },
+          "id": "1",
+          "impid": "imp123",
+          "price": 0.01
+        }
+      ],
+      "group": 0,
+      "seat": "smartrtb"
+    }
+  ]
+}
