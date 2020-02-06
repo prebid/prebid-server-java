@@ -86,8 +86,8 @@ public class SynacormediaBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(BidRequest.builder()
-                        .imp(singletonList(givenImp(identity())))
-                        .ext(mapper.valueToTree(ExtImpSynacormedia.of("seatId")))
+                        .imp(singletonList(givenImp(identity()).toBuilder().tagid("tagId").build()))
+                        .ext(mapper.valueToTree(ExtImpSynacormedia.of("seatId","tagId")))
                         .build());
     }
 
@@ -95,7 +95,7 @@ public class SynacormediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfFirstValidImpHasEmptySeatId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of(" ")))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of(" ", "tagId")))),
                 identity());
 
         // when
@@ -103,7 +103,23 @@ public class SynacormediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Impression missing seat id"));
+                .containsOnly(BidderError.badInput("Invalid Impression"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfFirstValidImpHasEmptyTagId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seadId", " ")))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = synacormediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid Impression"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -268,7 +284,7 @@ public class SynacormediaBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seatId")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seatId","tagId")))))
                 .build();
     }
 

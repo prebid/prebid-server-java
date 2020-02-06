@@ -53,7 +53,13 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpSynacormedia extImpSynacormedia = parseExtImp(imp.getExt());
-                validImps.add(imp);
+                if (StringUtils.isBlank(extImpSynacormedia.getSeatId())
+                        || StringUtils.isBlank(extImpSynacormedia.getTagId())) {
+                    errors.add(BidderError.badInput("Invalid Impression"));
+                    continue;
+                }
+                final Imp updatedImp = imp.toBuilder().tagid(extImpSynacormedia.getTagId()).build();
+                validImps.add(updatedImp);
 
                 if (firstExtImp == null) {
                     firstExtImp = extImpSynacormedia;
@@ -67,8 +73,9 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        if (firstExtImp == null || StringUtils.isBlank(firstExtImp.getSeatId())) {
-            errors.add(BidderError.badInput("Impression missing seat id"));
+        if (firstExtImp == null || StringUtils.isBlank(firstExtImp.getSeatId())
+                || StringUtils.isBlank(firstExtImp.getTagId())) {
+            errors.add(BidderError.badInput("Invalid Impression"));
             return Result.of(Collections.emptyList(), errors);
         }
 

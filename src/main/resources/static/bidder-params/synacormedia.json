@@ -7,6 +7,10 @@
     "seatId": {
       "type": "string",
       "description": "The seat id."
+    },
+    "tagId": {
+      "type": "string",
+      "description": "The tag id."
     }
   },
   "required": [
