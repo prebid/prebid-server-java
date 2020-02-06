@@ -13,13 +13,13 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -60,13 +60,17 @@ public class AmpRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final TimeoutResolver timeoutResolver;
+    private final JacksonMapper mapper;
 
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
-                             AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver) {
+                             AuctionRequestFactory auctionRequestFactory,
+                             TimeoutResolver timeoutResolver,
+                             JacksonMapper mapper) {
 
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -75,7 +79,7 @@ public class AmpRequestFactory {
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
         final String tagId = routingContext.request().getParam(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
-            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
+            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id", true));
         }
 
         return createBidRequest(routingContext, tagId)
@@ -128,7 +132,7 @@ public class AmpRequestFactory {
      * if it was not included by user. Updates {@link Imp} security if required to ensure that amp always uses
      * https protocol. Sets {@link BidRequest}.test = 1 if it was passed in {@link RoutingContext}.
      */
-    private static BidRequest fillExplicitParameters(BidRequest bidRequest, RoutingContext context) {
+    private BidRequest fillExplicitParameters(BidRequest bidRequest, RoutingContext context) {
         final List<Imp> imps = bidRequest.getImp();
         // Force HTTPS as AMP requires it, but pubs can forget to set it.
         final Imp imp = imps.get(0);
@@ -184,9 +188,9 @@ public class AmpRequestFactory {
     /**
      * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
      */
-    private static ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
+    private ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
         try {
-            return Json.mapper.treeToValue(extBidRequestNode, ExtBidRequest.class);
+            return mapper.mapper().treeToValue(extBidRequestNode, ExtBidRequest.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
@@ -203,7 +207,7 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private static BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
@@ -226,7 +230,7 @@ public class AmpRequestFactory {
         return result;
     }
 
-    private static Site overrideSite(Site site, HttpServerRequest request) {
+    private Site overrideSite(Site site, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
         final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
@@ -248,7 +252,7 @@ public class AmpRequestFactory {
             }
             if (shouldSetExtAmp) {
                 final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
-                siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1, data)));
+                siteBuilder.ext(mapper.mapper().valueToTree(ExtSite.of(1, data)));
             }
             return siteBuilder.build();
         }
@@ -377,7 +381,7 @@ public class AmpRequestFactory {
         return timeout > 0 && !Objects.equals(timeout, tmax) ? timeout : null;
     }
 
-    private static User overrideUser(User user, HttpServerRequest request) {
+    private User overrideUser(User user, HttpServerRequest request) {
         final String gdprConsent = request.getParam(GDPR_CONSENT_PARAM);
         if (StringUtils.isBlank(gdprConsent)) {
             return null;
@@ -395,22 +399,22 @@ public class AmpRequestFactory {
         final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
 
         return userBuilder
-                .ext(Json.mapper.valueToTree(updatedExtUser))
+                .ext(mapper.mapper().valueToTree(updatedExtUser))
                 .build();
     }
 
     /**
      * Extracts {@link ExtUser} from bidrequest.user.ext {@link ObjectNode}.
      */
-    private static ExtUser extractExtUser(ObjectNode extUserNode) {
+    private ExtUser extractExtUser(ObjectNode extUserNode) {
         try {
-            return Json.mapper.treeToValue(extUserNode, ExtUser.class);
+            return mapper.mapper().treeToValue(extUserNode, ExtUser.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()));
         }
     }
 
-    private static Regs overrideRegs(Regs regs, HttpServerRequest request) {
+    private Regs overrideRegs(Regs regs, HttpServerRequest request) {
         final String usPrivacyParam = request.getParam(US_PRIVACY_PARAM);
         if (StringUtils.isBlank(usPrivacyParam)) {
             return null;
@@ -423,15 +427,15 @@ public class AmpRequestFactory {
             gdpr = extractExtRegs(regs.getExt()).getGdpr();
         }
 
-        return Regs.of(coppa, Json.mapper.valueToTree(ExtRegs.of(gdpr, usPrivacyParam)));
+        return Regs.of(coppa, mapper.mapper().valueToTree(ExtRegs.of(gdpr, usPrivacyParam)));
     }
 
     /**
      * Extracts {@link ExtRegs} from bidrequest.regs.ext {@link ObjectNode}.
      */
-    private static ExtRegs extractExtRegs(ObjectNode extRegsNode) {
+    private ExtRegs extractExtRegs(ObjectNode extRegsNode) {
         try {
-            return Json.mapper.treeToValue(extRegsNode, ExtRegs.class);
+            return mapper.mapper().treeToValue(extRegsNode, ExtRegs.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()));
         }
@@ -464,9 +468,9 @@ public class AmpRequestFactory {
     /**
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private static ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                                boolean setDefaultTargeting, boolean setDefaultCache,
-                                                Integer updatedDebug) {
+    private ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                         boolean setDefaultTargeting, boolean setDefaultCache,
+                                         Integer updatedDebug) {
         final ObjectNode result;
         if (setDefaultTargeting || setDefaultCache || updatedDebug != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
@@ -484,7 +488,7 @@ public class AmpRequestFactory {
                 prebidBuilder.debug(updatedDebug);
             }
 
-            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder.build()));
+            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder.build()));
         } else {
             result = bidRequest.getExt();
         }
@@ -495,14 +499,14 @@ public class AmpRequestFactory {
      * Creates updated with default values bidrequest.ext.targeting {@link ExtRequestTargeting} if at least one of it's
      * child properties is missed or entire targeting does not exist.
      */
-    private static ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid) {
+    private ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid) {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
         final boolean isTargetingNull = targeting == null;
 
         final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularityNode == null || priceGranularityNode.isNull();
         final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
-                ? Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
+                ? mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
                 : priceGranularityNode;
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
@@ -516,7 +520,12 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
-                includeWinners, includeBidderKeys);
+        return ExtRequestTargeting.builder()
+                .pricegranularity(outgoingPriceGranularityNode)
+                .mediatypepricegranularity(mediaTypePriceGranularity)
+                .currency(currency)
+                .includewinners(includeWinners)
+                .includebidderkeys(includeBidderKeys)
+                .build();
     }
 }

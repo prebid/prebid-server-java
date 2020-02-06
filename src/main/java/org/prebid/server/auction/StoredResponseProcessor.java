@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderResponse;
@@ -18,6 +17,7 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
@@ -55,10 +55,14 @@ public class StoredResponseProcessor {
 
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
+    private final JacksonMapper mapper;
 
-    public StoredResponseProcessor(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog) {
+    public StoredResponseProcessor(ApplicationSettings applicationSettings,
+                                   BidderCatalog bidderCatalog,
+                                   JacksonMapper mapper) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Map<String, String> aliases, Timeout timeout) {
@@ -130,7 +134,7 @@ public class StoredResponseProcessor {
 
     private ExtImp getExtImp(ObjectNode extImpNode, String impId) {
         try {
-            return Json.mapper.treeToValue(extImpNode, ExtImp.class);
+            return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.imp.ext for impId = %s : %s",
                     impId, e.getMessage()));
@@ -211,7 +215,7 @@ public class StoredResponseProcessor {
             final String impId = storedResponseIdToImpId.get(id);
             final String rowSeatBid = idToRowSeatBid.getValue();
             try {
-                final List<SeatBid> seatBids = Json.mapper.readValue(rowSeatBid, SEATBID_LIST_TYPEREFERENCE);
+                final List<SeatBid> seatBids = mapper.mapper().readValue(rowSeatBid, SEATBID_LIST_TYPEREFERENCE);
                 resolvedSeatBids.addAll(seatBids.stream()
                         .map(seatBid -> updateSeatBidBids(seatBid, impId))
                         .collect(Collectors.toList()));
@@ -303,7 +307,7 @@ public class StoredResponseProcessor {
 
     private ExtBidPrebid parseExtBidPrebid(ObjectNode bidExtPrebid) {
         try {
-            return Json.mapper.treeToValue(bidExtPrebid, ExtBidPrebid.class);
+            return mapper.mapper().treeToValue(bidExtPrebid, ExtBidPrebid.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding stored response bid.ext.prebid");
         }

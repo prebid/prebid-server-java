@@ -89,7 +89,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
 
-        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
+        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper);
     }
 
     @Test
@@ -1315,8 +1315,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null,
-                                null, null))
+                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("pricegranularity")).build())
                         .build())))
                 .build();
         // when
@@ -1332,8 +1331,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1349,9 +1349,11 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity
-                                .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0))))), null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity
+                                        .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                BigDecimal.valueOf(0))))))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1367,9 +1369,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1385,10 +1388,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(-1, singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1402,13 +1405,15 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenMediaTypePriceGranularityTypesAreAllNull() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
+
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(null, null, null),
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .mediatypepricegranularity(ExtMediaTypePriceGranularity.of(null, null, null))
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1422,15 +1427,17 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWithCorrectMediaType() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
+        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(
+                mapper.valueToTree(ExtPriceGranularity.of(-1, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                        BigDecimal.valueOf(1))))), null, null);
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
-                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                                BigDecimal.valueOf(1))))), null, null),
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .mediatypepricegranularity(mediaTypePriceGranuality)
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1444,12 +1451,15 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageForInvalidTargeting() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, null, false, false))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .includebidderkeys(false)
+                                .includewinners(false)
+                                .build())
                         .build())))
                 .build();
         // when
@@ -1463,12 +1473,14 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValue() {
+        final ExtPriceGranularity priceGranuality = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranuality))
+                                .build())
                         .build())))
                 .build();
 
@@ -1483,13 +1495,15 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValueInTheMiddleOfRangeList() {
         // given
+        final ExtPriceGranularity priceGranuality = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranuality))
+                                .build())
                         .build())))
                 .build();
 
@@ -1504,12 +1518,14 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenIncrementIsNegativeInNotLeadingElement() {
         // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2,
+                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
-                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))))),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .build())
                         .build())))
                 .build();
 
@@ -1799,6 +1815,20 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .element(0).asString().contains("request.regs.ext is invalid:");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid(){
+        // given
+        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "invalid");
+        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
     }
 
     @Test
@@ -2383,7 +2413,8 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
-                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got 0");
+                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got" +
+                                " 0");
     }
 
     @Test

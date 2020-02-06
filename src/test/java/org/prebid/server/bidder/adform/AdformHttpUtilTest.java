@@ -2,7 +2,9 @@ package org.prebid.server.bidder.adform;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
+import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.bidder.adform.model.UrlParameters;
@@ -16,13 +18,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.util.Lists.emptyList;
 
-public class AdformHttpUtilTest {
+public class AdformHttpUtilTest extends VertxTest {
+
+    private AdformHttpUtil httpUtil;
+
+    @Before
+    public void setUp() {
+        httpUtil = new AdformHttpUtil(jacksonMapper);
+    }
 
     @Test
     public void buildAdformHeadersShouldReturnAllHeaders() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip",
-                "www.example.com", "buyeruid", AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
+        final MultiMap headers = httpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "www.example.com",
+                "buyeruid",
+                AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
 
         // then
         assertThat(headers).hasSize(7)
@@ -42,7 +56,12 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeadersShouldNotContainRefererHeaderIfRefererIsEmpty() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "", "buyeruid",
+        final MultiMap headers = httpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "",
+                "buyeruid",
                 AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
 
         // then
@@ -52,7 +71,13 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdAndDigiTrustAreEmpty() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "", null);
+        final MultiMap headers = httpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "referer",
+                "",
+                null);
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.COOKIE_HEADER.toString());
@@ -61,7 +86,12 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeaderShouldContainCookieHeaderOnlyWithUserIdIfUserIdPresentAndDigitrustAbsent() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "buyeruid",
+        final MultiMap headers = httpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "referer",
+                "buyeruid",
                 null);
 
         // then
@@ -72,7 +102,12 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeaderShouldContainCookieHeaderOnlyWithDigitrustIfUserIsAbsentAndDigitrustPresent() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "",
+        final MultiMap headers = httpUtil.buildAdformHeaders(
+                "0.1.0",
+                "userAgent",
+                "ip",
+                "referer",
+                "",
                 AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
 
         // then
@@ -86,7 +121,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldReturnCorrectUrl() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(
+        final String url = httpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(asList(15L, 16L))
                         .keyValues(asList("color:red", "age:30-40"))
@@ -113,7 +148,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldReturnHttpsProtocolIfSecureIsTrue() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .masterTagIds(asList(15L, 16L))
                 .priceTypes(singletonList("gross"))
                 .endpointUrl("http://adx.adform.net/adx")
@@ -136,7 +171,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldNotContainAdidParamIfAdvertisingIdIsMissed() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .masterTagIds(asList(15L, 16L))
                 .priceTypes(singletonList("gross"))
                 .endpointUrl("http://adx.adform.net/adx")
@@ -158,7 +193,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldNotContainPtParamIfPriceTypesListIsEmpty() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .masterTagIds(asList(15L, 16L))
                 .priceTypes(emptyList())
                 .endpointUrl("http://adx.adform.net/adx")
@@ -178,7 +213,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldNotContainPtParamIfNoValidPriceTypes() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .masterTagIds(asList(15L, 16L))
                 .priceTypes(singletonList("notValid"))
                 .endpointUrl("http://adx.adform.net/adx")
@@ -198,7 +233,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldHasNetPtParamIfOnlyNetIsInPriceTypesList() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .masterTagIds(asList(15L, 16L))
                 .priceTypes(singletonList("Net"))
                 .endpointUrl("http://adx.adform.net/adx")
@@ -218,7 +253,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldHasGrossPtParamIfOnlyGrossIsInPriceTypesList() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .priceTypes(singletonList("Gross"))
                 .masterTagIds(asList(15L, 16L))
                 .endpointUrl("http://adx.adform.net/adx")
@@ -239,7 +274,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldHasGrossPtParamIfGrossAndNetAndNotValidPriceTypesAreInList() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+        final String url = httpUtil.buildAdformUrl(UrlParameters.builder()
                 .priceTypes(asList("Net", "Gross", "NotValid"))
                 .masterTagIds(asList(15L, 16L))
                 .endpointUrl("http://adx.adform.net/adx")

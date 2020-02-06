@@ -9,8 +9,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -20,6 +18,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.triplelift.model.TripleliftInnerExt;
 import org.prebid.server.bidder.triplelift.model.TripleliftResponseExt;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -39,9 +39,11 @@ public class TripleliftBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public TripleliftBidder(String endpointUrl) {
+    public TripleliftBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -69,14 +71,14 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(Json.encode(updatedRequest))
+                        .body(mapper.encode(updatedRequest))
                         .headers(HttpUtil.headers())
                         .payload(updatedRequest)
                         .build()),
                 errors);
     }
 
-    private static Imp modifyImp(Imp imp) throws PreBidException {
+    private Imp modifyImp(Imp imp) throws PreBidException {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException("neither Banner nor Video object specified");
         }
@@ -90,9 +92,9 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         return impBuilder.build();
     }
 
-    private static ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
+    private ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpTriplelift>>convertValue(imp.getExt(),
+            return mapper.mapper().convertValue(imp.getExt(),
                     TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
@@ -122,7 +124,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                     break;
                 }
                 try {
-                    final TripleliftResponseExt tripleliftResponseExt = Json.mapper.treeToValue(ext,
+                    final TripleliftResponseExt tripleliftResponseExt = mapper.mapper().treeToValue(ext,
                             TripleliftResponseExt.class);
                     final BidderBid bidderBid = BidderBid.of(bid, getBidType(tripleliftResponseExt),
                             DEFAULT_BID_CURRENCY);
@@ -137,7 +139,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
         try {
-            return Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage(), e);
         }

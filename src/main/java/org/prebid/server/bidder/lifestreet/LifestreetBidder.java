@@ -9,8 +9,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -20,6 +18,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.lifestreet.ExtImpLifestreet;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -45,9 +45,11 @@ public class LifestreetBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public LifestreetBidder(String endpointUrl) {
+    public LifestreetBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -59,7 +61,7 @@ public class LifestreetBidder implements Bidder<BidRequest> {
             try {
                 validateImp(imp);
                 final BidRequest outgoingRequest = createRequest(imp, bidRequest);
-                final String body = Json.encode(outgoingRequest);
+                final String body = mapper.encode(outgoingRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
@@ -82,7 +84,7 @@ public class LifestreetBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest createRequest(Imp imp, BidRequest bidRequest) {
+    private BidRequest createRequest(Imp imp, BidRequest bidRequest) {
         final ExtImpLifestreet extImpLifestreet = parseAndValidateImpExt(imp);
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         impBuilder.tagid(extImpLifestreet.getSlotTag());
@@ -106,11 +108,10 @@ public class LifestreetBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpLifestreet parseAndValidateImpExt(Imp imp) {
+    private ExtImpLifestreet parseAndValidateImpExt(Imp imp) {
         ExtImpLifestreet extImpLifestreet;
         try {
-            extImpLifestreet = Json.mapper.<ExtPrebid<?, ExtImpLifestreet>>convertValue(imp.getExt(),
-                    LIFESTREET_EXT_TYPE_REFERENCE).getBidder();
+            extImpLifestreet = mapper.mapper().convertValue(imp.getExt(), LIFESTREET_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -128,7 +129,7 @@ public class LifestreetBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -147,7 +148,8 @@ public class LifestreetBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
+                        DEFAULT_BID_CURRENCY))
                 // one bid per request/response
                 .limit(1)
                 .collect(Collectors.toList());

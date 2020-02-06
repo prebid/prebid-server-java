@@ -41,12 +41,12 @@ public class TripleliftBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        tripleliftBidder = new TripleliftBidder(ENDPOINT_URL);
+        tripleliftBidder = new TripleliftBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new TripleliftBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new TripleliftBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class TripleliftBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

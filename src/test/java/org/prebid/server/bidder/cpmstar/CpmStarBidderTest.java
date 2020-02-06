@@ -42,12 +42,12 @@ public class CpmStarBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        cpmStarBidder = new CpmStarBidder(ENDPOINT_URL);
+        cpmStarBidder = new CpmStarBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new CpmStarBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new CpmStarBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class CpmStarBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

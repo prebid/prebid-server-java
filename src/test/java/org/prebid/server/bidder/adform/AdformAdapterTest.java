@@ -5,7 +5,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,7 +57,7 @@ public class AdformAdapterTest extends VertxTest {
 
     @Before
     public void setUp() {
-        adformAdapter = new AdformAdapter(COOKIE_FAMILY, ENDPOINT_URL);
+        adformAdapter = new AdformAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -66,7 +65,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder().bidId("bidId").adUnitCode("AdUnitCode")
-                        .params(Json.mapper.valueToTree(
+                        .params(mapper.valueToTree(
                                 AdformParams.of(15L, "gross", "color:red", "red")))
                         .build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().preBidRequest(
@@ -123,7 +122,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.valueToTree(AdformParams.of(0L, null, null, null))).build()));
+                        .params(mapper.valueToTree(AdformParams.of(0L, null, null, null))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().build();
 
         // when and then
@@ -150,7 +149,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.createObjectNode().put("mid", "string")).build()));
+                        .params(mapper.createObjectNode().put("mid", "string")).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().build();
 
         // when and then
@@ -166,7 +165,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.valueToTree(AdformParams.of(15L, null, null, null))).build()));
+                        .params(mapper.valueToTree(AdformParams.of(15L, null, null, null))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().secure(1)
                 .uidsCookie(uidsCookie)
                 .preBidRequest(PreBidRequest.builder().build()).build();

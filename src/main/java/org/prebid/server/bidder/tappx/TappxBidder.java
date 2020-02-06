@@ -7,8 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -17,6 +15,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -41,9 +41,11 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final String TYPE_CNN = "prebid";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public TappxBidder(String endpointUrl) {
+    public TappxBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -72,7 +74,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .headers(HttpUtil.headers())
                         .uri(url)
-                        .body(Json.encode(outgoingRequest))
+                        .body(mapper.encode(outgoingRequest))
                         .payload(outgoingRequest)
                         .build()),
                 Collections.emptyList());
@@ -81,10 +83,9 @@ public class TappxBidder implements Bidder<BidRequest> {
     /**
      * Retrieves first {@link ExtImpTappx} from {@link Imp}.
      */
-    private static ExtImpTappx parseBidRequestToExtImpTappx(BidRequest request) {
+    private ExtImpTappx parseBidRequestToExtImpTappx(BidRequest request) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpTappx>>convertValue(
-                    request.getImp().get(0).getExt(), TAPX_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(request.getImp().get(0).getExt(), TAPX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -141,7 +142,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -158,7 +159,8 @@ public class TappxBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                        DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 

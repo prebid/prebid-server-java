@@ -46,12 +46,12 @@ public class GammaBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        gammaBidder = new GammaBidder(ENDPOINT_URL);
+        gammaBidder = new GammaBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new GammaBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new GammaBidder("invalid_url", jacksonMapper));
     }
 
     @Test

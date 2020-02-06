@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.pulsepoint.ExtImpPulsepoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -18,8 +19,8 @@ import java.util.Objects;
 
 public class PulsepointBidder extends OpenrtbBidder<ExtImpPulsepoint> {
 
-    public PulsepointBidder(String endpointUrl) {
-        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpPulsepoint.class);
+    public PulsepointBidder(String endpointUrl, JacksonMapper mapper) {
+        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpPulsepoint.class, mapper);
     }
 
     @Override

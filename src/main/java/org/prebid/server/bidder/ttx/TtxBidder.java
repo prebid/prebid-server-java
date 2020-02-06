@@ -3,12 +3,12 @@ package org.prebid.server.bidder.ttx;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 
 public class TtxBidder extends OpenrtbBidder<ExtImpTtx> {
 
-    public TtxBidder(String endpointUrl) {
-        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpTtx.class);
+    public TtxBidder(String endpointUrl, JacksonMapper mapper) {
+        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpTtx.class, mapper);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class TtxBidder extends OpenrtbBidder<ExtImpTtx> {
         final TtxImpExt ttxImpExt = TtxImpExt.of(
                 TtxImpExtTtx.of(firstImpExt.getProductId(), StringUtils.isNotBlank(zoneId) ? zoneId : null));
 
-        final Imp modifiedFirstImp = firstImp.toBuilder().ext(Json.mapper.valueToTree(ttxImpExt)).build();
+        final Imp modifiedFirstImp = firstImp.toBuilder().ext(mapper.mapper().valueToTree(ttxImpExt)).build();
 
         if (modifiedImps.size() == 1) {
             requestBuilder.imp(Collections.singletonList(modifiedFirstImp));

@@ -44,12 +44,12 @@ public class ConversantBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        conversantBidder = new ConversantBidder(ENDPOINT_URL);
+        conversantBidder = new ConversantBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ConversantBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new ConversantBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -466,7 +466,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
@@ -554,13 +554,17 @@ public class ConversantBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer, identity());
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+    private static Imp givenImp(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())

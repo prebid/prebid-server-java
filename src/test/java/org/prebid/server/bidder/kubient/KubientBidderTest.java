@@ -35,12 +35,12 @@ public class KubientBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        kubientBidder = new KubientBidder(ENDPOINT_URL);
+        kubientBidder = new KubientBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new KubientBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new KubientBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -73,7 +73,7 @@ public class KubientBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

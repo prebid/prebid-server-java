@@ -13,8 +13,6 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -31,6 +29,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -71,6 +71,7 @@ public class AuctionRequestFactory {
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
+    private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
     private final List<String> blacklistedApps;
     private final List<String> blacklistedAccounts;
@@ -83,15 +84,24 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
-    private final boolean shouldCacheOnlyWinningBids;
+    private final JacksonMapper mapper;
 
-    public AuctionRequestFactory(
-            long maxRequestSize, boolean enforceValidAccount, boolean shouldCacheOnlyWinningBids,
-            String adServerCurrency, List<String> blacklistedApps, List<String> blacklistedAccounts,
-            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
-            InterstitialProcessor interstitialProcessor, TimeoutResolver timeoutResolver, TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings) {
+    public AuctionRequestFactory(long maxRequestSize,
+                                 boolean enforceValidAccount,
+                                 boolean shouldCacheOnlyWinningBids,
+                                 String adServerCurrency,
+                                 List<String> blacklistedApps,
+                                 List<String> blacklistedAccounts,
+                                 StoredRequestProcessor storedRequestProcessor,
+                                 ImplicitParametersExtractor paramsExtractor,
+                                 UidsCookieService uidsCookieService,
+                                 BidderCatalog bidderCatalog,
+                                 RequestValidator requestValidator,
+                                 InterstitialProcessor interstitialProcessor,
+                                 TimeoutResolver timeoutResolver,
+                                 TimeoutFactory timeoutFactory,
+                                 ApplicationSettings applicationSettings,
+                                 JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
@@ -108,6 +118,7 @@ public class AuctionRequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -177,9 +188,9 @@ public class AuctionRequestFactory {
         }
 
         try {
-            return Json.decodeValue(body, BidRequest.class);
+            return mapper.decodeValue(body, BidRequest.class);
         } catch (DecodeException e) {
-            throw new InvalidRequestException(e.getMessage());
+            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()), true);
         }
     }
 
@@ -288,8 +299,9 @@ public class AuctionRequestFactory {
         final ObjectNode siteExt = site != null ? site.getExt() : null;
         final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(
-                ExtSite.of(0, data)) : null;
+        final ObjectNode modifiedSiteExt = shouldSetExtAmp
+                ? mapper.mapper().valueToTree(ExtSite.of(0, data))
+                : null;
 
         String referer = null;
         String parsedDomain = null;
@@ -336,7 +348,7 @@ public class AuctionRequestFactory {
     /**
      * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
      */
-    private static ObjectNode userExtOrNull(User user) {
+    private ObjectNode userExtOrNull(User user) {
         final ExtUser extUser = extUser(user);
 
         // set request.user.ext.digitrust.perf if not defined
@@ -345,7 +357,7 @@ public class AuctionRequestFactory {
             final ExtUser updatedExtUser = extUser.toBuilder()
                     .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
                     .build();
-            return Json.mapper.valueToTree(updatedExtUser);
+            return mapper.mapper().valueToTree(updatedExtUser);
         }
         return null;
     }
@@ -353,11 +365,11 @@ public class AuctionRequestFactory {
     /**
      * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
      */
-    private static ExtUser extUser(User user) {
+    private ExtUser extUser(User user) {
         final ObjectNode userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             try {
-                return Json.mapper.treeToValue(userExt, ExtUser.class);
+                return mapper.mapper().treeToValue(userExt, ExtUser.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
             }
@@ -399,7 +411,7 @@ public class AuctionRequestFactory {
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
-            result = Json.mapper.valueToTree(ExtBidRequest.of(prebidBuilder
+            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
                     .aliases(ObjectUtils.defaultIfNull(updatedAliases,
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
@@ -416,9 +428,9 @@ public class AuctionRequestFactory {
     /**
      * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
      */
-    private static ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
+    private ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
         try {
-            return Json.mapper.treeToValue(extBidRequestNode, ExtBidRequest.class);
+            return mapper.mapper().treeToValue(extBidRequestNode, ExtBidRequest.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
@@ -471,13 +483,16 @@ public class AuctionRequestFactory {
 
         final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            result = ExtRequestTargeting.of(
-                    populatePriceGranularity(targeting, isPriceGranularityNull, isPriceGranularityTextual,
-                            impMediaTypes),
-                    targeting.getMediatypepricegranularity(),
-                    targeting.getCurrency(),
-                    isIncludeWinnersNull ? true : targeting.getIncludewinners(),
-                    isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
+            result = ExtRequestTargeting.builder()
+                    .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
+                            isPriceGranularityTextual, impMediaTypes))
+                    .mediatypepricegranularity(targeting.getMediatypepricegranularity())
+                    .currency(targeting.getCurrency())
+                    .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
+                    .includebidderkeys(isIncludeBidderKeysNull
+                            ? !isWinningOnly(prebid.getCache())
+                            : targeting.getIncludebidderkeys())
+                    .build();
         } else {
             result = null;
         }
@@ -499,15 +514,15 @@ public class AuctionRequestFactory {
      * In case of valid string price granularity replaced it with appropriate custom view.
      * In case of invalid string value throws {@link InvalidRequestException}.
      */
-    private static JsonNode populatePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
-                                                     boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
+    private JsonNode populatePriceGranularity(ExtRequestTargeting targeting, boolean isPriceGranularityNull,
+                                              boolean isPriceGranularityTextual, Set<BidType> impMediaTypes) {
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
 
         final boolean hasAllMediaTypes = checkExistingMediaTypes(targeting.getMediatypepricegranularity())
                 .containsAll(impMediaTypes);
 
         if (isPriceGranularityNull && !hasAllMediaTypes) {
-            return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
+            return mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
         }
         if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
@@ -516,7 +531,7 @@ public class AuctionRequestFactory {
             } catch (PreBidException ex) {
                 throw new InvalidRequestException(ex.getMessage());
             }
-            return Json.mapper.valueToTree(ExtPriceGranularity.from(priceGranularity));
+            return mapper.mapper().valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
         return priceGranularityNode;
     }
@@ -661,7 +676,7 @@ public class AuctionRequestFactory {
      * Extracts publisher id either from {@link BidRequest}.app.publisher or {@link BidRequest}.site.publisher.
      * If neither is present returns empty string.
      */
-    private static String accountIdFrom(BidRequest bidRequest) {
+    private String accountIdFrom(BidRequest bidRequest) {
         final App app = bidRequest.getApp();
         final Publisher appPublisher = app != null ? app.getPublisher() : null;
         final Site site = bidRequest.getSite();
@@ -676,7 +691,7 @@ public class AuctionRequestFactory {
      * Resolves what value should be used as a publisher id - either taken from publisher.ext.parentAccount
      * or publisher.id in this respective priority.
      */
-    private static String resolvePublisherId(Publisher publisher) {
+    private String resolvePublisherId(Publisher publisher) {
         final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
         return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
     }
@@ -684,14 +699,14 @@ public class AuctionRequestFactory {
     /**
      * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
      */
-    private static String parentAccountIdFromExtPublisher(ObjectNode extPublisherNode) {
+    private String parentAccountIdFromExtPublisher(ObjectNode extPublisherNode) {
         if (extPublisherNode == null) {
             return null;
         }
 
         final ExtPublisher extPublisher;
         try {
-            extPublisher = Json.mapper.convertValue(extPublisherNode, ExtPublisher.class);
+            extPublisher = mapper.mapper().convertValue(extPublisherNode, ExtPublisher.class);
         } catch (IllegalArgumentException e) {
             return null; // not critical
         }

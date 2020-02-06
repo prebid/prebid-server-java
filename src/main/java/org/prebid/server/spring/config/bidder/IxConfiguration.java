@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.ix.IxAdapter;
 import org.prebid.server.bidder.ix.IxBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,6 +31,9 @@ public class IxConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("ixConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -47,8 +51,9 @@ public class IxConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new IxBidder(configProperties.getEndpoint()))
-                .adapterCreator(() -> new IxAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint()))
+                .bidderCreator(() -> new IxBidder(configProperties.getEndpoint(), mapper))
+                .adapterCreator(() -> new IxAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
+                        mapper))
                 .assemble();
     }
 }

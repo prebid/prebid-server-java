@@ -50,7 +50,7 @@ public class SomoaudienceBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        somoaudienceBidder = new SomoaudienceBidder(ENDPOINT_URL);
+        somoaudienceBidder = new SomoaudienceBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -442,7 +442,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badServerResponse(
-                        "Failed to decode:Unexpected end-of-input: expected close marker for Object (start marker at" +
+                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at" +
                                 " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, " +
                                 "column: 3]"));
     }

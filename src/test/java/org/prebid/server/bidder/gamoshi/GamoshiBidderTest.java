@@ -49,12 +49,13 @@ public class GamoshiBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        gamoshiBidder = new GamoshiBidder(ENDPOINT_URL);
+        gamoshiBidder = new GamoshiBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new GamoshiBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new GamoshiBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -230,7 +231,7 @@ public class GamoshiBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

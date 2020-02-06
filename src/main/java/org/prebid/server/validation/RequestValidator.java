@@ -31,12 +31,14 @@ import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -85,14 +87,19 @@ public class RequestValidator {
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
+    private final JacksonMapper mapper;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest.
      */
-    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
+    public RequestValidator(BidderCatalog bidderCatalog,
+                            BidderParamValidator bidderParamValidator,
+                            JacksonMapper mapper) {
+
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -212,7 +219,7 @@ public class RequestValidator {
     /**
      * Validates {@link ExtRequestTargeting}.
      */
-    private static void validateTargeting(ExtRequestTargeting extRequestTargeting) throws ValidationException {
+    private void validateTargeting(ExtRequestTargeting extRequestTargeting) throws ValidationException {
         final JsonNode pricegranularity = extRequestTargeting.getPricegranularity();
         if (pricegranularity != null && !pricegranularity.isNull()) {
             validateExtPriceGranularity(pricegranularity, null);
@@ -230,11 +237,11 @@ public class RequestValidator {
     /**
      * Validates {@link ExtPriceGranularity}.
      */
-    private static void validateExtPriceGranularity(JsonNode priceGranularity, BidType type)
+    private void validateExtPriceGranularity(JsonNode priceGranularity, BidType type)
             throws ValidationException {
         final ExtPriceGranularity extPriceGranularity;
         try {
-            extPriceGranularity = Json.mapper.treeToValue(priceGranularity, ExtPriceGranularity.class);
+            extPriceGranularity = mapper.mapper().treeToValue(priceGranularity, ExtPriceGranularity.class);
         } catch (JsonProcessingException e) {
             throw new ValidationException(String.format("Error while parsing request.ext.prebid.targeting.%s",
                     type == null ? "pricegranularity" : "mediatypepricegranularity." + type));
@@ -251,7 +258,7 @@ public class RequestValidator {
     /**
      * Validates {@link ExtMediaTypePriceGranularity} if it's present.
      */
-    private static void validateMediaTypePriceGranularity(ExtMediaTypePriceGranularity mediaTypePriceGranularity)
+    private void validateMediaTypePriceGranularity(ExtMediaTypePriceGranularity mediaTypePriceGranularity)
             throws ValidationException {
         if (mediaTypePriceGranularity != null) {
             final ObjectNode banner = mediaTypePriceGranularity.getBanner();
@@ -313,7 +320,7 @@ public class RequestValidator {
         ExtBidRequest extBidRequest = null;
         if (bidRequest.getExt() != null) {
             try {
-                extBidRequest = Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
+                extBidRequest = mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class);
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.ext is invalid: %s", e.getMessage());
             }
@@ -350,7 +357,7 @@ public class RequestValidator {
             final ObjectNode siteExt = site.getExt();
             if (siteExt != null && siteExt.size() > 0) {
                 try {
-                    final ExtSite extSite = Json.mapper.treeToValue(siteExt, ExtSite.class);
+                    final ExtSite extSite = mapper.mapper().treeToValue(siteExt, ExtSite.class);
                     final Integer amp = extSite.getAmp();
                     if (amp != null && (amp < 0 || amp > 1)) {
                         throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
@@ -366,7 +373,7 @@ public class RequestValidator {
         if (app != null) {
             if (app.getExt() != null) {
                 try {
-                    Json.mapper.treeToValue(app.getExt(), ExtApp.class);
+                    mapper.mapper().treeToValue(app.getExt(), ExtApp.class);
                 } catch (JsonProcessingException e) {
                     throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
                 }
@@ -401,7 +408,7 @@ public class RequestValidator {
 
     private ExtDevice parseExtDevice(ObjectNode extDevice) throws ValidationException {
         try {
-            return Json.mapper.treeToValue(extDevice, ExtDevice.class);
+            return mapper.mapper().treeToValue(extDevice, ExtDevice.class);
         } catch (JsonProcessingException e) {
             throw new ValidationException("request.device.ext is not valid", e.getMessage());
         }
@@ -410,7 +417,7 @@ public class RequestValidator {
     private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
         if (user != null && user.getExt() != null) {
             try {
-                final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
+                final ExtUser extUser = mapper.mapper().treeToValue(user.getExt(), ExtUser.class);
 
                 final ExtUserPrebid prebid = extUser.getPrebid();
                 if (prebid != null) {
@@ -488,11 +495,18 @@ public class RequestValidator {
     private void validateRegs(Regs regs) throws ValidationException {
         if (regs != null && regs.getExt() != null) {
             try {
-                final ExtRegs extRegs = Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
+                final ExtRegs extRegs = mapper.mapper().treeToValue(regs.getExt(), ExtRegs.class);
                 final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
                 if (gdpr != null && gdpr != 0 && gdpr != 1) {
                     throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
                 }
+                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
+                try {
+                    Ccpa.validateUsPrivacy(usPrivacy);
+                } catch (PreBidException ex) {
+                    throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
+                }
+
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
             }
@@ -536,12 +550,12 @@ public class RequestValidator {
         xNative.setRequest(toEncodedRequest(nativeRequest, updatedAssets));
     }
 
-    private static Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
+    private Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
         if (StringUtils.isBlank(rawStringNativeRequest)) {
             throw new ValidationException("request.imp.[%d].ext.native contains empty request value", impIndex);
         }
         try {
-            return Json.mapper.readValue(rawStringNativeRequest, Request.class);
+            return mapper.mapper().readValue(rawStringNativeRequest, Request.class);
         } catch (IOException e) {
             throw new ValidationException("Error while parsing request.imp.[%d].ext.native.request", impIndex);
         }
@@ -773,9 +787,9 @@ public class RequestValidator {
         return String.format("%s#page=%d", DOCUMENTATION, page);
     }
 
-    private static String toEncodedRequest(Request nativeRequest, List<Asset> updatedAssets) {
+    private String toEncodedRequest(Request nativeRequest, List<Asset> updatedAssets) {
         try {
-            return Json.mapper.writeValueAsString(nativeRequest.toBuilder().assets(updatedAssets).build());
+            return mapper.mapper().writeValueAsString(nativeRequest.toBuilder().assets(updatedAssets).build());
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Error while marshaling native request to the string", e);
         }

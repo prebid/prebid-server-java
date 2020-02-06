@@ -10,8 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,6 +19,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.somoaudience.proto.SomoaudienceReqExt;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -42,13 +42,17 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
             };
 
     private static final String CONFIG = "hb_pbs_1.0.0";
-    private final ObjectNode requestExtension;
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public SomoaudienceBidder(String endpointUrl) {
+    private final ObjectNode requestExtension;
+
+    public SomoaudienceBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        requestExtension = Json.mapper.valueToTree(SomoaudienceReqExt.of(CONFIG));
+        this.mapper = Objects.requireNonNull(mapper);
+
+        this.requestExtension = mapper.mapper().valueToTree(SomoaudienceReqExt.of(CONFIG));
     }
 
     @Override
@@ -112,7 +116,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         requestBuilder.ext(requestExtension);
 
         final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         final MultiMap headers = basicHeaders();
         final Device requestDevice = outgoingRequest.getDevice();
@@ -130,7 +134,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpSomoaudience parseAndValidateImpExt(Imp imp) {
+    private ExtImpSomoaudience parseAndValidateImpExt(Imp imp) {
         final ObjectNode impExt = imp.getExt();
         if (impExt == null || impExt.size() == 0) {
             throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", imp.getId()));
@@ -138,7 +142,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
 
         final ExtImpSomoaudience extImpSomoaudience;
         try {
-            extImpSomoaudience = Json.mapper.<ExtPrebid<?, ExtImpSomoaudience>>convertValue(imp.getExt(),
+            extImpSomoaudience = mapper.mapper().convertValue(imp.getExt(),
                     SOMOAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
@@ -167,7 +171,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

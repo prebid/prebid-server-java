@@ -28,7 +28,7 @@
         <spring.boot.version>2.1.1.RELEASE</spring.boot.version>
         <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
-        <hibernate-validator.version>6.0.7.Final</hibernate-validator.version>
+        <hibernate-validator.version>6.1.0.Final</hibernate-validator.version>
         <vertx.version>3.8.3</vertx.version>
         <lombok.version>1.18.4</lombok.version>
         <commons.version>3.6</commons.version>
@@ -57,8 +57,8 @@
         <h2.version>1.4.196</h2.version>
 
         <!-- plugin versions -->
-        <checkstyle-plugin.version>2.17</checkstyle-plugin.version>
-        <checkstyle.version>8.18</checkstyle.version>
+        <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
+        <checkstyle.version>8.29</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.2</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>

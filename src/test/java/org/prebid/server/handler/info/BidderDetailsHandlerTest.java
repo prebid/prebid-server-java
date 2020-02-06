@@ -63,19 +63,19 @@ public class BidderDetailsHandlerTest extends VertxTest {
         given(bidderCatalog.nameByAlias("bidderAlias1")).willReturn("bidderName1");
         given(bidderCatalog.nameByAlias("bidderAlias2")).willReturn("bidderName2");
 
-        handler = new BidderDetailsHandler(bidderCatalog);
+        handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailIfAllAliasIsConfigured() {
         given(bidderCatalog.aliases()).willReturn(singleton("all"));
-        assertThatIllegalArgumentException().isThrownBy(() -> new BidderDetailsHandler(bidderCatalog));
+        assertThatIllegalArgumentException().isThrownBy(() -> new BidderDetailsHandler(bidderCatalog, jacksonMapper));
     }
 
     @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
-        handler = new BidderDetailsHandler(bidderCatalog);
+        handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
 
         // when
         handler.handle(routingContext);
@@ -88,7 +88,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
     public void shouldRespondWithHttpStatus404IfNoBidderFound() {
         // given
         given(bidderCatalog.names()).willReturn(emptySet());
-        handler = new BidderDetailsHandler(bidderCatalog);
+        handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
 
         // when
         handler.handle(routingContext);

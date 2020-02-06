@@ -14,7 +14,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -38,6 +37,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.LogModifier;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -81,11 +81,19 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
     private final LogModifier logModifier;
+    private final JacksonMapper mapper;
 
-    public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
-                      AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, BidderCatalog bidderCatalog,
-                      Set<String> biddersSupportingCustomTargeting, AmpResponsePostProcessor ampResponsePostProcessor,
-                      LogModifier logModifier) {
+    public AmpHandler(AmpRequestFactory ampRequestFactory,
+                      ExchangeService exchangeService,
+                      AnalyticsReporter analyticsReporter,
+                      Metrics metrics,
+                      Clock clock,
+                      BidderCatalog bidderCatalog,
+                      Set<String> biddersSupportingCustomTargeting,
+                      AmpResponsePostProcessor ampResponsePostProcessor,
+                      LogModifier logModifier,
+                      JacksonMapper mapper) {
+
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
@@ -95,6 +103,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
         this.logModifier = Objects.requireNonNull(logModifier);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -183,7 +192,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
         final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
         try {
-            extBid = Json.mapper.convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
+            extBid = mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
@@ -230,7 +239,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     /**
      * Determines debug flag from {@link BidRequest}.
      */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
+    private boolean isDebugEnabled(BidRequest bidRequest) {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
@@ -242,19 +251,19 @@ public class AmpHandler implements Handler<RoutingContext> {
     /**
      * Extracts {@link ExtBidRequest} from {@link BidRequest}.
      */
-    private static ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
+    private ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
         try {
             return bidRequest.getExt() != null
-                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class)
+                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class)
                     : null;
         } catch (JsonProcessingException e) {
             throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
         }
     }
 
-    private static ExtBidResponse extResponseFrom(BidResponse bidResponse) {
+    private ExtBidResponse extResponseFrom(BidResponse bidResponse) {
         try {
-            return Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
+            return mapper.mapper().convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
@@ -290,39 +299,40 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK.code();
             context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = Json.encode(responseResult.result());
+            body = mapper.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof BlacklistedAppException || exception instanceof BlacklistedAccountException) {
-                metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String errorMessage = exception.getMessage();
-                logger.debug("Blacklisted: {0}", errorMessage);
-
-                errorMessages = Collections.singletonList(errorMessage);
-                status = HttpResponseStatus.FORBIDDEN.code();
-                body = String.format("Blacklisted: %s", errorMessage);
-
-            } else if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                errorMessages = ((InvalidRequestException) exception).getMessages();
-                final String logMessage = String.format("Invalid request format: %s", errorMessages);
-                logModifier.get().accept(logger, logMessage);
+                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
+                errorMessages = invalidRequestException.getMessages().stream()
+                        .map(msg -> String.format("Invalid request format: %s", msg))
+                        .collect(Collectors.toList());
+                final String message = String.join("\n", errorMessages);
+                logModifier.get().accept(logger, logMessageFrom(invalidRequestException, message, context));
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
-                body = errorMessages.stream().map(
-                        msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.joining("\n"));
+                body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
-                final String errorMessage = exception.getMessage();
-                logger.info("Unauthorized: {0}", errorMessage);
+                final String message = String.format("Unauthorized: %s", exception.getMessage());
+                logger.info(message);
 
-                errorMessages = Collections.singletonList(errorMessage);
+                errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
-                body = String.format("Unauthorised: %s", errorMessage);
+                body = message;
+            } else if (exception instanceof BlacklistedAppException
+                    || exception instanceof BlacklistedAccountException) {
+                metricRequestStatus = exception instanceof BlacklistedAccountException
+                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                logger.debug(message);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.FORBIDDEN.code();
+                body = message;
             } else {
                 final String message = exception.getMessage();
 
@@ -350,6 +360,12 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
+    }
+
+    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
+        return exception.isNeedEnhancedLogging()
+                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
+                : message;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,

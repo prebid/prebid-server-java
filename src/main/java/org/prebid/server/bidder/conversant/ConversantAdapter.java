@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -22,6 +21,7 @@ import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -55,10 +55,12 @@ public class ConversantAdapter extends OpenrtbAdapter {
     private static final Set<Integer> AD_POSITIONS = IntStream.range(0, 8).boxed().collect(Collectors.toSet());
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public ConversantAdapter(String cookieFamilyName, String endpointUrl) {
+    public ConversantAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -87,7 +89,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .at(1)
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .app(app != null ? makeApp(adUnitBidsWithParams, app) : app)
+                .app(app != null ? makeApp(adUnitBidsWithParams, app) : null)
                 .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
@@ -96,14 +98,14 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams<ConversantParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids,
-                                                                                          App app) {
+    private List<AdUnitBidWithParams<ConversantParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids,
+                                                                                   App app) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid, app)))
                 .collect(Collectors.toList());
     }
 
-    private static ConversantParams parseAndValidateParams(AdUnitBid adUnitBid, App app) {
+    private ConversantParams parseAndValidateParams(AdUnitBid adUnitBid, App app) {
         final boolean isAppRequest = app != null;
         if (isAppRequest && StringUtils.isBlank(app.getId())) {
             throw new PreBidException("Missing app id");
@@ -116,7 +118,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
 
         final ConversantParams params;
         try {
-            params = Json.mapper.convertValue(paramsNode, ConversantParams.class);
+            params = mapper.mapper().convertValue(paramsNode, ConversantParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());

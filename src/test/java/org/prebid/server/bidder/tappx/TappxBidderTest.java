@@ -38,7 +38,7 @@ public class TappxBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        tappxBidder = new TappxBidder(ENDPOINT_URL);
+        tappxBidder = new TappxBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -146,8 +146,10 @@ public class TappxBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> emptyHostResult = tappxBidder.makeHttpRequests(bidRequestEmptyHost);
-        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult = tappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
-        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult = tappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
+        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult =
+                tappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
+        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult =
+                tappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
 
         // then
         assertThat(emptyHostResult.getErrors()).hasSize(1);
@@ -168,7 +170,7 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

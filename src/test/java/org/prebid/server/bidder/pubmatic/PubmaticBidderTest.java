@@ -54,12 +54,12 @@ public class PubmaticBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        pubmaticBidder = new PubmaticBidder(ENDPOINT_URL);
+        pubmaticBidder = new PubmaticBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new PubmaticBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new PubmaticBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -309,7 +309,7 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetRequestExtFromWrapExt() throws IOException {
+    public void makeHttpRequestsShouldSetRequestExtFromWrapExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -441,7 +441,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

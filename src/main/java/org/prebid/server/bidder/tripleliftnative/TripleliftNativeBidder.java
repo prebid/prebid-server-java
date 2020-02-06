@@ -12,8 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -23,6 +21,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
@@ -52,13 +52,15 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final List<String> publisherWhiteList;
+    private final JacksonMapper mapper;
 
-    public TripleliftNativeBidder(String endpointUrl, Map<String, String> extraInfo) {
+    public TripleliftNativeBidder(String endpointUrl, Map<String, String> extraInfo, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
         this.publisherWhiteList = initPublisherWhiteList(extraInfo);
     }
 
-    private static List<String> initPublisherWhiteList(Map<String, String> extraInfo) {
+    private List<String> initPublisherWhiteList(Map<String, String> extraInfo) {
         final String jsonWhiteList = extraInfo == null ? null : extraInfo.get("publisher_whitelist");
 
         if (jsonWhiteList == null) {
@@ -66,7 +68,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final List<String> whiteList = Json.mapper.readValue(jsonWhiteList, WHITELIST_TYPE_REFERENCE);
+            final List<String> whiteList = mapper.mapper().readValue(jsonWhiteList, WHITELIST_TYPE_REFERENCE);
             return whiteList == null ? Collections.emptyList() : whiteList;
         } catch (JsonProcessingException e) {
             throw new PreBidException("TripleliftNativeBidder could not unmarshal config json");
@@ -104,14 +106,14 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(Json.encode(updatedRequest))
+                        .body(mapper.encode(updatedRequest))
                         .headers(HttpUtil.headers())
                         .payload(updatedRequest)
                         .build()),
                 errors);
     }
 
-    private static Imp modifyImp(Imp imp) throws PreBidException {
+    private Imp modifyImp(Imp imp) throws PreBidException {
         if (imp.getXNative() == null) {
             throw new PreBidException("no native object specified");
         }
@@ -128,16 +130,16 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
+    private ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpTriplelift>>convertValue(imp.getExt(),
+            return mapper.mapper().convertValue(imp.getExt(),
                     TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    private static String effectivePublisherId(BidRequest bidRequest) {
+    private String effectivePublisherId(BidRequest bidRequest) {
         String publisherId = UNKONWN_PUBLSIHER_ID;
 
         final Publisher publisher = findPublisher(bidRequest);
@@ -151,7 +153,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         if (publisherExt != null) {
             final ExtPublisher extPublisher;
             try {
-                extPublisher = Json.mapper.convertValue(publisherExt, ExtPublisher.class);
+                extPublisher = mapper.mapper().convertValue(publisherExt, ExtPublisher.class);
                 final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
                 if (extPublisherPrebid != null && StringUtils.isNotBlank(extPublisherPrebid.getParentAccount())) {
                     return extPublisherPrebid.getParentAccount();
@@ -186,7 +188,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(response.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
