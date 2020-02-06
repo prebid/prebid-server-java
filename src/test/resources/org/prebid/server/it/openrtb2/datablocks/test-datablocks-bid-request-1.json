@@ -48,7 +48,6 @@
       }
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 1000,
   "cur": [
@@ -65,6 +64,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "targeting": {
         "pricegranularity": {
           "precision": 2,
