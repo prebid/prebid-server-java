@@ -503,7 +503,6 @@ public class ExchangeService {
         return bidderToPrebidSchains;
     }
 
-
     /**
      * Returns created {@link BidderRequest}
      */
