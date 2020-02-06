@@ -6,6 +6,7 @@ import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.model.VideoEvent;
 
 public class LogAnalyticsReporterTest extends VertxTest {
 
@@ -15,6 +16,7 @@ public class LogAnalyticsReporterTest extends VertxTest {
         final LogAnalyticsReporter reporter = new LogAnalyticsReporter();
         reporter.processEvent(AuctionEvent.builder().build());
         reporter.processEvent(AmpEvent.builder().build());
+        reporter.processEvent(VideoEvent.builder().build());
         reporter.processEvent(SetuidEvent.builder().build());
         reporter.processEvent(CookieSyncEvent.builder().build());
     }

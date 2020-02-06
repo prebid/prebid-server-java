@@ -10,6 +10,7 @@ import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.model.VideoEvent;
 
 /**
  * {@link AnalyticsReporter} implementation that writes application events to a log, for illustration purpose only.
@@ -25,6 +26,8 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
             type = "/openrtb2/auction";
         } else if (event instanceof AmpEvent) {
             type = "/openrtb2/amp";
+        } else if (event instanceof VideoEvent) {
+            type = "/openrtb2/video";
         } else if (event instanceof SetuidEvent) {
             type = "/setuid";
         } else if (event instanceof CookieSyncEvent) {
