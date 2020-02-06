@@ -309,13 +309,13 @@ public class AmpHandler implements Handler<RoutingContext> {
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
-                final String errorMessage = exception.getMessage();
-                conditionalLogger.info(String.format("Unauthorized: %s", errorMessage), 100);
+                final String message = String.format("Unauthorized: %s", exception.getMessage());
+                conditionalLogger.info(message, 100);
 
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
-                body = String.format("Unauthorised: %s", errorMessage);
+                body = message;
                 String userId = ((UnauthorizedAccountException) exception).getUserId();
                 metrics.updateAccountRequestRejectedMetrics(userId);
             } else if (exception instanceof BlacklistedAppException
