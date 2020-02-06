@@ -169,7 +169,7 @@ public class VideoHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
 
         // when
         videoHandler.handle(routingContext);
@@ -177,7 +177,7 @@ public class VideoHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
+        verify(httpResponse).end(eq("Unauthorised: Account id is not provided 1"));
     }
 
     @Test
