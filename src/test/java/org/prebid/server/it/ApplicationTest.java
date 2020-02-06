@@ -134,8 +134,7 @@ public class ApplicationTest extends IntegrationTest {
                 "openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
                 response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS));
 
-        String actualStr = response.asString();
-        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, openrtbCacheDebugComparator());
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbCacheDebugComparator());
     }
 
     @Test
