@@ -295,38 +295,39 @@ public class AmpHandler implements Handler<RoutingContext> {
             body = Json.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof BlacklistedAppException || exception instanceof BlacklistedAccountException) {
-                metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String errorMessage = exception.getMessage();
-                logger.debug("Blacklisted: {0}", errorMessage);
-
-                errorMessages = Collections.singletonList(errorMessage);
-                status = HttpResponseStatus.FORBIDDEN.code();
-                body = String.format("Blacklisted: %s", errorMessage);
-
-            } else if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                errorMessages = ((InvalidRequestException) exception).getMessages();
-                final String logMessage = String.format("Invalid request format: %s", errorMessages);
-                logModifier.get().accept(logger, logMessage);
+                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
+                errorMessages = invalidRequestException.getMessages().stream()
+                        .map(msg -> String.format("Invalid request format: %s", msg))
+                        .collect(Collectors.toList());
+                final String message = String.join("\n", errorMessages);
+                logModifier.get().accept(logger, logMessageFrom(invalidRequestException, message, context));
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
-                body = errorMessages.stream().map(
-                        msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.joining("\n"));
+                body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String errorMessage = exception.getMessage();
                 conditionalLogger.info(String.format("Unauthorized: %s", errorMessage), 100);
 
-                errorMessages = Collections.singletonList(errorMessage);
+                errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = String.format("Unauthorised: %s", errorMessage);
                 String userId = ((UnauthorizedAccountException) exception).getUserId();
                 metrics.updateAccountRequestRejectedMetrics(userId);
+            } else if (exception instanceof BlacklistedAppException
+                    || exception instanceof BlacklistedAccountException) {
+                metricRequestStatus = exception instanceof BlacklistedAccountException
+                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                logger.debug(message);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.FORBIDDEN.code();
+                body = message;
             } else {
                 final String message = exception.getMessage();
 
@@ -354,6 +355,12 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
+    }
+
+    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
+        return exception.isNeedEnhancedLogging()
+                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
+                : message;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,

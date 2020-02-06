@@ -19,6 +19,19 @@ import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
+import java.io.File;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
@@ -33,20 +46,6 @@ import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.io.File;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -120,7 +119,7 @@ public class ApplicationTest extends IntegrationTest {
                                 "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
                 ));
 
-        // when
+//        // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
@@ -278,7 +277,7 @@ public class ApplicationTest extends IntegrationTest {
                         "&slot=overwrite-tagId" +
                         "&curl=https%3A%2F%2Fgoogle.com" +
                         "&account=accountId" +
-                        "&us_privacy=YAM");
+                        "&us_privacy=1YNN");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
@@ -348,7 +347,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(spec)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1NY", false, null))
+                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -364,7 +363,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .usersync(UsersyncInfo.of(
                                         "http://localhost:8000/setuid?bidder=rubicon"
                                                 + "&gdpr=1&gdpr_consent=" + gdprConsent
-                                                + "&us_privacy=1NY"
+                                                + "&us_privacy=1YNN"
                                                 + "&uid=host-cookie-uid",
                                         "redirect", false))
                                 .build(),
@@ -374,7 +373,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .usersync(UsersyncInfo.of(
                                         "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
-                                                + "%26us_privacy%3D1NY"
+                                                + "%26us_privacy%3D1YNN"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
                                 .build(),
@@ -542,8 +541,12 @@ public class ApplicationTest extends IntegrationTest {
 
         // rubicon bid response
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response1.json"))));
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response2.json"))));
 
         // when
         final Response response = given(spec)
@@ -559,8 +562,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "cache/update/test-auction-response.json",
-                response, singletonList(RUBICON));
+                "cache/update/test-auction-response.json", response, singletonList(RUBICON));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
