@@ -1,0 +1,34 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "seat": "958",
+      "bid": [
+        {
+          "id": "3",
+          "impid": "2_4",
+          "price": 2,
+          "adid": "2938",
+          "adm": "some-test-ad-3",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "crid": "29681110",
+          "h": 640,
+          "w": 480,
+          "ext": {
+            "appnexus": {
+              "brand_id": 1,
+              "auction_id": 8189378542222915032,
+              "bidder_id": 2,
+              "bid_ad_type": 0,
+              "ranking_price": 0.000000
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "bidid": "1778926225248726496",
+  "cur": "USD"
+}

@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
@@ -20,6 +21,9 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.VideoRequestFactory;
+import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -41,10 +45,12 @@ import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
+import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -198,6 +204,48 @@ public class ServiceConfiguration {
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
+    }
+
+    @Bean
+    VideoRequestFactory videoRequestFactory(
+            @Value("${auction.max-request-size}") int maxRequestSize,
+            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            VideoStoredRequestProcessor storedRequestProcessor,
+            AuctionRequestFactory auctionRequestFactory,
+            TimeoutResolver timeoutResolver, JacksonMapper mapper) {
+
+        return new VideoRequestFactory(maxRequestSize, enforceStoredRequest, storedRequestProcessor,
+                auctionRequestFactory, timeoutResolver, mapper);
+    }
+
+    @Bean
+    VideoResponseFactory videoResponseFactory(JacksonMapper mapper) {
+        return new VideoResponseFactory(mapper);
+    }
+
+    @Bean
+    VideoStoredRequestProcessor videoStoredRequestProcessor(
+            ApplicationSettings applicationSettings,
+            @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            BidRequest defaultVideoBidRequest,
+            Metrics metrics,
+            TimeoutFactory timeoutFactory,
+            TimeoutResolver timeoutResolver,
+            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            JacksonMapper mapper) {
+
+        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+
+        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
+                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
+                adServerCurrency, mapper);
+    }
+
+    @Bean
+    BidRequest defaultVideoBidRequest() {
+        return BidRequest.builder().build();
     }
 
     @Bean
@@ -357,9 +405,10 @@ public class ServiceConfiguration {
             CacheService cacheService,
             BidderCatalog bidderCatalog,
             EventsService eventsService,
+            StoredRequestProcessor storedRequestProcessor,
             JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, mapper);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, mapper);
     }
 
     @Bean
@@ -412,13 +461,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PrivacyEnforcementService privacyEnforcementService(@Value("${geolocation.enabled}") boolean useGeoLocation,
-                                                        GdprService gdprService,
-                                                        BidderCatalog bidderCatalog,
-                                                        Metrics metrics,
-                                                        JacksonMapper mapper) {
-
-        return new PrivacyEnforcementService(useGeoLocation, gdprService, bidderCatalog, metrics, mapper);
+    PrivacyEnforcementService privacyEnforcementService(
+            GdprService gdprService,
+            BidderCatalog bidderCatalog,
+            Metrics metrics,
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
+            @Value("${ccpa.enforce}") boolean ccpaEnforce,
+            JacksonMapper mapper) {
+        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, mapper, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
@@ -492,16 +542,22 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
     CurrencyConversionService currencyConversionService(
-            @Value("${currency-converter.url}") String currencyServerUrl,
-            @Value("${currency-converter.default-timeout-ms}") long defaultTimeout,
-            @Value("${currency-converter.refresh-period-ms}") long refreshPeriod,
+            @Autowired(required = false) ExternalConversionProperties externalConversionProperties) {
+        return new CurrencyConversionService(externalConversionProperties);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
+    ExternalConversionProperties externalConversionProperties(
+            @Value("${currency-converter.external-rates.url}") String currencyServerUrl,
+            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeout,
+            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriod,
             Vertx vertx,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return new CurrencyConversionService(
-                currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient, mapper);
+        return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
+                mapper);
     }
 }

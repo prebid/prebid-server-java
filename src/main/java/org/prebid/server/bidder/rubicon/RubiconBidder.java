@@ -27,6 +27,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -67,6 +68,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -109,8 +111,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String DATA_NODE_NAME = "data";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
             };
 
     private final String endpointUrl;
@@ -141,15 +143,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final boolean useFirstPartyData = useFirstPartyData(bidRequest);
-        final Map<Imp, ExtImpRubicon> impToExtImpRubicon = parseRubiconImpExts(bidRequest.getImp(), errors);
-        final String impLanguage = firstImpExtLanguage(impToExtImpRubicon.values());
+        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
+                parseRubiconImpExts(bidRequest.getImp(), errors);
+        final String impLanguage = firstImpExtLanguage(impToImpExt.values());
 
-        for (Map.Entry<Imp, ExtImpRubicon> impToExt : impToExtImpRubicon.entrySet()) {
+        for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToImpExt.entrySet()) {
             try {
                 final Imp imp = impToExt.getKey();
-                final ExtImpRubicon ext = impToExt.getValue();
-                final BidRequest singleRequest = createSingleRequest(imp, ext, bidRequest, impLanguage,
-                        useFirstPartyData);
+                final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
+                final BidRequest singleRequest = createSingleRequest(
+                        imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage, useFirstPartyData
+                );
                 final String body = mapper.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -226,29 +230,33 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
     }
 
-    private Map<Imp, ExtImpRubicon> parseRubiconImpExts(List<Imp> imps, List<BidderError> errors) {
-        final Map<Imp, ExtImpRubicon> impToRubiconExt = new HashMap<>();
+    private Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> parseRubiconImpExts(
+            List<Imp> imps, List<BidderError> errors
+    ) {
+        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = new HashMap<>();
         for (final Imp imp : imps) {
             try {
-                final ExtImpRubicon rubiconImpExt = parseRubiconExt(imp);
-                impToRubiconExt.put(imp, rubiconImpExt);
+                final ExtPrebid<ExtImpPrebid, ExtImpRubicon> rubiconImpExt = parseRubiconExt(imp);
+                impToImpExt.put(imp, rubiconImpExt);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        return impToRubiconExt;
+        return impToImpExt;
     }
 
-    private ExtImpRubicon parseRubiconExt(Imp imp) {
+    private ExtPrebid<ExtImpPrebid, ExtImpRubicon> parseRubiconExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    private static String firstImpExtLanguage(Collection<ExtImpRubicon> rubiconImpExts) {
+    private static String firstImpExtLanguage(Collection<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> rubiconImpExts) {
         return rubiconImpExts.stream()
+                .filter(Objects::nonNull)
+                .map(ExtPrebid::getBidder)
                 .map(ExtImpRubicon::getVideo)
                 .filter(Objects::nonNull)
                 .map(RubiconVideoParams::getLanguage)
@@ -257,18 +265,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private BidRequest createSingleRequest(Imp imp, ExtImpRubicon rubiconImpExt, BidRequest bidRequest,
-                                           String impLanguage, boolean useFirstPartyData) {
+    private BidRequest createSingleRequest(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
+                                           BidRequest bidRequest, String impLanguage, boolean useFirstPartyData) {
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, rubiconImpExt, site, app, useFirstPartyData)))
-                .user(makeUser(bidRequest.getUser(), rubiconImpExt))
+                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app, useFirstPartyData)))
+                .user(makeUser(bidRequest.getUser(), extRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
-                .site(makeSite(site, impLanguage, rubiconImpExt))
-                .app(makeApp(app, rubiconImpExt))
-                .source(makeSource(bidRequest.getSource(), rubiconImpExt.getPchain()))
+                .site(makeSite(site, impLanguage, extRubicon))
+                .app(makeApp(app, extRubicon))
+                .source(makeSource(bidRequest.getSource(), extRubicon.getPchain()))
                 .cur(null) // suppress currencies
                 .ext(null) // suppress ext
                 .build();
@@ -302,18 +310,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp makeImp(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app, boolean useFirstPartyData) {
+    private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
+                        Site site, App app, boolean useFirstPartyData) {
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(mapper.mapper().valueToTree(makeImpExt(imp, rubiconImpExt, site, app, useFirstPartyData)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app, useFirstPartyData)));
 
         if (isVideo(imp)) {
             builder
                     .banner(null)
-                    .video(makeVideo(imp.getVideo(), rubiconImpExt.getVideo()));
+                    .video(makeVideo(imp.getVideo(), extRubicon.getVideo(), extPrebid));
         } else {
             builder
-                    .banner(makeBanner(imp.getBanner(), overriddenSizes(rubiconImpExt)))
+                    .banner(makeBanner(imp.getBanner(), overriddenSizes(extRubicon)))
                     .video(null);
         }
 
@@ -452,11 +461,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && video.getLinearity() != null && video.getApi() != null;
     }
 
-    private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams) {
-        return rubiconVideoParams == null ? video : video.toBuilder()
+    private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
+        final String videoType = prebidImpExt != null
+                && BooleanUtils.isTrue(prebidImpExt.getIsRewardedInventory()) ? "rewarded" : null;
+
+        if (rubiconVideoParams == null && videoType == null) {
+            return video;
+        }
+
+        final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
+        final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
+        final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+        return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
-                        RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
-                                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()))))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
                 .build();
     }
 

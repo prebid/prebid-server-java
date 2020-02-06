@@ -8,6 +8,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
@@ -35,32 +36,22 @@ public class CurrencyConversionService implements Initializable {
     private static final int DEFAULT_PRICE_PRECISION = 3;
 
     private final String currencyServerUrl;
-    private final long defaultTimeout;
-    private final long refreshPeriod;
-    private final Vertx vertx;
-    private final HttpClient httpClient;
+    private final ExternalConversionProperties externalConversionProperties;
     private final JacksonMapper mapper;
 
-    private Map<String, Map<String, BigDecimal>> latestCurrencyRates;
+    private Map<String, Map<String, BigDecimal>> externalCurrencyRates;
     private ZonedDateTime lastUpdated;
 
-    public CurrencyConversionService(String currencyServerUrl,
-                                     long defaultTimeout,
-                                     long refreshPeriod,
-                                     Vertx vertx,
-                                     HttpClient httpClient,
-                                     JacksonMapper mapper) {
-
-        this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
-        this.defaultTimeout = defaultTimeout;
-        this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
-        this.vertx = Objects.requireNonNull(vertx);
-        this.httpClient = Objects.requireNonNull(httpClient);
-        this.mapper = Objects.requireNonNull(mapper);
-    }
-
-    public ZonedDateTime getLastUpdated() {
-        return lastUpdated;
+    public CurrencyConversionService(ExternalConversionProperties externalConversionProperties) {
+        this.externalConversionProperties = externalConversionProperties;
+        if (externalConversionProperties != null) {
+            this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(
+                    externalConversionProperties.getCurrencyServerUrl()));
+            this.mapper = Objects.requireNonNull(externalConversionProperties.getMapper());
+        } else {
+            currencyServerUrl = null;
+            mapper = null;
+        }
     }
 
     /**
@@ -70,24 +61,22 @@ public class CurrencyConversionService implements Initializable {
      */
     @Override
     public void initialize() {
-        vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates());
-        populatesLatestCurrencyRates();
-    }
+        if (externalConversionProperties != null) {
+            final Long refreshPeriod = externalConversionProperties.getRefreshPeriod();
+            final Long defaultTimeout = externalConversionProperties.getDefaultTimeout();
+            final HttpClient httpClient = externalConversionProperties.getHttpClient();
 
-    /**
-     * Validates consumed refresh period value.
-     */
-    private long validateRefreshPeriod(long refreshPeriod) {
-        if (refreshPeriod < 1) {
-            throw new IllegalArgumentException("Refresh period for updating rates must be positive value");
+            final Vertx vertx = externalConversionProperties.getVertx();
+            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
+                    httpClient));
+            populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
         }
-        return refreshPeriod;
     }
 
     /**
      * Updates latest currency rates by making a call to currency server.
      */
-    private void populatesLatestCurrencyRates() {
+    private void populatesLatestCurrencyRates(String currencyServerUrl, Long defaultTimeout, HttpClient httpClient) {
         httpClient.get(currencyServerUrl, defaultTimeout)
                 .map(this::processResponse)
                 .map(this::updateCurrencyRates)
@@ -116,7 +105,7 @@ public class CurrencyConversionService implements Initializable {
     private CurrencyConversionRates updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
-            latestCurrencyRates = receivedCurrencyRates;
+            externalCurrencyRates = receivedCurrencyRates;
             lastUpdated = ZonedDateTime.now(Clock.systemUTC());
         }
         return currencyConversionRates;
@@ -128,6 +117,10 @@ public class CurrencyConversionService implements Initializable {
     private static Future<CurrencyConversionRates> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
         return Future.failedFuture(exception);
+    }
+
+    public ZonedDateTime getLastUpdated() {
+        return lastUpdated;
     }
 
     /**
@@ -152,7 +145,7 @@ public class CurrencyConversionService implements Initializable {
 
         // if conversion rate from requestCurrency was not found, try the same from latest currencies
         if (conversionRate == null) {
-            conversionRate = getConversionRate(latestCurrencyRates, adServerCurrency, effectiveBidCurrency);
+            conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
         }
 
         if (conversionRate == null) {

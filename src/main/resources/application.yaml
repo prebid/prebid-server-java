@@ -55,10 +55,11 @@ cookie-sync:
 logger-level-modifier:
   enabled: false
 currency-converter:
-  enabled: true
-  url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
-  default-timeout-ms: 4000
-  refresh-period-ms: 900000
+  external-rates:
+    enabled: true
+    url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
+    default-timeout-ms: 4000
+    refresh-period-ms: 900000
 metrics:
   metricType: flushingCounter
   accounts:
@@ -84,6 +85,8 @@ gdpr:
   vendorlist:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
+ccpa:
+  enforce: false
 geolocation:
   enabled: true
   type: maxmind

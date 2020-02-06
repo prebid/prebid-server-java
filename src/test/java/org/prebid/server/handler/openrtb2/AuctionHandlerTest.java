@@ -232,7 +232,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
+        verify(httpResponse).end(eq("Unauthorized: Account id is not provided"));
     }
 
     @Test
@@ -295,12 +295,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
 
+        final ExtGranularityRange granularityRange = ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE);
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(granularityRange));
+        final ExtMediaTypePriceGranularity priceGranuality = ExtMediaTypePriceGranularity.of(
+                mapper.valueToTree(priceGranularity), null, mapper.createObjectNode());
         final BidRequest resolvedRequest = BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null,
-                                ExtMediaTypePriceGranularity.of(mapper.valueToTree(ExtPriceGranularity.of(1,
-                                        singletonList(ExtGranularityRange.of(BigDecimal.TEN, BigDecimal.ONE)))),
-                                        null, mapper.createObjectNode()), null, null, null))
+                        .targeting(ExtRequestTargeting.builder().mediatypepricegranularity(priceGranuality).build())
                         .build())))
                 .build();
         given(exchangeService.holdAuction(any()))
@@ -563,7 +564,7 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())
                 .status(400)
-                .errors(singletonList("Request is invalid"))
+                .errors(singletonList("Invalid request format: Request is invalid"))
                 .build());
     }
 

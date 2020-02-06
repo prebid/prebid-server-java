@@ -274,7 +274,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
-                .element(0).asString().startsWith("Failed to decode:");
+                .element(0).asString().startsWith("Error decoding bidRequest: Failed to decode:");
     }
 
     @Test
@@ -546,7 +546,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(new TextNode("low"), null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("low")).build())
                         .build())))
                 .build());
 
@@ -572,8 +572,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(new TextNode("invalid"),
-                                null, null, null, null))
+                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("invalid")).build())
                         .build())))
                 .build());
 
@@ -593,8 +592,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().video(Video.builder().build()).ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null,
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder().build())
                         .build())))
                 .build());
 
@@ -615,14 +613,16 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldNotSetDefaultPriceGranularityIfThereIsAMediaTypePriceGranularityForImpType() {
         // given
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
+                mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))), null, null);
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
                         .ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, ExtMediaTypePriceGranularity.of(
-                                mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
-                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))), null, null),
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder()
+                                .mediatypepricegranularity(mediaTypePriceGranularity)
+                                .build())
                         .build())))
                 .build());
 
@@ -645,8 +645,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null,
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder().build())
                         .build())))
                 .build());
 
@@ -669,8 +668,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null,
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder().build())
                         .build())))
                 .build());
 
@@ -693,8 +691,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null,
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder().build())
                         .cache(ExtRequestPrebidCache.of(null, null, true))
                         .build())))
                 .build());
@@ -735,8 +732,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(null, null,
-                                null, null, null))
+                        .targeting(ExtRequestTargeting.builder().build())
                         .build())))
                 .build());
 
@@ -991,8 +987,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .imp(asList(imp1, imp2))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("requestScopedBidderAlias", "bidder1"))
-                        .targeting(ExtRequestTargeting.of(null, null, null,
-                                null, null))
+                        .targeting(ExtRequestTargeting.builder().build())
                         .build())))
                 .build());
 

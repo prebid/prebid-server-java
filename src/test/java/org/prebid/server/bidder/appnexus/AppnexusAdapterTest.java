@@ -434,7 +434,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                         .h(250)
                                         .dealid("dealId")
                                         .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                                AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build())))
                                         .build()))
                                 .build())));
 
@@ -474,7 +474,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .bid(singletonList(Bid.builder()
                                         .impid("adUnitCode")
                                         .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                AppnexusBidExtAppnexus.of(VIDEO_TYPE))))
+                                                AppnexusBidExtAppnexus.builder().bidAdType(VIDEO_TYPE).build())))
                                         .build()))
                                 .build())));
 
@@ -503,7 +503,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .bid(singletonList(Bid.builder()
                                         .impid("adUnitCode")
                                         .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                                AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build())))
                                         .build()))
                                 .build())));
 
@@ -580,7 +580,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .bid(singletonList(Bid.builder()
                                         .impid("adUnitCode")
                                         .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                AppnexusBidExtAppnexus.of(null))))
+                                                AppnexusBidExtAppnexus.builder().build())))
                                         .build()))
                                 .build())));
 
@@ -605,7 +605,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .bid(singletonList(Bid.builder()
                                         .impid("adUnitCode")
                                         .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                AppnexusBidExtAppnexus.of(42))))
+                                                AppnexusBidExtAppnexus.builder().bidAdType(42).build())))
                                         .build()))
                                 .build())));
 
@@ -642,12 +642,12 @@ public class AppnexusAdapterTest extends VertxTest {
                                         Bid.builder()
                                                 .impid("adUnitCode1")
                                                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                        AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                                        AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build())))
                                                 .build(),
                                         Bid.builder()
                                                 .impid("adUnitCode2")
                                                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                        AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                                        AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build())))
                                                 .build()))
                                 .build())));
 

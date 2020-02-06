@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class EplanningBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://eplanning.com";
+    private static final String ENDPOINT_URL = "https://eplanning.com";
 
     private EplanningBidder eplanningBidder;
 
@@ -187,7 +187,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
+                        "https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
     }
 
     @Test
@@ -195,7 +195,7 @@ public class EplanningBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .site(Site.builder().page("http://www.example.com").domain("DOMAIN").build()),
+                        .site(Site.builder().page("https://www.example.com").domain("DOMAIN").build()),
                 identity());
 
         // when
@@ -206,7 +206,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
+                        "https://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=https%3A%2F%2Fwww.example.com"
                                 + "&e=testadun_itco_de:1x1");
     }
 
@@ -228,7 +228,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
+                        "https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
     }
 
     @Test
@@ -246,7 +246,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
                         + "&uid=Buyer-ID");
     }
 
@@ -265,7 +265,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
                         + "&ip=123.321.321.123");
     }
 

@@ -41,6 +41,7 @@ public enum MetricName {
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
     amp,
+    video,
     legacy,
 
     // request and adapter statuses

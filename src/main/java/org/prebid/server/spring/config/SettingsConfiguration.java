@@ -181,11 +181,12 @@ public class SettingsConfiguration {
         @Bean
         HttpApplicationSettings httpApplicationSettings(
                 HttpClient httpClient,
+                JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint,
-                JacksonMapper mapper) {
+                @Value("${settings.http.video-endpoint}") String videoEndpoint) {
 
-            return new HttpApplicationSettings(endpoint, ampEndpoint, httpClient, mapper);
+            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint);
         }
     }
 
@@ -300,12 +301,14 @@ public class SettingsConfiguration {
                 CompositeApplicationSettings compositeApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
+                @Qualifier("ampSettingsCache") SettingsCache ampCache,
+                @Qualifier("videoSettingCache") SettingsCache videoCache) {
 
             return new CachingApplicationSettings(
                     compositeApplicationSettings,
                     cache,
                     ampCache,
+                    videoCache,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize());
         }
@@ -335,6 +338,12 @@ public class SettingsConfiguration {
         @Bean
         @Qualifier("ampSettingsCache")
         SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
+        }
+
+        @Bean
+        @Qualifier("videoSettingCache")
+        SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
         }
     }

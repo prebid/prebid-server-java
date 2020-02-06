@@ -200,9 +200,13 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                                        BigDecimal.valueOf(0.1))))), null, null, true, true))
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
+                                                BigDecimal.valueOf(0.1))))))
+                                .includewinners(true)
+                                .includebidderkeys(true)
+                                .build())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
                         .build());
@@ -240,8 +244,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
-                                        null, null, null))),
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .build())),
                 Imp.builder().build());
 
         // when
@@ -265,8 +270,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
-                                        null, false, null))),
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .includewinners(false)
+                                        .build())),
                 Imp.builder().build());
 
         // when
@@ -287,8 +294,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(
                 builder -> builder
-                        .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(null, null, null, false, null))),
+                        .ext(givenBidRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
                 Imp.builder().build());
 
         // when
@@ -311,8 +317,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenBidRequestExt(
-                                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null,
-                                        null, null, false))),
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .includebidderkeys(false)
+                                        .build())),
                 Imp.builder().build());
 
         // when
@@ -333,7 +341,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(
                 builder -> builder
-                        .ext(givenBidRequestExt(ExtRequestTargeting.of(null, null, null, false, null))),
+                        .ext(givenBidRequestExt(ExtRequestTargeting.builder().includewinners(false).build())),
                 Imp.builder().build());
 
         // when

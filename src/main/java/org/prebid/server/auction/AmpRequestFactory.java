@@ -79,7 +79,7 @@ public class AmpRequestFactory {
     public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
         final String tagId = routingContext.request().getParam(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
-            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
+            return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id", true));
         }
 
         return createBidRequest(routingContext, tagId)
@@ -520,7 +520,12 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, mediaTypePriceGranularity, currency,
-                includeWinners, includeBidderKeys);
+        return ExtRequestTargeting.builder()
+                .pricegranularity(outgoingPriceGranularityNode)
+                .mediatypepricegranularity(mediaTypePriceGranularity)
+                .currency(currency)
+                .includewinners(includeWinners)
+                .includebidderkeys(includeBidderKeys)
+                .build();
     }
 }

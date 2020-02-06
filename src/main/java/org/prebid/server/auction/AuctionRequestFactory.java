@@ -190,7 +190,7 @@ public class AuctionRequestFactory {
         try {
             return mapper.decodeValue(body, BidRequest.class);
         } catch (DecodeException e) {
-            throw new InvalidRequestException(e.getMessage());
+            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()), true);
         }
     }
 
@@ -483,13 +483,16 @@ public class AuctionRequestFactory {
 
         final ExtRequestTargeting result;
         if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
-            result = ExtRequestTargeting.of(
-                    populatePriceGranularity(targeting, isPriceGranularityNull, isPriceGranularityTextual,
-                            impMediaTypes),
-                    targeting.getMediatypepricegranularity(),
-                    targeting.getCurrency(),
-                    isIncludeWinnersNull ? true : targeting.getIncludewinners(),
-                    isIncludeBidderKeysNull ? !isWinningOnly(prebid.getCache()) : targeting.getIncludebidderkeys());
+            result = ExtRequestTargeting.builder()
+                    .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
+                            isPriceGranularityTextual, impMediaTypes))
+                    .mediatypepricegranularity(targeting.getMediatypepricegranularity())
+                    .currency(targeting.getCurrency())
+                    .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
+                    .includebidderkeys(isIncludeBidderKeysNull
+                            ? !isWinningOnly(prebid.getCache())
+                            : targeting.getIncludebidderkeys())
+                    .build();
         } else {
             result = null;
         }

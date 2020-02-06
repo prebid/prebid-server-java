@@ -44,4 +44,9 @@ public interface ApplicationSettings {
      * Fetches AMP stored requests and imps
      */
     Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
+
+    /**
+     * Fetches Video stored requests and imps
+     */
+    Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout);
 }

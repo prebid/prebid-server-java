@@ -63,14 +63,17 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private String endpoint;
     private String ampEndpoint;
+    private String videoEndpoint;
     private HttpClient httpClient;
     private final JacksonMapper mapper;
 
-    public HttpApplicationSettings(String endpoint, String ampEndpoint, HttpClient httpClient, JacksonMapper mapper) {
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
+    public HttpApplicationSettings(HttpClient httpClient, JacksonMapper mapper, String endpoint, String ampEndpoint,
+                                   String videoEndpoint) {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
     }
 
     /**
@@ -113,6 +116,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
+    }
+
+    /**
+     * Not supported and returns failed result.
+     */
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
