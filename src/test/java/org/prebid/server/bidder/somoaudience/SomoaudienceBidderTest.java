@@ -50,7 +50,7 @@ public class SomoaudienceBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        somoaudienceBidder = new SomoaudienceBidder(ENDPOINT_URL);
+        somoaudienceBidder = new SomoaudienceBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test

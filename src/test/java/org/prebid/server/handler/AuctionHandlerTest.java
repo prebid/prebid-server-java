@@ -35,6 +35,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.proto.request.AdUnit;
@@ -112,6 +113,7 @@ public class AuctionHandlerTest extends VertxTest {
     private Clock clock;
     @Mock
     private GdprService gdprService;
+    private PrivacyExtractor privacyExtractor;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -152,8 +154,21 @@ public class AuctionHandlerTest extends VertxTest {
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, emptyMap(), null)));
 
-        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock, gdprService, null, false);
+        privacyExtractor = new PrivacyExtractor(jacksonMapper);
+
+        auctionHandler = new AuctionHandler(
+                applicationSettings,
+                bidderCatalog,
+                preBidRequestContextFactory,
+                cacheService,
+                metrics,
+                httpAdapterConnector,
+                clock,
+                gdprService,
+                privacyExtractor,
+                jacksonMapper,
+                null,
+                false);
     }
 
     @Test
@@ -810,8 +825,17 @@ public class AuctionHandlerTest extends VertxTest {
                                 .usersync(UsersyncInfo.of("url1", "type1", null))
                                 .build(), emptyList(), null)));
 
-        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock, gdprService, 1, false);
+        auctionHandler = new AuctionHandler(
+                applicationSettings,
+                bidderCatalog,
+                preBidRequestContextFactory,
+                cacheService,
+                metrics,
+                httpAdapterConnector,
+                clock, gdprService,
+                privacyExtractor, jacksonMapper,
+                1,
+                false);
 
         // when
         auctionHandler.handle(routingContext);

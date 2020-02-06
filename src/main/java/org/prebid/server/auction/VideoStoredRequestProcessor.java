@@ -19,7 +19,6 @@ import com.iab.openrtb.request.video.Podconfig;
 import com.iab.openrtb.request.video.VideoUser;
 import com.iab.openrtb.request.video.VideoVideo;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -30,6 +29,7 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -53,7 +53,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Executes stored request processing
+ * Executes stored request processing.
  */
 public class VideoStoredRequestProcessor {
 
@@ -72,11 +72,14 @@ public class VideoStoredRequestProcessor {
     private final TimeoutFactory timeoutFactory;
     private final long defaultTimeout;
     private final String currency;
+    private final JacksonMapper mapper;
+    private JsonMergeUtil jsonMergeUtil;
 
     public VideoStoredRequestProcessor(ApplicationSettings applicationSettings, VideoRequestValidator validator,
                                        boolean enforceStoredRequest, List<String> blacklistedAccounts,
                                        BidRequest defaultBidRequest, Metrics metrics, TimeoutFactory timeoutFactory,
-                                       TimeoutResolver timeoutResolver, long defaultTimeout, String adServerCurrency) {
+                                       TimeoutResolver timeoutResolver, long defaultTimeout, String adServerCurrency,
+                                       JacksonMapper mapper) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.validator = Objects.requireNonNull(validator);
         this.enforceStoredRequest = enforceStoredRequest;
@@ -87,6 +90,9 @@ public class VideoStoredRequestProcessor {
         this.metrics = Objects.requireNonNull(metrics);
         this.defaultTimeout = defaultTimeout;
         this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
+        this.mapper = Objects.requireNonNull(mapper);
+
+        jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
@@ -139,7 +145,7 @@ public class VideoStoredRequestProcessor {
         }
 
         return StringUtils.isNotBlank(storedRequest)
-                ? JsonMergeUtil.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
+                ? jsonMergeUtil.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
                 : originalRequest;
     }
 
@@ -162,12 +168,12 @@ public class VideoStoredRequestProcessor {
         return WithPodErrors.of(imps, podErrors);
     }
 
-    private static Map<String, Imp> storedIdToStoredImp(Map<String, String> storedIdToImp) {
+    private Map<String, Imp> storedIdToStoredImp(Map<String, String> storedIdToImp) {
         final Map<String, Imp> idToImps = new HashMap<>();
         if (MapUtils.isNotEmpty(storedIdToImp)) {
             for (Map.Entry<String, String> idToImp : storedIdToImp.entrySet()) {
                 try {
-                    idToImps.put(idToImp.getKey(), Json.mapper.readValue(idToImp.getValue(), Imp.class));
+                    idToImps.put(idToImp.getKey(), mapper.mapper().readValue(idToImp.getValue(), Imp.class));
                 } catch (JsonProcessingException e) {
                     logger.error(e.getMessage());
                 }
@@ -319,7 +325,7 @@ public class VideoStoredRequestProcessor {
         bidRequestBuilder.cur(Collections.singletonList(currency));
     }
 
-    private static ObjectNode createBidExtension(BidRequestVideo videoRequest) {
+    private ObjectNode createBidExtension(BidRequestVideo videoRequest) {
         final IncludeBrandCategory includebrandcategory = videoRequest.getIncludebrandcategory();
         final ExtIncludeBrandCategory extIncludeBrandCategory;
         if (includebrandcategory != null) {
@@ -344,7 +350,7 @@ public class VideoStoredRequestProcessor {
         }
 
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
-                .pricegranularity(Json.mapper.valueToTree(updatedPriceGranularity))
+                .pricegranularity(mapper.mapper().valueToTree(updatedPriceGranularity))
                 .includebidderkeys(true)
                 .includebrandcategory(extIncludeBrandCategory)
                 .durationrangesec(durationRangeSec)
@@ -358,6 +364,6 @@ public class VideoStoredRequestProcessor {
                 .targeting(targeting)
                 .build();
 
-        return Json.mapper.valueToTree(ExtBidRequest.of(extRequestPrebid));
+        return mapper.mapper().valueToTree(ExtBidRequest.of(extRequestPrebid));
     }
 }

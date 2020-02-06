@@ -43,12 +43,12 @@ public class LifestreetBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        lifestreetBidder = new LifestreetBidder(ENDPOINT_URL);
+        lifestreetBidder = new LifestreetBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new LifestreetBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new LifestreetBidder("invalid_url", jacksonMapper));
     }
 
     @Test

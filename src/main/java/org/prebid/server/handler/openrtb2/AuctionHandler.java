@@ -7,7 +7,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -24,6 +23,7 @@ import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.LogModifier;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
@@ -45,15 +45,23 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final Clock clock;
     private final LogModifier logModifier;
+    private final JacksonMapper mapper;
 
-    public AuctionHandler(AuctionRequestFactory auctionRequestFactory, ExchangeService exchangeService,
-                          AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock, LogModifier logModifier) {
+    public AuctionHandler(AuctionRequestFactory auctionRequestFactory,
+                          ExchangeService exchangeService,
+                          AnalyticsReporter analyticsReporter,
+                          Metrics metrics,
+                          Clock clock,
+                          LogModifier logModifier,
+                          JacksonMapper mapper) {
+
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.logModifier = Objects.requireNonNull(logModifier);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -127,7 +135,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK.code();
             context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = Json.encode(responseResult.result().getLeft());
+            body = mapper.encode(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {

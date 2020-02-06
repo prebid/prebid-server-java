@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
 import org.prebid.server.bidder.pubmatic.PubmaticBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,6 +31,9 @@ public class PubmaticConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("pubmaticConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -47,9 +51,9 @@ public class PubmaticConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new PubmaticBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new PubmaticBidder(configProperties.getEndpoint(), mapper))
                 .adapterCreator(() -> new PubmaticAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint()))
+                        configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

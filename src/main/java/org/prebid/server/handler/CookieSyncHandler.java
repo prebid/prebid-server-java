@@ -5,8 +5,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -25,6 +23,8 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.GdprService;
@@ -54,8 +54,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
+
     private static final String REJECTED_BY_GDPR = "Rejected by GDPR";
     private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+
     private final String externalUrl;
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -70,13 +72,23 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
+    private final JacksonMapper mapper;
 
-    public CookieSyncHandler(String externalUrl, long defaultTimeout, UidsCookieService uidsCookieService,
-                             BidderCatalog bidderCatalog, GdprService gdprService,
-                             PrivacyEnforcementService privacyEnforcementService, Integer gdprHostVendorId,
-                             boolean useGeoLocation, boolean defaultCoopSync,
-                             List<Collection<String>> listOfCoopSyncBidders, AnalyticsReporter analyticsReporter,
-                             Metrics metrics, TimeoutFactory timeoutFactory) {
+    public CookieSyncHandler(String externalUrl,
+                             long defaultTimeout,
+                             UidsCookieService uidsCookieService,
+                             BidderCatalog bidderCatalog,
+                             GdprService gdprService,
+                             PrivacyEnforcementService privacyEnforcementService,
+                             Integer gdprHostVendorId,
+                             boolean useGeoLocation,
+                             boolean defaultCoopSync,
+                             List<Collection<String>> listOfCoopSyncBidders,
+                             AnalyticsReporter analyticsReporter,
+                             Metrics metrics,
+                             TimeoutFactory timeoutFactory,
+                             JacksonMapper mapper) {
+
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -93,6 +105,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     private static Collection<String> activeBidders(BidderCatalog bidderCatalog) {
@@ -122,7 +135,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncRequest cookieSyncRequest;
         try {
-            cookieSyncRequest = Json.decodeValue(body, CookieSyncRequest.class);
+            cookieSyncRequest = mapper.decodeValue(body, CookieSyncRequest.class);
         } catch (DecodeException e) {
             logger.info("Failed to parse /cookie_sync request body", e);
             final int status = HttpResponseStatus.BAD_REQUEST.code();
@@ -302,7 +315,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
                 updatedBidderStatuses);
-        final String body = Json.encode(response);
+        final String body = mapper.encode(response);
 
         // don't send the response if client has gone
         if (context.response().closed()) {

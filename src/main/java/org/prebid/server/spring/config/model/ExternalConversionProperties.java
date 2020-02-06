@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.model;
 import io.vertx.core.Vertx;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.validation.annotation.Validated;
 
@@ -31,5 +32,8 @@ public class ExternalConversionProperties {
 
     @NotNull
     HttpClient httpClient;
+
+    @NotNull
+    JacksonMapper mapper;
 }
 

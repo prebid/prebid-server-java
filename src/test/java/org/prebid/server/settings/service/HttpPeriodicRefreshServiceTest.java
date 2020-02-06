@@ -49,7 +49,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @Mock
     private Vertx vertx;
 
-    private HttpClientResponse initialResponse;
     private HttpClientResponse updatedResponse;
     private Map<String, String> expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
     private Map<String, String> expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
@@ -57,7 +56,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @Before
     public void setUp() throws JsonProcessingException {
 
-        initialResponse = HttpClientResponse.of(200, null,
+        final HttpClientResponse initialResponse = HttpClientResponse.of(200, null,
                 mapper.writeValueAsString(HttpRefreshResponse.of(
                         singletonMap("id1", mapper.createObjectNode().put("field1", "field-value1")),
                         singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")))));
@@ -171,8 +170,8 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     private static void createAndInitService(CacheNotificationListener notificationListener,
                                              String url, long refreshPeriod, long timeout,
                                              Vertx vertx, HttpClient httpClient) {
-        final HttpPeriodicRefreshService httpPeriodicRefreshService =
-                new HttpPeriodicRefreshService(notificationListener, url, refreshPeriod, timeout, vertx, httpClient);
+        final HttpPeriodicRefreshService httpPeriodicRefreshService = new HttpPeriodicRefreshService(
+                url, refreshPeriod, timeout, notificationListener, vertx, httpClient, jacksonMapper);
         httpPeriodicRefreshService.initialize();
     }
 

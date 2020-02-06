@@ -11,8 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -24,6 +22,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -49,9 +49,11 @@ public class SovrnBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public SovrnBidder(String endpointUrl) {
+    public SovrnBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -87,7 +89,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -99,7 +101,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 
-    private static Imp makeImp(Imp imp) {
+    private Imp makeImp(Imp imp) {
         if (imp.getXNative() != null || imp.getAudio() != null || imp.getVideo() != null) {
             throw new PreBidException(
                     String.format("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=%s",
@@ -113,14 +115,13 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpSovrn parseExtImpSovrn(Imp imp) {
+    private ExtImpSovrn parseExtImpSovrn(Imp imp) {
         if (imp.getExt() == null) {
             throw new PreBidException("Sovrn parameters section is missing");
         }
 
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpSovrn>>convertValue(imp.getExt(),
-                    SOVRN_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), SOVRN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }

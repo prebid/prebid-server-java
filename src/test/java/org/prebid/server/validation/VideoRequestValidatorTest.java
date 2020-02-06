@@ -207,7 +207,7 @@ public class VideoRequestValidatorTest {
         // when
         final WithPodErrors<List<Pod>> result = videoRequestValidator.validPods(podConfig, storedIds);
 
-        //then
+        // then
         assertThat(result.getData()).containsOnly(normalPod);
         assertThat(result.getPodErrors()).containsOnly(
                 PodError.of(1, 1, singletonList("request duplicated required field: PodConfig.Pods.PodId, Pod id: 1")),

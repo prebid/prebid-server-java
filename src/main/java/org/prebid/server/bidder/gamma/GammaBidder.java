@@ -13,8 +13,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +23,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gamma.ExtImpGamma;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -47,9 +47,11 @@ public class GammaBidder implements Bidder<Void> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public GammaBidder(String endpointUrl) {
+    public GammaBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -131,10 +133,9 @@ public class GammaBidder implements Bidder<Void> {
                 .build();
     }
 
-    private static ExtImpGamma parseImpExt(Imp imp) {
+    private ExtImpGamma parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpGamma>>convertValue(imp.getExt(),
-                    GAMMA_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), GAMMA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ext.bidder.publisher not provided");
         }
@@ -204,8 +205,13 @@ public class GammaBidder implements Bidder<Void> {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
+        final String body = httpCall.getResponse().getBody();
+        if (body == null) {
+            return Result.emptyWithError(BidderError.badServerResponse("bad server response: body is empty"));
+        }
+
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(body, BidResponse.class);
             return Result.of(extractBids(bidResponse, bidRequest), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(

@@ -3,14 +3,15 @@ package org.prebid.server.bidder.grid;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
 
 public class GridBidder extends OpenrtbBidder<Void> {
 
-    public GridBidder(String endpointUrl) {
-        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, Void.class);
+    public GridBidder(String endpointUrl, JacksonMapper mapper) {
+        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, Void.class, mapper);
     }
 
     @Override

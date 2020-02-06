@@ -2,12 +2,12 @@ package org.prebid.server.currency;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
@@ -37,6 +37,8 @@ public class CurrencyConversionService implements Initializable {
 
     private final String currencyServerUrl;
     private final ExternalConversionProperties externalConversionProperties;
+    private final JacksonMapper mapper;
+
     private Map<String, Map<String, BigDecimal>> externalCurrencyRates;
     private ZonedDateTime lastUpdated;
 
@@ -45,8 +47,10 @@ public class CurrencyConversionService implements Initializable {
         if (externalConversionProperties != null) {
             this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(
                     externalConversionProperties.getCurrencyServerUrl()));
+            this.mapper = Objects.requireNonNull(externalConversionProperties.getMapper());
         } else {
             currencyServerUrl = null;
+            mapper = null;
         }
     }
 
@@ -74,7 +78,7 @@ public class CurrencyConversionService implements Initializable {
      */
     private void populatesLatestCurrencyRates(String currencyServerUrl, Long defaultTimeout, HttpClient httpClient) {
         httpClient.get(currencyServerUrl, defaultTimeout)
-                .map(CurrencyConversionService::processResponse)
+                .map(this::processResponse)
                 .map(this::updateCurrencyRates)
                 .recover(CurrencyConversionService::failResponse);
     }
@@ -84,7 +88,7 @@ public class CurrencyConversionService implements Initializable {
      * and creates {@link Future} with {@link CurrencyConversionRates} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private static CurrencyConversionRates processResponse(HttpClientResponse response) {
+    private CurrencyConversionRates processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -92,7 +96,7 @@ public class CurrencyConversionService implements Initializable {
 
         final String body = response.getBody();
         try {
-            return Json.mapper.readValue(body, CurrencyConversionRates.class);
+            return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }

@@ -26,7 +26,7 @@ public class UidsCookieTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new UidsCookie(null));
+        assertThatNullPointerException().isThrownBy(() -> new UidsCookie(null, jacksonMapper));
     }
 
     @Test
@@ -34,7 +34,7 @@ public class UidsCookieTest extends VertxTest {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when and then
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
@@ -43,7 +43,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void uidFromShouldTolerateNullUids() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
 
         // when and then
         assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
@@ -52,7 +52,8 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void allowsSyncShouldReturnFalseIfOptoutTrue() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build());
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper);
 
         // when and then
         assertThat(uidsCookie.allowsSync()).isFalse();
@@ -61,7 +62,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void allowsSyncShouldReturnTrueIfOptoutAbsent() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
 
         // when and then
         assertThat(uidsCookie.allowsSync()).isTrue();
@@ -72,7 +73,7 @@ public class UidsCookieTest extends VertxTest {
         // given
         Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.expired("J5VLCWQP-26-CWFT"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // then
         assertThat(uidsCookie.hasLiveUids()).isFalse();
@@ -83,7 +84,7 @@ public class UidsCookieTest extends VertxTest {
         // given
         Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // then
         assertThat(uidsCookie.hasLiveUids()).isTrue();
@@ -95,7 +96,7 @@ public class UidsCookieTest extends VertxTest {
         Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.expired("12345"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // then
         assertThat(uidsCookie.hasLiveUidFrom(RUBICON)).isTrue();
@@ -123,7 +124,7 @@ public class UidsCookieTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.deleteUid(RUBICON);
@@ -138,7 +139,7 @@ public class UidsCookieTest extends VertxTest {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.deleteUid(RUBICON);
@@ -151,7 +152,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void deleteUidShouldTolerateNullUids() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.deleteUid(RUBICON);
@@ -166,7 +167,7 @@ public class UidsCookieTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateUid(RUBICON, "updatedUid");
@@ -181,7 +182,7 @@ public class UidsCookieTest extends VertxTest {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateUid(RUBICON, "createdUid");
@@ -194,7 +195,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void updateUidShouldTolerateNullUids() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateUid(RUBICON, "createdUid");
@@ -206,7 +207,8 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void updateOptoutShouldReturnUidsCookieWithOptoutFlagOff() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build());
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateOptout(false);
@@ -220,7 +222,7 @@ public class UidsCookieTest extends VertxTest {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper);
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateOptout(true);
@@ -236,10 +238,9 @@ public class UidsCookieTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40.123456789Z")));
 
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder()
-                .uids(uids)
-                .bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z"))
-                .build());
+        final UidsCookie uidsCookie = new UidsCookie(
+                Uids.builder().uids(uids).bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z")).build(),
+                jacksonMapper);
 
         // when and then
         assertThat(uidsCookie.toJson()).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +

@@ -5,9 +5,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.EncodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -21,6 +18,9 @@ import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 
@@ -36,20 +36,26 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
     private static final String ACCOUNT_PARAMETER = "a";
 
-    private final ApplicationSettings applicationSettings;
-    private final CacheService cacheService;
-    private final BidderCatalog bidderCatalog;
-    private final TimeoutFactory timeoutFactory;
     private final long defaultTimeout;
+    private final ApplicationSettings applicationSettings;
+    private final BidderCatalog bidderCatalog;
+    private final CacheService cacheService;
+    private final TimeoutFactory timeoutFactory;
+    private final JacksonMapper mapper;
 
-    public VtrackHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
-                         CacheService cacheService, TimeoutFactory timeoutFactory, long defaultTimeout) {
+    public VtrackHandler(long defaultTimeout,
+                         ApplicationSettings applicationSettings,
+                         BidderCatalog bidderCatalog,
+                         CacheService cacheService,
+                         TimeoutFactory timeoutFactory,
+                         JacksonMapper mapper) {
 
+        this.defaultTimeout = defaultTimeout;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.defaultTimeout = defaultTimeout;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -79,7 +85,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
         return accountId;
     }
 
-    private static List<PutObject> vtrackPuts(RoutingContext context) {
+    private List<PutObject> vtrackPuts(RoutingContext context) {
         final Buffer body = context.getBody();
         if (body == null || body.length() == 0) {
             throw new IllegalArgumentException("Incoming request has no body");
@@ -87,7 +93,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         final BidCacheRequest bidCacheRequest;
         try {
-            bidCacheRequest = Json.decodeValue(body, BidCacheRequest.class);
+            bidCacheRequest = mapper.decodeValue(body, BidCacheRequest.class);
         } catch (DecodeException e) {
             throw new IllegalArgumentException("Failed to parse request body", e);
         }
@@ -139,12 +145,12 @@ public class VtrackHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toSet());
     }
 
-    private static void handleCacheResult(AsyncResult<BidCacheResponse> async, RoutingContext context) {
+    private void handleCacheResult(AsyncResult<BidCacheResponse> async, RoutingContext context) {
         if (async.failed()) {
             respondWithServerError(context, "Error occurred while sending request to cache", async.cause());
         } else {
             try {
-                respondWith(context, HttpResponseStatus.OK, Json.encode(async.result()));
+                respondWith(context, HttpResponseStatus.OK, mapper.encode(async.result()));
             } catch (EncodeException e) {
                 respondWithServerError(context, "Error occurred while encoding response", e);
             }

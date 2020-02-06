@@ -41,7 +41,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.tuple;
 
 public class FacebookBidderTest extends VertxTest {
@@ -55,33 +54,23 @@ public class FacebookBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_SECRET);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(null, PLATFORM_ID, APP_SECRET));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, null, APP_SECRET));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, null));
+        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_SECRET, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnBlankArguments() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_SECRET))
+                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_SECRET, jacksonMapper))
                 .withMessageStartingWith("No facebook platform-id specified.");
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " "))
+                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " ", jacksonMapper))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID, APP_SECRET))
+                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID, APP_SECRET, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

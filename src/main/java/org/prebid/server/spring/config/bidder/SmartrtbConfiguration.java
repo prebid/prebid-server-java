@@ -1,7 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -28,6 +29,9 @@ public class SmartrtbConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("smartrtbConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -43,7 +47,7 @@ public class SmartrtbConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new SmartrtbBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new SmartrtbBidder(configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

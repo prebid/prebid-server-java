@@ -1,11 +1,11 @@
 package org.prebid.server.handler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -72,7 +72,8 @@ public class VtrackHandlerTest extends VertxTest {
         given(httpRequest.getParam("a")).willReturn("accountId");
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        handler = new VtrackHandler(applicationSettings, bidderCatalog, cacheService, timeoutFactory, 2000);
+        handler = new VtrackHandler(
+                2000, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
     }
 
     @Test
@@ -121,7 +122,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestWhenBidIdIsMissing() {
+    public void shouldRespondWithBadRequestWhenBidIdIsMissing() throws JsonProcessingException {
         // given
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(identity()));
@@ -137,7 +138,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestWhenBidderIsMissing() {
+    public void shouldRespondWithBadRequestWhenBidderIsMissing() throws JsonProcessingException {
         // given
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId")));
@@ -153,7 +154,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithInternalServerErrorWhenFetchingAccountFails() {
+    public void shouldRespondWithInternalServerErrorWhenFetchingAccountFails() throws JsonProcessingException {
         // given
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
@@ -172,7 +173,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithInternalServerErrorWhenCacheServiceReturnFailure() {
+    public void shouldRespondWithInternalServerErrorWhenCacheServiceReturnFailure() throws JsonProcessingException {
         // given
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
@@ -191,7 +192,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateNotFoundAccount() {
+    public void shouldTolerateNotFoundAccount() throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = singletonList(
                 PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
@@ -211,7 +212,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheEmptyUpdatableBiddersIfAccountEventsEnabledIsNull() {
+    public void shouldSendToCacheEmptyUpdatableBiddersIfAccountEventsEnabledIsNull() throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = singletonList(
                 PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
@@ -233,7 +234,7 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheExpectedPutsAndUpdatableBidders() {
+    public void shouldSendToCacheExpectedPutsAndUpdatableBidders() throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = asList(
                 PutObject.builder().bidid("bidId1").bidder("bidder").value(new TextNode("value1")).build(),
@@ -261,7 +262,7 @@ public class VtrackHandlerTest extends VertxTest {
 
     @SafeVarargs
     private static Buffer givenVtrackRequest(
-            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers) {
+            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers) throws JsonProcessingException {
 
         final List<PutObject> putObjects;
         if (customizers != null) {
@@ -276,7 +277,7 @@ public class VtrackHandlerTest extends VertxTest {
         return givenVtrackRequest(putObjects);
     }
 
-    private static Buffer givenVtrackRequest(List<PutObject> putObjects) {
-        return Buffer.buffer(Json.encode(singletonMap("puts", putObjects)));
+    private static Buffer givenVtrackRequest(List<PutObject> putObjects) throws JsonProcessingException {
+        return Buffer.buffer(mapper.writeValueAsString(singletonMap("puts", putObjects)));
     }
 }
