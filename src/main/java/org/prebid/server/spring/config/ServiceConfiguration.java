@@ -232,7 +232,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             TimeoutResolver timeoutResolver,
-            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             JacksonMapper mapper) {
 
