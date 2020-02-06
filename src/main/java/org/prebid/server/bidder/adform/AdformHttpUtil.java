@@ -128,7 +128,6 @@ class AdformHttpUtil {
         return String.format("%s?%s&%s", uri, urlParams, mids);
     }
 
-
     /**
      * Returns price type parameter if valid is found. Otherwise returns empty string.
      */
