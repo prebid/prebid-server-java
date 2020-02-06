@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 public class AmpHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
-    private static final ConditionalLogger CONDITIONAL_LOGGER = new ConditionalLogger(logger);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
@@ -319,14 +319,14 @@ public class AmpHandler implements Handler<RoutingContext> {
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String errorMessage = exception.getMessage();
-                CONDITIONAL_LOGGER.info(String.format("Unauthorized: %s", errorMessage), 100);
+                conditionalLogger.info(String.format("Unauthorized: %s", errorMessage), 100);
 
                 errorMessages = Collections.singletonList(errorMessage);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = String.format("Unauthorised: %s", errorMessage);
                 String userId = ((UnauthorizedAccountException) exception).getUserId();
-                metrics.increaseAccountRejectedRequestCounter(userId);
+                metrics.updateAccountRequestRejectedMetrics(userId);
             } else {
                 final String message = exception.getMessage();
 

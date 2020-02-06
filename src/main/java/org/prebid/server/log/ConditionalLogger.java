@@ -19,25 +19,41 @@ public class ConditionalLogger {
         log(message, maxValue, logger -> logger.info(message));
     }
 
+    public void info(String message, String key, Integer maxValue) {
+        log(key, maxValue, logger -> logger.info(message));
+    }
+
     public void error(String message, Integer maxValue) {
         log(message, maxValue, logger -> logger.error(message));
+    }
+
+    public void error(String message, String key, Integer maxValue) {
+        log(key, maxValue, logger -> logger.error(message));
     }
 
     public void debug(String message, Integer maxValue) {
         log(message, maxValue, logger -> logger.debug(message));
     }
 
+    public void debug(String message, String key, Integer maxValue) {
+        log(key, maxValue, logger -> logger.debug(message));
+    }
+
     public void warn(String message, Integer maxValue) {
         log(message, maxValue, logger -> logger.warn(message));
     }
 
-    public void log(String key, Integer maxValue, Consumer<Logger> onLog) {
-        AtomicInteger currentValue = messageToCount.compute(
-                key, (k, currentCounter) -> currentCounter != null ? currentCounter : new AtomicInteger(0)
+    public void warn(String message, String key, Integer maxValue) {
+        log(key, maxValue, logger -> logger.warn(message));
+    }
+
+    private void log(String key, Integer maxValue, Consumer<Logger> consumer) {
+        final AtomicInteger currentValue = messageToCount.compute(
+                key, (currentKey, currentCounter) -> currentCounter != null ? currentCounter : new AtomicInteger(0)
         );
         if (currentValue.incrementAndGet() >= maxValue) {
             currentValue.set(0);
-            onLog.accept(logger);
+            consumer.accept(logger);
         }
     }
 }

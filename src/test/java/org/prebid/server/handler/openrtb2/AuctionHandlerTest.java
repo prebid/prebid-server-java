@@ -224,7 +224,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", "1")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
 
         // when
         auctionHandler.handle(routingContext);
@@ -549,15 +549,15 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Test
     public void shouldIncrementRejectedMetricsIfUnknownUser() {
-        //given
+        // given
         given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(
-                Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id", "1"))
+                Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id 1", "1"))
         );
-        //when
+        // when
         auctionHandler.handle(routingContext);
 
-        //then
-        verify(metrics).increaseAccountRejectedRequestCounter(eq("1"));
+        // then
+        verify(metrics).updateAccountRequestRejectedMetrics(eq("1"));
     }
 
     @Test

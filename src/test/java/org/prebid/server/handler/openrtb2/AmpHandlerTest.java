@@ -253,7 +253,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", "1")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
 
         // when
         ampHandler.handle(routingContext);

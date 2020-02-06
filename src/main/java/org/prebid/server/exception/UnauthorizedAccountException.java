@@ -9,7 +9,7 @@ public class UnauthorizedAccountException extends RuntimeException {
     private String userId;
 
     public UnauthorizedAccountException(String message, String userId) {
-        super(String.format("%s %s", message, userId));
+        super(String.format("%s", message));
         this.userId = userId;
     }
 }

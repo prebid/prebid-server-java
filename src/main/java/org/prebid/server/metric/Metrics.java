@@ -164,9 +164,8 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void increaseAccountRejectedRequestCounter(String accountId) {
+    public void updateAccountRequestRejectedMetrics(String accountId) {
         final AccountMetrics accountMetrics = forAccount(accountId);
-        //rejected
         accountMetrics.requests().incCounter(MetricName.rejected);
     }
 

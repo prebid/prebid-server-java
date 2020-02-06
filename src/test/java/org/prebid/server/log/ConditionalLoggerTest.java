@@ -2,17 +2,20 @@ package org.prebid.server.log;
 
 import io.vertx.core.logging.Logger;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@RunWith(MockitoJUnitRunner.class)
 public class ConditionalLoggerTest {
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Logger logger;
@@ -26,12 +29,11 @@ public class ConditionalLoggerTest {
 
     @Test
     public void log() {
-        //when
+        // when
         for (int i = 0; i < 100; i++) {
             conditionalLogger.info("Hello", 20);
         }
-        //then
+        // then
         verify(logger, times(5)).info(any());
     }
-
 }
