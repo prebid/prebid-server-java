@@ -84,7 +84,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, false);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
+                false, false
+        );
     }
 
     @Test
@@ -478,7 +480,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void shouldMaskForCcpaAndDoesNotCallGdprServicesWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
         // given
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
+                false, true);
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
@@ -516,7 +519,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
         // given
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
+                false, true);
         final Ccpa ccpa = Ccpa.of("1YNY");
 
         // when and then
@@ -527,7 +531,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
         // given
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, false, true);
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
+                false, true
+        );
         final Ccpa ccpa = Ccpa.of("1YYY");
 
         // when and then

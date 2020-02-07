@@ -40,14 +40,14 @@ public class StatusHandlerTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnNullHealthCheckers() {
-        assertThatNullPointerException().isThrownBy(() -> new StatusHandler(null));
+        assertThatNullPointerException().isThrownBy(() -> new StatusHandler(null, jacksonMapper));
     }
 
     @Test
     public void shouldRespondHttp200OkWithExpectedBody() throws JsonProcessingException {
         // given
         final ZonedDateTime testTime = ZonedDateTime.now(Clock.systemUTC());
-        statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck));
+        statusHandler = new StatusHandler(Arrays.asList(healthCheck, healthCheck, healthCheck), jacksonMapper);
 
         given(routingContext.response()).willReturn(httpResponse);
         given(healthCheck.name()).willReturn("application", "db", "other");
@@ -68,7 +68,7 @@ public class StatusHandlerTest extends VertxTest {
 
     @Test
     public void shouldRespondWithNoContentWhenMessageWasNotDefined() {
-        statusHandler = new StatusHandler(emptyList());
+        statusHandler = new StatusHandler(emptyList(), jacksonMapper);
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(eq(204))).willReturn(httpResponse);
 

@@ -7,14 +7,14 @@ import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,15 +30,18 @@ public class VideoRequestFactory {
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final TimeoutResolver timeoutResolver;
+    private final JacksonMapper mapper;
 
     public VideoRequestFactory(int maxRequestSize, boolean enforceStoredRequest,
                                VideoStoredRequestProcessor storedRequestProcessor,
-                               AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver) {
+                               AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver,
+                               JacksonMapper mapper) {
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -82,7 +85,7 @@ public class VideoRequestFactory {
         }
 
         try {
-            return Json.decodeValue(body, BidRequestVideo.class);
+            return mapper.decodeValue(body, BidRequestVideo.class);
         } catch (DecodeException e) {
             throw new InvalidRequestException(e.getMessage());
         }
@@ -121,5 +124,4 @@ public class VideoRequestFactory {
                 .fillImplicitParameters(bidRequestToErrors.getData(), routingContext, timeoutResolver);
         return WithPodErrors.of(bidRequest, bidRequestToErrors.getPodErrors());
     }
-
 }

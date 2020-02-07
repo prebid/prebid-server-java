@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.adform.AdformAdapter;
 import org.prebid.server.bidder.adform.AdformBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,6 +31,9 @@ public class AdformConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("adformConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -47,8 +51,9 @@ public class AdformConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new AdformBidder(configProperties.getEndpoint()))
-                .adapterCreator(() -> new AdformAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint()))
+                .bidderCreator(() -> new AdformBidder(configProperties.getEndpoint(), mapper))
+                .adapterCreator(() -> new AdformAdapter(usersync.getCookieFamilyName(),
+                        configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

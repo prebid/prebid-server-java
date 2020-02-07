@@ -75,7 +75,7 @@ public class AppnexusBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        appnexusBidder = new AppnexusBidder(ENDPOINT_URL);
+        appnexusBidder = new AppnexusBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test

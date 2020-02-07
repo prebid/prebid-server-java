@@ -10,9 +10,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.EncodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -28,6 +25,9 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -43,9 +43,11 @@ import java.util.Objects;
 public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public ConsumableBidder(String endpointUrl) {
+    public ConsumableBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -72,7 +74,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         final ConsumableBidRequest outgoingRequest = requestBuilder.build();
         String body;
         try {
-            body = Json.encode(outgoingRequest);
+            body = mapper.encode(outgoingRequest);
         } catch (EncodeException e) {
             return Result.of(Collections.emptyList(),
                     Collections.singletonList(BidderError.badInput(
@@ -90,8 +92,8 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                 Collections.emptyList());
     }
 
-    private static void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,
-                                             List<Imp> imps) {
+    private void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,
+                                      List<Imp> imps) {
         final List<ConsumablePlacement> placements = new ArrayList<>();
         for (int i = 0; i < imps.size(); i++) {
             final Imp currentImp = imps.get(i);
@@ -115,9 +117,9 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         requestBuilder.placements(placements);
     }
 
-    private static ExtImpConsumable parseImpExt(Imp imp) {
+    private ExtImpConsumable parseImpExt(Imp imp) {
         try {
-            return Json.mapper.convertValue(imp.getExt().get("bidder"), ExtImpConsumable.class);
+            return mapper.mapper().convertValue(imp.getExt().get("bidder"), ExtImpConsumable.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -157,7 +159,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<ConsumableBidRequest> httpCall, BidRequest bidRequest) {
         final ConsumableBidResponse consumableResponse;
         try {
-            consumableResponse = Json.decodeValue(httpCall.getResponse().getBody(), ConsumableBidResponse.class);
+            consumableResponse = mapper.decodeValue(httpCall.getResponse().getBody(), ConsumableBidResponse.class);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }

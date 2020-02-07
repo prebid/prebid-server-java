@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
@@ -32,6 +31,7 @@ import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -58,10 +58,12 @@ public class PubmaticAdapter extends OpenrtbAdapter {
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public PubmaticAdapter(String cookieFamilyName, String endpointUrl) {
+    public PubmaticAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -105,7 +107,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     // Parse Wrapper Extension i.e. ProfileID and VersionID only once per request
-    private static ObjectNode makeBidExt(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams) {
+    private ObjectNode makeBidExt(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams) {
         final ObjectNode wrapExt = adUnitBidsWithParams.stream()
                 .map(AdUnitBidWithParams::getParams)
                 .filter(Objects::nonNull)
@@ -114,12 +116,12 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .findFirst().orElse(null);
 
         if (wrapExt != null) {
-            return Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt));
+            return mapper.mapper().valueToTree(PubmaticRequestExt.of(wrapExt));
         }
         return null;
     }
 
-    private static List<AdUnitBidWithParams<NormalizedPubmaticParams>> createAdUnitBidsWithParams(
+    private List<AdUnitBidWithParams<NormalizedPubmaticParams>> createAdUnitBidsWithParams(
             List<AdUnitBid> adUnitBids, String requestId) {
         final List<String> errors = new ArrayList<>();
         final List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidWithParams = adUnitBids.stream()
@@ -147,8 +149,8 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 || ObjectUtils.allNotNull(params.getTagId(), params.getWidth(), params.getHeight());
     }
 
-    private static NormalizedPubmaticParams parseAndValidateParams(AdUnitBid adUnitBid,
-                                                                   String requestId, List<String> errors) {
+    private NormalizedPubmaticParams parseAndValidateParams(AdUnitBid adUnitBid,
+                                                            String requestId, List<String> errors) {
         final ObjectNode params = adUnitBid.getParams();
         final List<Format> sizes = adUnitBid.getSizes();
         final String bidId = adUnitBid.getBidId();
@@ -161,7 +163,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
         final PubmaticParams pubmaticParams;
         try {
-            pubmaticParams = Json.mapper.convertValue(params, PubmaticParams.class);
+            pubmaticParams = mapper.mapper().convertValue(params, PubmaticParams.class);
         } catch (IllegalArgumentException e) {
             errors.add(paramError(bidId, "Invalid BidParam", params));
             logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", params, e);
@@ -234,7 +236,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         final ObjectNode wrapExt;
         if (pubmaticParams.getWrapper() != null) {
             try {
-                Json.mapper.convertValue(pubmaticParams.getWrapper(), new TypeReference<Map<String, Integer>>() {
+                mapper.mapper().convertValue(pubmaticParams.getWrapper(), new TypeReference<Map<String, Integer>>() {
                 });
             } catch (IllegalArgumentException e) {
                 errors.add(paramError(bidId, "Invalid WrapperExt", params));
@@ -251,7 +253,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         final List<String> keywords = makeKeywords(pubmaticParams.getKeywords());
         if (!keywords.isEmpty()) {
             try {
-                keyValue = Json.mapper.readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
+                keyValue = mapper.mapper().readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
             } catch (IOException e) {
                 errors.add(String.format("Failed to create keywords with error: %s", e.getMessage()));
                 return null;

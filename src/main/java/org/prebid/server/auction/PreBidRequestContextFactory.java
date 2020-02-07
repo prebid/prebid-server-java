@@ -5,8 +5,6 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -20,6 +18,8 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.Bid;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -51,18 +51,23 @@ public class PreBidRequestContextFactory {
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
     private final TimeoutFactory timeoutFactory;
+    private final JacksonMapper mapper;
 
     private final Random rand = new Random();
 
-    public PreBidRequestContextFactory(TimeoutResolver timeoutResolver, ImplicitParametersExtractor paramsExtractor,
-                                       ApplicationSettings applicationSettings, UidsCookieService uidsCookieService,
-                                       TimeoutFactory timeoutFactory) {
+    public PreBidRequestContextFactory(TimeoutResolver timeoutResolver,
+                                       ImplicitParametersExtractor paramsExtractor,
+                                       ApplicationSettings applicationSettings,
+                                       UidsCookieService uidsCookieService,
+                                       TimeoutFactory timeoutFactory,
+                                       JacksonMapper mapper) {
 
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -78,7 +83,7 @@ public class PreBidRequestContextFactory {
 
         final PreBidRequest preBidRequest;
         try {
-            preBidRequest = Json.decodeValue(body, PreBidRequest.class);
+            preBidRequest = mapper.decodeValue(body, PreBidRequest.class);
         } catch (DecodeException e) {
             return Future.failedFuture(new PreBidException(e.getMessage(), e.getCause()));
         }
@@ -176,7 +181,7 @@ public class PreBidRequestContextFactory {
 
     private List<Bid> toBids(String config, String configId) {
         try {
-            return Json.decodeValue(config, LIST_OF_BIDS_TYPE_REFERENCE);
+            return mapper.decodeValue(config, LIST_OF_BIDS_TYPE_REFERENCE);
         } catch (DecodeException e) {
             throw new PreBidException(String.format("Cannot parse AdUnit config for id: %s", configId), e);
         }

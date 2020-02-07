@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,6 +23,7 @@ import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -60,12 +60,13 @@ public class SharethroughBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        sharethroughBidder = new SharethroughBidder(ENDPOINT_URL);
+        sharethroughBidder = new SharethroughBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SharethroughBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new SharethroughBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -112,7 +113,7 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeaders() {
+    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeaders() throws JsonProcessingException {
         // given
         final String pageString = "http://page.com";
         final BidRequest bidRequest = BidRequest.builder()
@@ -122,7 +123,7 @@ public class SharethroughBidderTest extends VertxTest {
                                 ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20), BigDecimal.ONE))))
                         .banner(Banner.builder().w(40).h(30).build())
                         .build()))
-                .app(App.builder().ext(Json.mapper.createObjectNode()).build())
+                .app(App.builder().ext(mapper.createObjectNode()).build())
                 .site(Site.builder().page(pageString).build())
                 .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
                 .badv(singletonList("testBlocked"))
@@ -145,7 +146,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(Json.encode(expectedPayload), HttpRequest::getBody)
+                .returns(mapper.writeValueAsString(expectedPayload), HttpRequest::getBody)
                 .returns(expectedPayload, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -160,7 +161,7 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeadersDefaultParameters() {
+    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeadersDefaultParameters() throws JsonProcessingException {
         // given
         final List<ExtUserEidUid> uids = Arrays.asList(
                 ExtUserEidUid.of("first", null),
@@ -177,7 +178,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
-                .user(User.builder().buyeruid("buyer").ext(Json.mapper.valueToTree(extUser)).build())
+                .user(User.builder().buyeruid("buyer").ext(mapper.valueToTree(extUser)).build())
                 .test(1)
                 .tmax(TIMEOUT)
                 .build();
@@ -198,7 +199,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(Json.encode(expectedPayload), HttpRequest::getBody)
+                .returns(mapper.writeValueAsString(expectedPayload), HttpRequest::getBody)
                 .returns(expectedPayload, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
     }
@@ -223,7 +224,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         final String uri = "http://uri.com?placement_key=pkey&bidId=bidid&height=20&width=30";
         final HttpCall<SharethroughRequestBody> httpCall = givenHttpCallWithUri(uri,
-                Json.mapper.writeValueAsString(response));
+                mapper.writeValueAsString(response));
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);

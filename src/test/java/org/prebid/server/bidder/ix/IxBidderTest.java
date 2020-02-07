@@ -45,12 +45,12 @@ public class IxBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        ixBidder = new IxBidder(ENDPOINT_URL);
+        ixBidder = new IxBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new IxBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new IxBidder("invalid_url", jacksonMapper));
     }
 
     @Test

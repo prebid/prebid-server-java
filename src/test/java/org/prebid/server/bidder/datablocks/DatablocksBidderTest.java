@@ -40,12 +40,12 @@ public class DatablocksBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        datablocksBidder = new DatablocksBidder(ENDPOINT_TEMPLATE);
+        datablocksBidder = new DatablocksBidder(ENDPOINT_TEMPLATE, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new DatablocksBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new DatablocksBidder("invalid_url", jacksonMapper));
     }
 
     @Test

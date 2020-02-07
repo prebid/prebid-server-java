@@ -8,10 +8,10 @@ import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -39,6 +39,12 @@ public class VideoResponseFactory {
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
+
+    private final JacksonMapper mapper;
+
+    public VideoResponseFactory(JacksonMapper mapper) {
+        this.mapper = mapper;
+    }
 
     public VideoResponse toVideoResponse(BidRequest bidRequest, BidResponse bidResponse, List<PodError> podErrors) {
         final List<Bid> bids = bidsFrom(bidResponse);
@@ -115,7 +121,7 @@ public class VideoResponseFactory {
     private Map<String, String> targeting(Bid bid) {
         final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
         try {
-            extBid = Json.mapper.convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
+            extBid = mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             return Collections.emptyMap();
         }
@@ -134,7 +140,7 @@ public class VideoResponseFactory {
     /**
      * Determines debug flag from {@link BidRequest}.
      */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
+    private boolean isDebugEnabled(BidRequest bidRequest) {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
@@ -146,19 +152,19 @@ public class VideoResponseFactory {
     /**
      * Extracts {@link ExtBidRequest} from {@link BidRequest}.
      */
-    private static ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
+    private ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
         try {
             return bidRequest.getExt() != null
-                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class)
+                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class)
                     : null;
         } catch (JsonProcessingException e) {
             throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
         }
     }
 
-    private static ExtBidResponse extResponseFrom(BidResponse bidResponse) {
+    private ExtBidResponse extResponseFrom(BidResponse bidResponse) {
         try {
-            return Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
+            return mapper.mapper().convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     String.format("Critical error while unpacking Video bid response: %s", e.getMessage()), e);
@@ -172,5 +178,4 @@ public class VideoResponseFactory {
     private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
-
 }

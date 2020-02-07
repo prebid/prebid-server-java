@@ -3,9 +3,9 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.proto.request.InvalidateSettingsCacheRequest;
 import org.prebid.server.settings.proto.request.UpdateSettingsCacheRequest;
@@ -18,10 +18,12 @@ import java.util.Objects;
  */
 public class SettingsCacheNotificationHandler implements Handler<RoutingContext> {
 
-    private CacheNotificationListener cacheNotificationListener;
+    private final CacheNotificationListener cacheNotificationListener;
+    private final JacksonMapper mapper;
 
-    public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener) {
+    public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener, JacksonMapper mapper) {
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -50,7 +52,7 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
 
         final UpdateSettingsCacheRequest request;
         try {
-            request = Json.decodeValue(body, UpdateSettingsCacheRequest.class);
+            request = mapper.decodeValue(body, UpdateSettingsCacheRequest.class);
         } catch (DecodeException e) {
             HttpUtil.respondWith(context, HttpResponseStatus.BAD_REQUEST, "Invalid update.");
             return;
@@ -72,7 +74,7 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
 
         final InvalidateSettingsCacheRequest request;
         try {
-            request = Json.decodeValue(body, InvalidateSettingsCacheRequest.class);
+            request = mapper.decodeValue(body, InvalidateSettingsCacheRequest.class);
         } catch (DecodeException e) {
             HttpUtil.respondWith(context, HttpResponseStatus.BAD_REQUEST, "Invalid invalidation.");
             return;

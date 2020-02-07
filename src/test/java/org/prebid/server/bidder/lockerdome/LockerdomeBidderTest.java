@@ -38,12 +38,12 @@ public class LockerdomeBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        lockerdomeBidder = new LockerdomeBidder(ENDPOINT_URL);
+        lockerdomeBidder = new LockerdomeBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new LockerdomeBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new LockerdomeBidder("invalid_url", jacksonMapper));
     }
 
     @Test

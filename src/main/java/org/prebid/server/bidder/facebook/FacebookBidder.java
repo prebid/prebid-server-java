@@ -16,8 +16,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
@@ -34,6 +32,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -64,11 +64,13 @@ public class FacebookBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final String platformId;
     private final String appSecret;
+    private final JacksonMapper mapper;
 
-    public FacebookBidder(String endpointUrl, String platformId, String appSecret) {
+    public FacebookBidder(String endpointUrl, String platformId, String appSecret, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     private static String checkBlankString(String paramValue, String paramName) {
@@ -111,10 +113,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(modifiedImp))
                 .site(makeSite(bidRequest.getSite(), publisherId))
                 .app(makeApp(bidRequest.getApp(), publisherId))
-                .ext(Json.mapper.valueToTree(FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
+                .ext(mapper.mapper().valueToTree(FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -125,10 +127,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpFacebook parseAndResolveExtImpFacebook(Imp imp) {
+    private ExtImpFacebook parseAndResolveExtImpFacebook(Imp imp) {
         final ExtImpFacebook extImpFacebook;
         try {
-            extImpFacebook = Json.mapper.convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
+            extImpFacebook = mapper.mapper().convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
@@ -285,14 +287,14 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(response.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
+    private Result<List<BidderBid>> extractBids(BidResponse bidResponse, List<Imp> imps) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
@@ -309,14 +311,14 @@ public class FacebookBidder implements Bidder<BidRequest> {
         return Result.of(bidderBids, errors);
     }
 
-    private static BidderBid toBidderBid(Bid bid, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, List<Imp> imps, List<BidderError> errors) {
         final String bidId;
         try {
             if (StringUtils.isBlank(bid.getAdm())) {
                 throw new PreBidException(String.format("Bid %s missing 'adm'", bid.getId()));
             }
 
-            bidId = Json.decodeValue(bid.getAdm(), FacebookAdMarkup.class).getBidId();
+            bidId = mapper.decodeValue(bid.getAdm(), FacebookAdMarkup.class).getBidId();
 
             if (StringUtils.isBlank(bidId)) {
                 throw new PreBidException(String.format("bid %s missing 'bid_id' in 'adm'", bid.getId()));

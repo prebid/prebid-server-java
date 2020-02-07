@@ -14,8 +14,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -25,6 +23,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -47,10 +47,13 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             TypeReference<ExtPrebid<?, ExtImpEmxDigital>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private final String endpointUrl;
 
-    public EmxDigitalBidder(String endpointUrl) {
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+
+    public EmxDigitalBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -62,7 +65,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = Json.encode(bidRequest);
+        final String body = mapper.encode(bidRequest);
         final MultiMap headers = makeHeaders(request);
         final String url = makeUrl(request);
 
@@ -77,7 +80,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     }
 
     // Handle request errors and formatting to be sent to EMX
-    private static BidRequest makeBidRequest(BidRequest request) {
+    private BidRequest makeBidRequest(BidRequest request) {
         final boolean isSecure = isSecure(request.getSite());
 
         final List<Imp> modifiedImps = request.getImp().stream()
@@ -94,11 +97,10 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .startsWith("https");
     }
 
-    private static ExtImpEmxDigital unpackImpExt(Imp imp) {
+    private ExtImpEmxDigital unpackImpExt(Imp imp) {
         final ExtImpEmxDigital bidder;
         try {
-            bidder = Json.mapper.<ExtPrebid<?, ExtImpEmxDigital>>convertValue(imp.getExt(),
-                    EMXDIGITAL_EXT_TYPE_REFERENCE).getBidder();
+            bidder = mapper.mapper().convertValue(imp.getExt(), EMXDIGITAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -214,7 +216,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     /**
      * Determines debug flag from {@link BidRequest} or {@link ExtBidRequest}.
      */
-    private static boolean isDebugEnabled(BidRequest bidRequest) {
+    private boolean isDebugEnabled(BidRequest bidRequest) {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
@@ -233,10 +235,10 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     /**
      * Extracts {@link ExtBidRequest} from {@link BidRequest}.
      */
-    private static ExtBidRequest requestExt(BidRequest bidRequest) {
+    private ExtBidRequest requestExt(BidRequest bidRequest) {
         try {
             return bidRequest.getExt() != null
-                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
+                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
         } catch (JsonProcessingException e) {
             throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
         }
@@ -245,8 +247,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json
-                    .decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

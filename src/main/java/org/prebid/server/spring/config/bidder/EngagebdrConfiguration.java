@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.engagebdr.EngagebdrBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -28,6 +29,9 @@ public class EngagebdrConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("engagebdrConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -43,7 +47,7 @@ public class EngagebdrConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new EngagebdrBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new EngagebdrBidder(configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

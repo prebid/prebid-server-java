@@ -196,7 +196,6 @@
       "id": "5001"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [
@@ -208,6 +207,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "schains": [
         {
           "bidders": [
