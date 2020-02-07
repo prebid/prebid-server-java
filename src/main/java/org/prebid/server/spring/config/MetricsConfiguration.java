@@ -19,6 +19,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.AccountMetricsVerbosity;
 import org.prebid.server.metric.CounterType;
@@ -43,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
@@ -83,12 +83,8 @@ public class MetricsConfiguration {
                 influxdbProperties.getConnectTimeout(),
                 influxdbProperties.getReadTimeout(),
                 influxdbProperties.getPrefix());
-        Map<String, String> cfgTags = influxdbProperties.getTags();
-        Map<String, String> tags = cfgTags == null
-                ?
-                new LinkedHashMap<String, String>()
-                :
-                cfgTags;
+        final Map<String, String> cfgTags = influxdbProperties.getTags();
+        final Map<String, String> tags = ObjectUtils.defaultIfNull(cfgTags, Collections.emptyMap());
         final ScheduledReporter reporter = InfluxDbReporter
                 .forRegistry(metricRegistry)
                 .withTags(tags)
