@@ -10,6 +10,8 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import java.util.List;
+import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -21,9 +23,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
-
-import java.util.List;
-import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -87,7 +86,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(BidRequest.builder()
                         .imp(singletonList(givenImp(identity()).toBuilder().tagid("tagId").build()))
-                        .ext(mapper.valueToTree(ExtImpSynacormedia.of("seatId","tagId")))
+                        .ext(mapper.valueToTree(ExtImpSynacormedia.of("seatId", "tagId")))
                         .build());
     }
 
@@ -284,7 +283,7 @@ public class SynacormediaBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seatId","tagId")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seatId", "tagId")))))
                 .build();
     }
 
