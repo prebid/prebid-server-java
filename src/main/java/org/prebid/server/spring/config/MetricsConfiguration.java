@@ -83,8 +83,10 @@ public class MetricsConfiguration {
                 influxdbProperties.getConnectTimeout(),
                 influxdbProperties.getReadTimeout(),
                 influxdbProperties.getPrefix());
-        final Map<String, String> cfgTags = influxdbProperties.getTags();
-        final Map<String, String> tags = ObjectUtils.defaultIfNull(cfgTags, Collections.emptyMap());
+        final Map<String, String> tags = ObjectUtils.defaultIfNull(
+                influxdbProperties.getTags(),
+                Collections.emptyMap()
+        );
         final ScheduledReporter reporter = InfluxDbReporter
                 .forRegistry(metricRegistry)
                 .withTags(tags)
