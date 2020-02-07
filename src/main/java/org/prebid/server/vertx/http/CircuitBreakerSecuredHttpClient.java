@@ -27,7 +27,7 @@ import java.util.function.Function;
 public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
-    private static final ConditionalLogger CONDITIONAL_LOGGER = new ConditionalLogger(logger);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final Function<String, CircuitBreaker> circuitBreakerCreator;
     private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();
@@ -52,7 +52,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void circuitOpened(String name) {
-        CONDITIONAL_LOGGER.warn(String.format("Http client request to %s is failed, circuit opened.", name),
+        conditionalLogger.warn(String.format("Http client request to %s is failed, circuit opened.", name),
                 5, TimeUnit.SECONDS);
         metrics.updateHttpClientCircuitBreakerMetric(true);
     }

@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class CircuitBreakerSecuredGeoLocationService implements GeoLocationService {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredGeoLocationService.class);
-    private static final ConditionalLogger CONDITIONAL_LOGGER = new ConditionalLogger(logger);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final CircuitBreaker breaker;
     private final GeoLocationService geoLocationService;
@@ -43,7 +43,7 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
     }
 
     private void circuitOpened() {
-        CONDITIONAL_LOGGER.warn("GeoLocation service is unavailable, circuit opened.", 5, TimeUnit.SECONDS);
+        conditionalLogger.warn("GeoLocation service is unavailable, circuit opened.", 5, TimeUnit.SECONDS);
         metrics.updateGeoLocationCircuitBreakerMetric(true);
     }
 
