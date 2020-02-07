@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.appnexus.AppnexusAdapter;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,6 +31,9 @@ public class AppnexusConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("appnexusConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -47,9 +51,9 @@ public class AppnexusConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new AppnexusBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new AppnexusBidder(configProperties.getEndpoint(), mapper))
                 .adapterCreator(() -> new AppnexusAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint()))
+                        configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -28,9 +28,10 @@ public class CachingApplicationSettings implements ApplicationSettings {
     private final Map<String, String> adUnitConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
+    private final SettingsCache videoCache;
 
     public CachingApplicationSettings(ApplicationSettings delegate, SettingsCache cache, SettingsCache ampCache,
-                                      int ttl, int size) {
+                                      SettingsCache videoCache, int ttl, int size) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
@@ -40,6 +41,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         this.adUnitConfigCache = SettingsCache.createCache(ttl, size);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
+        this.videoCache = Objects.requireNonNull(videoCache);
     }
 
     /**
@@ -81,6 +83,11 @@ public class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return getFromCacheOrDelegate(ampCache, requestIds, impIds, timeout, delegate::getAmpStoredData);
+    }
+
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return getFromCacheOrDelegate(videoCache, requestIds, impIds, timeout, delegate::getVideoStoredData);
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, Map<String, String> accountToErrorCache,

@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.brightroll.BrightrollBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -28,6 +29,9 @@ public class BrightrollConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("brightrollConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -43,7 +47,7 @@ public class BrightrollConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

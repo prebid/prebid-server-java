@@ -8,8 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -18,6 +16,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.unruly.proto.ImpExtUnruly;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -43,9 +43,11 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public UnrulyBidder(String endpointUrl) {
+    public UnrulyBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -69,20 +71,19 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         return Result.of(outgoingRequests, errors);
     }
 
-    private static ExtImpUnruly parseImpExt(Imp imp) {
+    private ExtImpUnruly parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpUnruly>>convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpUnruly extImpUnruly) {
+    private Imp modifyImp(Imp imp, ExtImpUnruly extImpUnruly) {
         final Imp.ImpBuilder modifiedImp = imp.toBuilder();
 
         try {
-            modifiedImp.ext(Json.mapper.valueToTree(ImpExtUnruly.of(extImpUnruly)));
+            modifiedImp.ext(mapper.mapper().valueToTree(ImpExtUnruly.of(extImpUnruly)));
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -90,11 +91,11 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         return modifiedImp.build();
     }
 
-    private static HttpRequest<BidRequest> createSingleRequest(Imp modifiedImp, BidRequest request,
-                                                               String endpointUrl) {
+    private HttpRequest<BidRequest> createSingleRequest(Imp modifiedImp, BidRequest request,
+                                                        String endpointUrl) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -113,7 +114,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
@@ -132,7 +133,8 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                        DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 

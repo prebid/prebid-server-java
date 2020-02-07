@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.conversant.ConversantAdapter;
 import org.prebid.server.bidder.conversant.ConversantBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,6 +31,9 @@ public class ConversantConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("conversantConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -47,9 +51,9 @@ public class ConversantConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new ConversantBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new ConversantBidder(configProperties.getEndpoint(), mapper))
                 .adapterCreator(() -> new ConversantAdapter(usersync.getCookieFamilyName(),
-                        configProperties.getEndpoint()))
+                        configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

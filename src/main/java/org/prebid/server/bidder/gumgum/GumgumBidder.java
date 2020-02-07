@@ -10,9 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.EncodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,6 +18,9 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -43,9 +43,11 @@ public class GumgumBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public GumgumBidder(String endpointUrl) {
+    public GumgumBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -61,7 +63,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
         String body;
         try {
-            body = Json.encode(outgoingRequest);
+            body = mapper.encode(outgoingRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
             return Result.of(Collections.emptyList(), errors);
@@ -78,7 +80,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private static BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+    private BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> modifiedImps = new ArrayList<>();
         String trackingId = null;
         for (Imp imp : bidRequest.getImp()) {
@@ -104,10 +106,9 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpGumgum parseImpExt(Imp imp) {
+    private ExtImpGumgum parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpGumgum>>convertValue(imp.getExt(),
-                    GUMGUM_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -136,7 +137,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

@@ -42,12 +42,12 @@ public class EngagebdrBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        engagebdrBidder = new EngagebdrBidder(ENDPOINT_URL);
+        engagebdrBidder = new EngagebdrBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new EngagebdrBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new EngagebdrBidder("invalid_url", jacksonMapper));
     }
 
     @Test

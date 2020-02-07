@@ -6,12 +6,12 @@ import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class ConditionalLogger {
     private ConcurrentHashMap<String, AtomicInteger> messageToCount;
-    private ConcurrentHashMap<String, AtomicLong> messageToWait;
+    private ConcurrentHashMap<String, Long> messageToWait;
+
     private final Logger logger;
 
     public ConditionalLogger(Logger logger) {
@@ -52,30 +52,30 @@ public class ConditionalLogger {
         log(message, amount, unit, logger -> logger.warn(message));
     }
 
-    public void log(String key, Integer maxValue, Consumer<Logger> onLog) {
-        AtomicInteger currentValue = messageToCount.compute(
-                key, (k, currentCounter) -> currentCounter != null ? currentCounter : new AtomicInteger(0)
+    public void log(String key, Integer maxValue, Consumer<Logger> consumer) {
+        final AtomicInteger currentValue = messageToCount.compute(
+                key, (currentKey, currentCounter) -> currentCounter != null ? currentCounter : new AtomicInteger(0)
         );
         if (currentValue.incrementAndGet() >= maxValue) {
             currentValue.set(0);
-            onLog.accept(logger);
+            consumer.accept(logger);
         }
     }
 
-    public void log(String key, long amount, TimeUnit unit, Consumer<Logger> onLog) {
-        messageToWait.compute(key, (k, result) -> {
-            if (result == null || currentTimeMillis() >= result.get()) {
-                result = recalculateDate(amount, unit);
-                onLog.accept(logger);
+    public void log(String key, long amount, TimeUnit unit, Consumer<Logger> consumer) {
+        messageToWait.compute(key, (currentKey, lastTimeMillis) -> {
+            if (lastTimeMillis == null || currentTimeMillis() >= lastTimeMillis) {
+                lastTimeMillis = recalculateDate(amount, unit);
+                consumer.accept(logger);
             }
-            return result;
+            return lastTimeMillis;
         });
     }
 
-    private AtomicLong recalculateDate(long amount, TimeUnit unit) {
+    private long recalculateDate(long amount, TimeUnit unit) {
         final long amountInMillis = unit.toMillis(amount);
         final Date result = new Date(currentTimeMillis() + amountInMillis);
-        return new AtomicLong(result.getTime());
+        return result.getTime();
     }
 
     private long currentTimeMillis() {

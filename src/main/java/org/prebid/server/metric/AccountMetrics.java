@@ -18,7 +18,7 @@ class AccountMetrics extends UpdatableMetrics {
     // thread-safe
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final RequestTypeMetrics requestTypeMetrics;
-    private final RequestsMetrics requestsMetrics;
+    private final RequestMetrics requestsMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -26,7 +26,7 @@ class AccountMetrics extends UpdatableMetrics {
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, account, adapterType);
         adapterMetrics = new HashMap<>();
         requestTypeMetrics = new RequestTypeMetrics(metricRegistry, counterType, createPrefix(account));
-        requestsMetrics = new RequestsMetrics(metricRegistry, counterType, createPrefix(account));
+        requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
     private static String createPrefix(String account) {
@@ -45,7 +45,7 @@ class AccountMetrics extends UpdatableMetrics {
         return requestTypeMetrics;
     }
 
-    RequestsMetrics requests() {
+    RequestMetrics requests() {
         return requestsMetrics;
     }
 }

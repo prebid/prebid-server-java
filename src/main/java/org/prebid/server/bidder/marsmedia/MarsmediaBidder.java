@@ -12,8 +12,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -24,6 +22,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.marsmedia.ExtImpMarsmedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -45,9 +45,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public MarsmediaBidder(String endpointUrl) {
+    public MarsmediaBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -64,7 +66,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         final String uri = endpointUrl + "&zone=" + requestZone;
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -77,10 +79,10 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
                 Collections.emptyList());
     }
 
-    private static String resolveRequestZone(Imp firstImp) {
+    private String resolveRequestZone(Imp firstImp) {
         final ExtImpMarsmedia extImpMarsmedia;
         try {
-            extImpMarsmedia = Json.mapper.convertValue(firstImp.getExt(), MARSMEDIA_EXT_TYPE_REFERENCE).getBidder();
+            extImpMarsmedia = mapper.mapper().convertValue(firstImp.getExt(), MARSMEDIA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -166,7 +168,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(response.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

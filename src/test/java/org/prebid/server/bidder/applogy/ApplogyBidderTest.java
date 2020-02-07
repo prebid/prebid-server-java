@@ -47,12 +47,12 @@ public class ApplogyBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        applogyBidder = new ApplogyBidder(ENDPOINT_URL);
+        applogyBidder = new ApplogyBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ApplogyBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new ApplogyBidder("invalid_url", jacksonMapper));
     }
 
     @Test

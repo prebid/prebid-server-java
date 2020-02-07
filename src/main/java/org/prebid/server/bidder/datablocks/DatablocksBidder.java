@@ -7,8 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -18,6 +16,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -39,9 +39,11 @@ public class DatablocksBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointTemplate;
+    private final JacksonMapper mapper;
 
-    public DatablocksBidder(String endpointTemplate) {
+    public DatablocksBidder(String endpointTemplate, JacksonMapper mapper) {
         this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -63,10 +65,10 @@ public class DatablocksBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, Collections.emptyList());
     }
 
-    private static ExtImpDatablocks parseAndValidateImpExt(ObjectNode extNode) {
+    private ExtImpDatablocks parseAndValidateImpExt(ObjectNode extNode) {
         final ExtImpDatablocks extImpDatablocks;
         try {
-            extImpDatablocks = Json.mapper.convertValue(extNode, DATABLOCKS_EXT_TYPE_REFERENCE).getBidder();
+            extImpDatablocks = mapper.mapper().convertValue(extNode, DATABLOCKS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -91,7 +93,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -105,7 +107,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

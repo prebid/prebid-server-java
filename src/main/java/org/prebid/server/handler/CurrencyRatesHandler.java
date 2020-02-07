@@ -2,13 +2,13 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.json.JacksonMapper;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -22,9 +22,11 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyRatesHandler.class);
 
     private final CurrencyConversionService currencyConversionService;
+    private final JacksonMapper mapper;
 
-    public CurrencyRatesHandler(CurrencyConversionService currencyConversionService) {
+    public CurrencyRatesHandler(CurrencyConversionService currencyConversionService, JacksonMapper mapper) {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -32,7 +34,7 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
         final ZonedDateTime lastUpdated = currencyConversionService.getLastUpdated();
         final String lastUpdatedString = lastUpdated != null ? lastUpdated.toString() : "no value";
         try {
-            context.response().end(Json.mapper.writeValueAsString(Response.of(lastUpdatedString)));
+            context.response().end(mapper.mapper().writeValueAsString(Response.of(lastUpdatedString)));
         } catch (IOException e) {
             logger.error("Critical error when marshaling latest currency rates update response", e);
             context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();

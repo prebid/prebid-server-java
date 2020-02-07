@@ -13,4 +13,7 @@ public class ExtImpSynacormedia {
 
     @JsonProperty("seatId")
     String seatId;
+
+    @JsonProperty("tagId")
+    String tagId;
 }

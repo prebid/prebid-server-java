@@ -1,3 +1,4 @@
+
 # Full list of application configuration options
 
 This document describes all configuration properties available for Prebid Server.
@@ -67,6 +68,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Video
+- `auction.video.stored-required` - flag forces to merge with stored request
+- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
 
@@ -96,10 +103,10 @@ But feel free to add additional bidder's specific options.
 - `logger-level-modifier.enabled` - enable the `/admin` endpoint.
 
 ## Currency Converter
-- `currency-converter.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
-- `currency-converter.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
-- `currency-converter.default-timeout-ms` - default operation timeout for fetching currency rates.
-- `currency-converter.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
+- `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
+- `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
+- `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
@@ -125,6 +132,7 @@ For `influxdb` backend type available next options:
 - `metrics.influxdb.connectTimeout` - the connect timeout.
 - `metrics.influxdb.readTimeout` - the response timeout.
 - `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
+- `metrics.influxdb.tags` - the influxDb tags, optional key-value metrics metadata.
 
 For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
@@ -180,6 +188,7 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+- `settings.http.video-endpoint` - the url to fetch video stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
@@ -234,6 +243,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+
+## CCPA
+- `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
 
 ## Geo Location
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.

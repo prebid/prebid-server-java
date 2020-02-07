@@ -12,8 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -23,6 +21,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.verizonmedia.ExtImpVerizonmedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -44,9 +44,11 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public VerizonmediaBidder(String endpointUrl) {
+    public VerizonmediaBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -69,10 +71,10 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
         return Result.of(bidRequests, errors);
     }
 
-    private static ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode, int index) {
+    private ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode, int index) {
         final ExtImpVerizonmedia extImpVerizonmedia;
         try {
-            extImpVerizonmedia = Json.mapper.<ExtPrebid<?, ExtImpVerizonmedia>>convertValue(impExtNode,
+            extImpVerizonmedia = mapper.mapper().convertValue(impExtNode,
                     VERIZON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
@@ -137,7 +139,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(Json.encode(outgoingRequest))
+                .body(mapper.encode(outgoingRequest))
                 .headers(makeHeaders(outgoingRequest.getDevice()))
                 .payload(outgoingRequest)
                 .build();
@@ -156,7 +158,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

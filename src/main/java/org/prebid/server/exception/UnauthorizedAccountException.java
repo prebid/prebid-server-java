@@ -6,10 +6,10 @@ import lombok.Getter;
 @SuppressWarnings("serial")
 public class UnauthorizedAccountException extends RuntimeException {
 
-    private String userId;
+    private String accountId;
 
-    public UnauthorizedAccountException(String message, String userId) {
-        super(String.format("%s %s", message, userId));
-        this.userId = userId;
+    public UnauthorizedAccountException(String message, String accountId) {
+        super(String.format("%s", message));
+        this.accountId = accountId;
     }
 }

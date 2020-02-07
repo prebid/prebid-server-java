@@ -2,12 +2,12 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.health.HealthChecker;
+import org.prebid.server.json.JacksonMapper;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,9 +19,11 @@ public class StatusHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(StatusHandler.class);
 
     private final List<HealthChecker> healthCheckers;
+    private final JacksonMapper mapper;
 
-    public StatusHandler(List<HealthChecker> healthCheckers) {
+    public StatusHandler(List<HealthChecker> healthCheckers, JacksonMapper mapper) {
         this.healthCheckers = Objects.requireNonNull(healthCheckers);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -38,7 +40,7 @@ public class StatusHandler implements Handler<RoutingContext> {
                     .end();
         } else {
             context.response()
-                    .end(Json.encode(new TreeMap<>(healthCheckers.stream()
+                    .end(mapper.encode(new TreeMap<>(healthCheckers.stream()
                             .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)))));
         }
     }

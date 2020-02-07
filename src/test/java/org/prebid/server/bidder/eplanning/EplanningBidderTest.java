@@ -11,7 +11,6 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,6 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -42,18 +42,19 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class EplanningBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://eplanning.com";
+    private static final String ENDPOINT_URL = "https://eplanning.com";
 
     private EplanningBidder eplanningBidder;
 
     @Before
     public void setUp() {
-        eplanningBidder = new EplanningBidder(ENDPOINT_URL);
+        eplanningBidder = new EplanningBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new EplanningBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new EplanningBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -186,7 +187,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
+                        "https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
     }
 
     @Test
@@ -194,7 +195,7 @@ public class EplanningBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .site(Site.builder().page("http://www.example.com").domain("DOMAIN").build()),
+                        .site(Site.builder().page("https://www.example.com").domain("DOMAIN").build()),
                 identity());
 
         // when
@@ -205,7 +206,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
+                        "https://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=https%3A%2F%2Fwww.example.com"
                                 + "&e=testadun_itco_de:1x1");
     }
 
@@ -227,7 +228,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
+                        "https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
     }
 
     @Test
@@ -245,7 +246,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
                         + "&uid=Buyer-ID");
     }
 
@@ -264,7 +265,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
                         + "&ip=123.321.321.123");
     }
 
@@ -396,7 +397,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         // given, when and then
-        assertThat(eplanningBidder.extractTargeting(Json.mapper.createObjectNode())).isEmpty();
+        assertThat(eplanningBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
     }
 
     private static BidRequest givenBidRequest(

@@ -18,7 +18,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -51,6 +50,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
@@ -83,12 +83,21 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
+
     private final String authHeader;
 
-    public RubiconAdapter(String cookieFamilyName, String endpointUrl, String xapiUsername, String xapiPassword) {
+    public RubiconAdapter(String cookieFamilyName,
+                          String endpointUrl,
+                          String xapiUsername,
+                          String xapiPassword,
+                          JacksonMapper mapper) {
+
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
+        this.mapper = Objects.requireNonNull(mapper);
+
+        this.authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
                 + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
     }
 
@@ -160,7 +169,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
         final RubiconParams rubiconParams;
         try {
-            rubiconParams = Json.mapper.convertValue(params, RubiconParams.class);
+            rubiconParams = mapper.mapper().convertValue(params, RubiconParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
@@ -180,23 +189,23 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return rubiconParams;
     }
 
-    private static App makeApp(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
+    private App makeApp(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconParams))
-                .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
+                .ext(mapper.mapper().valueToTree(makeSiteExt(rubiconParams)))
                 .build();
     }
 
-    private static Imp makeImp(AdUnitBid adUnitBid,
-                               Set<MediaType> mediaTypes,
-                               RubiconParams rubiconParams,
-                               PreBidRequestContext preBidRequestContext) {
+    private Imp makeImp(AdUnitBid adUnitBid,
+                        Set<MediaType> mediaTypes,
+                        RubiconParams rubiconParams,
+                        PreBidRequestContext preBidRequestContext) {
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .secure(preBidRequestContext.getSecure())
                 .instl(adUnitBid.getInstl())
-                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(rubiconParams, preBidRequestContext)));
 
         if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(makeBanner(adUnitBid));
@@ -230,21 +239,21 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return RubiconImpExtRpTrack.of("prebid", mintVersion);
     }
 
-    private static Banner makeBanner(AdUnitBid adUnitBid) {
+    private Banner makeBanner(AdUnitBid adUnitBid) {
         return bannerBuilder(adUnitBid)
-                .ext(Json.mapper.valueToTree(makeBannerExt(adUnitBid.getSizes())))
+                .ext(mapper.mapper().valueToTree(makeBannerExt(adUnitBid.getSizes())))
                 .build();
     }
 
-    private static Video makeVideo(AdUnitBid adUnitBid, RubiconVideoParams rubiconVideoParams) {
+    private Video makeVideo(AdUnitBid adUnitBid, RubiconVideoParams rubiconVideoParams) {
         return videoBuilder(adUnitBid)
-                .ext(rubiconVideoParams != null ? Json.mapper.valueToTree(makeVideoExt(rubiconVideoParams)) : null)
+                .ext(rubiconVideoParams != null ? mapper.mapper().valueToTree(makeVideoExt(rubiconVideoParams)) : null)
                 .build();
     }
 
     private static RubiconVideoExt makeVideoExt(RubiconVideoParams rubiconVideoParams) {
         return RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
-                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()));
+                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()), null);
     }
 
     private static RubiconBannerExt makeBannerExt(List<Format> sizes) {
@@ -275,7 +284,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         } else {
             siteBuilder
                     .publisher(makePublisher(rubiconParams))
-                    .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)));
+                    .ext(mapper.mapper().valueToTree(makeSiteExt(rubiconParams)));
         }
 
         return siteBuilder.build();
@@ -285,9 +294,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId()), null);
     }
 
-    private static Publisher makePublisher(RubiconParams rubiconParams) {
+    private Publisher makePublisher(RubiconParams rubiconParams) {
         return Publisher.builder()
-                .ext(Json.mapper.valueToTree(makePublisherExt(rubiconParams)))
+                .ext(mapper.mapper().valueToTree(makePublisherExt(rubiconParams)))
                 .build();
     }
 
@@ -295,9 +304,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return RubiconPubExt.of(RubiconPubExtRp.of(rubiconParams.getAccountId()));
     }
 
-    private static Device makeDevice(PreBidRequestContext preBidRequestContext) {
+    private Device makeDevice(PreBidRequestContext preBidRequestContext) {
         return deviceBuilder(preBidRequestContext)
-                .ext(Json.mapper.valueToTree(makeDeviceExt(preBidRequestContext)))
+                .ext(mapper.mapper().valueToTree(makeDeviceExt(preBidRequestContext)))
                 .build();
     }
 
@@ -318,13 +327,13 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final ExtUser extUser = extUser(ext);
         final RubiconUserExt rubiconUserExt = makeUserExt(rubiconParams, user, extUser);
         return rubiconUserExt != null
-                ? userBuilder.ext(Json.mapper.valueToTree(rubiconUserExt)).build()
+                ? userBuilder.ext(mapper.mapper().valueToTree(rubiconUserExt)).build()
                 : userBuilder.build();
     }
 
-    private static ExtUser extUser(ObjectNode extNode) {
+    private ExtUser extUser(ObjectNode extNode) {
         try {
-            return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
+            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -378,8 +387,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return mediaType;
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
-                                               MediaType mediaType) {
+    private Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
+                                        MediaType mediaType) {
         final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
                 .bidder(adUnitBid.getBidderCode())
@@ -395,10 +404,10 @@ public class RubiconAdapter extends OpenrtbAdapter {
                 .adServerTargeting(toAdServerTargetingOrNull(bid));
     }
 
-    private static Map<String, String> toAdServerTargetingOrNull(com.iab.openrtb.response.Bid bid) {
+    private Map<String, String> toAdServerTargetingOrNull(com.iab.openrtb.response.Bid bid) {
         RubiconTargetingExt rubiconTargetingExt = null;
         try {
-            rubiconTargetingExt = Json.mapper.convertValue(bid.getExt(), RubiconTargetingExt.class);
+            rubiconTargetingExt = mapper.mapper().convertValue(bid.getExt(), RubiconTargetingExt.class);
         } catch (IllegalArgumentException e) {
             logger.warn("Exception occurred while de-serializing rubicon targeting extension", e);
         }

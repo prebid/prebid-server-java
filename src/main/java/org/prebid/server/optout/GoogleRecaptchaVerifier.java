@@ -3,11 +3,11 @@ package org.prebid.server.optout;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.optout.model.RecaptchaResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
@@ -25,14 +25,18 @@ public class GoogleRecaptchaVerifier {
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleRecaptchaVerifier.class);
 
-    private final HttpClient httpClient;
     private final String recaptchaUrl;
     private final String recaptchaSecret;
+    private final HttpClient httpClient;
+    private final JacksonMapper mapper;
 
-    public GoogleRecaptchaVerifier(HttpClient httpClient, String recaptchaUrl, String recaptchaSecret) {
-        this.httpClient = Objects.requireNonNull(httpClient);
+    public GoogleRecaptchaVerifier(
+            String recaptchaUrl, String recaptchaSecret, HttpClient httpClient, JacksonMapper mapper) {
+
         this.recaptchaUrl = Objects.requireNonNull(recaptchaUrl);
         this.recaptchaSecret = Objects.requireNonNull(recaptchaSecret);
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -40,7 +44,7 @@ public class GoogleRecaptchaVerifier {
      */
     public Future<RecaptchaResponse> verify(String recaptcha) {
         return httpClient.post(recaptchaUrl, headers(), encodedBody(recaptchaSecret, recaptcha), 2000L)
-                .compose(GoogleRecaptchaVerifier::processResponse)
+                .compose(this::processResponse)
                 .recover(GoogleRecaptchaVerifier::failResponse);
     }
 
@@ -67,7 +71,7 @@ public class GoogleRecaptchaVerifier {
      * and creates {@link Future} with {@link RecaptchaResponse} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private static Future<RecaptchaResponse> processResponse(HttpClientResponse response) {
+    private Future<RecaptchaResponse> processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -76,7 +80,7 @@ public class GoogleRecaptchaVerifier {
         final String body = response.getBody();
         final RecaptchaResponse recaptchaResponse;
         try {
-            recaptchaResponse = Json.decodeValue(body, RecaptchaResponse.class);
+            recaptchaResponse = mapper.decodeValue(body, RecaptchaResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
