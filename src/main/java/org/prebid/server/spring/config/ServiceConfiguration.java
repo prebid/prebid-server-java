@@ -363,9 +363,11 @@ public class ServiceConfiguration {
             CacheService cacheService,
             BidderCatalog bidderCatalog,
             EventsService eventsService,
-            StoredRequestProcessor storedRequestProcessor) {
+            StoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.generate-bid-id:#{false}}") Boolean generateBidId) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService,
+                storedRequestProcessor, generateBidId);
     }
 
     @Bean

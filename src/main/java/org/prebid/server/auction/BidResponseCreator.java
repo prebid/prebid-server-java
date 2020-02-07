@@ -70,6 +70,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -87,9 +89,10 @@ public class BidResponseCreator {
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final Consumer<List<BidderResponse>> overwriteBidIdConsumer;
 
     public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService,
-                              StoredRequestProcessor storedRequestProcessor) {
+                              StoredRequestProcessor storedRequestProcessor, boolean generateBidId) {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
@@ -97,6 +100,29 @@ public class BidResponseCreator {
         this.cachePath = Objects.requireNonNull(cacheService.getEndpointPath());
         this.cacheAssetUrlTemplate = Objects.requireNonNull(cacheService.getCachedAssetURLTemplate());
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+
+        if (generateBidId) {
+            overwriteBidIdConsumer = bidderResponses -> {
+                if (CollectionUtils.isNotEmpty(bidderResponses)) {
+                    bidderResponses.stream()
+                            .filter(Objects::nonNull)
+                            .map(BidderResponse::getSeatBid)
+                            .filter(Objects::nonNull)
+                            .map(BidderSeatBid::getBids)
+                            .filter(Objects::nonNull)
+                            .forEach(bidderBids -> {
+                                bidderBids.stream()
+                                        .filter(Objects::nonNull)
+                                        .map(BidderBid::getBid)
+                                        .filter(Objects::nonNull)
+                                        .forEach(bid -> bid.setId(UUID.randomUUID().toString()));
+                            });
+                }
+            };
+        } else {
+            overwriteBidIdConsumer = bidderResponses -> {
+            };
+        }
     }
 
     /**
@@ -119,6 +145,7 @@ public class BidResponseCreator {
                             CacheServiceResult.empty(), VideoStoredDataResult.empty(), debugEnabled, null)))
                     .build());
         } else {
+            overwriteBidIdConsumer.accept(bidderResponses);
             final Set<Bid> winningBids = newOrEmptySet(targeting);
             final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 

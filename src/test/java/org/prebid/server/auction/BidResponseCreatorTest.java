@@ -120,7 +120,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
-        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
+        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService,
+                storedRequestProcessor, false);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -366,6 +367,35 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1);
+
+        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldOverwriteBidderIdToUUID() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+
+        final Bid bid = Bid.builder()
+                .id("123")
+                .impid("imp123")
+                .w(123)
+                .h(123)
+                .price(BigDecimal.ONE)
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
+
+        final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService,
+                storedRequestProcessor, true);
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
+                null, CACHE_INFO, ACCOUNT, timeout, false).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1);
+        assertThat(bidResponse.getSeatbid().get(0).getBid()).hasSize(1);
+        assertThat(bidResponse.getSeatbid().get(0).getBid().get(0).getId()).isNotEqualTo("123");
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
     }
