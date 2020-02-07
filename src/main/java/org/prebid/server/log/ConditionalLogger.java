@@ -2,6 +2,7 @@ package org.prebid.server.log;
 
 import io.vertx.core.logging.Logger;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -74,8 +75,8 @@ public class ConditionalLogger {
 
     private long recalculateDate(long amount, TimeUnit unit) {
         final long amountInMillis = unit.toMillis(amount);
-        final Date result = new Date(currentTimeMillis() + amountInMillis);
-        return result.getTime();
+        Instant resultInstant = Instant.now().plusMillis(amountInMillis);
+        return resultInstant.toEpochMilli();
     }
 
     private long currentTimeMillis() {

@@ -27,7 +27,7 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void log() {
+    public void counterLog() {
         //when
         for (int i = 0; i < 100; i++) {
             conditionalLogger.info("Hello", 20);
