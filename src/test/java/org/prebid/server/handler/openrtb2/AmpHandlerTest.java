@@ -134,9 +134,17 @@ public class AmpHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        ampHandler = new AmpHandler(ampRequestFactory, exchangeService, analyticsReporter, metrics, clock,
-                bidderCatalog, singleton("bidder1"), new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
-                logModifier);
+        ampHandler = new AmpHandler(
+                ampRequestFactory,
+                exchangeService,
+                analyticsReporter,
+                metrics,
+                clock,
+                bidderCatalog,
+                singleton("bidder1"),
+                new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
+                logModifier, jacksonMapper
+        );
     }
 
     @Test
@@ -253,7 +261,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
 
         // when
         ampHandler.handle(routingContext);
@@ -266,7 +274,7 @@ public class AmpHandlerTest extends VertxTest {
                 .containsOnly(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
-        verify(httpResponse).end(eq("Unauthorized: Account id is not provided"));
+        verify(httpResponse).end(eq("Unauthorized: Account id is not provided 1"));
     }
 
     @Test
@@ -415,8 +423,9 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,\"tmax\":1000}}}"));
+        verify(httpResponse).end(eq(
+                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1," +
+                        "\"tmax\":1000}}}"));
     }
 
     @Test

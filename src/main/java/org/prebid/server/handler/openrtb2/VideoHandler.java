@@ -4,7 +4,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -19,6 +18,7 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
@@ -43,16 +43,18 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
+    private final JacksonMapper mapper;
 
     public VideoHandler(VideoRequestFactory videoRequestFactory, VideoResponseFactory videoResponseFactory,
                         ExchangeService exchangeService, AnalyticsReporter analyticsReporter, Metrics metrics,
-                        Clock clock) {
+                        Clock clock, JacksonMapper mapper) {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -114,7 +116,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK.code();
             context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = Json.encode(responseResult.result());
+            body = mapper.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {

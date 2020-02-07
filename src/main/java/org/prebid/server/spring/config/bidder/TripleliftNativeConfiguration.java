@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.tripleliftnative.TripleliftNativeBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -22,6 +23,9 @@ import javax.validation.constraints.NotBlank;
 public class TripleliftNativeConfiguration {
 
     private static final String BIDDER_NAME = "triplelift_native";
+
+    @Autowired
+    private JacksonMapper mapper;
 
     @Value("${external-url}")
     @NotBlank
@@ -44,7 +48,7 @@ public class TripleliftNativeConfiguration {
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
                 .bidderCreator(() -> new TripleliftNativeBidder(configProperties.getEndpoint(),
-                        configProperties.getExtraInfo()))
+                        configProperties.getExtraInfo(), mapper))
                 .assemble();
     }
 }

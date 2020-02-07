@@ -100,7 +100,8 @@ public class VideoHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics, clock);
+        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter,
+                metrics, clock, jacksonMapper);
     }
 
     @Test
@@ -169,7 +170,7 @@ public class VideoHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", "1")));
 
         // when
         videoHandler.handle(routingContext);

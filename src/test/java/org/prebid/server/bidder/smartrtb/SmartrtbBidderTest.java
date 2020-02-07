@@ -45,12 +45,12 @@ public class SmartrtbBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        smartrtbBidder = new SmartrtbBidder(ENDPOINT_URL);
+        smartrtbBidder = new SmartrtbBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SmartrtbBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new SmartrtbBidder("invalid_url", jacksonMapper));
     }
 
     @Test

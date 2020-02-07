@@ -8,9 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.EncodeException;
-import io.vertx.core.json.Json;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -18,6 +15,9 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -37,16 +37,18 @@ public class KubientBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public KubientBidder(String endpointUrl) {
+    public KubientBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         String body;
         try {
-            body = Json.encode(request);
+            body = mapper.encode(request);
         } catch (EncodeException e) {
             final String message = String.format("Failed to encode request body, error: %s", e.getMessage());
             return Result.emptyWithError(BidderError.badInput(message));
@@ -70,7 +72,7 @@ public class KubientBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

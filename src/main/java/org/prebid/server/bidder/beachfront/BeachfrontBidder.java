@@ -15,8 +15,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +30,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
@@ -69,10 +69,12 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private final String bannerEndpointUrl;
     private final String videoEndpointUrl;
+    private final JacksonMapper mapper;
 
-    public BeachfrontBidder(String bannerEndpointUrl, String videoEndpointUrl) {
+    public BeachfrontBidder(String bannerEndpointUrl, String videoEndpointUrl, JacksonMapper mapper) {
         this.bannerEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(bannerEndpointUrl));
         this.videoEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -108,7 +110,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             requests.add(HttpRequest.<Void>builder()
                     .method(HttpMethod.POST)
                     .uri(bannerEndpointUrl)
-                    .body(Json.encode(bannerRequest))
+                    .body(mapper.encode(bannerRequest))
                     .headers(headers)
                     .build());
         }
@@ -125,7 +127,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .map(videoRequest -> HttpRequest.<Void>builder()
                         .method(HttpMethod.POST)
                         .uri(resolveVideoUri(videoRequest.getAppId(), videoRequest.getIsPrebid()))
-                        .body(Json.encode(videoRequest))
+                        .body(mapper.encode(videoRequest))
                         .headers(videoHeaders)
                         .build())
                 .forEach(requests::add);
@@ -147,8 +149,8 @@ public class BeachfrontBidder implements Bidder<Void> {
         return isHeightNonZero && isWidthNonZero;
     }
 
-    private static BeachfrontBannerRequest getBannerRequest(BidRequest bidRequest, List<Imp> bannerImps,
-                                                            List<BidderError> errors) {
+    private BeachfrontBannerRequest getBannerRequest(BidRequest bidRequest, List<Imp> bannerImps,
+                                                     List<BidderError> errors) {
         final List<BeachfrontSlot> slots = new ArrayList<>();
 
         for (Imp imp : bannerImps) {
@@ -205,10 +207,9 @@ public class BeachfrontBidder implements Bidder<Void> {
         return requestBuilder.build();
     }
 
-    private static ExtImpBeachfront parseImpExt(Imp imp) {
+    private ExtImpBeachfront parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpBeachfront>>convertValue(imp.getExt(), BEACHFRONT_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), BEACHFRONT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
                     "ignoring imp id=%s, error while decoding extImpBeachfront, err: %s", imp.getId(), e.getMessage()));
@@ -291,8 +292,8 @@ public class BeachfrontBidder implements Bidder<Void> {
         return StringUtils.contains(page, "https") ? 1 : 0;
     }
 
-    private static List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
-                                                                 List<BidderError> errors) {
+    private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
+                                                          List<BidderError> errors) {
         final List<BeachfrontVideoRequest> videoRequests = new ArrayList<>();
         for (Imp imp : videoImps) {
             final ExtImpBeachfront extImpBeachfront;
@@ -423,10 +424,11 @@ public class BeachfrontBidder implements Bidder<Void> {
      * <p>
      * Throws {@link PreBidException} in case of failure.
      */
-    private static List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
+    private List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
         try {
-            return Json.mapper.readValue(responseBody, Json.mapper.getTypeFactory()
-                    .constructCollectionType(List.class, BeachfrontResponseSlot.class));
+            return mapper.mapper().readValue(
+                    responseBody,
+                    mapper.mapper().getTypeFactory().constructCollectionType(List.class, BeachfrontResponseSlot.class));
         } catch (IOException ex) {
             throw new PreBidException(ex.getMessage());
         }
@@ -449,9 +451,9 @@ public class BeachfrontBidder implements Bidder<Void> {
     }
 
     private Result<List<BidderBid>> processVideoResponse(String responseBody, HttpRequest httpRequest) {
-        final BidResponse bidResponse = Json.decodeValue(responseBody, BidResponse.class);
-        final BeachfrontVideoRequest videoRequest = Json.decodeValue(httpRequest.getBody(),
-                BeachfrontVideoRequest.class);
+        final BidResponse bidResponse = mapper.decodeValue(responseBody, BidResponse.class);
+        final BeachfrontVideoRequest videoRequest = mapper.decodeValue(
+                httpRequest.getBody(), BeachfrontVideoRequest.class);
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());

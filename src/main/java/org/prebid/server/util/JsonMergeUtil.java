@@ -4,14 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
-import io.vertx.core.json.Json;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.json.JacksonMapper;
 
 import java.io.IOException;
+import java.util.Objects;
 
+// TODO: refactor to be instance instead of util
 public class JsonMergeUtil {
 
-    private JsonMergeUtil() {
+    private final JacksonMapper mapper;
+
+    public JsonMergeUtil(JacksonMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -19,11 +24,11 @@ public class JsonMergeUtil {
      * and cast it to appropriate class. In case of any exception during merging, throws {@link InvalidRequestException}
      * with reason message.
      */
-    public static <T> T merge(T originalObject, String storedData, String id, Class<T> classToCast) {
-        final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
+    public <T> T merge(T originalObject, String storedData, String id, Class<T> classToCast) {
+        final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
         try {
-            storedRequestJsonNode = Json.mapper.readTree(storedData);
+            storedRequestJsonNode = mapper.mapper().readTree(storedData);
         } catch (IOException e) {
             throw new InvalidRequestException(
                     String.format("Can't parse Json for stored request with id %s", id));
@@ -31,7 +36,7 @@ public class JsonMergeUtil {
         try {
             // Http request fields have higher priority and will override fields from stored requests
             // in case they have different values
-            return Json.mapper.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
+            return mapper.mapper().treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
                     classToCast);
         } catch (JsonPatchException e) {
             throw new InvalidRequestException(String.format(
@@ -41,5 +46,4 @@ public class JsonMergeUtil {
                     String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
         }
     }
-
 }

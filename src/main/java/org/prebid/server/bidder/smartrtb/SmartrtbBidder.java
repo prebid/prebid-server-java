@@ -1,19 +1,5 @@
 package org.prebid.server.bidder.smartrtb;
 
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
-import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.HttpUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,8 +11,22 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
+import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,19 +37,22 @@ import java.util.Objects;
 /**
  * SmartRTB {@link Bidder} implementation.
  */
-
 public class SmartrtbBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartrtb>> SMARTRTB_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpSmartrtb>>() {
             };
+
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private final String endpointUrl;
     private static final String CREATIVE_TYPE_BANNER = "BANNER";
     private static final String CREATIVE_TYPE_VIDEO = "VIDEO";
 
-    public SmartrtbBidder(String endpointUrl) {
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+
+    public SmartrtbBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -86,7 +89,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
         final String requestUrl = endpointUrl + pubId;
         final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
 
@@ -110,7 +113,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
 
     private ExtImpSmartrtb parseImpExt(Imp imp) {
         try {
-            return Json.mapper.convertValue(imp.getExt(), SMARTRTB_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), SMARTRTB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -167,7 +170,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
         try {
-            return Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -178,7 +181,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
             throw new PreBidException("Invalid bid extension from endpoint.");
         }
         try {
-            return Json.mapper.treeToValue(ext, SmartrtbResponseExt.class);
+            return mapper.mapper().treeToValue(ext, SmartrtbResponseExt.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }

@@ -2,7 +2,6 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -10,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.json.JacksonMapper;
 
 import java.util.Map;
 import java.util.Objects;
@@ -20,9 +20,11 @@ public class GetuidsHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(GetuidsHandler.class);
 
     private final UidsCookieService uidsCookieService;
+    private final JacksonMapper mapper;
 
-    public GetuidsHandler(UidsCookieService uidsCookieService) {
+    public GetuidsHandler(UidsCookieService uidsCookieService, JacksonMapper mapper) {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -33,7 +35,7 @@ public class GetuidsHandler implements Handler<RoutingContext> {
                         // Extract just the uid for each bidder
                         uidEntry -> uidEntry.getValue().getUid()));
 
-        final String body = Json.encode(BuyerUids.of(uids));
+        final String body = mapper.encode(BuyerUids.of(uids));
 
         // don't send the response if client has gone
         if (context.response().closed()) {

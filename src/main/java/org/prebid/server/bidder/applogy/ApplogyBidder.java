@@ -11,8 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -22,6 +20,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.applogy.ExtImpApplogy;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -44,9 +44,11 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public ApplogyBidder(String endpointUrl) {
+    public ApplogyBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -112,7 +114,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     private ExtImpApplogy parseAndValidateImpExt(Imp imp) {
         final ExtImpApplogy extImpApplogy;
         try {
-            extImpApplogy = Json.mapper.convertValue(imp.getExt(), APPLOGY_EXT_TYPE_REFERENCE)
+            extImpApplogy = mapper.mapper().convertValue(imp.getExt(), APPLOGY_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
@@ -135,7 +137,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

@@ -43,12 +43,12 @@ public class RhythmoneBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        rhythmoneBidder = new RhythmoneBidder(ENDPOINT_URL);
+        rhythmoneBidder = new RhythmoneBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RhythmoneBidder("invalid_ulr"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RhythmoneBidder("invalid_ulr", jacksonMapper));
     }
 
     @Test

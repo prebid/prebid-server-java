@@ -5,8 +5,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
@@ -17,6 +15,8 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -51,50 +51,63 @@ public class VendorListService {
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
 
-    private final FileSystem fileSystem;
-    private final String cacheDir;
-
-    private final HttpClient httpClient;
     private final String endpointTemplate;
     private final int defaultTimeoutMs;
-
     private final Set<Integer> knownVendorIds;
+    private final String cacheDir;
+    private final FileSystem fileSystem;
+    private final HttpClient httpClient;
+    private final JacksonMapper mapper;
+
     /**
      * This is memory/performance optimized {@link VendorList} model slice:
      * map of vendor list version -> map of vendor ID -> set of purposes
      */
     private final Map<Integer, Map<Integer, Set<Integer>>> cache;
 
-    private VendorListService(FileSystem fileSystem, String cacheDir,
-                              HttpClient httpClient, String endpointTemplate, int defaultTimeoutMs,
-                              Set<Integer> knownVendorIds, Map<Integer, Map<Integer, Set<Integer>>> cache) {
-        this.fileSystem = fileSystem;
-        this.cacheDir = cacheDir;
+    private VendorListService(String cacheDir,
+                              String endpointTemplate,
+                              int defaultTimeoutMs,
+                              Set<Integer> knownVendorIds,
+                              Map<Integer, Map<Integer, Set<Integer>>> cache,
+                              FileSystem fileSystem,
+                              HttpClient httpClient,
+                              JacksonMapper mapper) {
 
-        this.httpClient = httpClient;
+        this.cacheDir = cacheDir;
         this.endpointTemplate = endpointTemplate;
         this.defaultTimeoutMs = defaultTimeoutMs;
-
         this.knownVendorIds = knownVendorIds;
         this.cache = cache;
+        this.fileSystem = fileSystem;
+        this.httpClient = httpClient;
+        this.mapper = mapper;
     }
 
-    public static VendorListService create(FileSystem fileSystem, String cacheDir, HttpClient httpClient,
-                                           String endpointTemplate, int defaultTimeoutMs, Integer gdprHostVendorId,
-                                           BidderCatalog bidderCatalog) {
+    public static VendorListService create(String cacheDir,
+                                           String endpointTemplate,
+                                           int defaultTimeoutMs,
+                                           Integer gdprHostVendorId,
+                                           BidderCatalog bidderCatalog,
+                                           FileSystem fileSystem,
+                                           HttpClient httpClient,
+                                           JacksonMapper mapper) {
+
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(cacheDir);
         Objects.requireNonNull(httpClient);
         Objects.requireNonNull(endpointTemplate);
         Objects.requireNonNull(bidderCatalog);
+        Objects.requireNonNull(mapper);
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
 
         final Set<Integer> knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
-        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(fileSystem, cacheDir, knownVendorIds);
+        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(
+                fileSystem, cacheDir, knownVendorIds, mapper);
 
-        return new VendorListService(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
-                knownVendorIds, cache);
+        return new VendorListService(
+                cacheDir, endpointTemplate, defaultTimeoutMs, knownVendorIds, cache, fileSystem, httpClient, mapper);
     }
 
     /**
@@ -133,13 +146,14 @@ public class VendorListService {
     /**
      * Creates cache from previously downloaded vendor lists.
      */
-    private static Map<Integer, Map<Integer, Set<Integer>>> createCache(FileSystem fileSystem, String cacheDir,
-                                                                        Set<Integer> knownVendorIds) {
+    private static Map<Integer, Map<Integer, Set<Integer>>> createCache(
+            FileSystem fileSystem, String cacheDir, Set<Integer> knownVendorIds, JacksonMapper mapper) {
+
         final Map<String, String> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
 
         final Map<Integer, Map<Integer, Set<Integer>>> cache = new ConcurrentHashMap<>(versionToFileContent.size());
         for (Map.Entry<String, String> entry : versionToFileContent.entrySet()) {
-            final VendorList vendorList = toVendorList(entry.getValue());
+            final VendorList vendorList = toVendorList(entry.getValue(), mapper);
             final Map<Integer, Set<Integer>> vendorIdToPurposes = mapVendorIdToPurposes(vendorList.getVendors(),
                     knownVendorIds);
 
@@ -162,9 +176,9 @@ public class VendorListService {
     /**
      * Creates {@link VendorList} object from string content or throw {@link PreBidException}.
      */
-    private static VendorList toVendorList(String content) {
+    private static VendorList toVendorList(String content, JacksonMapper mapper) {
         try {
-            return Json.mapper.readValue(content, VendorList.class);
+            return mapper.mapper().readValue(content, VendorList.class);
         } catch (IOException e) {
             final String message = String.format("Cannot parse vendor list from: %s", content);
 
@@ -215,7 +229,7 @@ public class VendorListService {
      * and creates {@link Future} with {@link VendorListResult} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private static Future<VendorListResult> processResponse(HttpClientResponse response, int version) {
+    private Future<VendorListResult> processResponse(HttpClientResponse response, int version) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -224,7 +238,7 @@ public class VendorListService {
         final String body = response.getBody();
         final VendorList vendorList;
         try {
-            vendorList = Json.decodeValue(body, VendorList.class);
+            vendorList = mapper.decodeValue(body, VendorList.class);
         } catch (DecodeException e) {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }

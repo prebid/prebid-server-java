@@ -49,12 +49,13 @@ public class GamoshiBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        gamoshiBidder = new GamoshiBidder(ENDPOINT_URL);
+        gamoshiBidder = new GamoshiBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new GamoshiBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new GamoshiBidder("invalid_url", jacksonMapper));
     }
 
     @Test

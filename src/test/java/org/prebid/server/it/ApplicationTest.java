@@ -17,21 +17,6 @@ import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.Json;
-import java.io.File;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
@@ -46,6 +31,20 @@ import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -119,7 +118,7 @@ public class ApplicationTest extends IntegrationTest {
                                 "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
                 ));
 
-//        // when
+        // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
@@ -292,7 +291,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() {
+    public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() throws IOException {
         // given
         wireMockRule.stubFor(post("/optout")
                 .withRequestBody(equalTo("secret=abc&response=recaptcha1"))
@@ -384,7 +383,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void setuidShouldUpdateRubiconUidInUidCookie() {
+    public void setuidShouldUpdateRubiconUidInUidCookie() throws IOException {
         // when
         final Cookie uidsCookie = given(spec)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
@@ -638,8 +637,8 @@ public class ApplicationTest extends IntegrationTest {
                 .statusCode(200);
     }
 
-    private static Uids decodeUids(String value) {
-        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    private Uids decodeUids(String value) throws IOException {
+        return mapper.readValue(Base64.getUrlDecoder().decode(value), Uids.class);
     }
 
     private static List<String> getBidderNamesFromParamFiles() {

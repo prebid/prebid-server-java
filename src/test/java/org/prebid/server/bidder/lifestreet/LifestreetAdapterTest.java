@@ -84,19 +84,19 @@ public class LifestreetAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new LifestreetAdapter(COOKIE_FAMILY, ENDPOINT_URL);
+        adapter = new LifestreetAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(COOKIE_FAMILY, null));
+        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(null, null, jacksonMapper));
+        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(COOKIE_FAMILY, null, jacksonMapper));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new LifestreetAdapter(COOKIE_FAMILY, "invalid_url"))
+                .isThrownBy(() -> new LifestreetAdapter(COOKIE_FAMILY, "invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

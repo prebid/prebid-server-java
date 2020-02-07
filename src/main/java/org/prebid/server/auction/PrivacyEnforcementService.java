@@ -8,12 +8,12 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -43,21 +43,31 @@ public class PrivacyEnforcementService {
 
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
+
     private static final User EMPTY_USER = User.builder().build();
 
+    private final boolean useGeoLocation;
     private final GdprService gdprService;
     private final BidderCatalog bidderCatalog;
     private final Metrics metrics;
-    private final boolean useGeoLocation;
+    private final JacksonMapper mapper;
     private final boolean ccpaEnforce;
 
-    public PrivacyEnforcementService(GdprService gdprService, BidderCatalog bidderCatalog, Metrics metrics,
-                                     boolean useGeoLocation, boolean ccpaEnforce) {
+    private final PrivacyExtractor privacyExtractor;
+
+    public PrivacyEnforcementService(GdprService gdprService,
+                                     BidderCatalog bidderCatalog,
+                                     Metrics metrics,
+                                     JacksonMapper mapper, boolean useGeoLocation,
+                                     boolean ccpaEnforce) {
         this.gdprService = Objects.requireNonNull(gdprService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.metrics = Objects.requireNonNull(metrics);
+        this.mapper = Objects.requireNonNull(mapper);
         this.useGeoLocation = useGeoLocation;
         this.ccpaEnforce = ccpaEnforce;
+
+        privacyExtractor = new PrivacyExtractor(mapper);
     }
 
     /**
@@ -76,13 +86,13 @@ public class PrivacyEnforcementService {
             return maskCoppa(bidderToUser, device, user);
         }
 
-        final Privacy privacy = PrivacyExtractor.validPrivacyFrom(regs, user);
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);
         if (isCcpaEnforced(privacy.getCcpa())) {
             return maskCcpa(bidderToUser, device, user);
         }
 
         return getVendorsToGdprPermission(device, bidders, aliases, extUser, regs, isGdprEnforcedByAccount, timeout)
-                .map(vendorToGdprPermission -> getBidderToPrivacyEnforcementResult(bidderToUser, regs, device, aliases,
+                .map(vendorToGdprPermission -> getBidderToPrivacyEnforcementResult(bidderToUser, device, aliases,
                         vendorToGdprPermission));
     }
 
@@ -146,11 +156,11 @@ public class PrivacyEnforcementService {
     /**
      * Extracts {@link ExtRegs} from {@link Regs}.
      */
-    private static ExtRegs extRegs(Regs regs) {
+    private ExtRegs extRegs(Regs regs) {
         final ObjectNode regsExt = regs != null ? regs.getExt() : null;
         if (regsExt != null) {
             try {
-                return Json.mapper.treeToValue(regsExt, ExtRegs.class);
+                return mapper.mapper().treeToValue(regsExt, ExtRegs.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
             }
@@ -182,7 +192,7 @@ public class PrivacyEnforcementService {
      * {@link PrivacyEnforcementResult}. Masking depends on GDPR and COPPA.
      */
     private Map<String, PrivacyEnforcementResult> getBidderToPrivacyEnforcementResult(
-            Map<String, User> bidderToUser, Regs regs, Device device, Map<String, String> aliases,
+            Map<String, User> bidderToUser, Device device, Map<String, String> aliases,
             Map<Integer, Boolean> vendorToGdprPermission) {
 
         final Integer deviceLmt = device != null ? device.getLmt() : null;
@@ -248,7 +258,7 @@ public class PrivacyEnforcementService {
             builder = additionalMasking.apply(builder);
             return nullIfEmpty(builder.build());
         }
-        return user;
+        return null;
     }
 
     /**
@@ -301,7 +311,7 @@ public class PrivacyEnforcementService {
                 .dpidsha1(null).dpidmd5(null)
                 .didsha1(null).didmd5(null)
                 .build()
-                : device;
+                : null;
     }
 
     /**

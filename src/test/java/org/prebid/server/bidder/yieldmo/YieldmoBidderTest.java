@@ -37,12 +37,12 @@ public class YieldmoBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        yieldmoBidder = new YieldmoBidder(ENDPOINT_URL);
+        yieldmoBidder = new YieldmoBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YieldmoBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YieldmoBidder("invalid_url", jacksonMapper));
     }
 
     @Test

@@ -1,7 +1,6 @@
 package org.prebid.server.analytics;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
@@ -11,6 +10,9 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.json.JacksonMapper;
+
+import java.util.Objects;
 
 /**
  * {@link AnalyticsReporter} implementation that writes application events to a log, for illustration purpose only.
@@ -18,6 +20,12 @@ import org.prebid.server.analytics.model.VideoEvent;
 public class LogAnalyticsReporter implements AnalyticsReporter {
 
     public static final Logger logger = LoggerFactory.getLogger(LogAnalyticsReporter.class);
+
+    private final JacksonMapper mapper;
+
+    public LogAnalyticsReporter(JacksonMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
+    }
 
     @Override
     public <T> void processEvent(T event) {
@@ -36,7 +44,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
             type = "unknown";
         }
 
-        logger.debug(Json.encode(new LogEvent<>(type, event)));
+        logger.debug(mapper.encode(new LogEvent<>(type, event)));
     }
 
     @AllArgsConstructor

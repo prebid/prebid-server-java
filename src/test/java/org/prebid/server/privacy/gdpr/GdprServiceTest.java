@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
@@ -31,7 +32,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-public class GdprServiceTest {
+public class GdprServiceTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -52,7 +53,7 @@ public class GdprServiceTest {
         given(geoLocationService.lookup(anyString(), any()))
                 .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country1").build()));
 
-        gdprService = new GdprService(null, metrics, vendorListService, emptyList(), "1");
+        gdprService = new GdprService(emptyList(), "1", null, metrics, vendorListService);
     }
 
     @Test
@@ -85,7 +86,8 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnGdprFromGeoLocationServiceIfGdprFromRequestIsNotValidAndUpdateMetrics() {
         // given
-        gdprService = new GdprService(geoLocationService, metrics, vendorListService, singletonList("country1"), "1");
+        gdprService = new GdprService(
+                singletonList("country1"), "1", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future = gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess),
@@ -214,7 +216,7 @@ public class GdprServiceTest {
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotFoundButDefaultGdprIsZeroAndUpdateMetrics() {
         // given
         given(geoLocationService.lookup(anyString(), any())).willReturn(Future.failedFuture("country not found"));
-        gdprService = new GdprService(geoLocationService, metrics, vendorListService, emptyList(), "0");
+        gdprService = new GdprService(emptyList(), "0", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future =
@@ -230,7 +232,7 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotInEEA() {
         // given
-        gdprService = new GdprService(geoLocationService, metrics, vendorListService, emptyList(), "1");
+        gdprService = new GdprService(emptyList(), "1", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future =
@@ -262,7 +264,8 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndConsentParamIsValidAndCountryIsInEEA() {
         // given
-        gdprService = new GdprService(geoLocationService, metrics, vendorListService, singletonList("country1"), "1");
+        gdprService = new GdprService(
+                singletonList("country1"), "1", geoLocationService, metrics, vendorListService);
 
         // when
         final Future<?> future =
@@ -279,7 +282,7 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndNoIpButGdprDefaultValueIsZero() {
         // given
-        gdprService = new GdprService(null, metrics, vendorListService, emptyList(), "0");
+        gdprService = new GdprService(emptyList(), "0", null, metrics, vendorListService);
 
         // when
         final Future<?> future =

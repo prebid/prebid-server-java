@@ -11,8 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -23,6 +21,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubnative.ExtImpPubnative;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -44,9 +44,11 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public PubnativeBidder(String endpointUrl) {
+    public PubnativeBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -78,9 +80,9 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ExtImpPubnative parseImpExt(ObjectNode impExt) {
+    private ExtImpPubnative parseImpExt(ObjectNode impExt) {
         try {
-            return Json.mapper.convertValue(impExt, PUBNATIVE_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(impExt, PUBNATIVE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -123,7 +125,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(requestUri)
                 .headers(HttpUtil.headers())
-                .body(Json.encode(outgoingRequest))
+                .body(mapper.encode(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }
@@ -136,7 +138,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpResponse.getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpResponse.getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

@@ -82,19 +82,19 @@ public class PubmaticAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        adapter = new PubmaticAdapter(COOKIE_FAMILY, ENDPOINT_URL);
+        adapter = new PubmaticAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, null));
+        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(null, null, jacksonMapper));
+        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, null, jacksonMapper));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, "invalid_url"))
+                .isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, "invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

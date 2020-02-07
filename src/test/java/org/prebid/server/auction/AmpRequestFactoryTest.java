@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -82,7 +81,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
         given(routingContext.request()).willReturn(httpRequest);
 
-        factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver);
+        factory = new AmpRequestFactory(
+                storedRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
     }
 
     @Test
@@ -169,7 +169,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestExtCouldNotBeParsed() {
         // given
-        final ObjectNode ext = (ObjectNode) mapper.createObjectNode()
+        final ObjectNode ext = mapper.createObjectNode()
                 .set("prebid", new TextNode("non-ExtBidRequest"));
         givenBidRequest(builder -> builder.ext(ext), Imp.builder().build());
 
@@ -197,11 +197,11 @@ public class AmpRequestFactoryTest extends VertxTest {
         // which force to make type casting or exception handling in lambdas
         assertThat(singletonList(request))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
-                                .pricegranularity(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2,
                                         singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
                                                 BigDecimal.valueOf(0.1))))))
                                 .includewinners(true)
@@ -378,7 +378,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(singletonList(request))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> Json.mapper.treeToValue(request.getExt(), ExtBidRequest.class)).isNotNull()
+                .extracting(ext -> mapper.treeToValue(request.getExt(), ExtBidRequest.class)).isNotNull()
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
                 .containsExactly(ExtRequestPrebidCacheBids.of(null, null));
     }
@@ -439,7 +439,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any(), any());
 
-        final ExtBidRequest extBidRequest = Json.mapper.treeToValue(captor.getValue().getExt(), ExtBidRequest.class);
+        final ExtBidRequest extBidRequest = mapper.treeToValue(captor.getValue().getExt(), ExtBidRequest.class);
         assertThat(extBidRequest.getPrebid().getDebug()).isEqualTo(1);
     }
 
@@ -1167,7 +1167,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(null, "us_privacy"))));
+                .isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, "us_privacy"))));
     }
 
     @Test
@@ -1187,7 +1187,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(1, Json.mapper.valueToTree(ExtRegs.of(1, "us_privacy"))));
+                .isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "us_privacy"))));
     }
 
     @Test
