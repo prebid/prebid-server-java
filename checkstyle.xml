@@ -24,10 +24,6 @@
         <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
     </module>
     <module name="SuppressWarningsFilter" />
-    <module name="LineLength">
-        <property name="max" value="120"/>
-        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
-    </module>
     <module name="TreeWalker">
         <module name="Indentation">
             <property name="lineWrappingIndentation" value="8" />
@@ -42,7 +38,7 @@
         <module name="NoLineWrap"/>
         <module name="NeedBraces"/>
         <module name="ConstantName">
-            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger)$" />
+            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger|conditionalLogger)$" />
         </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>

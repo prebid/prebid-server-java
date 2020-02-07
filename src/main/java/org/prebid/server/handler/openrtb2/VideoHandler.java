@@ -148,8 +148,8 @@ public class VideoHandler implements Handler<RoutingContext> {
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
-        final VideoEvent auctionEvent = videoEventBuilder.status(status).errors(errorMessages).build();
-        respondWith(context, status, body, startTime, metricRequestStatus, auctionEvent);
+        final VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
+        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent);
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,

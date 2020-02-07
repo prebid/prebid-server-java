@@ -13,7 +13,8 @@
       },
       "ext": {
         "synacormedia": {
-          "seatId": "228"
+          "seatId": "228",
+          "tagId": "demo1"
         }
       }
     },
@@ -29,7 +30,8 @@
       },
       "ext": {
         "synacormedia":{
-          "seatId":"1987"
+          "seatId":"1987",
+          "tagId": "demo1"
         }
       }
     }
