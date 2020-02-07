@@ -17,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -240,6 +239,55 @@ public class JdbcApplicationSettingsTest {
         future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, emptyMap(), emptyList()));
+            async.complete();
+        }));
+    }
+
+    @Test
+    public void getVideoStoredDataShouldReturnExpectedResult(TestContext context) {
+        // when
+        final Future<StoredDataResult> future = jdbcApplicationSettings.getVideoStoredData(
+                new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
+
+        // then
+        final Async async = context.async();
+        final Map<String, String> expectedRequests = new HashMap<>();
+        expectedRequests.put("1", "value1");
+        expectedRequests.put("2", "value2");
+        final Map<String, String> expectedImps = new HashMap<>();
+        expectedImps.put("4", "value4");
+        expectedImps.put("5", "value5");
+        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+            assertThat(storedRequestResult)
+                    .isEqualTo(StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
+            async.complete();
+        }));
+    }
+
+    @Test
+    public void getVideoStoredDataShouldReturnStoredRequests(TestContext context) {
+        // given
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery,
+                selectResponseQuery);
+
+        // when
+        final Future<StoredDataResult> storedRequestResultFuture =
+                jdbcApplicationSettings.getVideoStoredData(new HashSet<>(asList("1", "2", "3")),
+                        new HashSet<>(asList("4", "5", "6")), timeout);
+
+        // then
+        final Async async = context.async();
+        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+            final Map<String, String> expectedRequests = new HashMap<>();
+            expectedRequests.put("1", "value1");
+            expectedRequests.put("2", "value2");
+            expectedRequests.put("3", "value3");
+            final Map<String, String> expectedImps = new HashMap<>();
+            expectedImps.put("4", "value4");
+            expectedImps.put("5", "value5");
+            expectedImps.put("6", "value6");
+            assertThat(storedRequestResult).isEqualTo(
+                    StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
         }));
     }

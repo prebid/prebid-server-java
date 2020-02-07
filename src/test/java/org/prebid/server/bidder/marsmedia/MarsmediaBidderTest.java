@@ -47,12 +47,12 @@ public class MarsmediaBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        marsmediaBidder = new MarsmediaBidder(ENDPOINT_URL);
+        marsmediaBidder = new MarsmediaBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new MarsmediaBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new MarsmediaBidder("invalid_url", jacksonMapper));
     }
 
     @Test

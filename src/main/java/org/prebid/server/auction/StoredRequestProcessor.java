@@ -1,18 +1,17 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -21,8 +20,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.VideoStoredDataResult;
+import org.prebid.server.util.JsonMergeUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,23 +32,33 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Executes stored request processing
  */
 public class StoredRequestProcessor {
 
+    private final long defaultTimeout;
     private final ApplicationSettings applicationSettings;
     private final TimeoutFactory timeoutFactory;
     private final Metrics metrics;
-    private final long defaultTimeout;
+    private final JacksonMapper mapper;
+    private JsonMergeUtil jsonMergeUtil;
 
-    public StoredRequestProcessor(ApplicationSettings applicationSettings, Metrics metrics,
-                                  TimeoutFactory timeoutFactory, long defaultTimeout) {
+    public StoredRequestProcessor(long defaultTimeout,
+                                  ApplicationSettings applicationSettings,
+                                  Metrics metrics,
+                                  TimeoutFactory timeoutFactory,
+                                  JacksonMapper mapper) {
+
+        this.defaultTimeout = defaultTimeout;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.metrics = Objects.requireNonNull(metrics);
-        this.defaultTimeout = defaultTimeout;
+        this.mapper = Objects.requireNonNull(mapper);
+
+        jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
@@ -62,10 +72,10 @@ public class StoredRequestProcessor {
         final Map<Imp, String> impToStoredRequestId;
         try {
             bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
+                    Collections.singletonList(bidRequest), this::getStoredRequestFromBidRequest);
 
             impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    bidRequest.getImp(), StoredRequestProcessor::getStoredRequestFromImp);
+                    bidRequest.getImp(), this::getStoredRequestFromImp);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
@@ -107,14 +117,67 @@ public class StoredRequestProcessor {
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
     }
 
+    /**
+     * Fetches stored request.video and map existing values to imp.id.
+     */
+    Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, List<String> errors, Timeout timeout) {
+        final Map<String, String> storedIdToImpId =
+                mapStoredRequestHolderToStoredRequestId(imps, this::getStoredRequestFromImp)
+                        .entrySet().stream()
+                        .collect(Collectors.toMap(Map.Entry::getValue,
+                                impIdToStoredId -> impIdToStoredId.getKey().getId()));
+
+        return applicationSettings.getStoredData(Collections.emptySet(), storedIdToImpId.keySet(), timeout)
+                .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
+    }
+
+    private VideoStoredDataResult makeVideoStoredDataResult(StoredDataResult storedDataResult,
+                                                            Map<String, String> storedIdToImpId,
+                                                            List<String> errors) {
+        final Map<String, String> storedIdToStoredImp = storedDataResult.getStoredIdToImp();
+        final Map<String, Video> impIdToStoredVideo = new HashMap<>();
+
+        for (Map.Entry<String, String> storedIdToImpIdEntry : storedIdToImpId.entrySet()) {
+            final String storedId = storedIdToImpIdEntry.getKey();
+            final String storedImp = storedIdToStoredImp.get(storedId);
+            if (storedImp == null) {
+                errors.add(String.format("No stored Imp for stored id %s", storedId));
+                continue;
+            }
+
+            final String impId = storedIdToImpIdEntry.getValue();
+            final Video video = parseVideoFromImp(storedImp);
+            if (video == null) {
+                errors.add(String.format("No stored video found for Imp with id %s", impId));
+                continue;
+            }
+
+            impIdToStoredVideo.put(impId, video);
+        }
+
+        return VideoStoredDataResult.of(impIdToStoredVideo, errors);
+    }
+
+    private Video parseVideoFromImp(String storedJson) {
+        if (StringUtils.isNotBlank(storedJson)) {
+            try {
+                final Imp imp = mapper.mapper().readValue(storedJson, Imp.class);
+                return imp.getVideo();
+            } catch (JsonProcessingException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
                                                           BidRequest bidRequest, String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
         return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
+                        String.format("Stored request fetching failed: %s", exception.getMessage()), true)))
                 .compose(result -> !result.getErrors().isEmpty()
-                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
+                        ? Future.failedFuture(new InvalidRequestException(result.getErrors(), true))
                         : Future.succeededFuture(result))
                 .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
                         impsToStoredRequestId, result));
@@ -125,19 +188,20 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
                                               Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
-        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult), impToStoredId,
-                storedDataResult);
+        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult),
+                impToStoredId, storedDataResult);
     }
 
     /**
-     * Merges {@link BidRequest} from original request with request from stored request source. Values from
-     * original request has higher priority than stored request values.
+     * Merges original request with request from stored request source. Values from original request
+     * has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequest(BidRequest bidRequest, String storedRequestId,
+    private BidRequest mergeBidRequest(BidRequest originalRequest, String storedRequestId,
                                        StoredDataResult storedDataResult) {
-        return storedRequestId != null
-                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, BidRequest.class)
-                : bidRequest;
+        final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
+        return StringUtils.isNotBlank(storedRequestId)
+                ? jsonMergeUtil.merge(originalRequest, storedRequest, storedRequestId, BidRequest.class)
+                : originalRequest;
     }
 
     /**
@@ -154,39 +218,12 @@ public class StoredRequestProcessor {
             final Imp imp = mergedImps.get(i);
             final String storedRequestId = impToStoredId.get(imp);
             if (storedRequestId != null) {
-                final Imp mergedImp = merge(imp, storedDataResult.getStoredIdToImp(), storedRequestId, Imp.class);
+                final String storedImp = storedDataResult.getStoredIdToImp().get(storedRequestId);
+                final Imp mergedImp = jsonMergeUtil.merge(imp, storedImp, storedRequestId, Imp.class);
                 mergedImps.set(i, mergedImp);
             }
         }
         return bidRequest.toBuilder().imp(mergedImps).build();
-    }
-
-    /**
-     * Merges passed object with json retrieved from stored data map by id
-     * and cast it to appropriate class. In case of any exception during merging, throws {@link InvalidRequestException}
-     * with reason message.
-     */
-    private <T> T merge(T originalObject, Map<String, String> storedData, String id, Class<T> classToCast) {
-        final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
-        final JsonNode storedRequestJsonNode;
-        try {
-            storedRequestJsonNode = Json.mapper.readTree(storedData.get(id));
-        } catch (IOException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't parse Json for stored request with id %s", id));
-        }
-        try {
-            // Http request fields have higher priority and will override fields from stored requests
-            // in case they have different values
-            return Json.mapper.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
-                    classToCast);
-        } catch (JsonPatchException e) {
-            throw new InvalidRequestException(String.format(
-                    "Couldn't create merge patch from origin object node for id %s: %s", id, e.getMessage()));
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
-        }
     }
 
     /**
@@ -230,11 +267,11 @@ public class StoredRequestProcessor {
      * Extracts {@link ExtStoredRequest} from {@link BidRequest} if exists. In case when Extension has invalid
      * format throws {@link InvalidRequestException}
      */
-    private static ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
+    private ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
         final ObjectNode ext = bidRequest.getExt();
         if (ext != null) {
             try {
-                final ExtBidRequest extBidRequest = Json.mapper.treeToValue(ext, ExtBidRequest.class);
+                final ExtBidRequest extBidRequest = mapper.mapper().treeToValue(ext, ExtBidRequest.class);
                 final ExtRequestPrebid prebid = extBidRequest.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();
@@ -252,10 +289,10 @@ public class StoredRequestProcessor {
      * Extracts {@link ExtStoredRequest} from {@link Imp} if exists. In case when Extension has invalid
      * format throws {@link InvalidRequestException}
      */
-    private static ExtStoredRequest getStoredRequestFromImp(Imp imp) {
+    private ExtStoredRequest getStoredRequestFromImp(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtImp extImp = Json.mapper.treeToValue(imp.getExt(), ExtImp.class);
+                final ExtImp extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();

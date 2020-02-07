@@ -1,0 +1,15 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "adm": "<b>hi</b>",
+        "cid": "test_cid",
+        "crid": "test_banner_crid",
+        "id": "1",
+        "impid": "imp123",
+        "price": 0.01
+      }
+    }
+  ]
+}

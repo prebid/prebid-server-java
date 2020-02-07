@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -23,6 +22,7 @@ import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pulsepoint.model.NormalizedPulsepointParams;
 import org.prebid.server.bidder.pulsepoint.proto.PulsepointParams;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -42,10 +42,12 @@ public class PulsepointAdapter extends OpenrtbAdapter {
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.singleton(MediaType.banner);
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public PulsepointAdapter(String cookieFamilyName, String endpointUrl) {
+    public PulsepointAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -84,14 +86,14 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams<NormalizedPulsepointParams>> createAdUnitBidsWithParams(
+    private List<AdUnitBidWithParams<NormalizedPulsepointParams>> createAdUnitBidsWithParams(
             List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
-    private static NormalizedPulsepointParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private NormalizedPulsepointParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Pulsepoint params section is missing");
@@ -99,7 +101,7 @@ public class PulsepointAdapter extends OpenrtbAdapter {
 
         final PulsepointParams params;
         try {
-            params = Json.mapper.convertValue(paramsNode, PulsepointParams.class);
+            params = mapper.mapper().convertValue(paramsNode, PulsepointParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());

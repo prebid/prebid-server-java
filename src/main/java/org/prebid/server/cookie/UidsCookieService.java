@@ -1,8 +1,6 @@
 package org.prebid.server.cookie;
 
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
@@ -11,6 +9,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -39,9 +39,17 @@ public class UidsCookieService {
     private final String hostCookieDomain;
     private final long ttlSeconds;
     private final int maxCookieSizeBytes;
+    private final JacksonMapper mapper;
 
-    public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
-                             String hostCookieName, String hostCookieDomain, int ttlDays, int maxCookieSizeBytes) {
+    public UidsCookieService(String optOutCookieName,
+                             String optOutCookieValue,
+                             String hostCookieFamily,
+                             String hostCookieName,
+                             String hostCookieDomain,
+                             int ttlDays,
+                             int maxCookieSizeBytes,
+                             JacksonMapper mapper) {
+
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
             throw new IllegalArgumentException(String.format(
                     "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
@@ -54,6 +62,7 @@ public class UidsCookieService {
         this.hostCookieDomain = hostCookieDomain;
         this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
         this.maxCookieSizeBytes = maxCookieSizeBytes;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -97,7 +106,7 @@ public class UidsCookieService {
             uidsMap = enrichAndSanitizeUids(parsedUids, cookies);
         }
 
-        return new UidsCookie(uidsBuilder.uids(uidsMap).optout(optout).build());
+        return new UidsCookie(uidsBuilder.uids(uidsMap).optout(optout).build(), mapper);
     }
 
     /**
@@ -107,7 +116,7 @@ public class UidsCookieService {
         if (cookies.containsKey(COOKIE_NAME)) {
             final String cookieValue = cookies.get(COOKIE_NAME);
             try {
-                return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookieValue)), Uids.class);
+                return mapper.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookieValue)), Uids.class);
             } catch (IllegalArgumentException | DecodeException e) {
                 logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, cookieValue);
             }

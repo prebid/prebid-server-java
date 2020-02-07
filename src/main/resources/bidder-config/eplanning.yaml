@@ -1,7 +1,7 @@
 adapters:
   eplanning:
     enabled: false
-    endpoint: http://ads.us.e-planning.net/hb/1
+    endpoint: https://ads.us.e-planning.net/hb/1
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:

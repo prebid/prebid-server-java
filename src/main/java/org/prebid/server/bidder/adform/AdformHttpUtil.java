@@ -1,18 +1,19 @@
 package org.prebid.server.bidder.adform;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.UrlParameters;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -26,14 +27,22 @@ class AdformHttpUtil {
     private static final String PRICE_TYPE_GROSS_PARAM = String.format("pt=%s", PRICE_TYPE_GROSS);
     private static final String PRICE_TYPE_NET_PARAM = String.format("pt=%s", PRICE_TYPE_NET);
 
-    private AdformHttpUtil() {
+    private final JacksonMapper mapper;
+
+    AdformHttpUtil(JacksonMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
      * Creates headers for Adform request
      */
-    static MultiMap buildAdformHeaders(String version, String userAgent, String ip,
-                                       String referer, String userId, AdformDigitrust adformDigitrust) {
+    MultiMap buildAdformHeaders(String version,
+                                String userAgent,
+                                String ip,
+                                String referer,
+                                String userId,
+                                AdformDigitrust adformDigitrust) {
+
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
                 .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
@@ -52,11 +61,11 @@ class AdformHttpUtil {
         if (adformDigitrust != null) {
             try {
                 final String adformDigitrustEncoded = Base64.getUrlEncoder().withoutPadding()
-                        .encodeToString(Json.mapper.writeValueAsString(adformDigitrust).getBytes());
+                        .encodeToString(mapper.encode(adformDigitrust).getBytes());
                 // Cookie name and structure are described here:
                 // https://github.com/digi-trust/dt-cdn/wiki/Cookies-for-Platforms
                 cookieValues.add(String.format("DigiTrust.v1.identity=%s", adformDigitrustEncoded));
-            } catch (JsonProcessingException e) {
+            } catch (EncodeException e) {
                 // do not add digitrust to cookie header and just ignore this exception
             }
         }
@@ -71,7 +80,7 @@ class AdformHttpUtil {
     /**
      * Creates url with parameters for adform request
      */
-    static String buildAdformUrl(UrlParameters parameters) {
+    String buildAdformUrl(UrlParameters parameters) {
         final List<String> params = new ArrayList<>();
 
         final String advertisingId = parameters.getAdvertisingId();
@@ -127,7 +136,6 @@ class AdformHttpUtil {
 
         return String.format("%s?%s&%s", uri, urlParams, mids);
     }
-
 
     /**
      * Returns price type parameter if valid is found. Otherwise returns empty string.

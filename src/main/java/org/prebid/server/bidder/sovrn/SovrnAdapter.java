@@ -8,7 +8,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -21,6 +20,7 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.sovrn.proto.SovrnParams;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -40,10 +40,12 @@ public class SovrnAdapter extends OpenrtbAdapter {
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public SovrnAdapter(String cookieFamilyName, String endpointUrl) {
+    public SovrnAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -81,20 +83,20 @@ public class SovrnAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams<SovrnParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private List<AdUnitBidWithParams<SovrnParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
-    private static SovrnParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private SovrnParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Sovrn params section is missing");
         }
 
         try {
-            return Json.mapper.convertValue(paramsNode, SovrnParams.class);
+            return mapper.mapper().convertValue(paramsNode, SovrnParams.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e.getCause());
         }

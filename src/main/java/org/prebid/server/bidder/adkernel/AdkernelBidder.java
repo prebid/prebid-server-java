@@ -10,8 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -20,6 +18,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adkernel.ExtImpAdkernel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -46,9 +46,11 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointTemplate;
+    private final JacksonMapper mapper;
 
-    public AdkernelBidder(String endpointTemplate) {
+    public AdkernelBidder(String endpointTemplate, JacksonMapper mapper) {
         this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -84,11 +86,10 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ExtImpAdkernel parseAndValidateImpExt(Imp imp) {
+    private ExtImpAdkernel parseAndValidateImpExt(Imp imp) {
         final ExtImpAdkernel extImpAdkernel;
         try {
-            extImpAdkernel = Json.mapper.<ExtPrebid<?, ExtImpAdkernel>>convertValue(imp.getExt(),
-                    ADKERNEL_EXT_TYPE_REFERENCE).getBidder();
+            extImpAdkernel = mapper.mapper().convertValue(imp.getExt(), ADKERNEL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -135,7 +136,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .add("x-openrtb-version", "2.5");
 
         final BidRequest outgoingRequest = createBidRequest(extAndImp.getValue(), requestBuilder, site, app);
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -146,8 +147,9 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest createBidRequest(List<Imp> imps, BidRequest.BidRequestBuilder requestBuilder, Site site,
-                                               App app) {
+    private static BidRequest createBidRequest(
+            List<Imp> imps, BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
+
         requestBuilder.imp(imps);
 
         if (site != null) {
@@ -161,7 +163,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

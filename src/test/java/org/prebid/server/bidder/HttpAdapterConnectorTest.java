@@ -18,7 +18,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.junit.Before;
@@ -43,6 +42,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -111,7 +111,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         adapterRequest = AdapterRequest.of(null, null);
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
-        httpAdapterConnector = new HttpAdapterConnector(httpClient, clock);
+        httpAdapterConnector = new HttpAdapterConnector(
+                httpClient, new PrivacyExtractor(jacksonMapper), clock, jacksonMapper);
 
         usersyncer = new Usersyncer(null, "", "", null, null, false);
     }
@@ -583,9 +584,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
     public void callShouldReturnGdprAwareAdapterResponseWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        final Regs regs = Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1, "1--")));
+        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1--")));
         final User user = User.builder()
-                .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent$1").build()))
+                .ext(mapper.valueToTree(ExtUser.builder().consent("consent$1").build()))
                 .build();
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.regs(regs).user(user));
 
@@ -605,8 +606,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
         assertThat(adapterResponse.getBidderStatus().getNoCookie()).isTrue();
         assertThat(adapterResponse.getBidderStatus().getUsersync()).isNotNull();
-        assertThat(adapterResponse.getBidderStatus().getUsersync())
-                .isEqualTo(UsersyncInfo.of("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1--", null, false));
+        assertThat(adapterResponse.getBidderStatus().getUsersync()).isEqualTo(UsersyncInfo.of(
+                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1--", null, false));
     }
 
     @Test

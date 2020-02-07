@@ -44,12 +44,12 @@ public class VerizonmediaBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        verizonmediaBidder = new VerizonmediaBidder(ENDPOINT_URL);
+        verizonmediaBidder = new VerizonmediaBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new VerizonmediaBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new VerizonmediaBidder("invalid_url", jacksonMapper));
     }
 
     @Test

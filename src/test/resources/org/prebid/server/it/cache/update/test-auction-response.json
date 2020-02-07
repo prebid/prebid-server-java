@@ -24,6 +24,48 @@
               }
             }
           }
+        },
+        {
+          "id": "31124",
+          "impid": "impId-video-cache-update",
+          "price": 3,
+          "adm": "adm1",
+          "crid": "crid1",
+          "dealid": "dealId1",
+          "w": 120,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "3.00",
+                "hb_pb_rubicon": "3.00",
+                "hb_deal_rubicon": "dealId1",
+                "hb_size": "120x600",
+                "hb_bidder": "rubicon",
+                "hb_size_rubicon": "120x600",
+                "hb_bidder_rubicon": "rubicon",
+                "hb_deal": "dealId1"
+              },
+              "storedrequestattributes": {
+                "maxduration": 60,
+                "mimes": [
+                  "video/mp4"
+                ],
+                "minduration": 25,
+                "protocols": [
+                  1,
+                  2
+                ],
+                "skipafter": 0,
+                "skipmin": 0,
+                "startdelay": 0,
+                "playbackmethod": [
+                  1
+                ]
+              }
+            }
+          }
         }
       ],
       "seat": "rubicon",

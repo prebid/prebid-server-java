@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -55,15 +54,15 @@ public class BeachfrontBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        beachfrontBidder = new BeachfrontBidder(BANNER_ENDPOINT, VIDEO_ENDPOINT);
+        beachfrontBidder = new BeachfrontBidder(BANNER_ENDPOINT, VIDEO_ENDPOINT, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailWhenEitherOfUrlIsInvalid() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder("invalid", null));
+                .isThrownBy(() -> new BeachfrontBidder("invalid", null, jacksonMapper));
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder(BANNER_ENDPOINT, "invalid"));
+                .isThrownBy(() -> new BeachfrontBidder(BANNER_ENDPOINT, "invalid", jacksonMapper));
     }
 
     @Test
@@ -435,7 +434,7 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         // given, when and then
-        assertThat(beachfrontBidder.extractTargeting(Json.mapper.createObjectNode())).isEqualTo(emptyMap());
+        assertThat(beachfrontBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(

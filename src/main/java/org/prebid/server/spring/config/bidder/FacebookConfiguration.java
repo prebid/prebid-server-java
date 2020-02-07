@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.facebook.FacebookBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -28,6 +29,9 @@ public class FacebookConfiguration {
     private static final String BIDDER_NAME = "audienceNetwork";
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("facebookConfigurationProperties")
     private FacebookConfigurationProperties configProperties;
 
@@ -47,7 +51,7 @@ public class FacebookConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(usersync, null))
                 .bidderCreator(configProperties.getEnabled()
                         ? () -> new FacebookBidder(configProperties.getEndpoint(), configProperties.getPlatformId(),
-                        configProperties.getAppSecret())
+                        configProperties.getAppSecret(), mapper)
                         : null)
                 .assemble();
     }

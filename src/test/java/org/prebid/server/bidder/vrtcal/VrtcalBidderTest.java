@@ -36,12 +36,12 @@ public class VrtcalBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        vrtcalBidder = new VrtcalBidder(ENDPOINT_URL);
+        vrtcalBidder = new VrtcalBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new VrtcalBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new VrtcalBidder("invalid_url", jacksonMapper));
     }
 
     @Test

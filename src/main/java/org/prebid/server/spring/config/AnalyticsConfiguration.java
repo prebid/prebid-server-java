@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.analytics.LogAnalyticsReporter;
+import org.prebid.server.json.JacksonMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +25,7 @@ public class AnalyticsConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "analytics.log", name = "enabled", havingValue = "true")
-    LogAnalyticsReporter logAnalyticsReporter() {
-        return new LogAnalyticsReporter();
+    LogAnalyticsReporter logAnalyticsReporter(JacksonMapper mapper) {
+        return new LogAnalyticsReporter(mapper);
     }
 }

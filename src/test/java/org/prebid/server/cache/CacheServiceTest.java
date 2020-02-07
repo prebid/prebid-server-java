@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -69,8 +68,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CacheServiceTest extends VertxTest {
 
-    private static final String ENDPOINT_URL_TEMPLATE = "https://test-event.com/event?t=imp&b=BIDID&f=b&a=ACCOUNT";
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -97,9 +94,15 @@ public class CacheServiceTest extends VertxTest {
     public void setUp() throws MalformedURLException, JsonProcessingException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
+        cacheService = new CacheService(
+                mediaTypeCacheTtl,
+                httpClient,
                 new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=", eventsService, metrics, clock);
+                "http://cache-service-host/cache?uuid=",
+                eventsService,
+                metrics,
+                clock,
+                jacksonMapper);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -249,9 +252,15 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() throws MalformedURLException {
         // given
-        cacheService = new CacheService(mediaTypeCacheTtl, httpClient,
+        cacheService = new CacheService(
+                mediaTypeCacheTtl,
+                httpClient,
                 new URL("https://cache-service-host:8888/cache"),
-                "https://cache-service-host:8080/cache?uuid=", eventsService, metrics, clock);
+                "https://cache-service-host:8080/cache?uuid=",
+                eventsService,
+                metrics,
+                clock,
+                jacksonMapper);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -362,7 +371,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldTolerateReadingHttpResponseFails() {
+    public void cacheBidsOpenrtbShouldTolerateReadingHttpResponseFails() throws JsonProcessingException {
         // given
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
@@ -382,7 +391,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldTolerateResponseCodeIsNot200() {
+    public void cacheBidsOpenrtbShouldTolerateResponseCodeIsNot200() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(503, "response");
 
@@ -403,7 +412,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldTolerateResponseBodyCouldNotBeParsed() {
+    public void cacheBidsOpenrtbShouldTolerateResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, "response");
 
@@ -424,7 +433,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldTolerateCacheEntriesNumberDoesNotMatchBidsNumber() {
+    public void cacheBidsOpenrtbShouldTolerateCacheEntriesNumberDoesNotMatchBidsNumber() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, "{}");
 
@@ -446,7 +455,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldReturnExpectedDebugInfo() {
+    public void cacheBidsOpenrtbShouldReturnExpectedDebugInfo() throws JsonProcessingException {
         // given
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
 
@@ -546,9 +555,15 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountBannerTtl() throws IOException {
         // given
-        cacheService = new CacheService(CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, metrics,
-                clock);
+        cacheService = new CacheService(
+                CacheTtl.of(20, null),
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                eventsService,
+                metrics,
+                clock,
+                jacksonMapper);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -566,9 +581,15 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
-        cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, metrics,
-                clock);
+        cacheService = new CacheService(
+                CacheTtl.of(10, null),
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                eventsService,
+                metrics,
+                clock,
+                jacksonMapper);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -585,9 +606,15 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
         // given
-        cacheService = new CacheService(CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=", eventsService, metrics,
-                clock);
+        cacheService = new CacheService(
+                CacheTtl.of(10, null),
+                httpClient,
+                new URL("http://cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                eventsService,
+                metrics,
+                clock,
+                jacksonMapper);
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -707,10 +734,11 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder().type("json").value(mapper.valueToTree(bid1)).build(),
                         PutObject.builder().type("json").value(mapper.valueToTree(bid2)).build(),
                         PutObject.builder().type("xml").value(new TextNode("adm1")).build(),
-                        PutObject.builder().type("xml").value(
-                                new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
-                                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build());
+                        PutObject.builder().type("xml").value(new TextNode(
+                                "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>" +
+                                        "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>" +
+                                        "<Creatives></Creatives></Wrapper></Ad></VAST>"))
+                                .build());
     }
 
     @Test
@@ -889,7 +917,7 @@ public class CacheServiceTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()).build();
     }
 
-    private static CacheHttpRequest givenCacheHttpRequest(com.iab.openrtb.response.Bid... bids) {
+    private static CacheHttpRequest givenCacheHttpRequest(com.iab.openrtb.response.Bid... bids) throws JsonProcessingException {
         final List<PutObject> putObjects;
         if (bids != null) {
             putObjects = new ArrayList<>();
@@ -899,7 +927,9 @@ public class CacheServiceTest extends VertxTest {
         } else {
             putObjects = null;
         }
-        return CacheHttpRequest.of("http://cache-service/cache", Json.encode(BidCacheRequest.of(putObjects)));
+        return CacheHttpRequest.of(
+                "http://cache-service/cache",
+                mapper.writeValueAsString(BidCacheRequest.of(putObjects)));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
