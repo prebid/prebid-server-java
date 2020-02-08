@@ -3,7 +3,6 @@ package org.prebid.server.log;
 import io.vertx.core.logging.Logger;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,7 +79,7 @@ public class ConditionalLogger {
     }
 
     private long currentTimeMillis() {
-        return new Date().getTime();
+        return Instant.now().toEpochMilli();
     }
 
 }
