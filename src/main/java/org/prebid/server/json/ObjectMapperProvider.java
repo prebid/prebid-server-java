@@ -21,7 +21,8 @@ public final class ObjectMapperProvider {
                 .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                 .registerModule(new AfterburnerModule())
-                .registerModule(new ZonedDateTimeModule());
+                .registerModule(new ZonedDateTimeModule())
+                .registerModule(new TimeoutModule());
     }
 
     private ObjectMapperProvider() {
