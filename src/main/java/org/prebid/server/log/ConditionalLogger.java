@@ -1,23 +1,32 @@
 package org.prebid.server.log;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.logging.Logger;
 
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class ConditionalLogger {
-    private ConcurrentHashMap<String, AtomicInteger> messageToCount;
-    private ConcurrentHashMap<String, Long> messageToWait;
+    private ConcurrentMap<String, AtomicInteger> messageToCount;
+    private ConcurrentMap<String, Long> messageToWait;
 
     private final Logger logger;
 
     public ConditionalLogger(Logger logger) {
         this.logger = logger;
-        this.messageToCount = new ConcurrentHashMap<>();
-        this.messageToWait = new ConcurrentHashMap<>();
+        this.messageToWait = Caffeine.newBuilder()
+                .maximumSize(10_000)
+                .expireAfterWrite(1, TimeUnit.HOURS)
+                .<String, Long>build()
+                .asMap();
+        messageToCount = Caffeine.newBuilder()
+                .maximumSize(10_000)
+                .expireAfterWrite(1, TimeUnit.HOURS)
+                .<String, AtomicInteger>build()
+                .asMap();
     }
 
     public void info(String message, Integer maxValue) {
