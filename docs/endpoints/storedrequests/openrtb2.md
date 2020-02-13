@@ -1,6 +1,10 @@
 # Openrtb2
 
-This `/storedrequests/openrtb2` endpoint is bound to `admin.port`.
+Unavailable if notification is disabled (`settings.in-memory-cache.notification-endpoints-enabled` config property)
+
+This `/pbs-admin/storedrequests/openrtb2` endpoint can be configured:
+ - `admin-endpoints.storedrequest.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+ - `admin-endpoints.storedrequest.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
 
 The goal is to update/invalidate stored request/impression in-memory caches.
 
@@ -10,7 +14,7 @@ Possible HTTP requests examples described below.
 
 1. Update in-memory cache for specified stored request and stored impression:
 
-`POST /storedrequests/openrtb2`
+`POST /pbs-admin/storedrequests/openrtb2`
 
 ```json
 {
@@ -25,7 +29,7 @@ Possible HTTP requests examples described below.
 
 2. Invalidate in-memory cache for specified stored request and stored impression:
 
-`DELETE /storedrequests/openrtb2`
+`DELETE /pbs-admin/storedrequests/openrtb2`
 
 ```json
 {

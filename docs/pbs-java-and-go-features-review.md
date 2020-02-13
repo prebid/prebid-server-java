@@ -18,7 +18,7 @@ User ID Module |+|+
 Bid Categories |-|+
 Apps/Accounts Blacklist  |+|+
 Event Notification endpoint |+|-
-Video Auction endpoint |-|+
+Video Auction endpoint |+|+
 Video Impression Tracking endpoint |+|-
 GDPR |+|+
 COPPA |+|+
@@ -27,7 +27,7 @@ Cooperative Cookie Syncing |+|-
 All adapters ported to OpenRTB |+|-
 Remote File Downloader |+|-
 Bidder Generator |+|-
-
+Customized video endpoints |+|-
 
 **
 * PBS-Java Currency conversion supports finding intermediate conversion rate;

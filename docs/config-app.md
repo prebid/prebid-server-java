@@ -100,10 +100,10 @@ There are several typical keys:
 But feel free to add additional bidder's specific options.
 
 ## Admin
-- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
+- `logger-level-modifier.enabled` - enable the `/pbs-admin/admin` endpoint.
 
 ## Currency Converter
-- `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
+- `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/pbs-admin/currency-rates` endpoint on admin port.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
@@ -197,7 +197,7 @@ For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
-available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
+available: [/pbs-admin/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/pbs-admin/storedrequests/amp](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.http-update.endpoint` - the url to fetch stored request updates.
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
