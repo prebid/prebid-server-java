@@ -82,6 +82,9 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
 
+## Vtrack
+- `vtrack.allow-unkonwn-bidder` - flag allows servicing requests with bidders who were not configured in Prebid Server.
+
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
