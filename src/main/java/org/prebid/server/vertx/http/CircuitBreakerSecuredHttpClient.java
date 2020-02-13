@@ -26,6 +26,7 @@ import java.util.function.Function;
  */
 public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
+    private static final int LOG_PERIOD_SECONDS = 5;
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
@@ -53,7 +54,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private void circuitOpened(String name) {
         conditionalLogger.warn(String.format("Http client request to %s is failed, circuit opened.", name),
-                5, TimeUnit.SECONDS);
+                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
         metrics.updateHttpClientCircuitBreakerMetric(true);
     }
 

@@ -21,6 +21,7 @@ import java.util.function.Function;
  */
 public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
+    private static final int LOG_PERIOD_SECONDS = 5;
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredJdbcClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
@@ -45,7 +46,8 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     }
 
     private void circuitOpened() {
-        conditionalLogger.warn("Database is unavailable, circuit opened.", 5, TimeUnit.SECONDS);
+        conditionalLogger.warn("Database is unavailable, circuit opened.",
+                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
         metrics.updateDatabaseCircuitBreakerMetric(true);
     }
 

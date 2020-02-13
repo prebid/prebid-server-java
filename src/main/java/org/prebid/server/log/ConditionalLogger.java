@@ -4,27 +4,32 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.logging.Logger;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class ConditionalLogger {
+
+    private static final int EXPIRE_CACHE_DURATION = 1;
+    private static final int CACHE_MAXIMUM_SIZE = 10_000;
+
     private ConcurrentMap<String, AtomicInteger> messageToCount;
     private ConcurrentMap<String, Long> messageToWait;
 
     private final Logger logger;
 
     public ConditionalLogger(Logger logger) {
-        this.logger = logger;
-        this.messageToWait = Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(1, TimeUnit.HOURS)
+        this.logger = Objects.requireNonNull(logger);
+        messageToWait = Caffeine.newBuilder()
+                .maximumSize(CACHE_MAXIMUM_SIZE)
+                .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
                 .<String, Long>build()
                 .asMap();
         messageToCount = Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(1, TimeUnit.HOURS)
+                .maximumSize(CACHE_MAXIMUM_SIZE)
+                .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
                 .<String, AtomicInteger>build()
                 .asMap();
     }
@@ -61,7 +66,7 @@ public class ConditionalLogger {
         log(message, amount, unit, logger -> logger.warn(message));
     }
 
-    public void log(String key, Integer maxValue, Consumer<Logger> consumer) {
+    private void log(String key, Integer maxValue, Consumer<Logger> consumer) {
         final AtomicInteger currentValue = messageToCount.compute(
                 key, (currentKey, currentCounter) -> currentCounter != null ? currentCounter : new AtomicInteger(0)
         );
@@ -71,7 +76,7 @@ public class ConditionalLogger {
         }
     }
 
-    public void log(String key, long amount, TimeUnit unit, Consumer<Logger> consumer) {
+    private void log(String key, long amount, TimeUnit unit, Consumer<Logger> consumer) {
         messageToWait.compute(key, (currentKey, lastTimeMillis) -> {
             if (lastTimeMillis == null || currentTimeMillis() >= lastTimeMillis) {
                 lastTimeMillis = recalculateDate(amount, unit);
@@ -81,13 +86,13 @@ public class ConditionalLogger {
         });
     }
 
-    private long recalculateDate(long amount, TimeUnit unit) {
+    private static long recalculateDate(long amount, TimeUnit unit) {
         final long amountInMillis = unit.toMillis(amount);
-        Instant resultInstant = Instant.now().plusMillis(amountInMillis);
+        final Instant resultInstant = Instant.now().plusMillis(amountInMillis);
         return resultInstant.toEpochMilli();
     }
 
-    private long currentTimeMillis() {
+    private static long currentTimeMillis() {
         return Instant.now().toEpochMilli();
     }
 

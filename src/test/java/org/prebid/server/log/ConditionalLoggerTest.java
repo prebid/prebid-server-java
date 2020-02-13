@@ -8,6 +8,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -27,12 +29,23 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void counterLog() {
-        //when
+    public void infoShouldCallLoggerWithExpectedCount() {
+        // when
         for (int i = 0; i < 100; i++) {
-            conditionalLogger.info("Hello", 20);
+            conditionalLogger.info("Log Message", 20);
         }
-        //then
-        verify(logger, times(5)).info("Hello");
+        // then
+        verify(logger, times(5)).info("Log Message");
+    }
+
+    @Test
+    public void infoShouldCallLoggerWithExpectedTimeout() throws InterruptedException {
+        // when
+        for (int i = 0; i < 4; i++) {
+            conditionalLogger.info("Log Message", 1, TimeUnit.SECONDS);
+            Thread.sleep(500);
+        }
+        // then
+        verify(logger, times(2)).info("Log Message");
     }
 }
