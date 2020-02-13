@@ -37,6 +37,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static final String ACCOUNT_PARAMETER = "a";
 
     private final long defaultTimeout;
+    private final boolean allowUnknownBidder;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
     private final CacheService cacheService;
@@ -44,6 +45,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private final JacksonMapper mapper;
 
     public VtrackHandler(long defaultTimeout,
+                         boolean allowUnknownBidder,
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          CacheService cacheService,
@@ -51,6 +53,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
                          JacksonMapper mapper) {
 
         this.defaultTimeout = defaultTimeout;
+        this.allowUnknownBidder = allowUnknownBidder;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -141,8 +144,16 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private Set<String> biddersAllowingVastUpdate(List<PutObject> vtrackPuts) {
         return vtrackPuts.stream()
                 .map(PutObject::getBidder)
-                .filter(bidderCatalog::isModifyingVastXmlAllowed)
+                .filter(this::isAllowVastForBidder)
                 .collect(Collectors.toSet());
+    }
+
+    private boolean isAllowVastForBidder(String bidderName) {
+        if (bidderCatalog.isValidName(bidderName)) {
+            return bidderCatalog.isModifyingVastXmlAllowed(bidderName);
+        } else {
+            return allowUnknownBidder;
+        }
     }
 
     private void handleCacheResult(AsyncResult<BidCacheResponse> async, RoutingContext context) {
