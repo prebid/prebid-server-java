@@ -26,9 +26,9 @@ import java.util.function.Function;
  */
 public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
-    private static final int LOG_PERIOD_SECONDS = 5;
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final int LOG_PERIOD_SECONDS = 5;
 
     private final Function<String, CircuitBreaker> circuitBreakerCreator;
     private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();

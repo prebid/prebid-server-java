@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class CircuitBreakerSecuredGeoLocationService implements GeoLocationService {
 
-    private static final int LOG_PERIOD_SECONDS = 5;
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredGeoLocationService.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final int LOG_PERIOD_SECONDS = 5;
 
     private final CircuitBreaker breaker;
     private final GeoLocationService geoLocationService;

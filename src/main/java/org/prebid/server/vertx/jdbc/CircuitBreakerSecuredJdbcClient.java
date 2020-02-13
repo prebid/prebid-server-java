@@ -21,9 +21,9 @@ import java.util.function.Function;
  */
 public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
-    private static final int LOG_PERIOD_SECONDS = 5;
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredJdbcClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final int LOG_PERIOD_SECONDS = 5;
 
     private final CircuitBreaker breaker;
     private final JdbcClient jdbcClient;
