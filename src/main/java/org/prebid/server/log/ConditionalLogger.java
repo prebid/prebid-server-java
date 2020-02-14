@@ -67,11 +67,9 @@ public class ConditionalLogger {
     }
 
     private void log(String key, Integer maxValue, Consumer<Logger> consumer) {
-        final AtomicInteger currentValue = messageToCount.compute(
-                key, (currentKey, currentCounter) -> currentCounter != null ? currentCounter : new AtomicInteger(0)
-        );
-        if (currentValue.incrementAndGet() >= maxValue) {
-            currentValue.set(0);
+        final AtomicInteger value = messageToCount.computeIfAbsent(key, ignored -> new AtomicInteger());
+        if (value.incrementAndGet() >= maxValue) {
+            value.set(0);
             consumer.accept(logger);
         }
     }
