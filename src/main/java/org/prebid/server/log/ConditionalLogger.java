@@ -77,23 +77,19 @@ public class ConditionalLogger {
     }
 
     private void log(String key, long amount, TimeUnit unit, Consumer<Logger> consumer) {
-        messageToWait.compute(key, (currentKey, lastTimeMillis) -> {
-            if (lastTimeMillis == null || currentTimeMillis() >= lastTimeMillis) {
-                lastTimeMillis = recalculateDate(amount, unit);
-                consumer.accept(logger);
-            }
-            return lastTimeMillis;
-        });
+        final long currentTime = Instant.now().toEpochMilli();
+        final Long value = messageToWait.computeIfAbsent(key, ignored -> recalculateDate(amount, unit));
+
+        if (currentTime > value) {
+            messageToWait.replace(key, value, recalculateDate(amount, unit));
+            consumer.accept(logger);
+        }
     }
 
     private static long recalculateDate(long amount, TimeUnit unit) {
         final long amountInMillis = unit.toMillis(amount);
         final Instant resultInstant = Instant.now().plusMillis(amountInMillis);
         return resultInstant.toEpochMilli();
-    }
-
-    private static long currentTimeMillis() {
-        return Instant.now().toEpochMilli();
     }
 
 }
