@@ -1025,6 +1025,45 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldNoMaskUserExtIfDataBiddersListEmpty() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        givenBidder("missingBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .data(ExtRequestPrebidData.of(null)).build())))
+                        .user(User.builder()
+                                .keywords("keyword")
+                                .gender("male")
+                                .yob(133)
+                                .geo(Geo.EMPTY)
+                                .ext(mapper.valueToTree(ExtUser.builder().data(dataNode).build()))
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
+                .containsOnly(
+                        tuple("keyword", "male", 133, Geo.EMPTY,
+                                mapper.valueToTree(ExtUser.builder().data(dataNode).build())),
+                        tuple("keyword", "male", 133, Geo.EMPTY, mapper.valueToTree(ExtUser.builder().data(dataNode).build())));
+    }
+
+    @Test
     public void shouldPassSiteKeywordsSearchAndExtOnlyForAllowedBidder() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -1057,6 +1096,40 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(
                         tuple("keyword", "search", mapper.valueToTree(ExtSite.of(0, dataNode))),
                         tuple(null, null, null));
+    }
+
+    @Test
+    public void shouldNoMaskPassAppExtAndKeywordsIfDataBiddersListEmpty() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        givenBidder("missingBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(null)).build())))
+                        .app(App.builder()
+                                .keywords("keyword")
+                                .ext(mapper.valueToTree(ExtApp.of(null, dataNode)))
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getExt, App::getKeywords)
+                .containsOnly(
+                        tuple(mapper.valueToTree(ExtApp.of(null, dataNode)), "keyword"),
+                        tuple("data", "value"));
     }
 
     @Test
