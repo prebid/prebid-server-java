@@ -1,5 +1,6 @@
 package org.prebid.server.log;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@RunWith(VertxUnitRunner.class)
 public class ConditionalLoggerTest {
 
     @Rule
@@ -25,10 +27,13 @@ public class ConditionalLoggerTest {
     @Mock
     private Logger logger;
 
+    private Vertx vertx;
+
     private ConditionalLogger conditionalLogger;
 
     @Before
     public void setUp() {
+        vertx = Vertx.vertx();
         conditionalLogger = new ConditionalLogger(logger);
     }
 
@@ -43,13 +48,19 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerWithExpectedTimeout() throws InterruptedException {
+    public void infoShouldCallLoggerWithExpectedTimeout(TestContext context) {
         // when
         for (int i = 0; i < 5; i++) {
             conditionalLogger.info("Log Message", 1, TimeUnit.SECONDS);
-            Thread.sleep(500);
+            doWait(context, 500);
         }
         // then
         verify(logger, times(2)).info("Log Message");
+    }
+
+    private void doWait(TestContext context, long timeout) {
+        final Async async = context.async();
+        vertx.setTimer(timeout, id -> async.complete());
+        async.await();
     }
 }

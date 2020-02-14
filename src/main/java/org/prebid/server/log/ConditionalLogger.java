@@ -78,7 +78,7 @@ public class ConditionalLogger {
         final long currentTime = Instant.now().toEpochMilli();
         final Long value = messageToWait.computeIfAbsent(key, ignored -> recalculateDate(amount, unit));
 
-        if (currentTime > value) {
+        if (currentTime >= value) {
             messageToWait.replace(key, value, recalculateDate(amount, unit));
             consumer.accept(logger);
         }
