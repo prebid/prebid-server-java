@@ -31,6 +31,11 @@ public class ExtRequestPrebid {
     Map<String, BigDecimal> bidadjustmentfactors;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.currency
+     */
+    ExtCurrency currency;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.targeting
      */
     ExtRequestTargeting targeting;

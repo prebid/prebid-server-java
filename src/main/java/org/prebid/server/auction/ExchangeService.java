@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -145,6 +146,7 @@ public class ExchangeService {
         final Map<String, String> aliases = aliases(requestExt);
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
+        final ExtCurrency currency = currency(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final Boolean isGdprEnforced = account.getEnforceGdpr();
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
@@ -159,7 +161,7 @@ public class ExchangeService {
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest,
                                 auctionTimeout(timeout, cacheInfo.isDoCaching()), debugEnabled, aliases,
-                                bidAdjustments(requestExt), currencyRates(targeting)))
+                                bidAdjustments(requestExt), currencyRates(currency)))
                         .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
@@ -228,8 +230,8 @@ public class ExchangeService {
     /**
      * Extracts currency rates from {@link ExtRequestTargeting}.
      */
-    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
-        return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
+    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtCurrency currency) {
+        return currency != null ? currency.getRates() : null;
     }
 
     /**
@@ -703,6 +705,14 @@ public class ExchangeService {
     private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         return prebid != null ? prebid.getTargeting() : null;
+    }
+
+    /**
+     * Extracts {@link ExtCurrency} from {@link ExtBidRequest} model.
+     */
+    private static ExtCurrency currency(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        return prebid != null ? prebid.getCurrency() : null;
     }
 
     /**

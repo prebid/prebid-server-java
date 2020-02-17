@@ -69,16 +69,6 @@
             }
           ]
         },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
-          }
-        },
         "includewinners": true,
         "includebidderkeys": true
       },

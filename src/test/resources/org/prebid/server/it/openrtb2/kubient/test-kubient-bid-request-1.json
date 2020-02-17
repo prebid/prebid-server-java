@@ -14,8 +14,7 @@
         "h": 400
       },
       "ext": {
-        "bidder": {
-        }
+        "bidder": {}
       }
     }
   ],
@@ -39,12 +38,12 @@
   },
   "user": {
     "ext": {
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      },
-      "consent": "consentValue"
+      }
     }
   },
   "at": 1,
@@ -77,16 +76,6 @@
               "increment": 0.1
             }
           ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
-          }
         },
         "includewinners": true,
         "includebidderkeys": true

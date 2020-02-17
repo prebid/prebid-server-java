@@ -13,7 +13,7 @@ import java.util.Map;
 @Value
 public class ExtCurrency {
     /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.currency.rates
+     * Defines the contract for bidrequest.ext.prebid.currency.rates
      */
     Map<String, Map<String, BigDecimal>> rates;
 }
