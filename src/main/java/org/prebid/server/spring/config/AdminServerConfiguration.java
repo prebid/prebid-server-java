@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
@@ -34,7 +33,6 @@ public class AdminServerConfiguration {
     private Vertx vertx;
 
     @Autowired
-    @Lazy
     @Qualifier("adminRouter")
     private Router adminRouter;
 

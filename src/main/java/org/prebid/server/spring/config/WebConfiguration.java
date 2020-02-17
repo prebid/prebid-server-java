@@ -143,7 +143,7 @@ public class WebConfiguration {
         return ExceptionHandler.create(metrics);
     }
 
-    @Bean
+    @Bean("router")
     Router router(CookieHandler cookieHandler,
                   BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,

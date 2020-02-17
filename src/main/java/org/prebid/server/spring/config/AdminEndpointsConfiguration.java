@@ -18,7 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.Map;
 
 @Configuration
@@ -33,13 +32,15 @@ public class AdminEndpointsConfiguration {
     @ConditionalOnProperty(prefix = "logger-level-modifier", name = "enabled", havingValue = "true")
     CustomizedAdminEndpoint loggerLevelModifierEndpoint(
             LogModifier logModifier,
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials,
+            @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials,
             @Value("${admin-endpoints.logger-level-modifier.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.logger-level-modifier.protected}") boolean isProtected) {
         final AdminHandler adminHandler = new AdminHandler(logModifier);
+        final Map<String, String> adminEndpointCredentialsMap = adminEndpointCredentials == null
+                ? null
+                : adminEndpointCredentials.getCredentials();
         return new CustomizedAdminEndpoint(LOGGER_LEVEL_ENDPOINT, adminHandler, isOnApplicationPort,
-                isProtected)
-                .credentials(adminEndpointCredentials);
+                isProtected, adminEndpointCredentialsMap);
     }
 
     @Bean
@@ -47,13 +48,15 @@ public class AdminEndpointsConfiguration {
     CustomizedAdminEndpoint currencyConversionRatesEndpoint(
             CurrencyConversionService currencyConversionRates,
             JacksonMapper mapper,
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials,
+            @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials,
             @Value("${admin-endpoints.currency-rates.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.currency-rates.protected}") boolean isProtected) {
         final CurrencyRatesHandler currencyRatesHandler = new CurrencyRatesHandler(currencyConversionRates, mapper);
+        final Map<String, String> adminEndpointCredentialsMap = adminEndpointCredentials == null
+                ? null
+                : adminEndpointCredentials.getCredentials();
         return new CustomizedAdminEndpoint(CURRENCY_RATES_ENDPOINT, currencyRatesHandler, isOnApplicationPort,
-                isProtected)
-                .credentials(adminEndpointCredentials);
+                isProtected, adminEndpointCredentialsMap);
     }
 
     @Bean
@@ -62,14 +65,16 @@ public class AdminEndpointsConfiguration {
     CustomizedAdminEndpoint cacheNotificationEndpoint(
             SettingsCache settingsCache,
             JacksonMapper mapper,
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials,
+            @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials,
             @Value("${admin-endpoints.storedrequest.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.storedrequest.protected}") boolean isProtected) {
         final SettingsCacheNotificationHandler cacheNotificationHandler =
                 new SettingsCacheNotificationHandler(settingsCache, mapper);
+        final Map<String, String> adminEndpointCredentialsMap = adminEndpointCredentials == null
+                ? null
+                : adminEndpointCredentials.getCredentials();
         return new CustomizedAdminEndpoint(STOREDREQUESTS_OPENRTB_ENDPOINT, cacheNotificationHandler,
-                isOnApplicationPort, isProtected)
-                .credentials(adminEndpointCredentials);
+                isOnApplicationPort, isProtected, adminEndpointCredentialsMap);
     }
 
     @Bean
@@ -78,22 +83,16 @@ public class AdminEndpointsConfiguration {
     CustomizedAdminEndpoint ampCacheNotificationEndpoint(
             SettingsCache ampSettingsCache,
             JacksonMapper mapper,
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials,
+            @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials,
             @Value("${admin-endpoints.storedrequest-amp.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.storedrequest-amp.protected}") boolean isProtected) {
         final SettingsCacheNotificationHandler settingsCacheNotificationHandler =
                 new SettingsCacheNotificationHandler(ampSettingsCache, mapper);
-        return new CustomizedAdminEndpoint(STOREDREQUESTS_AMP_ENDPOINT, settingsCacheNotificationHandler,
-                isOnApplicationPort, isProtected)
-                .credentials(adminEndpointCredentials);
-    }
-
-    @Bean
-    Map<String, String> adminEndpointCredentials(
-            @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials) {
-        return adminEndpointCredentials == null
-                ? Collections.emptyMap()
+        final Map<String, String> adminEndpointCredentialsMap = adminEndpointCredentials == null
+                ? null
                 : adminEndpointCredentials.getCredentials();
+        return new CustomizedAdminEndpoint(STOREDREQUESTS_AMP_ENDPOINT, settingsCacheNotificationHandler,
+                isOnApplicationPort, isProtected, adminEndpointCredentialsMap);
     }
 
     @Component

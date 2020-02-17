@@ -62,7 +62,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Test
     public void routeShouldCallAuthAndHandlerWhenProtectedAndCredentialsProvided() {
         // given
-        target.credentials(adminEndpointCredentials);
+        target = new CustomizedAdminEndpoint(PATH, handler, true, true, adminEndpointCredentials);
 
         // when
         target.router(router);
@@ -78,7 +78,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Test
     public void routeShouldCallRouterWhenProtectedAndNoCredentials() {
         // given
-        target.credentials(Collections.emptyMap());
+        target = new CustomizedAdminEndpoint(PATH, handler, true, true, Collections.emptyMap());
 
         // when
         target.router(router);
@@ -94,8 +94,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Test
     public void routeShouldCallRouterWhenNotProtectedAndCredentialsProvided() {
         // given
-        target = new CustomizedAdminEndpoint(PATH, handler, true, false);
-        target.credentials(adminEndpointCredentials);
+        target = new CustomizedAdminEndpoint(PATH, handler, true, false, adminEndpointCredentials);
 
         // when
         target.router(router);

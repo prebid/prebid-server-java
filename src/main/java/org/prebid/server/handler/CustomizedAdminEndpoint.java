@@ -28,9 +28,13 @@ public class CustomizedAdminEndpoint {
         this.isProtected = isProtected;
     }
 
-    public CustomizedAdminEndpoint credentials(Map<String, String> adminEndpointCredentials) {
+    public CustomizedAdminEndpoint(String path, Handler<RoutingContext> handler, boolean isOnApplicationPort,
+                                   boolean isProtected, Map<String, String> adminEndpointCredentials) {
+        this.path = path;
+        this.handler = handler;
+        this.isOnApplicationPort = isOnApplicationPort;
+        this.isProtected = isProtected;
         this.adminEndpointCredentials = adminEndpointCredentials;
-        return this;
     }
 
     public boolean isOnApplicationPort() {
