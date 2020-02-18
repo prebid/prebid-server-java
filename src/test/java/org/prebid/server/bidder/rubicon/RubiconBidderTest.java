@@ -339,7 +339,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldTransferRewardedVideoFlagIntoRewardedVideoObject() {
         // given
         final ExtImpPrebid prebid =
-                ExtImpPrebid.builder().isRewardedInventory(true).build();
+                ExtImpPrebid.builder().isRewardedInventory(1).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
@@ -414,7 +414,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldIgnoreRewardedVideoFlag() {
         // given
-        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(false).build();
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(0).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
