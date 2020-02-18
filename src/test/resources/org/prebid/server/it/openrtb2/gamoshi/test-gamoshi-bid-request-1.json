@@ -30,9 +30,7 @@
           5
         ],
         "w": 1024,
-        "h": 576,
-        "skipmin": 0,
-        "skipafter": 0
+        "h": 576
       },
       "ext": {
         "bidder": {
