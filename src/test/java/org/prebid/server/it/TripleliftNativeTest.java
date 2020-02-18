@@ -23,17 +23,21 @@ public class TripleliftNativeTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTriplelift() throws IOException, JSONException {
         // given
-        wireMockRule.stubFor(post(urlPathEqualTo("/triplelift_native-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/tripleliftnative/test-triplelift-native-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/tripleliftnative/test-triplelift-native-bid-response.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/triplelift_native-exchange"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/tripleliftnative/test-triplelift-native-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/tripleliftnative/test-triplelift-native-bid-response.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/tripleliftnative/test-cache-triplelift-native-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/tripleliftnative/test-cache-triplelift-native-response.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/tripleliftnative/test-cache-triplelift-native-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/tripleliftnative/test-cache-triplelift-native-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

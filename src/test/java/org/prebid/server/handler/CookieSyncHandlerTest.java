@@ -406,7 +406,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
         givenUsersyncersReturningFamilyName();
 
-
         givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
 
         // when
@@ -1014,8 +1013,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.getBody())
-                .willReturn(givenRequestBody(CookieSyncRequest.of
-                        (asList(RUBICON, APPNEXUS), null, null, null, null, null)));
+                .willReturn(givenRequestBody(CookieSyncRequest.of(
+                        asList(RUBICON, APPNEXUS), null, null, null, null, null)));
 
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);

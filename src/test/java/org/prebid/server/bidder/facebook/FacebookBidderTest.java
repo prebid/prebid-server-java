@@ -381,7 +381,7 @@ public class FacebookBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-        .containsOnly(BidderError.badInput("imp #imp1: banner height required"));
+                .containsOnly(BidderError.badInput("imp #imp1: banner height required"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -720,7 +720,8 @@ public class FacebookBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("imp1")
                 .banner(Banner.builder().h(50).format(singletonList(Format.builder().build())).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
+                .ext(mapper.valueToTree(ExtPrebid.of(
+                        null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
                 .build();
     }
 
