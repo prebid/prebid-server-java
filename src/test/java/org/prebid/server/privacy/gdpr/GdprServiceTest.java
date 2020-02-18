@@ -360,4 +360,31 @@ public class GdprServiceTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
     }
+
+    @Test
+    public void isGdprConsentIsValidShouldReturnTrueWhenStringIsValid() {
+        // when
+        final boolean result = GdprService.isGdprConsentIsValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    public void isGdprConsentIsValidShouldReturnFalseWhenStringIsNull() {
+        // when
+        final boolean result = GdprService.isGdprConsentIsValid(null);
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    public void isGdprConsentIsValidShouldReturnFalseWhenStringNotValid() {
+        // when
+        final boolean result = GdprService.isGdprConsentIsValid(null);
+
+        // then
+        assertThat(result).isFalse();
+    }
 }

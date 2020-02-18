@@ -105,6 +105,18 @@ public class GdprService {
     }
 
     /**
+     * Checks if received string can be parsed to vendor consent
+     */
+    public static boolean isGdprConsentIsValid(String gdprConsent) {
+        try {
+            VendorConsentDecoder.fromBase64String(gdprConsent);
+            return true;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return false;
+        }
+    }
+
+    /**
      * Returns purpose IDs from the given {@link GdprPurpose} collection or null if it is not needed by flow.
      */
     private Set<Integer> purposesForVendorCheck(GdprInfoWithCountry gdprInfo, Set<GdprPurpose> purposes) {
