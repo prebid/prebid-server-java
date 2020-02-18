@@ -19,20 +19,20 @@
               "targeting": {
                 "hb_pb": "10.00",
                 "hb_size_sharethrough": "50x50",
-                "hb_cache_path": "/cache",
+                "hb_cache_path": "{{ cache.path }}",
                 "hb_bidder_sharethrough": "sharethrough",
                 "hb_size": "50x50",
                 "hb_bidder": "sharethrough",
                 "hb_cache_id": "a03927f1-86e1-48fb-9efc-da9104a44e39",
-                "hb_cache_host": "localhost:8090",
-                "hb_cache_host_sharethrough": "localhost:8090",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_sharethrough": "{{ cache.host }}",
                 "hb_cache_id_sharethrough": "a03927f1-86e1-48fb-9efc-da9104a44e39",
                 "hb_pb_sharethrough": "10.00",
-                "hb_cache_path_sharethrough": "/cache"
+                "hb_cache_path_sharethrough": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=a03927f1-86e1-48fb-9efc-da9104a44e39",
+                  "url": "{{ cache.resource_url }}a03927f1-86e1-48fb-9efc-da9104a44e39",
                   "cacheId": "a03927f1-86e1-48fb-9efc-da9104a44e39"
                 }
               }
@@ -50,15 +50,15 @@
       "httpcalls": {
         "sharethrough": [
           {
-            "uri": "http://localhost:8090/sharethrough-exchange?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt=2020-11-04T04%3A07%3A58%2B02%3A00&supplyId=FGMrCMMc&strVersion=7&ttduid=id&stxuid=STR-UID",
-            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":3000,\"deadline\":\"2020-11-04T04:08:01+02:00\",\"bidfloor\":3.5}",
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=7&ttduid=id&stxuid=STR-UID",
+            "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":3000,\"deadline\":\"{{ DEADLINE_FORMATTED_TIME }}\",\"bidfloor\":3.5}",
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\"},\"version\":0}]}",
             "status": 200
           }
         ],
         "cache": [
           {
-            "uri": "http://localhost:8090/cache",
+            "uri": "{{ cache.endpoint }}",
             "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSJ9LCJ2ZXJzaW9uIjowfV19\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"w\":50,\"h\":50}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"a03927f1-86e1-48fb-9efc-da9104a44e39\"}]}",
             "status": 200
