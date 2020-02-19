@@ -263,9 +263,11 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
+        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(null, 1));
+        expectedExtImp.set("context", null);
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest.getImp()).hasSize(1)
-                .element(0).returns(mapper.valueToTree(ExtPrebid.of(null, 1)), Imp::getExt);
+                .element(0).returns(expectedExtImp, Imp::getExt);
     }
 
     @Test
@@ -286,6 +288,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
+        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(0, 1));
+        expectedExtImp.set("context", null);
         assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
                 .id("requestId")
                 .cur(singletonList("USD"))
@@ -294,7 +298,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
+                        .ext(expectedExtImp)
                         .build()))
                 .tmax(500L)
                 .build());
@@ -546,13 +550,17 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnSeparateSeatBidsForTheSameBidderIfBiddersAliasAndBidderWereUsedWithingSingleImp() {
         // given
-        given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(singletonMap("bidder", 1)),
+        final ObjectNode expectedExtImp1 = mapper.valueToTree(ExtPrebid.of(null, 1));
+        expectedExtImp1.set("context", null);
+        given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(expectedExtImp1),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(BigDecimal.ONE).build())))));
 
-        given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(singletonMap("bidder", 2)),
+        final ObjectNode expectedExtImp2 = mapper.valueToTree(ExtPrebid.of(null, 2));
+        expectedExtImp2.set("context", null);
+        given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(expectedExtImp2),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
@@ -852,6 +860,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
+        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(0, 1));
+        expectedExtImp.set("context", null);
         assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
                 .id("requestId")
                 .cur(singletonList("USD"))
@@ -860,7 +870,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
+                        .ext(expectedExtImp)
                         .build()))
                 .tmax(500L)
                 .build());
@@ -988,7 +998,7 @@ public class ExchangeServiceTest extends VertxTest {
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
                 .buyeruid("buyeridFromRequest")
-                .ext(null)
+                .ext(mapper.valueToTree(ExtUser.builder().build()))
                 .build());
     }
 
@@ -1097,13 +1107,50 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
                 .containsOnly(
-                        tuple("keyword", "male", 133, Geo.EMPTY,
-                                mapper.valueToTree(ExtUser.builder().data(dataNode).build())),
+                        tuple("keyword", "male", 133, Geo.EMPTY, mapper.valueToTree(ExtUser.builder().data(dataNode).build())),
                         tuple(null, null, null, null, null));
     }
 
     @Test
-    public void shouldNoMaskUserExtIfDataBiddersListEmpty() {
+    public void shouldMaskUserExtIfDataBiddersListIsEmpty() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        givenBidder("missingBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .data(ExtRequestPrebidData.of(emptyList())).build())))
+                        .user(User.builder()
+                                .keywords("keyword")
+                                .gender("male")
+                                .yob(133)
+                                .geo(Geo.EMPTY)
+                                .ext(mapper.valueToTree(ExtUser.builder().data(dataNode).build()))
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
+                .containsOnly(
+                        tuple(null, null, null, null, null),
+                        tuple(null, null, null, null, null));
+    }
+
+    @Test
+    public void shouldNoMaskUserExtIfDataBiddersListIsNull() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1136,8 +1183,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
                 .containsOnly(
-                        tuple("keyword", "male", 133, Geo.EMPTY,
-                                mapper.valueToTree(ExtUser.builder().data(dataNode).build())),
+                        tuple("keyword", "male", 133, Geo.EMPTY, mapper.valueToTree(ExtUser.builder().data(dataNode).build())),
                         tuple("keyword", "male", 133, Geo.EMPTY, mapper.valueToTree(ExtUser.builder().data(dataNode).build())));
     }
 
@@ -1177,7 +1223,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNoMaskPassAppExtAndKeywordsIfDataBiddersListEmpty() {
+    public void shouldNoMaskPassAppExtAndKeywordsWhenDataBiddersListIsNull() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1207,7 +1253,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(App::getExt, App::getKeywords)
                 .containsOnly(
                         tuple(mapper.valueToTree(ExtApp.of(null, dataNode)), "keyword"),
-                        tuple("data", "value"));
+                        tuple(mapper.valueToTree(ExtApp.of(null, dataNode)), "keyword"));
     }
 
     @Test
