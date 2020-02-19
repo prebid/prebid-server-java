@@ -5,7 +5,6 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.file.FileSystem;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.prebid.server.json.ObjectMapperConfigurer;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -13,10 +12,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class VertxConfiguration {
-
-    static {
-        ObjectMapperConfigurer.configure();
-    }
 
     @Bean
     Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize) {

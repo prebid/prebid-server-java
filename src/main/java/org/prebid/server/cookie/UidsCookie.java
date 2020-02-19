@@ -1,8 +1,8 @@
 package org.prebid.server.cookie;
 
-import io.vertx.core.json.Json;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.json.JacksonMapper;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;
@@ -16,10 +16,12 @@ import java.util.Objects;
 public class UidsCookie {
 
     private final Uids uids;
+    private final JacksonMapper mapper;
 
-    public UidsCookie(Uids uids) {
+    public UidsCookie(Uids uids, JacksonMapper mapper) {
         this.uids = Objects.requireNonNull(uids);
         Objects.requireNonNull(uids.getUids()); // without uids doesn't make sense
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public Uids getCookieUids() {
@@ -71,7 +73,7 @@ public class UidsCookie {
     public UidsCookie deleteUid(String familyName) {
         final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
         uidsMap.remove(familyName);
-        return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
+        return new UidsCookie(uids.toBuilder().uids(uidsMap).build(), mapper);
     }
 
     /**
@@ -81,7 +83,7 @@ public class UidsCookie {
     public UidsCookie updateUid(String familyName, String uid) {
         final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
         uidsMap.put(familyName, UidWithExpiry.live(uid));
-        return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
+        return new UidsCookie(uids.toBuilder().uids(uidsMap).build(), mapper);
     }
 
     /**
@@ -94,14 +96,14 @@ public class UidsCookie {
         if (optout) {
             uidsBuilder.uids(Collections.emptyMap());
         }
-        return new UidsCookie(uidsBuilder.build());
+        return new UidsCookie(uidsBuilder.build(), mapper);
     }
 
     /**
      * Converts {@link Uids} to JSON string.
      */
     String toJson() {
-        return Json.encode(uids);
+        return mapper.encode(uids);
     }
 
     /**

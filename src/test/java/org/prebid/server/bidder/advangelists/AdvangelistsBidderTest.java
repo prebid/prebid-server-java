@@ -50,12 +50,12 @@ public class AdvangelistsBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        advangelistsBidder = new AdvangelistsBidder(ENDPOINT_URL);
+        advangelistsBidder = new AdvangelistsBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AdvangelistsBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdvangelistsBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -122,8 +122,10 @@ public class AdvangelistsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestShouldReturnAllErrorsWithRequest() {
         // given
-        final Imp impWithoutFormatFirst = givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
-        final Imp impWithoutFormatSecond = givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
+        final Imp impWithoutFormatFirst =
+                givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
+        final Imp impWithoutFormatSecond =
+                givenImp(impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
         final Imp impWithoutType = givenImp(identity());
         final Imp impWithoutPubIdFirst = givenImp(identity(), ExtImpAdvangelists.of(" ", null));
         final Imp impWithoutPubIdSecond = givenImp(identity(), ExtImpAdvangelists.of(" ", null));

@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.applogy.ApplogyBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -23,6 +24,9 @@ public class ApplogyConfiguration {
 
     private static final String BIDDER_NAME = "applogy";
 
+    @Autowired
+    private JacksonMapper mapper;
+
     @Value("${external-url}")
     @NotBlank
     private String externalUrl;
@@ -43,7 +47,7 @@ public class ApplogyConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new ApplogyBidder(configProperties.getEndpoint()))
+                .bidderCreator(() -> new ApplogyBidder(configProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

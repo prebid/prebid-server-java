@@ -15,7 +15,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -37,6 +36,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -192,7 +192,7 @@ public class ExchangeService {
     private ExtBidRequest requestExt(BidRequest bidRequest) {
         try {
             return bidRequest.getExt() != null
-                    ? mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
+                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
         } catch (JsonProcessingException e) {
             throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
         }
@@ -360,7 +360,7 @@ public class ExchangeService {
     /**
      * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
      */
-    private static ExtUser extUser(User user) {
+    private ExtUser extUser(User user) {
         final ObjectNode userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             try {
@@ -482,7 +482,7 @@ public class ExchangeService {
     /**
      * Returns Shuffled List of {@link BidderRequest}
      */
-    private static List<BidderRequest> getBidderRequests(
+    private List<BidderRequest> getBidderRequests(
             Map<String, PrivacyEnforcementResult> bidderToPrivacyEnforcementResult, BidRequest bidRequest,
             ExtBidRequest requestExt, List<Imp> imps, List<String> firstPartyDataBidders,
             Map<String, ExtBidderConfigFpd> biddersToConfigs) {
@@ -570,7 +570,7 @@ public class ExchangeService {
      * For each given imp creates a new imp with extension crafted to contain only "prebid", "context" and
      * bidder-specific extension.
      */
-    private static List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
+    private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
         return imps.stream()
                 .filter(imp -> imp.getExt().hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
@@ -587,8 +587,8 @@ public class ExchangeService {
      * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
      * </ul>
      */
-    private static ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
-        final ObjectNode result = Json.mapper.valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
+    private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
+        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
 
         if (useFirstPartyData) {
             result.set(CONTEXT_EXT, impExt.get(CONTEXT_EXT));
@@ -620,7 +620,7 @@ public class ExchangeService {
     /**
      * Make Source with corresponding request.ext.prebid.schains
      */
-    private static Source prepareSource(String bidder, Map<String, ObjectNode> bidderToSchain, Source receivedSource) {
+    private Source prepareSource(String bidder, Map<String, ObjectNode> bidderToSchain, Source receivedSource) {
         final ObjectNode defaultSchain = bidderToSchain.get(GENERIC_SCHAIN_KEY);
         final ObjectNode bidderSchain = bidderToSchain.getOrDefault(bidder, defaultSchain);
 
@@ -642,7 +642,7 @@ public class ExchangeService {
      * bidrequest.ext.prebid.bidders to hide list of allowed bidders from initial request.
      * Also mask bidrequest.ext.prebid.schains.
      */
-    private static ObjectNode prepareExt(String bidder, boolean useFirstPartyData,
+    private ObjectNode prepareExt(String bidder, boolean useFirstPartyData,
                                   Map<String, JsonNode> bidderToPrebidBidders, ExtBidRequest requestExt,
                                   ObjectNode requestExtNode) {
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;

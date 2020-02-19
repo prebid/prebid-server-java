@@ -8,9 +8,7 @@
           "mimes"
         ],
         "w": 300,
-        "h": 600,
-        "skipmin": 0,
-        "skipafter": 0
+        "h": 600
       },
       "tagid": "slot.tag",
       "ext": {

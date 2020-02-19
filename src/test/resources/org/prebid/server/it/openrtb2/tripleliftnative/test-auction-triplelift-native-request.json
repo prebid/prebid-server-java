@@ -35,6 +35,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "aliases": {
         "appnexusAlias": "appnexus",
         "conversantAlias": "conversant"

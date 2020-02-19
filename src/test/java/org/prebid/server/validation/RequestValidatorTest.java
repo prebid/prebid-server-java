@@ -89,7 +89,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
 
-        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
+        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper);
     }
 
     @Test
@@ -2413,7 +2413,8 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
-                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got 0");
+                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got" +
+                                " 0");
     }
 
     @Test

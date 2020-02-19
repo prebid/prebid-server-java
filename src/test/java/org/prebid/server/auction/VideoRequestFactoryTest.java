@@ -52,7 +52,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Mock
     private AuctionRequestFactory auctionRequestFactory;
 
-    private VideoRequestFactory target;
+    private VideoRequestFactory factory;
 
     @Mock
     private RoutingContext routingContext;
@@ -66,7 +66,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.getParam(anyString())).willReturn("test");
 
-        target = new VideoRequestFactory(Integer.MAX_VALUE, false, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
+        factory = new VideoRequestFactory(Integer.MAX_VALUE, false, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(null);
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -88,10 +88,10 @@ public class VideoRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfStoredRequestIsEnforcedAndIdIsNotProvided() {
         // given
         given(routingContext.getBody()).willReturn(Json.encodeToBuffer(BidRequestVideo.builder().build()));
-        target = new VideoRequestFactory(Integer.MAX_VALUE, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
+        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -103,12 +103,12 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        target = new VideoRequestFactory(2, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver);
+        factory = new VideoRequestFactory(2, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -123,7 +123,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
         // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
+        final Future<?> future = factory.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -178,7 +178,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture());
 
         // when
-        final Future<WithPodErrors<AuctionContext>> result = target.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> result = factory.fromRequest(routingContext, 0L);
 
         // then
         verify(routingContext).getBody();

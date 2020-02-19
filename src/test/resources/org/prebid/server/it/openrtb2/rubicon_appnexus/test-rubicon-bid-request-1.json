@@ -23,6 +23,7 @@
         "ext": {
           "skip": 5,
           "skipdelay": 1,
+          "videotype": "rewarded",
           "rp": {
             "size_id": 15
           }
@@ -89,7 +90,6 @@
       }
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "source": {

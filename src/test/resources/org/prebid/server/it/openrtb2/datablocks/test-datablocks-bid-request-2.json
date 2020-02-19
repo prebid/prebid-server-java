@@ -9,8 +9,6 @@
         ],
         "w": 300,
         "h": 250,
-        "skipmin": 0,
-        "skipafter": 0,
         "pos": 1
       },
       "ext": {
@@ -55,6 +53,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "targeting": {
         "pricegranularity": {
           "precision": 2,

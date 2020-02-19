@@ -46,19 +46,21 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[\"foo\",\"bar\",\"baz\"]"));
+        tripleliftNativeBidder = new TripleliftNativeBidder(
+                ENDPOINT_URL, singletonMap("publisher_whitelist", "[\"foo\",\"bar\",\"baz\"]"), jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new TripleliftNativeBidder("invalid_url", emptyMap()));
+                .isThrownBy(() -> new TripleliftNativeBidder("invalid_url", emptyMap(), jacksonMapper));
     }
 
     @Test
     public void creationShouldFailOnInvalidJsonPublisherWhiteList() {
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "bad")))
+                .isThrownBy(() -> new TripleliftNativeBidder(
+                        ENDPOINT_URL, singletonMap("publisher_whitelist", "bad"), jacksonMapper))
                 .withMessage("TripleliftNativeBidder could not unmarshal config json");
     }
 
@@ -99,7 +101,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsWhenSitePublisherIdIsNotInWhitelist() {
         // given
-        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"));
+        tripleliftNativeBidder = new TripleliftNativeBidder(
+                ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -119,7 +122,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsWhenAppPublisherIdIsNotInWhitelist() {
         // given
-        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"));
+        tripleliftNativeBidder = new TripleliftNativeBidder(
+                ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -139,7 +143,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsWhenNoPublisherIdIsSpecified() {
         // given
-        tripleliftNativeBidder = new TripleliftNativeBidder(ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"));
+        tripleliftNativeBidder = new TripleliftNativeBidder(
+                ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.xNative(Native.builder().build()),
@@ -273,23 +278,17 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer, null);
-    }
-
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                               ExtImpTriplelift extImpTriplelift) {
         return givenBidRequest(identity(), impCustomizer, extImpTriplelift);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, ExtImpTriplelift extImpTriplelift) {
+    private static Imp givenImp(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, ExtImpTriplelift extImpTriplelift) {
+
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(ExtPrebid.of(null, extImpTriplelift))))
                 .build();
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenImp(impCustomizer, null);
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

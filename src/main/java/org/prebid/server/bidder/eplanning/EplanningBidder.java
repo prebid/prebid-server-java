@@ -12,8 +12,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -27,6 +25,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -63,9 +63,11 @@ public class EplanningBidder implements Bidder<Void> {
             };
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public EplanningBidder(String endpointUrl) {
+    public EplanningBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -115,11 +117,10 @@ public class EplanningBidder implements Bidder<Void> {
         }
     }
 
-    private static ExtImpEplanning validateAndModifyImpExt(Imp imp) throws PreBidException {
+    private ExtImpEplanning validateAndModifyImpExt(Imp imp) throws PreBidException {
         final ExtImpEplanning extImpEplanning;
         try {
-            extImpEplanning = Json.mapper.<ExtPrebid<?, ExtImpEplanning>>convertValue(imp.getExt(),
-                    EPLANNING_EXT_TYPE_REFERENCE).getBidder();
+            extImpEplanning = mapper.mapper().convertValue(imp.getExt(), EPLANNING_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException ex) {
             throw new PreBidException(String.format(
                     "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), ex.getMessage()));
@@ -214,7 +215,7 @@ public class EplanningBidder implements Bidder<Void> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         try {
-            final HbResponse hbResponse = Json.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
+            final HbResponse hbResponse = mapper.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
             return extractBids(hbResponse, bidRequest);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

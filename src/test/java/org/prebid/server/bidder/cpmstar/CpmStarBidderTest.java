@@ -42,12 +42,12 @@ public class CpmStarBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        cpmStarBidder = new CpmStarBidder(ENDPOINT_URL);
+        cpmStarBidder = new CpmStarBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new CpmStarBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new CpmStarBidder("invalid_url", jacksonMapper));
     }
 
     @Test

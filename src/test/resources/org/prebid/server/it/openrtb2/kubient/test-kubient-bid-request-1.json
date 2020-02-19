@@ -14,7 +14,8 @@
         "h": 400
       },
       "ext": {
-        "bidder": {}
+        "bidder": {
+        }
       }
     }
   ],
@@ -23,6 +24,9 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -33,7 +37,16 @@
     "language": "en",
     "ifa": "ifaId"
   },
-  "user": {},
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
   "at": 1,
   "tmax": 1000,
   "cur": [
@@ -50,6 +63,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "aliases": {
         "appnexusAlias": "appnexus",
         "conversantAlias": "conversant"

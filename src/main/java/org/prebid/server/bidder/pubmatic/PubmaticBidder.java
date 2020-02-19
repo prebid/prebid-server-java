@@ -12,8 +12,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -26,6 +24,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
@@ -55,9 +55,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public PubmaticBidder(String endpointUrl) {
+    public PubmaticBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -83,16 +85,16 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(makeRequest(bidRequest, modifiedImps, extImpPubmatics)), errors);
     }
 
-    private static ExtImpPubmatic parseImpExt(Imp imp) {
+    private ExtImpPubmatic parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpPubmatic>>convertValue(imp.getExt(), PUBMATIC_EXT_TYPE_REFERENCE)
+            return mapper.mapper().convertValue(imp.getExt(), PUBMATIC_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpPubmatic extImpPubmatic) throws PreBidException {
+    private Imp modifyImp(Imp imp, ExtImpPubmatic extImpPubmatic) throws PreBidException {
         // validate Impression
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports Banner and Video. "
@@ -103,7 +105,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final ObjectNode wrapExt = extImpPubmatic.getWrapper();
         if (wrapExt != null) {
             try {
-                Json.mapper.convertValue(wrapExt, WRAPPER_VALIDATION);
+                mapper.mapper().convertValue(wrapExt, WRAPPER_VALIDATION);
             } catch (IllegalArgumentException e) {
                 throw new PreBidException(
                         String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
@@ -164,7 +166,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return modifiedImp.build();
     }
 
-    private static ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
+    private ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
         final List<String> eachKv = new ArrayList<>();
         for (ExtImpPubmaticKeyVal keyVal : keywords) {
             if (CollectionUtils.isEmpty(keyVal.getValue())) {
@@ -176,7 +178,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
         final String keywordsString = "{" + String.join(",", eachKv) + "}";
         try {
-            return Json.mapper.readValue(keywordsString, ObjectNode.class);
+            return mapper.mapper().readValue(keywordsString, ObjectNode.class);
         } catch (IOException e) {
             throw new PreBidException(String.format("Failed to create keywords with error: %s", e.getMessage()), e);
         }
@@ -190,7 +192,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .map(ExtImpPubmatic::getWrapper)
                 .filter(Objects::nonNull)
                 .findFirst()
-                .ifPresent(wrapExt -> requestBuilder.ext(Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt))));
+                .ifPresent(wrapExt -> requestBuilder.ext(mapper.mapper().valueToTree(PubmaticRequestExt.of(wrapExt))));
 
         final String pubId = extImpPubmatics.stream()
                 .map(ExtImpPubmatic::getPublisherId)
@@ -204,7 +206,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = requestBuilder.build();
-        final String body = Json.encode(modifiedRequest);
+        final String body = mapper.encode(modifiedRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -244,7 +246,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

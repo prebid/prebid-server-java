@@ -71,7 +71,7 @@ Removes and downloads file again if depending service cant process probably corr
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
@@ -81,6 +81,9 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
+
+## Vtrack
+- `vtrack.allow-unkonwn-bidder` - flag allows servicing requests with bidders who were not configured in Prebid Server.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
@@ -132,6 +135,7 @@ For `influxdb` backend type available next options:
 - `metrics.influxdb.connectTimeout` - the connect timeout.
 - `metrics.influxdb.readTimeout` - the response timeout.
 - `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
+- `metrics.influxdb.tags` - the influxDb tags, optional key-value metrics metadata.
 
 For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.

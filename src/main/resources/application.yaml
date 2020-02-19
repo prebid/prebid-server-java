@@ -40,6 +40,8 @@ auction:
   cache:
     expected-request-time-ms: 10
     only-winning-bids: false
+video:
+  stored-requests-timeout-ms: 90
 amp:
   default-timeout-ms: 900
   max-timeout-ms: 5000
@@ -48,6 +50,7 @@ setuid:
   default-timeout-ms: 2000
 vtrack:
   default-timeout-ms: 2000
+  allow-unkonwn-bidder: true
 cookie-sync:
   coop-sync:
     default: true

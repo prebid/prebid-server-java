@@ -34,12 +34,12 @@ public class RtbhouseBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        rtbhouseBidder = new RtbhouseBidder(ENDPOINT_URL);
+        rtbhouseBidder = new RtbhouseBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RtbhouseBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RtbhouseBidder("invalid_url", jacksonMapper));
     }
 
     @Test

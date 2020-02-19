@@ -11,8 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -22,6 +20,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -61,9 +61,11 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static final String DISPLAY_MANAGER_VER = "1.0.1";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public ConversantBidder(String endpointUrl) {
+    public ConversantBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -77,7 +79,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -90,7 +92,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private static BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
+    private BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final App app = bidRequest.getApp();
         if (app != null && StringUtils.isBlank(app.getId())) {
             throw new PreBidException("Missing app id");
@@ -137,11 +139,10 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ExtImpConversant parseAndValidateImpExt(Imp imp, boolean hasSite) {
+    private ExtImpConversant parseAndValidateImpExt(Imp imp, boolean hasSite) {
         final ExtImpConversant extImpConversant;
         try {
-            extImpConversant = Json.mapper.<ExtPrebid<?, ExtImpConversant>>convertValue(imp.getExt(),
-                    CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
+            extImpConversant = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -216,7 +217,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

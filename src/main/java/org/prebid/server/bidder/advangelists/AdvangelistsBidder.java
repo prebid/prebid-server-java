@@ -13,8 +13,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -24,6 +22,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.advangelists.ExtImpAdvangelists;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -43,10 +43,13 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             TypeReference<ExtPrebid<?, ExtImpAdvangelists>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private final String endpointUrl;
 
-    public AdvangelistsBidder(String endpointUrl) {
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+
+    public AdvangelistsBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -63,7 +66,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
-    private static Map<ExtImpAdvangelists, List<Imp>> getImpToExtImp(BidRequest request, List<BidderError> errors) {
+    private Map<ExtImpAdvangelists, List<Imp>> getImpToExtImp(BidRequest request, List<BidderError> errors) {
         final Map<ExtImpAdvangelists, List<Imp>> extToListOfUpdatedImp = new HashMap<>();
         for (Imp imp : request.getImp()) {
             try {
@@ -84,11 +87,10 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
         return extToListOfUpdatedImp;
     }
 
-    private static ExtImpAdvangelists parseAndValidateImpExt(Imp imp) {
+    private ExtImpAdvangelists parseAndValidateImpExt(Imp imp) {
         final ExtImpAdvangelists bidder;
         try {
-            bidder = Json.mapper.<ExtPrebid<?, ExtImpAdvangelists>>convertValue(imp.getExt(),
-                    ADVANGELISTS_EXT_TYPE_REFERENCE).getBidder();
+            bidder = mapper.mapper().convertValue(imp.getExt(), ADVANGELISTS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -150,7 +152,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImo.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpAdvangelists, imps);
 
-            final String body = Json.encode(updatedBidRequest);
+            final String body = mapper.encode(updatedBidRequest);
             final MultiMap headers = HttpUtil.headers()
                     .add("x-openrtb-version", "2.5");
             final String createdEndpoint = endpointUrl + extImpAdvangelists.getPubid();
@@ -194,7 +196,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

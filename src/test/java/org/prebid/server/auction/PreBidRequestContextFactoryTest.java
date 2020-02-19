@@ -79,8 +79,6 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Mock
     private HttpServerRequest httpRequest;
 
-    private TimeoutFactory timeoutFactory;
-
     @Before
     public void setUp() {
         given(timeoutResolver.resolve(any())).willReturn(DEFAULT_HTTP_REQUEST_TIMEOUT);
@@ -96,9 +94,14 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
-        factory = new PreBidRequestContextFactory(timeoutResolver, paramsExtractor, applicationSettings,
-                uidsCookieService, timeoutFactory);
+        TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+        factory = new PreBidRequestContextFactory(
+                timeoutResolver,
+                paramsExtractor,
+                applicationSettings,
+                uidsCookieService,
+                timeoutFactory,
+                jacksonMapper);
     }
 
     @Test

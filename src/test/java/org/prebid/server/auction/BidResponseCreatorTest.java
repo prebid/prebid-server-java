@@ -17,7 +17,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -120,7 +119,9 @@ public class BidResponseCreatorTest extends VertxTest {
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
-        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor);
+        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
+                jacksonMapper
+        );
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -527,7 +528,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(Bid.builder()
                         .id("bidId")
                         .price(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null, null), null)))
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null, null), null)))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
@@ -602,13 +604,15 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateTargetingKeywordsFromMediaTypePriceGranularities() {
         // given
         final BidRequest bidRequest = givenBidRequest();
-        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                BigDecimal.valueOf(0.5))));
-        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(Json.mapper.valueToTree(
-                ExtPriceGranularity.of(3, singletonList(
-                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null);
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2,
+                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                        BigDecimal.valueOf(0.5))));
+        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(
+                mapper.valueToTree(
+                        ExtPriceGranularity.of(3, singletonList(
+                                ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null);
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
-                .pricegranularity(Json.mapper.valueToTree(priceGranularity))
+                .pricegranularity(mapper.valueToTree(priceGranularity))
                 .mediatypepricegranularity(mediaTypePriceGranuality)
                 .includewinners(true)
                 .includebidderkeys(true)
@@ -782,7 +786,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
-                .pricegranularity(Json.mapper.valueToTree(
+                .pricegranularity(mapper.valueToTree(
                         ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(false)
@@ -822,7 +826,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
-                .pricegranularity(Json.mapper.valueToTree(
+                .pricegranularity(mapper.valueToTree(
                         ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
@@ -939,8 +943,14 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldTolerateWhenStoredVideoFetchIsFailed() {
         // given
         final Imp imp = Imp.builder().id("impId1").ext(
-                Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), ExtOptions.of(true), null, null), null)))
+                mapper.valueToTree(
+                        ExtImp.of(
+                                ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st1"))
+                                        .options(ExtOptions.of(true))
+                                        .build(),
+                                null
+                        )))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp);
 
@@ -948,7 +958,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
-        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any())).willReturn(Future.failedFuture("Fetch failed"));
+        given(storedRequestProcessor.videoStoredDataResult(any(), any(), any())).willReturn(
+                Future.failedFuture("Fetch failed"));
 
         // when
         final Future<BidResponse> result =
@@ -964,16 +975,25 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldInjectStoredVideoWhenExtOptionsIsTrueAndVideoNotEmpty() {
         // given
         final Imp imp1 = Imp.builder().id("impId1").ext(
-                Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), ExtOptions.of(true), null, null), null)))
+                mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.builder()
+                                .storedrequest(ExtStoredRequest.of("st1"))
+                                .options(ExtOptions.of(true))
+                                .build(), null)))
                 .build();
         final Imp imp2 = Imp.builder().id("impId2").ext(
-                Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st2"), ExtOptions.of(false), null, null), null)))
+                mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.builder()
+                                .storedrequest(ExtStoredRequest.of("st2"))
+                                .options(ExtOptions.of(false))
+                                .build(), null)))
                 .build();
         final Imp imp3 = Imp.builder().id("impId3").ext(
-                Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st3"), ExtOptions.of(true), null, null), null)))
+                mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.builder()
+                                .storedrequest(ExtStoredRequest.of("st3"))
+                                .options(ExtOptions.of(true))
+                                .build(), null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1, imp2, imp3);
 
@@ -989,7 +1009,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Video storedVideo = Video.builder().maxduration(100).h(2).w(2).build();
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
-                .willReturn(Future.succeededFuture(VideoStoredDataResult.of(singletonMap("impId1", storedVideo), emptyList())));
+                .willReturn(Future.succeededFuture(
+                        VideoStoredDataResult.of(singletonMap("impId1", storedVideo), emptyList())));
 
         // when
         final Future<BidResponse> result =
@@ -1008,13 +1029,17 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldAddErrorsWithPrebidBidderWhenStoredVideoRequestFailed() {
         // given
         final Imp imp1 = Imp.builder().id("impId1").ext(
-                Json.mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("st1"), ExtOptions.of(true), null, null), null)))
+                mapper.valueToTree(
+                        ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st1"))
+                                        .options(ExtOptions.of(true))
+                                        .build(),
+                                null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1);
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
-        final List<BidderBid> bidderBids = Arrays.asList(
+        final List<BidderBid> bidderBids = singletonList(
                 BidderBid.of(bid1, banner, "USD"));
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
@@ -1121,7 +1146,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private static ExtRequestTargeting givenTargeting() {
         return ExtRequestTargeting.builder()
-                .pricegranularity(Json.mapper.valueToTree(
+                .pricegranularity(mapper.valueToTree(
                         ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(true)

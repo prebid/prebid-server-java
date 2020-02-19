@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -20,6 +19,7 @@ import org.prebid.server.bidder.ix.proto.IxParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -44,10 +44,12 @@ public class IxAdapter extends OpenrtbAdapter {
     private static final int REQUEST_LIMIT = 20;
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public IxAdapter(String cookieFamilyName, String endpointUrl) {
+    public IxAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -102,7 +104,7 @@ public class IxAdapter extends OpenrtbAdapter {
                 .collect(Collectors.toList());
     }
 
-    private static IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("ix params section is missing");
@@ -110,7 +112,7 @@ public class IxAdapter extends OpenrtbAdapter {
 
         final IxParams params;
         try {
-            params = Json.mapper.convertValue(paramsNode, IxParams.class);
+            params = mapper.mapper().convertValue(paramsNode, IxParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(String.format("unmarshal params '%s' failed: %s", paramsNode,

@@ -9,8 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -18,6 +16,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCpmStar;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -40,9 +40,11 @@ public class CpmStarBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public CpmStarBidder(String endpointUrl) {
+    public CpmStarBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -55,7 +57,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                             .method(HttpMethod.POST)
                             .uri(endpointUrl)
                             .headers(HttpUtil.headers())
-                            .body(Json.encode(bidRequest))
+                            .body(mapper.encode(bidRequest))
                             .payload(request)
                             .build()),
                     Collections.emptyList()
@@ -79,7 +81,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             throw new PreBidException("Only Banner and Video bid-types are supported at this time");
         }
         try {
-            return Json.mapper.convertValue(imp.getExt(), CPM_STAR_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), CPM_STAR_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -89,7 +91,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
         if (extImpCpmStar == null) {
             throw new PreBidException(String.format("imp id=%s: bidder.ext is null", imp.getId()));
         }
-        return imp.toBuilder().ext(Json.mapper.valueToTree(extImpCpmStar)).build();
+        return imp.toBuilder().ext(mapper.mapper().valueToTree(extImpCpmStar)).build();
     }
 
     @Override
@@ -99,7 +101,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
         }
 
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(httpCall.getRequest().getPayload(), bidResponse);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

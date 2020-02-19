@@ -49,6 +49,9 @@
             "skip": 5,
             "skipdelay": 1
           }
+        },
+        "prebid": {
+          "is_rewarded_inventory": 1
         }
       }
     },
@@ -193,7 +196,6 @@
       "id": "5001"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [
@@ -205,6 +207,7 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
       "schains": [
         {
           "bidders": [

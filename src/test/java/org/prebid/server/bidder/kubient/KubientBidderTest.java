@@ -35,12 +35,12 @@ public class KubientBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        kubientBidder = new KubientBidder(ENDPOINT_URL);
+        kubientBidder = new KubientBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new KubientBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new KubientBidder("invalid_url", jacksonMapper));
     }
 
     @Test

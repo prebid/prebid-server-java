@@ -48,12 +48,12 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.response()).willReturn(httpServerResponse);
 
-        getuidsHandler = new GetuidsHandler(uidsCookieService);
+        getuidsHandler = new GetuidsHandler(uidsCookieService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new GetuidsHandler(null));
+        assertThatNullPointerException().isThrownBy(() -> new GetuidsHandler(null, jacksonMapper));
     }
 
     @Test
@@ -65,10 +65,9 @@ public class GetuidsHandlerTest extends VertxTest {
         uids.put("adnxs", new UidWithExpiry("Appnexus-uid",
                 ZonedDateTime.parse("2019-04-01T12:30:40.123456789Z")));
 
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
-                .uids(uids)
-                .bday(ZonedDateTime.parse("2019-04-01T13:28:40.123456789Z"))
-                .build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(uids).bday(ZonedDateTime.parse("2019-04-01T13:28:40.123456789Z")).build(),
+                jacksonMapper));
 
         // when
         getuidsHandler.handle(routingContext);
@@ -83,9 +82,9 @@ public class GetuidsHandlerTest extends VertxTest {
     @Test
     public void shouldReturnEmptyBuyerUids() {
         // given
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
-                .uids(Collections.emptyMap())
-                .build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(Collections.emptyMap()).build(),
+                jacksonMapper));
 
         // when
         getuidsHandler.handle(routingContext);
