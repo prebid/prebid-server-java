@@ -28,6 +28,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
+    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -36,6 +37,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
+    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -47,11 +49,13 @@ public class Metrics extends UpdatableMetrics {
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
+        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
+        circuitBreakerMetrics = new HashMap<>();
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -72,6 +76,10 @@ public class Metrics extends UpdatableMetrics {
 
     CookieSyncMetrics cookieSync() {
         return cookieSyncMetrics;
+    }
+
+    CircuitBreakerMetrics forCircuitBreaker(String id) {
+        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -285,11 +293,11 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateHttpClientCircuitBreakerMetric(boolean opened) {
+    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
         if (opened) {
-            incCounter(MetricName.httpclient_circuitbreaker_opened);
+            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
         } else {
-            incCounter(MetricName.httpclient_circuitbreaker_closed);
+            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
         }
     }
 

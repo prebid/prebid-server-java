@@ -199,7 +199,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         doRequest(context);
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq(true));
+        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("other"), eq(true));
     }
 
     @Test
@@ -214,7 +214,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         doRequest(context); // 3 call
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq(false));
+        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("other"), eq(false));
     }
 
     @SuppressWarnings("unchecked")
