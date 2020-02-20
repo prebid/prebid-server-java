@@ -14,7 +14,8 @@
       "ext": {
         "bidder": {
           "Just_an_unused_vrtcal_param": "unused_data"
-        }
+        },
+        "context": null
       }
     }
   ],
@@ -28,7 +29,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "VR-UID"
+    "buyeruid": "VR-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

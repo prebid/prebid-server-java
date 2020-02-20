@@ -17,13 +17,17 @@
       "ext": {
         "bidder": {
           "tagid": "tagId1"
-        }
+        },
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     }
@@ -37,7 +41,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "990011"
+    "buyeruid": "990011",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

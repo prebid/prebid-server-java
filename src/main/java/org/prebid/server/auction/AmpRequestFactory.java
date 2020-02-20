@@ -239,10 +239,10 @@ public class AmpRequestFactory {
 
     private Targeting parseTargeting(String jsonTargeting) {
         try {
-            final String decodeUrl = HttpUtil.decodeUrl(jsonTargeting);
-            return decodeUrl == null
+            final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
+            return decodedJsonTargeting == null
                     ? Targeting.empty()
-                    : mapper.mapper().readValue(jsonTargeting, Targeting.class);
+                    : mapper.mapper().readValue(decodedJsonTargeting, Targeting.class);
         } catch (JsonProcessingException | IllegalArgumentException e) {
             throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
         }
@@ -418,12 +418,18 @@ public class AmpRequestFactory {
                 ? extractExtUser(extUserNode).toBuilder()
                 : ExtUser.builder();
 
-        final ExtUser updatedExtUser = extUserBuilder.consent(gdprConsent).data(targetingUser).build();
+        if (StringUtils.isNotBlank(gdprConsent)) {
+            extUserBuilder.consent(gdprConsent);
+        }
+
+        if (targetingUser != null) {
+            extUserBuilder.data(targetingUser);
+        }
 
         final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
 
         return userBuilder
-                .ext(mapper.mapper().valueToTree(updatedExtUser))
+                .ext(mapper.mapper().valueToTree(extUserBuilder.build()))
                 .build();
     }
 

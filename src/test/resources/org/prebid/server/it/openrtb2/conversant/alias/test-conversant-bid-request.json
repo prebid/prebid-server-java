@@ -18,7 +18,8 @@
       "ext": {
         "bidder": {
           "site_id": "siteId2"
-        }
+        },
+        "context": null
       }
     }
   ],
@@ -28,6 +29,9 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -39,7 +43,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "CV-UID"
+    "buyeruid": "CV-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

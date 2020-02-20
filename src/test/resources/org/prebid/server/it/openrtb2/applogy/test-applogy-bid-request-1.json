@@ -16,7 +16,8 @@
       "ext": {
         "bidder": {
           "token": "1234"
-        }
+        },
+        "context": null
       }
     }
   ],

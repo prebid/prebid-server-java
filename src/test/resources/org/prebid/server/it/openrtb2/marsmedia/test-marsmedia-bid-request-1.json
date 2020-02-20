@@ -16,7 +16,8 @@
       "ext": {
         "bidder": {
           "zone": "zone_1"
-        }
+        },
+        "context": null
       }
     },
     {
@@ -31,13 +32,17 @@
       "ext": {
         "bidder": {
           "zone": "zone_2"
-        }
+        },
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     },

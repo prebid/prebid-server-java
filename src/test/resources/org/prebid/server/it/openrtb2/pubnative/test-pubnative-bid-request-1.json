@@ -17,13 +17,17 @@
         "bidder": {
           "zone_id": 1,
           "app_auth_token": "4fd53a12b78af4b39835de9e449c3082"
-        }
+        },
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     }
@@ -38,7 +42,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "PN-UID"
+    "buyeruid": "PN-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "test": 0,
   "at": 1,

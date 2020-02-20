@@ -14,19 +14,19 @@
         "h": 400
       },
       "ext": {
-        "bidder": {
-        }
+        "bidder": {},
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
-    "publisher": {
-      "id": "publisherId"
-    },
     "ext": {
       "amp": 0
+    },
+    "publisher": {
+      "id": "publisherId"
     }
   },
   "device": {

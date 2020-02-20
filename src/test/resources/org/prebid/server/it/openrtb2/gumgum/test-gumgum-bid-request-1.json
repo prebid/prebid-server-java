@@ -16,7 +16,8 @@
       "ext": {
         "bidder": {
           "zone": "first_zone"
-        }
+        },
+        "context": null
       }
     },
     {
@@ -34,7 +35,8 @@
       "ext": {
         "bidder": {
           "zone": "second_zone"
-        }
+        },
+        "context": null
       }
     }
   ],
@@ -42,6 +44,9 @@
     "id": "second_zone",
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     }
@@ -55,6 +60,14 @@
     "ifa": "ifaId"
   },
   "user": {
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

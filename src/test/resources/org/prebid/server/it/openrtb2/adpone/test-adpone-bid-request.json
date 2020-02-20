@@ -14,13 +14,17 @@
       "ext": {
         "bidder": {
           "placementId": "some_placement_id"
-        }
+        },
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     }
@@ -34,7 +38,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "AP-UID"
+    "buyeruid": "AP-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

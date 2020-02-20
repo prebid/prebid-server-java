@@ -559,7 +559,7 @@ public class ExchangeService {
                 .user(privacyEnforcementResult.getUser())
                 .device(privacyEnforcementResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData))
-                .app(hasBidderConfig ? fpdConfig.getApp() : prepareApp(bidRequest.getApp(),  useFirstPartyData))
+                .app(hasBidderConfig ? fpdConfig.getApp() : prepareApp(bidRequest.getApp(), useFirstPartyData))
                 .site(hasBidderConfig ? fpdConfig.getSite() : prepareSite(bidRequest.getSite(), useFirstPartyData))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, firstPartyDataBidders, bidderToPrebidBidders, requestExt, bidRequest.getExt()))

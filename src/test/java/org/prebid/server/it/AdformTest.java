@@ -37,7 +37,7 @@ public class AdformTest extends IntegrationTest {
                 .withQueryParam("ip", equalTo("193.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
                 .withQueryParam("gdpr", equalTo("0"))
-                .withQueryParam("gdpr_consent", equalTo(""))
+                .withQueryParam("gdpr_consent", equalTo("consentValue"))
                 // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
                 .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -45,7 +45,7 @@ public class AdformTest extends IntegrationTest {
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.3"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-adform-bid-response-1.json"))));
 

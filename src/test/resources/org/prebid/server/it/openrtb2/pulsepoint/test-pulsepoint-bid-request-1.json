@@ -19,7 +19,8 @@
           "cp": 123,
           "ct": 456,
           "cf": "300x250"
-        }
+        },
+        "context": null
       }
     },
     {
@@ -40,7 +41,8 @@
           "cp": 321,
           "ct": 654,
           "cf": "120x180"
-        }
+        },
+        "context": null
       }
     }
   ],
@@ -49,6 +51,9 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "321"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -60,7 +65,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "PP-UID"
+    "buyeruid": "PP-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

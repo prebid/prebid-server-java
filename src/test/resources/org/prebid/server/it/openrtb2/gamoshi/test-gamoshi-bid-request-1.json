@@ -16,7 +16,8 @@
       "ext": {
         "bidder": {
           "supplyPartnerId": "1701"
-        }
+        },
+        "context": null
       }
     },
     {
@@ -35,13 +36,17 @@
       "ext": {
         "bidder": {
           "supplyPartnerId": "1707"
-        }
+        },
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     }
@@ -55,7 +60,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "GM-UID"
+    "buyeruid": "GM-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

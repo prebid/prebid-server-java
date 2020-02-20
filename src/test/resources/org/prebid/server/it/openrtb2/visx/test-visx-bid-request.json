@@ -22,13 +22,17 @@
             250
           ],
           "uid": 7
-        }
+        },
+        "context": null
       }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    },
     "publisher": {
       "id": "publisherId"
     }
@@ -42,7 +46,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "VISX-UID"
+    "buyeruid": "VISX-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,

@@ -22,7 +22,10 @@
   ],
   "site": {
     "domain": "",
-    "page": "http://www.example.com"
+    "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    }
   },
   "device": {
     "ua": "userAgent",
@@ -33,7 +36,15 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "AV-UID"
+    "buyeruid": "AV-UID",
+    "ext": {
+      "consent": "consentValue",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "at": 1,
   "tmax": 3000,
