@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Adapter metrics support.
+ * Circuit breaker metrics support.
  */
 class CircuitBreakerMetrics extends UpdatableMetrics {
 
