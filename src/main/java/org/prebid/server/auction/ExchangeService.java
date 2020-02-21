@@ -529,10 +529,7 @@ public class ExchangeService {
         return BidderRequest.of(bidder, bidRequest.toBuilder()
                 .user(privacyEnforcementResult.getUser())
                 .device(privacyEnforcementResult.getDevice())
-                // FIXME: remove firstPartyDataBidders.isEmpty() after FPD will be reworked
-                //  https://github.com/prebid/prebid-server/issues/879
-                .imp(prepareImps(bidder, imps,
-                        firstPartyDataBidders.contains(bidder) || firstPartyDataBidders.isEmpty()))
+                .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                 .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
                 .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
@@ -594,9 +591,7 @@ public class ExchangeService {
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
         final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
 
-        // FIXME: consider to remove impExt.get(CONTEXT_EXT) != null after FPD will be reworked
-        //  https://github.com/prebid/prebid-server/issues/879
-        if (useFirstPartyData && impExt.get(CONTEXT_EXT) != null) {
+        if (useFirstPartyData) {
             result.set(CONTEXT_EXT, impExt.get(CONTEXT_EXT));
         }
 
