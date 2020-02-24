@@ -126,7 +126,6 @@
     "ext": {
       "schain": {
         "ver": "1.0",
-        "complete": 1,
         "nodes": [
           {
             "asi": "superads.com",
