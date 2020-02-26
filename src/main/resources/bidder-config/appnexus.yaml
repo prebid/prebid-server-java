@@ -18,7 +18,7 @@ adapters:
       supported-vendors:
       vendor-id: 32
     usersync:
-      url: //ib.adnxs.com/getuid?
+      url: https://ib.adnxs.com/getuid?
       redirect-url: /setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: adnxs
       type: redirect

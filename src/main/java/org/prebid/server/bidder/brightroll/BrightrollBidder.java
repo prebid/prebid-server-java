@@ -13,9 +13,6 @@ import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.EncodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -24,6 +21,9 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -59,9 +59,11 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public BrightrollBidder(String endpointUrl) {
+    public BrightrollBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -86,7 +88,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         final String bidRequestBody;
         try {
-            bidRequestBody = Json.encode(updateBidRequest);
+            bidRequestBody = mapper.encode(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
             return Result.of(Collections.emptyList(), errors);
@@ -114,8 +116,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         final String publisher;
         try {
-            publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
-                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
+            publisher = mapper.mapper().convertValue(impExt, BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ext.bidder.publisher not provided");
         }
@@ -221,7 +222,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

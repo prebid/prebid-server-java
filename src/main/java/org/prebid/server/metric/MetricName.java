@@ -41,6 +41,7 @@ public enum MetricName {
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
     amp,
+    video,
     legacy,
 
     // request and adapter statuses
@@ -75,7 +76,10 @@ public enum MetricName {
 
     // cache
     prebid_cache_request_success_time,
-    prebid_cache_request_error_time;
+    prebid_cache_request_error_time,
+
+    //account.*.requests.
+    rejected;
 
     private final String name;
 

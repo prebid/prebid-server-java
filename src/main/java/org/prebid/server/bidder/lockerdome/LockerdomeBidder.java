@@ -8,8 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -19,6 +17,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.lockerdome.ExtImpLockerdome;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -41,9 +41,11 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public LockerdomeBidder(String endpointUrl) {
+    public LockerdomeBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -72,7 +74,7 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
                 ? bidRequest.toBuilder().imp(validImps).build()
                 : bidRequest;
 
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -85,15 +87,14 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private static Imp validateImp(Imp imp) {
+    private Imp validateImp(Imp imp) {
         if (imp.getBanner() == null) {
             throw new PreBidException("LockerDome does not currently support non-banner types.");
         }
 
         final ExtImpLockerdome extImpLockerdome;
         try {
-            extImpLockerdome = Json.mapper.<ExtPrebid<?, ExtImpLockerdome>>convertValue(imp.getExt(),
-                    LOCKERDOME_EXT_TYPE_REFERENCE).getBidder();
+            extImpLockerdome = mapper.mapper().convertValue(imp.getExt(), LOCKERDOME_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -107,7 +108,7 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

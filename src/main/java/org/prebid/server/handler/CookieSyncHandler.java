@@ -5,8 +5,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -16,6 +14,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
@@ -24,7 +23,10 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.model.GdprPurpose;
 import org.prebid.server.privacy.gdpr.model.GdprResponse;
@@ -52,12 +54,17 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
+
+    private static final String REJECTED_BY_GDPR = "Rejected by GDPR";
+    private static final String REJECTED_BY_CCPA = "Rejected by CCPA";
+
     private final String externalUrl;
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
     private final Collection<String> activeBidders;
     private final GdprService gdprService;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
     private final boolean defaultCoopSync;
@@ -65,18 +72,30 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
+    private final JacksonMapper mapper;
 
-    public CookieSyncHandler(String externalUrl, long defaultTimeout, UidsCookieService uidsCookieService,
-                             BidderCatalog bidderCatalog, GdprService gdprService, Integer gdprHostVendorId,
-                             boolean useGeoLocation, boolean defaultCoopSync,
-                             List<Collection<String>> listOfCoopSyncBidders, AnalyticsReporter analyticsReporter,
-                             Metrics metrics, TimeoutFactory timeoutFactory) {
+    public CookieSyncHandler(String externalUrl,
+                             long defaultTimeout,
+                             UidsCookieService uidsCookieService,
+                             BidderCatalog bidderCatalog,
+                             GdprService gdprService,
+                             PrivacyEnforcementService privacyEnforcementService,
+                             Integer gdprHostVendorId,
+                             boolean useGeoLocation,
+                             boolean defaultCoopSync,
+                             List<Collection<String>> listOfCoopSyncBidders,
+                             AnalyticsReporter analyticsReporter,
+                             Metrics metrics,
+                             TimeoutFactory timeoutFactory,
+                             JacksonMapper mapper) {
+
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         activeBidders = activeBidders(bidderCatalog);
         this.gdprService = Objects.requireNonNull(gdprService);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
         this.defaultCoopSync = defaultCoopSync;
@@ -86,6 +105,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     private static Collection<String> activeBidders(BidderCatalog bidderCatalog) {
@@ -115,7 +135,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncRequest cookieSyncRequest;
         try {
-            cookieSyncRequest = Json.decodeValue(body, CookieSyncRequest.class);
+            cookieSyncRequest = mapper.decodeValue(body, CookieSyncRequest.class);
         } catch (DecodeException e) {
             logger.info("Failed to parse /cookie_sync request body", e);
             final int status = HttpResponseStatus.BAD_REQUEST.code();
@@ -142,8 +162,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         vendorIds.add(gdprHostVendorId);
 
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
-        final String usPrivacy = cookieSyncRequest.getUsPrivacy();
-        final Privacy privacy = Privacy.of(gdprAsString, gdprConsent, usPrivacy);
+        final Ccpa ccpa = Ccpa.of(cookieSyncRequest.getUsPrivacy());
+        final Privacy privacy = Privacy.of(gdprAsString, gdprConsent, ccpa);
+
+        if (privacyEnforcementService.isCcpaEnforced(ccpa)) {
+            respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_CCPA);
+            return;
+        }
 
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
@@ -243,13 +268,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context, UidsCookie uidsCookie,
                               Collection<String> biddersToSync, Privacy privacy, Integer limit) {
         if (asyncResult.failed()) {
-            respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit);
+            respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_GDPR);
         } else {
             final Map<Integer, Boolean> vendorsToGdpr = asyncResult.result().getVendorsToGdpr();
 
             final Boolean gdprResult = vendorsToGdpr.get(gdprHostVendorId);
             if (BooleanUtils.isNotTrue(gdprResult)) { // host vendor should be allowed by GDPR verification
-                respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit);
+                respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_GDPR);
             } else {
                 final Set<Integer> vendorIds = vendorsToGdpr.entrySet().stream()
                         .filter(Map.Entry::getValue) // get only vendors passed GDPR verification
@@ -260,7 +285,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                         .filter(bidder -> !vendorIds.contains(gdprVendorIdFor(bidder)))
                         .collect(Collectors.toSet());
 
-                respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByGdpr, limit);
+                respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByGdpr, limit,
+                        REJECTED_BY_GDPR);
             }
         }
     }
@@ -269,11 +295,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Make HTTP response for given bidders.
      */
     private void respondWith(RoutingContext context, UidsCookie uidsCookie, Privacy privacy, Collection<String> bidders,
-                             Collection<String> biddersRejectedByGdpr, Integer limit) {
+                             Collection<String> biddersRejectedByGdpr, Integer limit, String rejectMessage) {
         updateCookieSyncGdprMetrics(bidders, biddersRejectedByGdpr);
 
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
-                .map(bidder -> bidderStatusFor(bidder, context, uidsCookie, biddersRejectedByGdpr, privacy))
+                .map(bidder -> bidderStatusFor(bidder, context, uidsCookie, biddersRejectedByGdpr, privacy,
+                        rejectMessage))
                 .filter(Objects::nonNull) // skip bidder with live UID
                 .collect(Collectors.toList());
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
@@ -288,7 +315,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
                 updatedBidderStatuses);
-        final String body = Json.encode(response);
+        final String body = mapper.encode(response);
 
         // don't send the response if client has gone
         if (context.response().closed()) {
@@ -326,7 +353,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Creates {@link BidderUsersyncStatus} for given bidder.
      */
     private BidderUsersyncStatus bidderStatusFor(String bidder, RoutingContext context, UidsCookie uidsCookie,
-                                                 Collection<String> biddersRejectedByGdpr, Privacy privacy) {
+                                                 Collection<String> biddersRejectedByGdpr, Privacy privacy,
+                                                 String rejectMessage) {
         final BidderUsersyncStatus result;
         final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
 
@@ -342,7 +370,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         } else if (isNotAlias && biddersRejectedByGdpr.contains(bidder)) {
             result = bidderStatusBuilder(bidder)
-                    .error("Rejected by GDPR")
+                    .error(rejectMessage)
                     .build();
         } else {
             final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));

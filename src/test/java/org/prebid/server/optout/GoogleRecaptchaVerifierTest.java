@@ -15,7 +15,6 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -42,15 +41,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.getFormAttribute("g-recaptcha-response")).willReturn("recaptcha1");
 
-        googleRecaptchaVerifier = new GoogleRecaptchaVerifier(httpClient, "http://optout/url", "abc");
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        // then
-        assertThatNullPointerException().isThrownBy(() -> new GoogleRecaptchaVerifier(null, "http://out/url", "abc"));
-        assertThatNullPointerException().isThrownBy(() -> new GoogleRecaptchaVerifier(httpClient, null, "abc"));
-        assertThatNullPointerException().isThrownBy(() -> new GoogleRecaptchaVerifier(httpClient, "http://url/", null));
+        googleRecaptchaVerifier = new GoogleRecaptchaVerifier("http://optout/url", "abc", httpClient, jacksonMapper);
     }
 
     @Test

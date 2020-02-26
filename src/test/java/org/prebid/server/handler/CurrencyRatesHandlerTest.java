@@ -35,7 +35,7 @@ public class CurrencyRatesHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService);
+        currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService, jacksonMapper);
 
         given(routingContext.response()).willReturn(httpResponse);
     }

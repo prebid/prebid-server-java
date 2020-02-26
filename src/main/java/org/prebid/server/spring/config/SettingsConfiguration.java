@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -180,10 +181,12 @@ public class SettingsConfiguration {
         @Bean
         HttpApplicationSettings httpApplicationSettings(
                 HttpClient httpClient,
+                JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
-                @Value("${settings.http.amp-endpoint}") String ampEndpoint) {
+                @Value("${settings.http.amp-endpoint}") String ampEndpoint,
+                @Value("${settings.http.video-endpoint}") String videoEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
+            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint);
         }
     }
 
@@ -207,18 +210,21 @@ public class SettingsConfiguration {
         @Bean
         public HttpPeriodicRefreshService httpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.endpoint}") String endpoint,
-                SettingsCache settingsCache) {
+                SettingsCache settingsCache,
+                JacksonMapper mapper) {
 
-            return new HttpPeriodicRefreshService(settingsCache, endpoint, refreshPeriod, timeout, vertx, httpClient);
+            return new HttpPeriodicRefreshService(
+                    endpoint, refreshPeriod, timeout, settingsCache, vertx, httpClient, mapper);
         }
 
         @Bean
         public HttpPeriodicRefreshService ampHttpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.amp-endpoint}") String ampEndpoint,
-                SettingsCache ampSettingsCache) {
+                SettingsCache ampSettingsCache,
+                JacksonMapper mapper) {
 
-            return new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint, refreshPeriod, timeout, vertx,
-                    httpClient);
+            return new HttpPeriodicRefreshService(
+                    ampEndpoint, refreshPeriod, timeout, ampSettingsCache, vertx, httpClient, mapper);
         }
     }
 
@@ -295,12 +301,14 @@ public class SettingsConfiguration {
                 CompositeApplicationSettings compositeApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
                 @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
+                @Qualifier("ampSettingsCache") SettingsCache ampCache,
+                @Qualifier("videoSettingCache") SettingsCache videoCache) {
 
             return new CachingApplicationSettings(
                     compositeApplicationSettings,
                     cache,
                     ampCache,
+                    videoCache,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize());
         }
@@ -330,6 +338,12 @@ public class SettingsConfiguration {
         @Bean
         @Qualifier("ampSettingsCache")
         SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
+        }
+
+        @Bean
+        @Qualifier("videoSettingCache")
+        SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
         }
     }

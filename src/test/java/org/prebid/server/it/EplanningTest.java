@@ -30,7 +30,7 @@ public class EplanningTest extends IntegrationTest {
         wireMockRule.stubFor(get(urlPathEqualTo("/eplanning-exchange/12345/1/example.com/ROS"))
                 .withQueryParam("r", equalTo("pbs"))
                 .withQueryParam("ncb", equalTo("1"))
-                .withQueryParam("ur", equalTo("http://www.example.com"))
+                .withQueryParam("ur", equalTo("https://www.example.com"))
                 .withQueryParam("e", equalTo("testadunitcode:600x300"))
                 .withQueryParam("ip", equalTo("193.168.244.1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -48,10 +48,10 @@ public class EplanningTest extends IntegrationTest {
 
         // when
         final Response response = given(spec)
-                .header("Referer", "http://www.example.com")
+                .header("Referer", "https://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
+                .header("Origin", "https://www.example.com")
                 // this uids cookie value stands for {"uids":{""eplanning":"EP-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImVwbGFubmluZyI6IkVQLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/eplanning/test-auction-eplanning-request.json"))

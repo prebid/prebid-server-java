@@ -13,11 +13,5 @@
       "description": "the bid floor"
     }
   },
-  "oneOf": [{
-    "oneOf": [{
       "required": ["inventoryCode"]
-    }] }],
-  "not": {
-    "required": ["floor"]
-  }
 }

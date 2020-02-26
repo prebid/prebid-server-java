@@ -86,9 +86,9 @@ public class BasicJdbcClient implements JdbcClient {
         }
     }
 
-    private static Future<SQLConnection> logConnectionError(Throwable throwable) {
-        logger.warn("Cannot connect to database", throwable);
-        return Future.failedFuture(throwable);
+    private static Future<SQLConnection> logConnectionError(Throwable exception) {
+        logger.warn("Cannot connect to database", exception);
+        return Future.failedFuture(exception);
     }
 
     /**

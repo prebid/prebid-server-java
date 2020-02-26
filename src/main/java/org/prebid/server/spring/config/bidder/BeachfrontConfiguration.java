@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.beachfront.BeachfrontBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -32,6 +33,9 @@ public class BeachfrontConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("beachfrontConfigurationProperties")
     private BeachfrontConfigurationProperties configProperties;
 
@@ -48,7 +52,7 @@ public class BeachfrontConfiguration {
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
                 .bidderCreator(() -> new BeachfrontBidder(configProperties.getEndpoint(),
-                        configProperties.getVideoEndpoint()))
+                        configProperties.getVideoEndpoint(), mapper))
                 .assemble();
     }
 

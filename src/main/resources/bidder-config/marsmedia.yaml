@@ -1,0 +1,24 @@
+adapters:
+  marsmedia:
+    enabled: false
+    endpoint: https://bid306.rtbsrv.com/bidder/?bid=f3xtet
+    pbs-enforces-gdpr: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: prebid@mars.media
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://dmp.rtbsrv.com/dmp/profiles/cm?p_id=179&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=marsmedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UUID}
+      cookie-family-name: marsmedia
+      type: redirect
+      support-cors: false

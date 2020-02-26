@@ -119,7 +119,10 @@ public class HttpBidderRequester {
      * Produces {@link Future} with {@link HttpCall} containing request and error description.
      */
     private static <T> Future<HttpCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
-        logger.warn("Error occurred while sending HTTP request to a bidder url: {0}", exception, httpRequest.getUri());
+        logger.warn("Error occurred while sending HTTP request to a bidder url: {0} with message: {1}",
+                httpRequest.getUri(), exception.getMessage());
+        logger.debug("Error occurred while sending HTTP request to a bidder url: {0}", exception, httpRequest.getUri());
+
         final BidderError.Type errorType =
                 exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
                         ? BidderError.Type.timeout

@@ -45,6 +45,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     private static final String ENDPOINT = "http://stored-requests";
     private static final String AMP_ENDPOINT = "http://amp-stored-requests";
+    private static final String VIDEO_ENDPOINT = "http://video-stored-requests";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -59,7 +60,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @Before
     public void setUp() {
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, ENDPOINT, AMP_ENDPOINT);
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
+                VIDEO_ENDPOINT);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -70,14 +72,24 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, "invalid_url", AMP_ENDPOINT))
+                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, "invalid_url", AMP_ENDPOINT,
+                        VIDEO_ENDPOINT))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, ENDPOINT, "invalid_url"))
+                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, "invalid_url",
+                        VIDEO_ENDPOINT))
+                .withMessage("URL supplied is not valid: invalid_url");
+    }
+
+    @Test
+    public void creationShouldFailsOnInvalidVideoEndpoint() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
+                        "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -157,8 +169,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
         givenHttpClientReturnsResponse(200, null);
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, "http://some-domain?param1=value1",
-                AMP_ENDPOINT);
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
+                "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT);
 
         // when
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);

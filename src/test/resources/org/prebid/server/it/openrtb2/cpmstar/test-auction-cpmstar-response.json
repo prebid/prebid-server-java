@@ -1,0 +1,97 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "impId001",
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "3.30",
+                "hb_size_cpmstar": "300x250",
+                "hb_bidder_cpmstar": "cpmstar",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "300x250",
+                "hb_cache_host_cpmstar": "{{ cache.host }}",
+                "hb_cache_path_cpmstar": "{{ cache.path }}",
+                "hb_cache_id_cpmstar": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_bidder": "cpmstar",
+                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_pb_cpmstar": "3.30",
+                "hb_cache_host": "{{ cache.host }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "bid002",
+          "impid": "impId002",
+          "price": 5.55,
+          "adm": "adm002",
+          "adid": "adid002",
+          "cid": "cid002",
+          "crid": "crid002",
+          "w": 1024,
+          "h": 576,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_cache_host_cpmstar": "{{ cache.host }}",
+                "hb_cache_path_cpmstar": "{{ cache.path }}",
+                "hb_cache_id": "e7965b2e-0aa3-4252-a22c-580ed010e619",
+                "hb_pb_cpmstar": "5.50",
+                "hb_pb": "5.50",
+                "hb_size_cpmstar": "1024x576",
+                "hb_bidder_cpmstar": "cpmstar",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "44a52b06-b29f-4819-a05f-db36b9e7b8fc",
+                "hb_size": "1024x576",
+                "hb_cache_id_cpmstar": "e7965b2e-0aa3-4252-a22c-580ed010e619",
+                "hb_bidder": "cpmstar",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_uuid_cpmstar": "44a52b06-b29f-4819-a05f-db36b9e7b8fc"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}e7965b2e-0aa3-4252-a22c-580ed010e619",
+                  "cacheId": "e7965b2e-0aa3-4252-a22c-580ed010e619"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}44a52b06-b29f-4819-a05f-db36b9e7b8fc",
+                  "cacheId": "44a52b06-b29f-4819-a05f-db36b9e7b8fc"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "cpmstar",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "cpmstar": "{{ cpmstar.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 3000
+  }
+}

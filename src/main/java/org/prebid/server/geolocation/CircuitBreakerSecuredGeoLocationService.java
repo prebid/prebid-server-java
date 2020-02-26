@@ -6,11 +6,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 
 import java.time.Clock;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wrapper for geo location service with circuit breaker.
@@ -18,6 +20,8 @@ import java.util.Objects;
 public class CircuitBreakerSecuredGeoLocationService implements GeoLocationService {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredGeoLocationService.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final int LOG_PERIOD_SECONDS = 5;
 
     private final CircuitBreaker breaker;
     private final GeoLocationService geoLocationService;
@@ -40,7 +44,8 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
     }
 
     private void circuitOpened() {
-        logger.warn("GeoLocation service is unavailable, circuit opened.");
+        conditionalLogger.warn("GeoLocation service is unavailable, circuit opened.",
+                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
         metrics.updateGeoLocationCircuitBreakerMetric(true);
     }
 

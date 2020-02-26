@@ -28,9 +28,7 @@
           "mimes"
         ],
         "w": 300,
-        "h": 600,
-        "skipmin": 0,
-        "skipafter": 0
+        "h": 600
       },
       "displaymanager": "prebid-s2s",
       "displaymanagerver": "1.0.1",
@@ -71,7 +69,6 @@
       "consent": "consentValue"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [

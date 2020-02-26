@@ -37,12 +37,12 @@ public class AdponeBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        adponeBidder = new AdponeBidder(ENDPOINT_URL);
+        adponeBidder = new AdponeBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AdponeBidder("invalid"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdponeBidder("invalid", jacksonMapper));
     }
 
     @Test
@@ -109,7 +109,8 @@ public class AdponeBidderTest extends VertxTest {
 
         // then
         Assertions.assertThat(result.getErrors()).hasSize(1);
-        Assertions.assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        Assertions.assertThat(result.getErrors().get(0).getMessage())
+                .startsWith("Failed to decode: Unrecognized token");
         Assertions.assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         Assertions.assertThat(result.getValue()).isEmpty();
     }
