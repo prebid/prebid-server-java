@@ -10,6 +10,7 @@
         "crid": "crid1",
         "w": 300,
         "h": 600,
+        "wurl": "http://localhost:8000/event?t=win&b=BIDID&a=accountId&f=i",
         "ext": {
           "rp": {
             "targeting": [
@@ -40,6 +41,7 @@
         "crid": "29681110",
         "w": 300,
         "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=BIDID&a=accountId&f=i",
         "ext": {
           "appnexus": {
             "brand_id": 1,
