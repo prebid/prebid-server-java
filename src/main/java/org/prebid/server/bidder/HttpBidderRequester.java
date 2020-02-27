@@ -134,7 +134,8 @@ public class HttpBidderRequester {
 
         if (errorType == BidderError.Type.timeout) {
             if (bidder instanceof TimeoutBidder) {
-                doTimeoutNotificationRequest(httpRequest, ((TimeoutBidder<T>) bidder));
+                final TimeoutBidder<T> timeoutBidder = (TimeoutBidder<T>) bidder;
+                doTimeoutNotificationRequest(httpRequest, timeoutBidder);
             }
         }
 
