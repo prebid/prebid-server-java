@@ -5,6 +5,8 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -43,7 +45,7 @@ import java.util.stream.Stream;
 public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
-    private static final int NOTIFICATION_TIMEOUT_MS = 5_000;
+    private static final int NOTIFICATION_TIMEOUT_MS = 200;
 
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
@@ -132,17 +134,28 @@ public class HttpBidderRequester {
 
         if (errorType == BidderError.Type.timeout) {
             if (bidder instanceof TimeoutBidder) {
-                final TimeoutBidder<T> timeoutBidder = (TimeoutBidder<T>) bidder;
-                final HttpRequest<Void> timeoutNotification = timeoutBidder.makeTimeoutNotification(httpRequest);
-                if (timeoutNotification != null) {
-                    httpClient.request(timeoutNotification.getMethod(), timeoutNotification.getUri(),
-                            timeoutNotification.getHeaders(), timeoutNotification.getBody(), NOTIFICATION_TIMEOUT_MS);
-                }
+                doTimeoutNotificationRequest(httpRequest, bidder);
             }
         }
 
         return Future.succeededFuture(
                 HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
+    }
+
+    /**
+     *  doTimeoutNotificationRequest shoots on {@link TimeoutException} or {@link ConnectTimeoutException},
+     *  if Bidder supports Timeout notifications
+     */
+    private <T> void doTimeoutNotificationRequest(HttpRequest<T> httpRequest, Bidder<T> bidder) {
+        final TimeoutBidder<T> timeoutBidder = (TimeoutBidder<T>) bidder;
+        final HttpRequest<Void> timeoutNotification = timeoutBidder.makeTimeoutNotification(httpRequest);
+        if (timeoutNotification != null) {
+            final HttpMethod method = timeoutNotification.getMethod();
+            final String uri = timeoutNotification.getUri();
+            final MultiMap headers = timeoutNotification.getHeaders();
+            final String body = timeoutNotification.getBody();
+            httpClient.request(method, uri, headers, body, NOTIFICATION_TIMEOUT_MS);
+        }
     }
 
     /**
