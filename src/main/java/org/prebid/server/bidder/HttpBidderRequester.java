@@ -134,7 +134,7 @@ public class HttpBidderRequester {
 
         if (errorType == BidderError.Type.timeout) {
             if (bidder instanceof TimeoutBidder) {
-                doTimeoutNotificationRequest(httpRequest, bidder);
+                doTimeoutNotificationRequest(httpRequest, ((TimeoutBidder<T>) bidder));
             }
         }
 
@@ -146,9 +146,8 @@ public class HttpBidderRequester {
      *  doTimeoutNotificationRequest shoots on {@link TimeoutException} or {@link ConnectTimeoutException},
      *  if Bidder supports Timeout notifications
      */
-    private <T> void doTimeoutNotificationRequest(HttpRequest<T> httpRequest, Bidder<T> bidder) {
-        final TimeoutBidder<T> timeoutBidder = (TimeoutBidder<T>) bidder;
-        final HttpRequest<Void> timeoutNotification = timeoutBidder.makeTimeoutNotification(httpRequest);
+    private <T> void doTimeoutNotificationRequest(HttpRequest<T> httpRequest, TimeoutBidder<T> bidder) {
+        final HttpRequest<Void> timeoutNotification = bidder.makeTimeoutNotification(httpRequest);
         if (timeoutNotification != null) {
             final HttpMethod method = timeoutNotification.getMethod();
             final String uri = timeoutNotification.getUri();
