@@ -9,9 +9,7 @@
           "video/mp4"
         ],
         "w": 300,
-        "h": 250,
-        "skipmin": 0,
-        "skipafter": 0
+        "h": 250
       },
       "ext": {
         "bidder": {

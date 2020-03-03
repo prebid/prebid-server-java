@@ -160,8 +160,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = message;
-                String userId = ((UnauthorizedAccountException) exception).getAccountId();
-                metrics.updateAccountRequestRejectedMetrics(userId);
+                final String accountId = ((UnauthorizedAccountException) exception).getAccountId();
+                metrics.updateAccountRequestRejectedMetrics(accountId);
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException

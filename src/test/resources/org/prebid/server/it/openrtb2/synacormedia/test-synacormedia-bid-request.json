@@ -50,8 +50,6 @@
           "video/mp4"
         ],
         "pos": 1,
-        "skipafter": 0,
-        "skipmin": 0,
         "w": 300
       }
     }
