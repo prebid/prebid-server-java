@@ -20,8 +20,18 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.collections4.map.SingletonMap;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,18 +86,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
@@ -1428,11 +1426,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getBids()).containsOnly(expectedBidderBid);
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
-
-
-
-
-
 
     @SuppressWarnings("unchecked")
     @Test
