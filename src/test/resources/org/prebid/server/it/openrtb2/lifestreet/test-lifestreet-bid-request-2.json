@@ -41,12 +41,12 @@
   "user": {
     "buyeruid": "LS-UID",
     "ext": {
-      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "consent": "consentValue"
     }
   },
   "at": 1,
@@ -65,6 +65,16 @@
   },
   "ext": {
     "prebid": {
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

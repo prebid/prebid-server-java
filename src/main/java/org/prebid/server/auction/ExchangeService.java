@@ -228,7 +228,7 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts currency rates from {@link ExtRequestTargeting}.
+     * Extracts currency rates from {@link ExtCurrency}.
      */
     private static Map<String, Map<String, BigDecimal>> currencyRates(ExtCurrency currency) {
         return currency != null ? currency.getRates() : null;
