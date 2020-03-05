@@ -19,6 +19,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
@@ -242,8 +243,8 @@ public class AmpRequestFactory {
             final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
             return decodedJsonTargeting == null
                     ? Targeting.empty()
-                    : mapper.mapper().readValue(decodedJsonTargeting, Targeting.class);
-        } catch (JsonProcessingException | IllegalArgumentException e) {
+                    : mapper.decodeValue(decodedJsonTargeting, Targeting.class);
+        } catch (DecodeException e) {
             throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
         }
     }

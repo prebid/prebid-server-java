@@ -319,17 +319,8 @@ public class ExchangeService {
         final List<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
         final Map<String, ExtBidderConfigFpd> biddersToConfigs = getBiddersToConfigs(requestExt);
 
-        final Map<String, User> bidderToUser = new HashMap<>();
-        for (String bidder : bidders) {
-            final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(ALL_BIDDERS_CONFIG),
-                    biddersToConfigs.get(bidder));
-            final User fpdUser = fpdConfig != null ? fpdConfig.getUser() : null;
-
-            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
-            final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
-                    context.getUidsCookie(), useFirstPartyData, fpdUser);
-            bidderToUser.put(bidder, preparedUser);
-        }
+        final Map<String, User> bidderToUser = prepareUsers(
+                bidders, context, aliases, bidRequest, extUser, uidsBody, firstPartyDataBidders, biddersToConfigs);
 
         return privacyEnforcementService
                 .mask(bidderToUser, extUser, bidders, aliases, bidRequest, isGdprEnforced, context.getTimeout())
@@ -389,6 +380,29 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
         return data == null ? null : data.getBidders();
+    }
+
+    private Map<String, User> prepareUsers(List<String> bidders,
+                                           AuctionContext context,
+                                           Map<String, String> aliases,
+                                           BidRequest bidRequest,
+                                           ExtUser extUser,
+                                           Map<String, String> uidsBody,
+                                           List<String> firstPartyDataBidders,
+                                           Map<String, ExtBidderConfigFpd> biddersToConfigs) {
+
+        final Map<String, User> bidderToUser = new HashMap<>();
+        for (String bidder : bidders) {
+            final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(ALL_BIDDERS_CONFIG),
+                    biddersToConfigs.get(bidder));
+            final User fpdUser = fpdConfig != null ? fpdConfig.getUser() : null;
+
+            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+            final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
+                    context.getUidsCookie(), useFirstPartyData, fpdUser);
+            bidderToUser.put(bidder, preparedUser);
+        }
+        return bidderToUser;
     }
 
     /**
