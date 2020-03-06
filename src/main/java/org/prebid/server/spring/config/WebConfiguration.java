@@ -347,6 +347,7 @@ public class WebConfiguration {
     @Bean
     VtrackHandler vtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${vtrack.allow-unkonwn-bidder}") boolean allowUnknownBidder,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CacheService cacheService,
@@ -354,7 +355,8 @@ public class WebConfiguration {
             JacksonMapper mapper) {
 
         return new VtrackHandler(
-                defaultTimeoutMs, applicationSettings, bidderCatalog, cacheService, timeoutFactory, mapper);
+                defaultTimeoutMs, allowUnknownBidder, applicationSettings, bidderCatalog, cacheService, timeoutFactory,
+                mapper);
     }
 
     @Bean

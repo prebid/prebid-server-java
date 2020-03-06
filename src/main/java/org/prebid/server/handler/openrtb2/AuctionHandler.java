@@ -24,6 +24,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.LogModifier;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final AuctionRequestFactory auctionRequestFactory;
     private final ExchangeService exchangeService;
@@ -153,12 +155,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = String.format("Unauthorized: %s", exception.getMessage());
-                logger.info(message);
-
+                conditionalLogger.info(message, 100);
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED.code();
                 body = message;
+                final String accountId = ((UnauthorizedAccountException) exception).getAccountId();
+                metrics.updateAccountRequestRejectedMetrics(accountId);
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException

@@ -6,12 +6,14 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -20,6 +22,8 @@ import java.util.function.Function;
 public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredJdbcClient.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final int LOG_PERIOD_SECONDS = 5;
 
     private final CircuitBreaker breaker;
     private final JdbcClient jdbcClient;
@@ -42,7 +46,8 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     }
 
     private void circuitOpened() {
-        logger.warn("Database is unavailable, circuit opened.");
+        conditionalLogger.warn("Database is unavailable, circuit opened.",
+                LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
         metrics.updateDatabaseCircuitBreakerMetric(true);
     }
 
