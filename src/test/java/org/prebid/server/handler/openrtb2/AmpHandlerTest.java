@@ -425,7 +425,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(eq(
                 "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1," +
-                        "\"tmax\":1000}}}"));
+                        "\"tmax\":5000}}}"));
     }
 
     @Test
@@ -447,7 +447,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":1000,"
+                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000,"
                         + "\"ext\":{\"prebid\":{\"debug\":1}}}}}"));
     }
 
@@ -761,7 +761,7 @@ public class AmpHandlerTest extends VertxTest {
     private AuctionContext givenAuctionContext(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
-                .imp(emptyList()).tmax(1000L)).build();
+                .imp(emptyList()).tmax(5000L)).build();
 
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
