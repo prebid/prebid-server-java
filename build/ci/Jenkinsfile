@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image "marfeel/jenkins-maven:v3.2.5-jdk-8"
+            image "marfeel/jenkins-maven:v3.6.3-jdk-8"
             label "docker"
             args "-v ${env.JENKINS_HOME}/.m2:/home/jenkins/.m2 "
             reuseNode true
