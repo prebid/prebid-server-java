@@ -370,6 +370,7 @@
                     <configuration>
                         <excludes>
                             <exclude>org/prebid/server/it/*</exclude>
+                            <exclude>org/prebid/server/health/*</exclude>
                         </excludes>
                     </configuration>
                 </plugin>
