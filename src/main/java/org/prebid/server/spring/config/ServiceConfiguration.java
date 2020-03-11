@@ -45,6 +45,7 @@ import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.TcfEnforcementService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Gdpr;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
@@ -389,17 +390,20 @@ public class ServiceConfiguration {
 
     @Bean
     TcfEnforcementService tcfEnforcementService(
-            @Value("${gdpr.enabled:true}") Boolean gdprEnabled,
+            Gdpr gdpr,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            @Value("${gdpr.default-value}") String defaultValue,
-            @Autowired(required = false) GeoLocationService geoLocationService,
-            @Autowired Purposes defaultPurposes,
             GdprService gdprService,
+            @Autowired(required = false) GeoLocationService geoLocationService,
             Metrics metrics) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new TcfEnforcementService(gdprEnabled, defaultValue, defaultPurposes, gdprService, eeaCountries,
-                geoLocationService, metrics);
+        return new TcfEnforcementService(gdpr, eeaCountries, gdprService, geoLocationService, metrics);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr")
+    Gdpr gdpr() {
+        return new Gdpr();
     }
 
     @Bean

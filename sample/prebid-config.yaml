@@ -17,6 +17,7 @@ settings:
     stored-imps-dir: /var/tmp
     stored-responses-dir: /var/tmp
 gdpr:
+  enabled: true
   vendorlist:
     filesystem-cache-dir: /var/tmp
 status-response: "ok"

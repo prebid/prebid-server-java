@@ -246,9 +246,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.enabled` - gdpr feature switch. Default `true`.
 - `gdpr.purposes.pN.enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
 - `gdpr.purposes.pN.enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
-- `gdpr.purposes.pN.vendor-exceptions[]` - bidder codes which do not require user consent.
+- `gdpr.purposes.pN.vendor-exceptions[]` - bidder names which do not require user consent.
 - `gdpr.special-features.sfN.enforce` - if equals to `true`, special feature will be enforced for purpose. Default `true`
-- `gdpr.special-features.sfN.vendor-exceptions[]` - bidder codes which do not require user consent.
+- `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names which do not require user consent.
 - `gdpr.purpose-one-treatment-interpretation` - flag that allowing to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.

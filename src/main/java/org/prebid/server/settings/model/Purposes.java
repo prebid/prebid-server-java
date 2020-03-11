@@ -28,5 +28,7 @@ public class Purposes {
     Purpose p8;
 
     Purpose p9;
+
+    Purpose p10;
 }
 

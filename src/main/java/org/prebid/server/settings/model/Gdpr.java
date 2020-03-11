@@ -1,11 +1,15 @@
 package org.prebid.server.settings.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Builder
-@Value
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class Gdpr {
 
     @JsonProperty("host-vendor-id")
@@ -15,7 +19,7 @@ public class Gdpr {
     Boolean enabled;
 
     @JsonProperty(value = "default-value")
-    Boolean defaultValue;
+    String defaultValue;
 
     Purposes purposes;
 

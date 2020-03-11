@@ -17,5 +17,5 @@ public class Purpose {
     Boolean enforceVendors;
 
     @JsonProperty("vendor-exceptions")
-    List<Integer> vendorExceptions;
+    List<String> vendorExceptions;
 }

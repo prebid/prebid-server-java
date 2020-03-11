@@ -14,11 +14,5 @@ public class SpecialFeatures {
     SpecialFeature sf1;
 
     SpecialFeature sf2;
-
-    SpecialFeature sf3;
-
-    SpecialFeature sf4;
-
-    SpecialFeature sf5;
 }
 
