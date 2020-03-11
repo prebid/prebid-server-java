@@ -445,11 +445,13 @@ public class ApplicationTest extends IntegrationTest {
                 .when()
                 .body(jsonFrom("vtrack/test-vtrack-request.json"))
                 .queryParam("a", "14062")
+                .queryParam("t", "win")
                 .post("/vtrack");
 
         // then
+        String actualStr = response.asString();
         JSONAssert.assertEquals("{\"responses\":[{\"uuid\":\"94531ab8-c662-4fc7-904e-6b5d3be43b1a\"}]}",
-                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+                actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test

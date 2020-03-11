@@ -18,32 +18,36 @@ public class EventsService {
     /**
      * Returns {@link Events} object based on given params.
      */
-    public Events createEvent(String bidId, String accountId) {
+    public Events createEvent(String bidId, String bidder, String accountId, long timestamp) {
         return Events.of(
-                eventUrl(EventRequest.Type.win, bidId, accountId, EventRequest.Format.image),
-                eventUrl(EventRequest.Type.imp, bidId, accountId, EventRequest.Format.image));
+                eventUrl(EventRequest.Type.win, bidId, bidder, accountId, EventRequest.Format.image, timestamp),
+                eventUrl(EventRequest.Type.imp, bidId, bidder, accountId, EventRequest.Format.image, timestamp));
     }
 
     /**
      * Returns value for "hb_winurl" targeting keyword.
      */
-    public String winUrlTargeting(String accountId) {
-        return eventUrl(EventRequest.Type.win, BIDID_PLACEHOLDER, accountId, EventRequest.Format.image);
+    public String winUrlTargeting(String bidder, String accountId, long timestamp) {
+        return eventUrl(EventRequest.Type.win, BIDID_PLACEHOLDER, bidder, accountId,
+                EventRequest.Format.image, timestamp);
     }
 
     /**
      * Returns url for VAST tracking.
      */
-    public String vastUrlTracking(String bidId, String accountId) {
-        return eventUrl(EventRequest.Type.imp, bidId, accountId, EventRequest.Format.blank);
+    public String vastUrlTracking(String bidId, String bidder, String accountId, long timestamp) {
+        return eventUrl(EventRequest.Type.imp, bidId, bidder, accountId, EventRequest.Format.blank, timestamp);
     }
 
-    private String eventUrl(EventRequest.Type type, String bidId, String accountId, EventRequest.Format format) {
+    private String eventUrl(EventRequest.Type type, String bidId, String bidder, String accountId,
+                            EventRequest.Format format, long timestamp) {
         final EventRequest eventRequest = EventRequest.builder()
                 .type(type)
                 .bidId(bidId)
+                .bidder(bidder)
                 .accountId(accountId)
                 .format(format)
+                .timestamp(timestamp)
                 .build();
 
         return EventUtil.toUrl(externalUrl, eventRequest);

@@ -54,6 +54,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -145,6 +146,7 @@ public class ExchangeService {
         final Map<String, String> aliases = aliases(requestExt);
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
+        final long auctionTimestamp = auctionTimestamp(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final Boolean isGdprEnforced = account.getEnforceGdpr();
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
@@ -169,7 +171,7 @@ public class ExchangeService {
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
                         bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
-                                debugEnabled))
+                                auctionTimestamp, debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
                                 account));
@@ -703,6 +705,15 @@ public class ExchangeService {
     private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         return prebid != null ? prebid.getTargeting() : null;
+    }
+
+    /**
+     * Extracts {@link ExtRequestPrebid} from {@link ExtBidRequest} model.
+     */
+    private static long auctionTimestamp(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final long auctionTimestamp = prebid != null ? prebid.getTimestamp() : Instant.now().toEpochMilli();
+        return auctionTimestamp;
     }
 
     /**

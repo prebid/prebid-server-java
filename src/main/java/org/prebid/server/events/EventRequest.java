@@ -14,11 +14,16 @@ public class EventRequest {
 
     String bidId;
 
+    String bidder;
+
     String accountId;
 
     Format format;
 
     Analytics analytics;
+
+    // According to requirements can not be null
+    long timestamp;
 
     public enum Type {
 

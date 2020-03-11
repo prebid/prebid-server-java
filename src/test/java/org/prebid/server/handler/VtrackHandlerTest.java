@@ -3,10 +3,12 @@ package org.prebid.server.handler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import java.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -19,6 +21,8 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.events.EventRequest;
+import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
@@ -39,10 +43,12 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 
 public class VtrackHandlerTest extends VertxTest {
@@ -182,8 +188,12 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
                 .willReturn(Future.failedFuture("error"));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         // when
         handler.handle(routingContext);
@@ -203,14 +213,18 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("not found")));
-        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any(), anyLong());
     }
 
     @Test
@@ -223,8 +237,12 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         // when
         handler.handle(routingContext);
@@ -232,7 +250,7 @@ public class VtrackHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(bidderCatalog);
 
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any(), anyLong());
     }
 
     @Test
@@ -254,15 +272,19 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"), any(), anyLong());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"}]}"));
     }
@@ -284,16 +306,20 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         // when
         handler.handle(routingContext);
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), any(), anyLong());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }
@@ -312,16 +338,20 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId"));
 
         // when
         handler.handle(routingContext);
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), any(), anyLong());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }

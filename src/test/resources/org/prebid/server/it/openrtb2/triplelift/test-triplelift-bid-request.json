@@ -92,7 +92,8 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "timestamp":0
     }
   }
 }

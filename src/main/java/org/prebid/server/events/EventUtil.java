@@ -1,10 +1,11 @@
 package org.prebid.server.events;
 
-import io.vertx.core.MultiMap;
-import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import io.vertx.core.MultiMap;
+import io.vertx.ext.web.RoutingContext;
 
+import java.time.Instant;
 import java.util.Objects;
 
 public class EventUtil {
@@ -18,6 +19,7 @@ public class EventUtil {
     private static final String IMP_TYPE = "imp";
 
     private static final String BID_ID_PARAMETER = "b";
+    private static final String BIDDER_PARAMETER = "bidder";
     private static final String ACCOUNT_ID_PARAMETER = "a";
 
     // Optional query string parameters
@@ -47,6 +49,14 @@ public class EventUtil {
         if (StringUtils.isBlank(bidId)) {
             throw new IllegalArgumentException(String.format(
                     "BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
+        }
+    }
+
+    public static void validateBiddder(RoutingContext context) {
+        final String bidder = context.request().params().get(BIDDER_PARAMETER);
+        if (StringUtils.isBlank(bidder)) {
+            throw new IllegalArgumentException(String.format(
+                    "Bidder '%s' is required query parameter and can't be empty", BIDDER_PARAMETER));
         }
     }
 
@@ -93,9 +103,11 @@ public class EventUtil {
         return EventRequest.builder()
                 .type(type)
                 .bidId(queryParams.get(BID_ID_PARAMETER))
+                .bidder(queryParams.get(BIDDER_PARAMETER))
                 .accountId(queryParams.get(ACCOUNT_ID_PARAMETER))
                 .format(format)
                 .analytics(analytics)
+                .timestamp(Instant.now().toEpochMilli())
                 .build();
     }
 

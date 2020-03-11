@@ -4,6 +4,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
+import java.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -175,7 +176,6 @@ public class EventUtilTest {
 
         // when
         final EventRequest result = EventUtil.from(routingContext);
-
         // then
         assertThat(result).isEqualTo(EventRequest.builder()
                 .type(EventRequest.Type.win)
@@ -183,6 +183,7 @@ public class EventUtilTest {
                 .accountId("accountId")
                 .format(EventRequest.Format.image)
                 .analytics(EventRequest.Analytics.disabled)
+                .timestamp(Instant.now().toEpochMilli())
                 .build());
     }
 
@@ -204,6 +205,7 @@ public class EventUtilTest {
                 .accountId("accountId")
                 .format(EventRequest.Format.blank)
                 .analytics(EventRequest.Analytics.enabled)
+                .timestamp(Instant.now().toEpochMilli())
                 .build());
     }
 

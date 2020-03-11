@@ -54,6 +54,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -340,7 +341,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldNeverCallCacheServiceIfNoBidsPassed() {
         // when
-        cacheService.cacheBidsOpenrtb(emptyList(), emptyList(), null, null, null);
+        cacheService.cacheBidsOpenrtb(emptyList(), emptyList(), null, null, null, 0);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -350,7 +351,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedTimeout() {
         // when
         cacheService.cacheBidsOpenrtb(singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         verify(httpClient).post(anyString(), any(), any(), eq(500L));
@@ -361,7 +362,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).build(), account, expiredTimeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, expiredTimeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -380,7 +381,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -400,7 +401,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -421,7 +422,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -442,7 +443,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -462,7 +463,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -479,7 +480,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final CacheServiceResult result = future.result();
@@ -498,7 +499,9 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), asList(imp1, imp2),
-                CacheContext.builder().shouldCacheBids(true).shouldCacheVideoBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1"))).build(),
+                account, timeout, 1000);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -515,7 +518,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(builder -> builder.impid("impId1").exp(10))),
                 singletonList(givenImp(buider -> buider.id("impId1").exp(20))),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -529,7 +532,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(buider -> buider.exp(10))),
-                CacheContext.builder().shouldCacheBids(true).cacheBidsTtl(20).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).cacheBidsTtl(20).build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -543,7 +546,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).cacheBidsTtl(10).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).cacheBidsTtl(10).build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -569,7 +572,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
                 CacheContext.builder().shouldCacheBids(true).build(),
-                Account.builder().bannerCacheTtl(10).build(), timeout);
+                Account.builder().bannerCacheTtl(10).build(), timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -594,7 +597,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -619,7 +622,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -633,7 +636,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -650,7 +653,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(identity())),
-                CacheContext.builder().shouldCacheBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheBids(true).build(), account, timeout, 0);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
@@ -666,7 +669,9 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(imp),
-                CacheContext.builder().shouldCacheVideoBids(true).build(), account, timeout);
+                CacheContext.builder().shouldCacheVideoBids(true)
+                .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1"))).build(),
+                account, timeout, 0);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
@@ -688,7 +693,11 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), asList(imp1, imp2),
-                CacheContext.builder().shouldCacheBids(true).shouldCacheVideoBids(true).build(), account, timeout);
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1"))).build(),
+                account, timeout, 0);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(2)
@@ -708,7 +717,10 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), asList(imp1, imp2),
-                CacheContext.builder().shouldCacheVideoBids(true).build(), account, timeout);
+                CacheContext.builder()
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
+                        .build(), account, timeout, 0);
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
@@ -725,7 +737,11 @@ public class CacheServiceTest extends VertxTest {
         // when
         cacheService.cacheBidsOpenrtb(
                 asList(bid1, bid2), singletonList(imp1),
-                CacheContext.builder().shouldCacheBids(true).shouldCacheVideoBids(true).build(), account, timeout);
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
+                        .build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -750,8 +766,8 @@ public class CacheServiceTest extends VertxTest {
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
-                .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid2"))
-                .build(), Account.builder().id("accountId").build(), timeout);
+                .shouldCacheBids(true).shouldCacheVideoBids(true).bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid2")))
+                .build(), Account.builder().id("accountId").build(), timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -770,8 +786,8 @@ public class CacheServiceTest extends VertxTest {
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
-                .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1"))
-                .build(), account, timeout);
+                .shouldCacheBids(true).shouldCacheVideoBids(true).bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
+                .build(), account, timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -788,13 +804,13 @@ public class CacheServiceTest extends VertxTest {
                 .adm("<Impression></Impression>"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
-        given(eventsService.vastUrlTracking(any(), any()))
+        given(eventsService.vastUrlTracking(any(), any(), any(), anyLong()))
                 .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
-                .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1"))
-                .build(), Account.builder().id("accountId").build(), timeout);
+                .shouldCacheBids(true).shouldCacheVideoBids(true).bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
+                .build(), Account.builder().id("accountId").build(), timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -819,14 +835,14 @@ public class CacheServiceTest extends VertxTest {
                 .adm("<Impression>http:/test.com</Impression>"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
-        given(eventsService.vastUrlTracking(any(), any()))
+        given(eventsService.vastUrlTracking(any(), any(), any(), anyLong()))
                 .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
-                        .shouldCacheBids(true).shouldCacheVideoBids(true).videoBidIdsToModify(singletonList("bid1"))
+                        .shouldCacheBids(true).shouldCacheVideoBids(true).bidderToVideoBidIdsToModify(singletonMap("bidder", singletonList("bid1")))
                         .build(),
-                Account.builder().id("accountId").build(), timeout);
+                Account.builder().id("accountId").build(), timeout, 0);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -848,7 +864,7 @@ public class CacheServiceTest extends VertxTest {
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
         final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
-                emptySet(), "", expiredTimeout);
+                emptySet(), "", expiredTimeout, 0);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -858,7 +874,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null);
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null, 0);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -882,12 +898,12 @@ public class CacheServiceTest extends VertxTest {
                 .bidder("bidder2")
                 .build();
 
-        given(eventsService.vastUrlTracking(any(), any()))
+        given(eventsService.vastUrlTracking(any(), any(), any(), anyLong()))
                 .willReturn("https://test-event.com/event?t=imp&b=biddid1&f=b&a=account");
 
         // when
         cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
-                timeout);
+                timeout, 0);
 
         // then
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()

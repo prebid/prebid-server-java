@@ -24,7 +24,7 @@ public class EventsServiceTest {
     @Test
     public void createEventsShouldReturnExpectedEvent() {
         // when
-        final Events events = eventsService.createEvent("bidId", "accountId");
+        final Events events = eventsService.createEvent("bidId", "bidder","accountId", 1000);
 
         // then
         assertThat(events).isEqualTo(Events.of(
@@ -35,7 +35,7 @@ public class EventsServiceTest {
     @Test
     public void winUrlTargetingShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.winUrlTargeting("accountId");
+        final String winUrlTargeting = eventsService.winUrlTargeting("bidder", "accountId",1000);
 
         // then
         assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&f=i");
@@ -44,7 +44,7 @@ public class EventsServiceTest {
     @Test
     public void vastUrlTrackingShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.vastUrlTracking("bidId", "accountId");
+        final String winUrlTargeting = eventsService.vastUrlTracking("bidId", "bidder","accountId", 1000);
 
         // then
         assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=imp&b=bidId&a=accountId&f=b");

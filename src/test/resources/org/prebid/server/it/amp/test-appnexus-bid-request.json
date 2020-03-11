@@ -85,7 +85,8 @@
       },
       "cache": {
         "bids": {}
-      }
+      },
+      "timestamp": 0
     }
   }
 }

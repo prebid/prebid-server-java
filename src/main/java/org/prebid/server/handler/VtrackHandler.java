@@ -15,6 +15,8 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
+import org.prebid.server.events.EventRequest;
+import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -72,8 +74,8 @@ public class VtrackHandler implements Handler<RoutingContext> {
             respondWithBadRequest(context, e.getMessage());
             return;
         }
-
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
+
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
                 .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout));
@@ -132,8 +134,9 @@ public class VtrackHandler implements Handler<RoutingContext> {
             final Set<String> biddersAllowingVastUpdate = Objects.equals(asyncAccount.result().getEventsEnabled(), true)
                     ? biddersAllowingVastUpdate(vtrackPuts)
                     : Collections.emptySet();
-
-            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout)
+            final EventRequest eventRequest = EventUtil.from(context);
+            final long timestamp = eventRequest.getTimestamp();
+            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout, timestamp)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
         }
     }

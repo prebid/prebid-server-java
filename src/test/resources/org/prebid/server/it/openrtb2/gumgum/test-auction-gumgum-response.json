@@ -78,6 +78,7 @@
       "cache": "{{ cache.response_time_ms }}",
       "gumgum": "{{ gumgum.response_time_ms }}"
     },
+    "timestamp":0,
     "tmaxrequest": 3000
   }
 }
