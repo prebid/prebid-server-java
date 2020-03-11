@@ -42,8 +42,13 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.TcfEnforcementService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.Purposes;
+import org.prebid.server.settings.model.SpecialFeature;
+import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -380,6 +385,43 @@ public class ServiceConfiguration {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
         return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, vendorListService);
+    }
+
+    @Bean
+    TcfEnforcementService tcfEnforcementService(
+            @Value("${gdpr.enabled:true}") Boolean gdprEnabled,
+            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
+            @Value("${gdpr.default-value}") String defaultValue,
+            @Autowired(required = false) GeoLocationService geoLocationService,
+            @Autowired Purposes defaultPurposes,
+            GdprService gdprService,
+            Metrics metrics) {
+
+        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
+        return new TcfEnforcementService(gdprEnabled, defaultValue, defaultPurposes, gdprService, eeaCountries,
+                geoLocationService, metrics);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.purposes")
+    Purposes purposes() {
+        return new Purposes();
+    }
+
+    @Bean
+    Purpose purpose() {
+        return new Purpose();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.special-features")
+    SpecialFeatures specialFeatures() {
+        return new SpecialFeatures();
+    }
+
+    @Bean
+    SpecialFeature specialFeature() {
+        return new SpecialFeature();
     }
 
     @Bean
