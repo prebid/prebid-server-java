@@ -1,6 +1,7 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
@@ -279,21 +280,21 @@ public class VendorListService {
      * Saves on file system given content as vendor list of specified version.
      */
     private Future<Void> saveToFile(String content, int version) {
-        final Future<Void> future = Future.future();
+        final Promise<Void> promise = Promise.promise();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
                 logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
-                future.complete();
+                promise.complete();
             } else {
                 logger.warn("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
                         filepath);
-                future.fail(result.cause());
+                promise.fail(result.cause());
             }
         });
 
-        return future;
+        return promise.future();
     }
 
     /**
