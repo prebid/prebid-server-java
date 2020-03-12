@@ -3,7 +3,6 @@ package org.prebid.server.handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -11,10 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.execution.LogModifier;
-
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import org.prebid.server.manager.AdminManager;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -29,7 +25,7 @@ public class AdminHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private LogModifier logModifier;
+    private AdminManager adminManager;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -45,7 +41,7 @@ public class AdminHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        adminHandler = new AdminHandler(logModifier);
+        adminHandler = new AdminHandler(adminManager);
     }
 
     @Test
@@ -57,9 +53,9 @@ public class AdminHandlerTest extends VertxTest {
         adminHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(eq("Invalid LoggingLevel: null"));
+        verify(httpResponse).end(eq("Invalid request"));
         verify(httpResponse).setStatusCode(eq(400));
-        verifyZeroInteractions(logModifier);
+        verifyZeroInteractions(adminManager);
     }
 
     @Test
@@ -73,7 +69,7 @@ public class AdminHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(eq("Invalid LoggingLevel: spam"));
         verify(httpResponse).setStatusCode(eq(400));
-        verifyZeroInteractions(logModifier);
+        verifyZeroInteractions(adminManager);
     }
 
     @Test
@@ -88,7 +84,7 @@ public class AdminHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(eq("Invalid records parameter: null"));
         verify(httpResponse).setStatusCode(eq(400));
-        verifyZeroInteractions(logModifier);
+        verifyZeroInteractions(adminManager);
     }
 
     @Test
@@ -103,7 +99,7 @@ public class AdminHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(eq("Invalid records parameter: spam"));
         verify(httpResponse).setStatusCode(eq(400));
-        verifyZeroInteractions(logModifier);
+        verifyZeroInteractions(adminManager);
     }
 
     @Test
@@ -118,7 +114,7 @@ public class AdminHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(eq("Invalid records parameter: -123"));
         verify(httpResponse).setStatusCode(eq(400));
-        verifyZeroInteractions(logModifier);
+        verifyZeroInteractions(adminManager);
     }
 
     @Test
@@ -132,7 +128,7 @@ public class AdminHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(eq("Logging level was changed to error, for 123 requests"));
-        verify(logModifier).set(any(), eq(123));
+        verify(adminManager).setupByCounter(eq(AdminManager.ADMIN_COUNTER_KEY), eq(123), any(), any());
     }
 }
 

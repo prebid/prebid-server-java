@@ -38,6 +38,7 @@ import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -559,5 +560,10 @@ public class ServiceConfiguration {
 
         return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
                 mapper);
+    }
+
+    @Bean
+    AdminManager adminManager() {
+        return new AdminManager();
     }
 }

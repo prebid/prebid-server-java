@@ -14,7 +14,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,9 +37,9 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -99,7 +98,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private LogModifier logModifier;
+    private AdminManager adminManager;
 
     private AmpHandler ampHandler;
     @Mock
@@ -129,8 +128,6 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
-        given(logModifier.get()).willReturn(Logger::info);
-
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
@@ -143,7 +140,7 @@ public class AmpHandlerTest extends VertxTest {
                 bidderCatalog,
                 singleton("bidder1"),
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
-                logModifier, jacksonMapper
+                adminManager, jacksonMapper
         );
     }
 
@@ -208,7 +205,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(logModifier).get();
+        verify(adminManager).accept(eq(AdminManager.ADMIN_COUNTER_KEY), any(), any());
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(

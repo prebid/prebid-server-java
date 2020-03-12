@@ -31,9 +31,9 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -88,7 +88,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private LogModifier logModifier;
+    private AdminManager adminManager;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -114,13 +114,11 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(logModifier.get()).willReturn(Logger::info);
-
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
         auctionHandler = new AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, logModifier, jacksonMapper);
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, adminManager, jacksonMapper);
     }
 
     @Test
@@ -571,7 +569,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(logModifier).get();
+        verify(adminManager).accept(eq(AdminManager.ADMIN_COUNTER_KEY), any(), any());
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
