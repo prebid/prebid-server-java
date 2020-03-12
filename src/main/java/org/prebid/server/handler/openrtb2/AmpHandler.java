@@ -149,23 +149,32 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private AuctionContext validateAccount(AuctionContext context) {
         if (adminManager.contains(AdminManager.ADMIN_TIME_KEY)) {
-            final List<String> accountIds = new ArrayList<>();
-            accountIds.add(context.getBidRequest().getSite().getPublisher().getId());
-            accountIds.add(context.getBidRequest().getApp().getPublisher().getId());
-            accountIds.add(context.getAccount().getId());
-            accountIds.addAll(context.getBidRequest().getImp().stream()
-                    .map(Imp::getExt)
-                    .map(this::parseExtImpRubicon)
-                    .filter(Objects::nonNull)
-                    .map(ExtImpRubicon::getAccountId)
-                    .map(String::valueOf)
-                    .collect(Collectors.toList()));
 
-            if (accountIds.contains(null)) {
-                adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "AccountId is null");
+            try {
+                final List<String> accountIds = new ArrayList<>();
+                accountIds.add(context.getBidRequest().getSite().getPublisher().getId());
+                accountIds.add(context.getBidRequest().getApp().getPublisher().getId());
+                accountIds.add(context.getAccount().getId());
+                accountIds.addAll(context.getBidRequest().getImp().stream()
+                        .map(Imp::getExt)
+                        .map(this::parseExtImpRubicon)
+                        .filter(Objects::nonNull)
+                        .map(ExtImpRubicon::getAccountId)
+                        .map(String::valueOf)
+                        .collect(Collectors.toList()));
+
+                if (accountIds.contains(null)) {
+                    printLog();
+                }
+            } catch (NullPointerException e) {
+                printLog();
             }
         }
         return context;
+    }
+
+    private void printLog() {
+        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "accountId is null");
     }
 
     private ExtImpRubicon parseExtImpRubicon(ObjectNode ext) {

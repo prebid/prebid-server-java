@@ -159,6 +159,20 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldCallAdminManagerIfOneOfAccountIdsIsNull() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+        given(adminManager.contains(AdminManager.ADMIN_TIME_KEY)).willReturn(true);
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(adminManager).accept(eq(AdminManager.ADMIN_TIME_KEY), any(), any());
+    }
+
+    @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
