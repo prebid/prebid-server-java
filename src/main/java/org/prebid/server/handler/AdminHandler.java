@@ -53,7 +53,7 @@ public class AdminHandler implements Handler<RoutingContext> {
 
             adminManager.setupByTime(AdminManager.ADMIN_TIME_KEY, timeParam,
                     (BiConsumer<ConditionalLogger, String>) (conditionalLogger, text) -> {
-                        conditionalLogger.warn(text, 100);
+                        conditionalLogger.debug(text, 100);
                     },
                     (BiConsumer<ConditionalLogger, String>) (conditionalLogger, s) -> {
                     });

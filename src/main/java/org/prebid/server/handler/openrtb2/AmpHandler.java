@@ -44,6 +44,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -52,6 +53,7 @@ import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -147,17 +149,31 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private AuctionContext validateAccount(AuctionContext context) {
         if (adminManager.contains(AdminManager.ADMIN_TIME_KEY)) {
+            final List<String> accountIds = new ArrayList<>();
+            accountIds.add(context.getBidRequest().getSite().getPublisher().getId());
+            accountIds.add(context.getBidRequest().getApp().getPublisher().getId());
+            accountIds.add(context.getAccount().getId());
+            accountIds.addAll(context.getBidRequest().getImp().stream()
+                    .map(Imp::getExt)
+                    .map(this::parseExtImpRubicon)
+                    .filter(Objects::nonNull)
+                    .map(ExtImpRubicon::getAccountId)
+                    .map(String::valueOf)
+                    .collect(Collectors.toList()));
 
-            context.getBidRequest().getSite().getPublisher().getId();
-            context.getBidRequest().getApp().getPublisher().getId();
-            context.getAccount().getId();
-            //context.getBidRequest().getImp().stream().map(Imp::getExt)
-
-            if (false) {
-                adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "Message");
+            if (accountIds.contains(null)) {
+                adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "AccountId is null");
             }
         }
         return context;
+    }
+
+    private ExtImpRubicon parseExtImpRubicon(ObjectNode ext) {
+        try {
+            return mapper.decodeValue(ext.get("rubicon").toString(), ExtImpRubicon.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
