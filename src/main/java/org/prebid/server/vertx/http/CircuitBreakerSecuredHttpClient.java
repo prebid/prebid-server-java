@@ -71,7 +71,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
                                               long timeoutMs) {
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(future -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(future));
+                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(promise));
     }
 
     private static String nameFrom(String urlAsString) {

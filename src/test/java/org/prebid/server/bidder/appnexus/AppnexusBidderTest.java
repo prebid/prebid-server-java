@@ -17,7 +17,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.json.Json;
 import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
@@ -315,7 +314,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
                 .extracting(AppnexusReqExt::getAppnexus)
                 .containsOnly(AppnexusReqExtAppnexus.of(true, true));
     }
@@ -341,7 +340,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
                 .extracting(AppnexusReqExt::getAppnexus)
                 .containsOnly(AppnexusReqExtAppnexus.of(true, true));
     }
@@ -367,7 +366,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
                 .extracting(AppnexusReqExt::getAppnexus)
                 .containsOnly(AppnexusReqExtAppnexus.of(false, true));
     }
@@ -393,7 +392,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> Json.mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, AppnexusReqExt.class)).isNotNull()
                 .extracting(AppnexusReqExt::getAppnexus)
                 .containsOnly(AppnexusReqExtAppnexus.of(false, true));
     }

@@ -2,9 +2,9 @@ package org.prebid.server.handler;
 
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
