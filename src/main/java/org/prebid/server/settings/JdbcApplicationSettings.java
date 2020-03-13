@@ -42,11 +42,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     /**
      * Query to select stored requests and imps by ids, for example:
      * <pre>
-     * SELECT reqid, requestData, 'request' as dataType
+     * SELECT accountId, reqid, requestData, 'request' as dataType
      *   FROM stored_requests
      *   WHERE reqid in (%REQUEST_ID_LIST%)
      * UNION ALL
-     * SELECT impid, impData, 'imp' as dataType
+     * SELECT accountId, impid, impData, 'imp' as dataType
      *   FROM stored_imps
      *   WHERE impid in (%IMP_ID_LIST%)
      * </pre>
@@ -56,7 +56,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     /**
      * Query to select amp stored requests by ids, for example:
      * <pre>
-     * SELECT reqid, requestData, 'request' as dataType
+     * SELECT accountId, reqid, requestData, 'request' as dataType
      *   FROM stored_requests
      *   WHERE reqid in (%REQUEST_ID_LIST%)
      * </pre>
