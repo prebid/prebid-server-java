@@ -6,7 +6,6 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -34,7 +33,6 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
@@ -525,11 +523,6 @@ public class ServiceConfiguration {
     @Bean
     TimeoutFactory timeoutFactory(Clock clock) {
         return new TimeoutFactory(clock);
-    }
-
-    @Bean
-    LogModifier logModifier() {
-        return new LogModifier(LoggerFactory.getLogger(ServiceConfiguration.class));
     }
 
     @Bean
