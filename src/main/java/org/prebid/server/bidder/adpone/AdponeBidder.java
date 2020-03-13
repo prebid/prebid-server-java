@@ -5,14 +5,14 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.adpone.ExtImpAdpone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -30,15 +30,17 @@ public class AdponeBidder implements Bidder<BidRequest> {
     private static final String OPENRTB_VERSION = "2.5";
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public AdponeBidder(String endpointUrl) {
+    public AdponeBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         try {
-            Json.mapper.convertValue(bidRequest.getImp().get(0).getExt().get("bidder"), ExtImpAdpone.class);
+            mapper.mapper().convertValue(bidRequest.getImp().get(0).getExt().get("bidder"), ExtImpAdpone.class);
         } catch (IllegalArgumentException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
@@ -49,7 +51,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers()
                                 .add("x-openrtb-version", OPENRTB_VERSION))
-                        .body(Json.encode(bidRequest))
+                        .body(mapper.encode(bidRequest))
                         .payload(bidRequest)
                         .build()),
                 Collections.emptyList());
@@ -58,7 +60,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

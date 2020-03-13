@@ -1,0 +1,68 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId-video-cache-update",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "minduration": 15,
+        "maxduration": 60,
+        "protocols": [
+          1,
+          2
+        ],
+        "startdelay": 0,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          1
+        ]
+      },
+      "ext": {
+        "rp": {
+          "zone_id": 7001,
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 5001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 6001
+      },
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1",
+    "ext": {
+      "rp": {}
+    }
+  },
+  "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT"
+  },
+  "at": 1,
+  "tmax": 1900,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -41,12 +41,12 @@ public class PulsepointBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        pulsepointBidder = new PulsepointBidder(ENDPOINT_URL);
+        pulsepointBidder = new PulsepointBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new PulsepointBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new PulsepointBidder("invalid_url", jacksonMapper));
     }
 
     @Test

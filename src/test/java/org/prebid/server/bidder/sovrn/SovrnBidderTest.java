@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,6 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -48,7 +48,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        sovrnBidder = new SovrnBidder(ENDPOINT_URL);
+        sovrnBidder = new SovrnBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -146,8 +146,8 @@ public class SovrnBidderTest extends VertxTest {
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1, null))))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
                 .build();
 
         // when
@@ -170,9 +170,9 @@ public class SovrnBidderTest extends VertxTest {
                                 .bidfloor(null)
                                 .build()))
                         .user(User.builder()
-                                .ext(Json.mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
-                        .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
                         .build());
     }
 

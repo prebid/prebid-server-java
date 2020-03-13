@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class InterstitialProcessorTest extends VertxTest {
 
-    private InterstitialProcessor interstitialProcessor = new InterstitialProcessor();
+    private InterstitialProcessor interstitialProcessor = new InterstitialProcessor(jacksonMapper);
 
     @Test
     public void processShouldReturnBidRequestUpdatedWithImpsInterstitialFormat() {
@@ -225,8 +225,8 @@ public class InterstitialProcessorTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> interstitialProcessor.process(bidRequest))
                 .isExactlyInstanceOf(InvalidRequestException.class)
-                .hasMessageEndingWith(
-                        "Unable to read max interstitial size for Imp id=impId (No Device sizes and no Format objects)");
+                .hasMessageEndingWith("Unable to read max interstitial size for Imp id=impId (No Device sizes and no " +
+                        "Format objects)");
     }
 
     @Test

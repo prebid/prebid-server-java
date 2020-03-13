@@ -80,6 +80,12 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         return proxy.getAmpStoredData(accountId, requestIds, Collections.emptySet(), timeout);
     }
 
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
+        return proxy.getVideoStoredData(accountId, requestIds, impIds, timeout);
+    }
+
     /**
      * Runs a process to get stored responses by a collection of ids from a chain of retrievers
      * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;}.
@@ -136,6 +142,13 @@ public class CompositeApplicationSettings implements ApplicationSettings {
             return getStoredRequests(accountId, requestIds, Collections.emptySet(), timeout,
                     applicationSettings::getAmpStoredData,
                     next != null ? next::getAmpStoredData : null);
+        }
+
+        @Override
+        public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                           Timeout timeout) {
+            return getStoredRequests(accountId, requestIds, impIds, timeout,
+                    applicationSettings::getVideoStoredData, next != null ? next::getVideoStoredData : null);
         }
 
         @Override

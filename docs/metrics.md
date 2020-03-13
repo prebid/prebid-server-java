@@ -60,6 +60,7 @@ Following metrics are collected and submitted if account is configured with `det
 - `account.<account-id>.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
 - `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
+- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId` ([UnauthorizedAccountException.java](https://github.com/rubicon-project/prebid-server-java/blob/master/src/main/java/org/prebid/server/exception/UnauthorizedAccountException.java))
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received

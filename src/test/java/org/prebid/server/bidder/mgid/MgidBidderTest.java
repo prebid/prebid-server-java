@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -17,6 +16,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 
@@ -54,12 +54,13 @@ public class MgidBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        mgidBidder = new MgidBidder(ENDPOINT_URL);
+        mgidBidder = new MgidBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new MgidBidder("invalid_url"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new MgidBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -157,7 +158,7 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor() {
+    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor() throws JsonProcessingException {
         // given
         final String currency = "GRP";
         final BigDecimal bidFloor = new BigDecimal(10.3);
@@ -191,11 +192,11 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsOnly(Json.encode(expected));
+                .containsOnly(mapper.writeValueAsString(expected));
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurencyAndBidFloor() {
+    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurencyAndBidFloor() throws JsonProcessingException {
         // given
         final String currency = "GRP";
         final BigDecimal bidFloor = new BigDecimal(10.3);
@@ -229,11 +230,11 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsOnly(Json.encode(expected));
+                .containsOnly(mapper.writeValueAsString(expected));
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequestWhenImpExtNotContainsParamters() {
+    public void makeHttpRequestsShouldNotModifyIncomingRequestWhenImpExtNotContainsParamters() throws JsonProcessingException {
         // given
         final String placementId = "placID";
         final String impId = "impId";
@@ -266,7 +267,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsOnly(Json.encode(expected));
+                .containsOnly(mapper.writeValueAsString(expected));
     }
 
 
@@ -335,7 +336,7 @@ public class MgidBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnXNativeBidWhenBidIsPresentAndExtCrtypeIsNative() throws JsonProcessingException {
         // given
-        final ObjectNode crtypeNode = Json.mapper.createObjectNode().put("crtype", "native");
+        final ObjectNode crtypeNode = mapper.createObjectNode().put("crtype", "native");
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
@@ -355,7 +356,7 @@ public class MgidBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidWhenBidIsPresentAndExtCrtypeIsBlank() throws JsonProcessingException {
         // given
-        final ObjectNode crtypeNode = Json.mapper.createObjectNode().put("crtype", "");
+        final ObjectNode crtypeNode = mapper.createObjectNode().put("crtype", "");
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))

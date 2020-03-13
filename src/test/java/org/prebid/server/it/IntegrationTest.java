@@ -12,7 +12,6 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import io.vertx.core.json.Json;
 import org.json.JSONException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -133,8 +132,9 @@ public abstract class IntegrationTest extends VertxTest {
         return expectedResponseJson;
     }
 
-    private static String cacheResponseFromRequestJson(String requestAsString,
-                                                       String requestCacheIdMapFile) throws IOException {
+    private static String cacheResponseFromRequestJson(
+            String requestAsString, String requestCacheIdMapFile) throws IOException {
+
         try {
             final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
             final JsonNode jsonNodeMatcher =
@@ -150,7 +150,7 @@ public abstract class IntegrationTest extends VertxTest {
                 final String uuid = jsonNodeMatcher.get(id).textValue();
                 responseCacheObjects.add(CacheObject.of(uuid));
             }
-            return Json.encode(BidCacheResponse.of(responseCacheObjects));
+            return mapper.writeValueAsString(BidCacheResponse.of(responseCacheObjects));
         } catch (IOException e) {
             throw new IOException("Error while matching cache ids");
         }

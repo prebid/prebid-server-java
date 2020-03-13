@@ -47,12 +47,12 @@ public class BiddersHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(bidderCatalog.names()).willReturn(emptySet());
 
-        handler = new BiddersHandler(bidderCatalog);
+        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new BiddersHandler(null));
+        assertThatNullPointerException().isThrownBy(() -> new BiddersHandler(null, jacksonMapper));
     }
 
     @Test
@@ -72,7 +72,7 @@ public class BiddersHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.isActive(eq("bidder3"))).willReturn(false);
 
-        handler = new BiddersHandler(bidderCatalog);
+        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
 
         // when
         handler.handle(routingContext);
@@ -93,7 +93,7 @@ public class BiddersHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(eq("bidder1"))).willReturn(true);
         given(bidderCatalog.isActive(eq("bidder2"))).willReturn(false);
 
-        handler = new BiddersHandler(bidderCatalog);
+        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
 
         // when
         handler.handle(routingContext);

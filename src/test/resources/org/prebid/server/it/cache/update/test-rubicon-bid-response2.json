@@ -1,0 +1,21 @@
+{
+  "id": "bidResponseId2",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "31124",
+          "impid": "impId-video-cache-update",
+          "price": 3,
+          "adm": "adm1",
+          "crid": "crid1",
+          "dealid": "dealId1",
+          "w": 120,
+          "h": 600
+        }
+      ],
+      "seat": "seatId2",
+      "group": 0
+    }
+  ]
+}

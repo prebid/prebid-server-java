@@ -6,8 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -15,6 +13,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -33,11 +33,17 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final RequestCreationStrategy requestCreationStrategy;
     private final Class<T> extType;
+    protected final JacksonMapper mapper;
 
-    protected OpenrtbBidder(String endpointUrl, RequestCreationStrategy requestCreationStrategy, Class<T> extType) {
+    protected OpenrtbBidder(String endpointUrl,
+                            RequestCreationStrategy requestCreationStrategy,
+                            Class<T> extType,
+                            JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.requestCreationStrategy = Objects.requireNonNull(requestCreationStrategy);
         this.extType = extType;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -85,7 +91,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
 
     private T parseImpExt(Imp imp) {
         try {
-            return Json.mapper.convertValue(imp.getExt().get("bidder"), extType);
+            return mapper.mapper().convertValue(imp.getExt().get("bidder"), extType);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -156,7 +162,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         modifyRequest(bidRequest, requestBuilder, impsWithExts);
 
         final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = Json.encode(outgoingRequest);
+        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -203,7 +209,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));

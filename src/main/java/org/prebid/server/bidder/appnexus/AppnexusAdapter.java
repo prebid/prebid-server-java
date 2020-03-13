@@ -7,7 +7,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -26,6 +25,7 @@ import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -52,10 +52,12 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
     private final String endpointUrl;
+    private final JacksonMapper mapper;
 
-    public AppnexusAdapter(String cookieFamilyName, String endpointUrl) {
+    public AppnexusAdapter(String cookieFamilyName, String endpointUrl, JacksonMapper mapper) {
         super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -94,13 +96,13 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         return BidRequestWithUrl.of(bidRequest, endpointUrl(endpointUrl, adUnitBidsWithParams));
     }
 
-    private static List<AdUnitBidWithParams<AppnexusParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private List<AdUnitBidWithParams<AppnexusParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
-    private static AppnexusParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private AppnexusParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Appnexus params section is missing");
@@ -108,7 +110,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
 
         AppnexusParams params;
         try {
-            params = Json.mapper.convertValue(paramsNode, AppnexusParams.class);
+            params = mapper.mapper().convertValue(paramsNode, AppnexusParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
@@ -138,8 +140,8 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         return params;
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams<AppnexusParams>> adUnitBidsWithParams,
-                                      PreBidRequestContext preBidRequestContext) {
+    private List<Imp> makeImps(List<AdUnitBidWithParams<AppnexusParams>> adUnitBidsWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .filter(AppnexusAdapter::containsAnyAllowedMediaType)
                 .map(adUnitBidWithParams -> makeImp(adUnitBidWithParams, preBidRequestContext))
@@ -150,8 +152,8 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
     }
 
-    private static Imp makeImp(AdUnitBidWithParams<AppnexusParams> adUnitBidWithParams,
-                               PreBidRequestContext preBidRequestContext) {
+    private Imp makeImp(AdUnitBidWithParams<AppnexusParams> adUnitBidWithParams,
+                        PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final AppnexusParams params = adUnitBidWithParams.getParams();
 
@@ -161,7 +163,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 .secure(preBidRequestContext.getSecure())
                 .tagid(StringUtils.stripToNull(params.getInvCode()))
                 .bidfloor(bidfloor(params))
-                .ext(Json.mapper.valueToTree(makeImpExt(params)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(params)));
 
         final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
         if (mediaTypes.contains(MediaType.banner)) {
@@ -218,7 +220,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
             }
         }
 
-        return kvs.stream().collect(Collectors.joining(","));
+        return String.join(",", kvs);
     }
 
     private static String endpointUrl(String endpointUrl,
@@ -240,7 +242,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 .collect(Collectors.toList());
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest) {
+    private Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest) {
         final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
                 .bidder(adUnitBid.getBidderCode())
@@ -256,7 +258,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 .nurl(bid.getNurl());
     }
 
-    private static MediaType mediaTypeFor(ObjectNode bidExt) {
+    private MediaType mediaTypeFor(ObjectNode bidExt) {
         final AppnexusBidExtAppnexus appnexus = parseAppnexusBidExt(bidExt).getAppnexus();
         if (appnexus == null) {
             throw new PreBidException("bidResponse.bid.ext.appnexus should be defined");
@@ -279,14 +281,14 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         }
     }
 
-    private static AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {
+    private AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {
         if (bidExt == null) {
             throw new PreBidException("bidResponse.bid.ext should be defined for appnexus");
         }
 
         final AppnexusBidExt appnexusBidExt;
         try {
-            appnexusBidExt = Json.mapper.treeToValue(bidExt, AppnexusBidExt.class);
+            appnexusBidExt = mapper.mapper().treeToValue(bidExt, AppnexusBidExt.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }

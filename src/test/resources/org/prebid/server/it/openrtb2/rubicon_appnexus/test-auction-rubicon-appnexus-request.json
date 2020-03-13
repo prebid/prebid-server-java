@@ -44,9 +44,14 @@
           },
           "video": {
             "size_id": 15,
+            "playerWidth": 780,
+            "playerHeight": "438",
             "skip": 5,
             "skipdelay": 1
           }
+        },
+        "prebid": {
+          "is_rewarded_inventory": 1
         }
       }
     },
@@ -191,7 +196,6 @@
       "id": "5001"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 3000,
   "cur": [
@@ -203,6 +207,33 @@
   },
   "ext": {
     "prebid": {
+      "debug": 1,
+      "schains": [
+        {
+          "bidders": [
+            "rubicon"
+          ],
+          "schain": {
+            "ver": "1.0",
+            "complete": 1,
+            "nodes": [
+              {
+                "asi": "superads.com",
+                "sid": "123",
+                "hp": 1
+              }
+            ]
+          }
+        },
+        {
+          "bidders": [
+            "*"
+          ],
+          "schain": {
+            "ver": "1.0"
+          }
+        }
+      ],
       "bidders": {
         "rubicon": {
           "integration": "dmbjs"
@@ -282,6 +313,7 @@
   },
   "regs": {
     "ext": {
-      "us_privacy": "1YN"
+      "us_privacy": "1YNN"
     }
-  }}
+  }
+}

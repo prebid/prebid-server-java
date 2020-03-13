@@ -19,6 +19,10 @@
     <module name="RegexpMultiline">
         <property name="format" value="System\.(out|err)\.print"/>
     </module>
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
+    </module>
     <module name="SuppressWarningsFilter" />
     <module name="TreeWalker">
         <module name="Indentation">
@@ -31,14 +35,10 @@
             <property name="allowMultipleEmptyLines" value="false" />
             <property name="allowMultipleEmptyLinesInsideClassMembers" value="false" />
         </module>
-        <module name="LineLength">
-            <property name="max" value="120"/>
-            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
-        </module>
         <module name="NoLineWrap"/>
         <module name="NeedBraces"/>
         <module name="ConstantName">
-            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger)$" />
+            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger|conditionalLogger)$" />
         </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>
@@ -130,5 +130,23 @@
         <module name="StringLiteralEquality" />
         <module name="UnnecessaryParentheses"/>
         <module name="SuppressWarningsHolder" />
+
+        <!--
+        TODO schernysh 11.21.2019:
+        Ban usage of Vert.x Json object as it's being deprecated since Vert.x 3.8 branch.
+        This enforcement could be removed in a while when everyone feels comfortable without Json.
+        Suggested date of removal: 02.01.2020
+        Enforced by:
+        - "IllegalImport" just below
+        - "SuppressionSingleFilter" targeted at "BanVertxJsonImport" in the outer module
+        -->
+        <module name="IllegalImport">
+            <property name="id" value="BanVertxJsonImport"/>
+            <property name="illegalClasses" value="io.vertx.core.json.Json"/>
+        </module>
+    </module>
+    <module name="SuppressionSingleFilter">
+        <property name="id" value="BanVertxJsonImport"/>
+        <property name="files" value="src/main/java/org/prebid/server/json/ObjectMapperProvider.java"/>
     </module>
 </module>

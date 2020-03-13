@@ -45,7 +45,6 @@ The following is a "hello world" request which fetches the [Prebid sample ad](ht
       }
     }
   ],
-  "test": 1,
   "tmax": 500
 }
 ```
@@ -270,6 +269,7 @@ This can be used to request bids from the same Bidder with different params. For
   ],
   "ext": {
     "prebid": {
+      "debug": 1
       "aliases": {
         "districtm": "appnexus"
       }
@@ -469,12 +469,12 @@ When a storedauctionresponse ID is specified:
 This request:
 ```
 {
-  "test":1,
   "tmax":500,
   "id": "test-auction-id",
   "app": { ... },
   "ext": {
       "prebid": {
+             "debug": 1  
              "targeting": {},
              "cache": { "bids": {} }
        }
@@ -515,12 +515,12 @@ In contrast to what's outlined above, this approach lets some real auctions take
 
 ```
 {
-  "test":1,
   "tmax":500,
   "id": "test-auction-id",
   "app": { ... },
   "ext": {
       "prebid": {
+             "debug": 1
              "targeting": {},
              "cache": { "bids": {} }
        }

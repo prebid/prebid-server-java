@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,7 +58,7 @@ public class FileApplicationSettings implements ApplicationSettings {
 
         configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
-                config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
+                config -> ObjectUtils.defaultIfNull(config.getConfig(), StringUtils.EMPTY));
 
         this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
         this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
@@ -100,6 +99,12 @@ public class FileApplicationSettings implements ApplicationSettings {
     public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
                                                      Timeout timeout) {
         return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
+    }
+
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                       Timeout timeout) {
+        return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     /**
@@ -155,14 +160,9 @@ public class FileApplicationSettings implements ApplicationSettings {
      */
     private static Map<String, String> existingStoredIdToJson(Set<String> requestedIds,
                                                               Map<String, String> storedIdToJson) {
-        final Map<String, String> idToJson = new HashMap<>();
-        for (String id : requestedIds) {
-            final String json = storedIdToJson.get(id);
-            if (StringUtils.isNotBlank(json)) {
-                idToJson.put(id, json);
-            }
-        }
-        return idToJson;
+        return requestedIds.stream()
+                .filter(storedIdToJson::containsKey)
+                .collect(Collectors.toMap(Function.identity(), storedIdToJson::get));
     }
 
     /**

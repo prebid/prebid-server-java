@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.sovrn.SovrnAdapter;
 import org.prebid.server.bidder.sovrn.SovrnBidder;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,6 +31,9 @@ public class SovrnConfiguration {
     private String externalUrl;
 
     @Autowired
+    private JacksonMapper mapper;
+
+    @Autowired
     @Qualifier("sovrnConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
@@ -47,8 +51,9 @@ public class SovrnConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new SovrnBidder(configProperties.getEndpoint()))
-                .adapterCreator(() -> new SovrnAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint()))
+                .bidderCreator(() -> new SovrnBidder(configProperties.getEndpoint(), mapper))
+                .adapterCreator(() -> new SovrnAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
+                        mapper))
                 .assemble();
     }
 }

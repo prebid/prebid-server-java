@@ -6,7 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import io.vertx.core.json.Json;
+import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.sharethrough.model.Size;
@@ -25,10 +25,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SharethroughRequestUtilTest extends VertxTest {
 
+    private SharethroughRequestUtil requestUtil;
+
+    @Before
+    public void setUp() {
+        requestUtil = new SharethroughRequestUtil(jacksonMapper);
+    }
+
     @Test
     public void getPageShouldReturnNullWhenSiteIsNull() {
         // given when and then
-        assertThat(SharethroughRequestUtil.getPage(null)).isNull();
+        assertThat(requestUtil.getPage(null)).isNull();
     }
 
     @Test
@@ -38,16 +45,16 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final Site site = Site.builder().page(page).build();
 
         // when and then
-        assertThat(SharethroughRequestUtil.getPage(site)).isEqualTo(page);
+        assertThat(requestUtil.getPage(site)).isEqualTo(page);
     }
 
     @Test
     public void getHostShouldReturnEmptyStringWhenStringIsNotUri() {
         // given when and then
-        assertThat(SharethroughRequestUtil.getHost(null)).isEmpty();
-        assertThat(SharethroughRequestUtil.getHost("")).isEmpty();
-        assertThat(SharethroughRequestUtil.getHost("not uri")).isEmpty();
-        assertThat(SharethroughRequestUtil.getHost("asdsadqzx")).isEmpty();
+        assertThat(requestUtil.getHost(null)).isEmpty();
+        assertThat(requestUtil.getHost("")).isEmpty();
+        assertThat(requestUtil.getHost("not uri")).isEmpty();
+        assertThat(requestUtil.getHost("asdsadqzx")).isEmpty();
     }
 
     @Test
@@ -58,9 +65,9 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final String thirdUri = "http://a.domain.com:8000/page?param=value/";
 
         // when and then
-        assertThat(SharethroughRequestUtil.getHost(firstUri)).isEqualTo("https://rubiconproject.com");
-        assertThat(SharethroughRequestUtil.getHost(secondUri)).isEqualTo("http://a.domain.com");
-        assertThat(SharethroughRequestUtil.getHost(thirdUri)).isEqualTo("http://a.domain.com");
+        assertThat(requestUtil.getHost(firstUri)).isEqualTo("https://rubiconproject.com");
+        assertThat(requestUtil.getHost(secondUri)).isEqualTo("http://a.domain.com");
+        assertThat(requestUtil.getHost(thirdUri)).isEqualTo("http://a.domain.com");
     }
 
 
@@ -70,10 +77,10 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final UserInfo userInfo = UserInfo.of(null, null, null);
 
         // when and then
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(null, UserInfo::getConsent)).isEmpty();
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEmpty();
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEmpty();
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEmpty();
+        assertThat(requestUtil.retrieveFromUserInfo(null, UserInfo::getConsent)).isEmpty();
+        assertThat(requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEmpty();
+        assertThat(requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEmpty();
+        assertThat(requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEmpty();
     }
 
     @Test
@@ -85,9 +92,9 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final UserInfo userInfo = UserInfo.of(consent, ttduid, stxuid);
 
         // when and then
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEqualTo(consent);
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEqualTo(ttduid);
-        assertThat(SharethroughRequestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEqualTo(stxuid);
+        assertThat(requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent)).isEqualTo(consent);
+        assertThat(requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid)).isEqualTo(ttduid);
+        assertThat(requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid)).isEqualTo(stxuid);
     }
 
     @Test
@@ -97,8 +104,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
 
         // when and then
         final UserInfo expected = UserInfo.of(null, null, null);
-        assertThat(SharethroughRequestUtil.getUserInfo(null)).isEqualTo(expected);
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(requestUtil.getUserInfo(null)).isEqualTo(expected);
+        assertThat(requestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
@@ -106,11 +113,11 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // given
         final String consent = "con";
         final ExtUser extUser = ExtUser.builder().consent(consent).build();
-        final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().ext(mapper.valueToTree(extUser)).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(consent, null, null);
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(requestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
@@ -126,11 +133,11 @@ public class SharethroughRequestUtilTest extends VertxTest {
                 .consent(consent)
                 .eids(Collections.singletonList(extUserEid))
                 .build();
-        final User user = User.builder().buyeruid("buyerid").ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().buyeruid("buyerid").ext(mapper.valueToTree(extUser)).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(consent, "first", "buyerid");
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(requestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
@@ -149,18 +156,18 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder()
                 .eids(Arrays.asList(firstExtUserEid, secondExtUserEid))
                 .build();
-        final User user = User.builder().ext(Json.mapper.valueToTree(extUser)).build();
+        final User user = User.builder().ext(mapper.valueToTree(extUser)).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(null, "firstFromSecond", null);
-        assertThat(SharethroughRequestUtil.getUserInfo(user)).isEqualTo(expected);
+        assertThat(requestUtil.getUserInfo(user)).isEqualTo(expected);
     }
 
     @Test
     public void canBrowserAutoPlayVideoShouldReturnFalseWhenUserAgentIsBlank() {
         // given when and then
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(null)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo("")).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(null)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo("")).isFalse();
     }
 
     @Test
@@ -170,8 +177,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final String secondUserAgent = "very very strange behavior";
 
         // when and then
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(firstUserAgent)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(secondUserAgent)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(firstUserAgent)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(secondUserAgent)).isTrue();
     }
 
     @Test
@@ -188,15 +195,15 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final String iosSafariUserAgent3 = "iPad Version/14.0";
 
         // when and then
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2)).isTrue();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(androidUserAgent1)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(androidUserAgent2)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(androidUserAgent3)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2)).isTrue();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3)).isTrue();
     }
 
     @Test
@@ -213,49 +220,49 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final String iosSafariUserAgent3 = "iPad Version/1.0";
 
         // when and then
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent1)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent2)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(androidUserAgent3)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2)).isFalse();
-        assertThat(SharethroughRequestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(androidUserAgent1)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(androidUserAgent2)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(androidUserAgent3)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent1)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent2)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosChromeUserAgent3)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent1)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent2)).isFalse();
+        assertThat(requestUtil.canBrowserAutoPlayVideo(iosSafariUserAgent3)).isFalse();
     }
 
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsOrRegsExtIsNull() {
         // given
         final Regs regs = Regs.of(null, null);
-        final Regs regsWithGdprNull = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(null, null)));
+        final Regs regsWithGdprNull = Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null)));
 
         // when and then
-        assertThat(SharethroughRequestUtil.isConsentRequired(null)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regs)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWithGdprNull)).isFalse();
+        assertThat(requestUtil.isConsentRequired(null)).isFalse();
+        assertThat(requestUtil.isConsentRequired(regs)).isFalse();
+        assertThat(requestUtil.isConsentRequired(regsWithGdprNull)).isFalse();
     }
 
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsExtIsNot1() {
         // given
-        final Regs regsWith3 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(3, null)));
-        final Regs regsWith0 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(0, null)));
-        final Regs regsWith100 = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(100, null)));
+        final Regs regsWith3 = Regs.of(null, mapper.valueToTree(ExtRegs.of(3, null)));
+        final Regs regsWith0 = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
+        final Regs regsWith100 = Regs.of(null, mapper.valueToTree(ExtRegs.of(100, null)));
 
         // when and then
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith0)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith3)).isFalse();
-        assertThat(SharethroughRequestUtil.isConsentRequired(regsWith100)).isFalse();
+        assertThat(requestUtil.isConsentRequired(regsWith0)).isFalse();
+        assertThat(requestUtil.isConsentRequired(regsWith3)).isFalse();
+        assertThat(requestUtil.isConsentRequired(regsWith100)).isFalse();
     }
 
     @Test
     public void isConsentRequiredShouldReturnTrueWhenRegsExtIs1() {
         // given
-        final Regs regs = Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1, null)));
+        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
 
         // when and then
-        assertThat(SharethroughRequestUtil.isConsentRequired(regs)).isTrue();
+        assertThat(requestUtil.isConsentRequired(regs)).isTrue();
     }
 
     @Test
@@ -269,8 +276,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // when and then
         final Size expected = Size.of(1, 1);
 
-        assertThat(SharethroughRequestUtil.getSize(notBannerImp, extImpSharethrough)).isEqualTo(expected);
-        assertThat(SharethroughRequestUtil.getSize(bannerImpEmptyFormat, extImpSharethrough)).isEqualTo(expected);
+        assertThat(requestUtil.getSize(notBannerImp, extImpSharethrough)).isEqualTo(expected);
+        assertThat(requestUtil.getSize(bannerImpEmptyFormat, extImpSharethrough)).isEqualTo(expected);
     }
 
     @Test
@@ -284,7 +291,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // when and then
         final Size expected = Size.of(100, 100);
 
-        assertThat(SharethroughRequestUtil.getSize(imp, extImpSharethrough)).isEqualTo(expected);
+        assertThat(requestUtil.getSize(imp, extImpSharethrough)).isEqualTo(expected);
     }
 
     @Test
@@ -301,7 +308,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // when and then
         final Size expected = Size.of(320, 300);
 
-        assertThat(SharethroughRequestUtil.getSize(imp, extImpSharethrough)).isEqualTo(expected);
+        assertThat(requestUtil.getSize(imp, extImpSharethrough)).isEqualTo(expected);
     }
 }
 

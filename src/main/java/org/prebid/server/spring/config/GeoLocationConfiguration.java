@@ -75,9 +75,10 @@ public class GeoLocationConfiguration {
                     .setMaxRedirects(httpClientProperties.getMaxRedirects());
 
             final RemoteFileSyncer remoteFileSyncer = RemoteFileSyncer.create(fileSyncerProperties.getDownloadUrl(),
-                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getRetryCount(),
-                    fileSyncerProperties.getRetryIntervalMs(), fileSyncerProperties.getTimeoutMs(),
-                    vertx.createHttpClient(httpClientOptions), vertx);
+                    fileSyncerProperties.getSaveFilepath(), fileSyncerProperties.getTmpFilepath(),
+                    fileSyncerProperties.getRetryCount(), fileSyncerProperties.getRetryIntervalMs(),
+                    fileSyncerProperties.getTimeoutMs(), fileSyncerProperties.getUpdateIntervalMs(),
+                    vertx.createHttpClient(httpClientOptions), vertx, vertx.fileSystem());
             final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
             remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);

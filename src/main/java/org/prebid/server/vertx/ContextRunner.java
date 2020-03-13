@@ -1,8 +1,8 @@
 package org.prebid.server.vertx;
 
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -39,25 +39,26 @@ public class ContextRunner {
      * Runs provided action specified number of times each in a new context. This method is handy for
      * running several instances of {@link io.vertx.core.http.HttpServer} on different event loop threads.
      */
-    public <T> void runOnNewContext(int times, Handler<Future<T>> action) {
+    public <T> void runOnNewContext(int times, Handler<Promise<T>> action) {
         runOnContext(vertx::getOrCreateContext, times, action);
     }
 
     /**
      * Runs provided action on a dedicated service context.
      */
-    public <T> void runOnServiceContext(Handler<Future<T>> action) {
+    public <T> void runOnServiceContext(Handler<Promise<T>> action) {
         runOnContext(() -> serviceContext, 1, action);
     }
 
-    private <T> void runOnContext(Supplier<Context> contextFactory, int times, Handler<Future<T>> action) {
+    private <T> void runOnContext(Supplier<Context> contextFactory, int times, Handler<Promise<T>> action) {
         final CountDownLatch completionLatch = new CountDownLatch(times);
         final AtomicBoolean actionFailed = new AtomicBoolean(false);
 
         for (int i = 0; i < times; i++) {
             final Context context = contextFactory.get();
 
-            final Future<T> future = Future.<T>future().setHandler(ar -> {
+            final Promise<T> promise = Promise.promise();
+            promise.future().setHandler(ar -> {
                 if (ar.failed()) {
                     logger.fatal("Fatal error occurred while running action on Vertx context", ar.cause());
                     actionFailed.compareAndSet(false, true);
@@ -67,9 +68,9 @@ public class ContextRunner {
 
             context.runOnContext(v -> {
                 try {
-                    action.handle(future);
+                    action.handle(promise);
                 } catch (RuntimeException e) {
-                    future.fail(e);
+                    promise.fail(e);
                 }
             });
         }

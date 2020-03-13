@@ -40,14 +40,18 @@ public class GdprService {
     private static final String GDPR_ZERO = "0";
     private static final String GDPR_ONE = "1";
 
+    private final List<String> eeaCountries;
+    private final String gdprDefaultValue;
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
-    private final List<String> eeaCountries;
     private final VendorListService vendorListService;
-    private final String gdprDefaultValue;
 
-    public GdprService(GeoLocationService geoLocationService, Metrics metrics, VendorListService vendorListService,
-                       List<String> eeaCountries, String gdprDefaultValue) {
+    public GdprService(List<String> eeaCountries,
+                       String gdprDefaultValue,
+                       GeoLocationService geoLocationService,
+                       Metrics metrics,
+                       VendorListService vendorListService) {
+
         this.geoLocationService = geoLocationService;
         this.metrics = Objects.requireNonNull(metrics);
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
@@ -232,7 +236,7 @@ public class GdprService {
             return geoLocationService.lookup(ipAddress, timeout)
                     .map(GeoInfo::getCountry)
                     .map(resolvedCountry -> createGdprInfoWithCountry(gdprConsent, resolvedCountry))
-                    .otherwise(updateMetricsAndReturnDefault(gdprConsent));
+                    .otherwise(exception -> updateMetricsAndReturnDefault(exception, gdprConsent));
         }
 
         // use default
@@ -280,7 +284,8 @@ public class GdprService {
     /**
      * Updates Geo {@link Metrics} and returns default {@link GdprInfoWithCountry}.
      */
-    private GdprInfoWithCountry updateMetricsAndReturnDefault(String gdprConsent) {
+    private GdprInfoWithCountry updateMetricsAndReturnDefault(Throwable exception, String gdprConsent) {
+        logger.info("Geolocation lookup failed", exception);
         metrics.updateGeoLocationMetric(false);
         return defaultGdprInfoWithCountry(gdprConsent);
     }

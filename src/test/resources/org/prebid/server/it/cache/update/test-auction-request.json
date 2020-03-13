@@ -9,9 +9,23 @@
           }
         }
       }
+    },
+    {
+      "video": {
+        "minduration": 15
+      },
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-rubicon-stored-video-cache-update"
+          },
+          "options": {
+            "echovideoattrs": true
+          }
+        }
+      }
     }
   ],
-  "test": 1,
   "at": 1,
   "tmax": 1900,
   "cur": [

@@ -21,12 +21,12 @@ import java.util.Set;
 public interface ApplicationSettings {
 
     /**
-     * Returns {@link Account} info for the given account ID.
+     * Returns {@link Account} for the given account ID.
      */
     Future<Account> getAccountById(String accountId, Timeout timeout);
 
     /**
-     * Returns AddUnitConfig info for the given adUnit config ID.
+     * Returns configuration for the given adUnit config ID.
      */
     Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout);
 
@@ -41,6 +41,12 @@ public interface ApplicationSettings {
      */
     Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
                                               Timeout timeout);
+
+    /**
+     * Fetches Video stored requests and imps by IDs.
+     */
+    Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
+                                                Timeout timeout);
 
     /**
      * Fetches stored response by IDs.

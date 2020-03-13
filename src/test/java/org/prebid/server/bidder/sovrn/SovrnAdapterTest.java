@@ -77,19 +77,19 @@ public class SovrnAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new SovrnAdapter(COOKIE_FAMILY, ENDPOINT_URL);
+        adapter = new SovrnAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(COOKIE_FAMILY, null));
+        assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(null, null, jacksonMapper));
+        assertThatNullPointerException().isThrownBy(() -> new SovrnAdapter(COOKIE_FAMILY, null, jacksonMapper));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new SovrnAdapter(COOKIE_FAMILY, "invalid_url"))
+                .isThrownBy(() -> new SovrnAdapter(COOKIE_FAMILY, "invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
