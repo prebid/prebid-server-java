@@ -407,7 +407,7 @@ public class ServiceConfiguration {
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
             JacksonMapper mapper,
-            @Value("${auction.generate-bid-id:#{false}}") Boolean generateBidId) {
+            @Value("${auction.generate-bid-id}") Boolean generateBidId) {
 
         return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
                 mapper, generateBidId);

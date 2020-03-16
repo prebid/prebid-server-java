@@ -106,19 +106,23 @@ public class BidResponseCreator {
         this.mapper = Objects.requireNonNull(mapper);
 
         if (generateBidId) {
-            overwriteBidIdConsumer = bidderResponses -> {
-                bidderResponses.getSeatbid().stream()
-                        .map(SeatBid::getBid)
-                        .forEach(bids -> bids.stream()
-                                .filter(Objects::nonNull)
-                                .forEach(this::replaceBidId));
-
-            };
+            overwriteBidIdConsumer = overwriteBidIdConsumer();
         } else {
             overwriteBidIdConsumer = bidderResponses -> {
             };
         }
 
+    }
+
+    private Consumer<BidResponse> overwriteBidIdConsumer() {
+        return bidderResponses -> {
+            bidderResponses.getSeatbid().stream()
+                    .map(SeatBid::getBid)
+                    .forEach(bids -> bids.stream()
+                            .filter(Objects::nonNull)
+                            .forEach(this::replaceBidId));
+
+        };
     }
 
     private void replaceBidId(Bid bid) {
