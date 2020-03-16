@@ -396,7 +396,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).hasSize(1);
         assertThat(bidResponse.getSeatbid().get(0).getBid()).hasSize(1);
         final ExtBidPrebid ext = mapper.readValue(bidResponse.getSeatbid().get(0).getBid().get(0)
-                .getExt().get("bidder").get("prebid").toString(), ExtBidPrebid.class);
+                .getExt().get("prebid").toString(), ExtBidPrebid.class);
         assertThat(ext.getBidId()).isNotNull();
 
         System.out.println(ext.getBidId());

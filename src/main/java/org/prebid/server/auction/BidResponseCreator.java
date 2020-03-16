@@ -91,7 +91,7 @@ public class BidResponseCreator {
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
     private final StoredRequestProcessor storedRequestProcessor;
-    private final Consumer<List<BidderResponse>> overwriteBidIdConsumer;
+    private final Consumer<BidResponse> overwriteBidIdConsumer;
 
     public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -107,24 +107,18 @@ public class BidResponseCreator {
 
         if (generateBidId) {
             overwriteBidIdConsumer = bidderResponses -> {
-                if (CollectionUtils.isNotEmpty(bidderResponses)) {
-                    bidderResponses.stream()
-                            .filter(Objects::nonNull)
-                            .map(BidderResponse::getSeatBid)
-                            .filter(Objects::nonNull)
-                            .map(BidderSeatBid::getBids)
-                            .filter(Objects::nonNull)
-                            .forEach(bidderBids -> bidderBids.stream()
-                                    .filter(Objects::nonNull)
-                                    .map(BidderBid::getBid)
-                                    .filter(Objects::nonNull)
-                                    .forEach(this::replaceBidId));
-                }
+                bidderResponses.getSeatbid().stream()
+                        .map(SeatBid::getBid)
+                        .forEach(bids -> bids.stream()
+                                .filter(Objects::nonNull)
+                                .forEach(this::replaceBidId));
+
             };
         } else {
             overwriteBidIdConsumer = bidderResponses -> {
             };
         }
+
     }
 
     private void replaceBidId(Bid bid) {
@@ -167,7 +161,6 @@ public class BidResponseCreator {
                             CacheServiceResult.empty(), VideoStoredDataResult.empty(), debugEnabled, null)))
                     .build());
         } else {
-            overwriteBidIdConsumer.accept(bidderResponses);
             final Set<Bid> winningBids = newOrEmptySet(targeting);
             final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
@@ -560,12 +553,14 @@ public class BidResponseCreator {
                 toExtBidResponse(bidderResponses, bidRequest, cacheResult, videoStoredDataResult,
                         debugEnabled, bidErrors);
 
-        return BidResponse.builder()
+        BidResponse response = BidResponse.builder()
                 .id(bidRequest.getId())
                 .cur(bidRequest.getCur().get(0))
                 .seatbid(seatBids)
                 .ext(mapper.mapper().valueToTree(extBidResponse))
                 .build();
+        overwriteBidIdConsumer.accept(response);
+        return response;
     }
 
     private Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, Timeout timeout) {
