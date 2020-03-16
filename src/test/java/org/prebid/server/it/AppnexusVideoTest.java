@@ -38,8 +38,12 @@ public class AppnexusVideoTest extends IntegrationTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/video/test-cache-video-appnexus-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/video/test-cache-video-appnexus-response.json"))));
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/video/test-video-cache-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/video/test-video-cache-response-matcher.json")));
 
         // when
         final Response response = given(spec)
@@ -56,4 +60,3 @@ public class AppnexusVideoTest extends IntegrationTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
-
