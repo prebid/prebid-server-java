@@ -86,8 +86,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.*;
 
 public class BidResponseCreatorTest extends VertxTest {
 
@@ -371,16 +370,18 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldOverwriteBidderIdToUUID() {
+    public void shouldOverwriteBidderIdToUUID() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest();
 
+        final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null);
         final Bid bid = Bid.builder()
                 .id("123")
                 .impid("imp123")
                 .w(123)
                 .h(123)
                 .price(BigDecimal.ONE)
+                .ext(mapper.valueToTree(prebid))
                 .build();
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
@@ -394,8 +395,11 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1);
         assertThat(bidResponse.getSeatbid().get(0).getBid()).hasSize(1);
-        assertThat(bidResponse.getSeatbid().get(0).getBid().get(0).getId()).isNotEqualTo("123");
+        final ExtBidPrebid ext = mapper.readValue(bidResponse.getSeatbid().get(0).getBid().get(0)
+                .getExt().get("bidder").get("prebid").toString(), ExtBidPrebid.class);
+        assertThat(ext.getBidId()).isNotNull();
 
+        System.out.println(ext.getBidId());
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
     }
 
@@ -422,7 +426,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .price(BigDecimal.ONE)
                         .adm("adm")
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                ExtBidPrebid.of(banner, null, null, null, null, null), singletonMap("bidExt", 1))))
+                                ExtBidPrebid.builder().type(banner).build(), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
 
@@ -557,7 +561,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null, null, null), null)))
+                                ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null)))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());

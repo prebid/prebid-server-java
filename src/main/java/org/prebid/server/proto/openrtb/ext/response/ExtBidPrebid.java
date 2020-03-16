@@ -2,17 +2,19 @@ package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.iab.openrtb.request.Video;
-import lombok.AllArgsConstructor;
-import lombok.Value;
+import lombok.Builder;
+import lombok.Data;
 
 import java.util.Map;
 
 /**
  * Defines the contract for bidresponse.seatbid.bid[i].ext.prebid
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Builder(toBuilder = true)
+@Data
 public class ExtBidPrebid {
+
+    String bidId;
 
     BidType type;
 
