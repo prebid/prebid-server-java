@@ -374,15 +374,15 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldStoreWinUrl() throws JsonProcessingException {
         // given
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
+        account = Account.builder().id("accountId").build();
 
         // when
-        account = Account.builder().id("accountId").build();
         cacheService.cacheBidsOpenrtb(
                 singletonList(bid), singletonList(givenImp(builder -> builder.id("impId1"))),
                 CacheContext.builder().shouldCacheBids(true).build(), Account.builder().id("accountId").build(), timeout);
 
         // then
-        verify(eventsService).winUrlCaching(eq("bidId1"), eq("accountId"));
+        verify(eventsService).winUrl(eq("bidId1"), eq("accountId"));
     }
 
     @Test
@@ -391,7 +391,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
@@ -412,7 +412,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, "response");
 
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
@@ -434,7 +434,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "response");
 
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
@@ -456,7 +456,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "{}");
 
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
@@ -477,7 +477,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldReturnExpectedDebugInfo() throws JsonProcessingException {
         // given
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bidId1").impid("impId1"));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
@@ -514,7 +514,7 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId2").adm("adm2"));
         final Imp imp1 = givenImp(identity());
         final Imp imp2 = givenImp(builder -> builder.id("impId2").video(Video.builder().build()));
-        given(eventsService.winUrlCaching(any(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(any(), any())).willReturn("http://win-url");
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -746,8 +746,7 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1").adm("adm1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId1").nurl("adm2"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
-        given(eventsService.winUrlCaching(any(), any())).willReturn("http://win-url");
-        given(eventsService.winUrlCaching(any(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(any(), any())).willReturn("http://win-url");
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -778,7 +777,7 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
                 .adm("adm"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
@@ -801,7 +800,7 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
                 .adm("no impression tag"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
@@ -826,7 +825,7 @@ public class CacheServiceTest extends VertxTest {
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         given(eventsService.vastUrlTracking(any(), any()))
                 .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(bid), singletonList(imp1), CacheContext.builder()
@@ -859,8 +858,7 @@ public class CacheServiceTest extends VertxTest {
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         given(eventsService.vastUrlTracking(any(), any()))
                 .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
-
-        given(eventsService.winUrlCaching(anyString(), any())).willReturn("http://win-url");
+        given(eventsService.winUrl(anyString(), any())).willReturn("http://win-url");
 
         // when
         account = Account.builder().id("accountId").build();

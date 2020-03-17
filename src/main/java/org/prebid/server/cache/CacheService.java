@@ -384,9 +384,9 @@ public class CacheService {
      * add winn url.
      */
     private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid, String accountId) {
-        final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
+        final var bid = cacheBid.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(cacheBid.getBid());
-        final String wurl = eventsService.winUrlCaching(bid.getId(), accountId);
+        final String wurl = eventsService.winUrl(bid.getId(), accountId);
         bidObjectNode.put("wurl", wurl);
 
         return PutObject.builder()

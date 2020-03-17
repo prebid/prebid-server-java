@@ -32,9 +32,9 @@ public class EventsService {
     }
 
     /**
-     * Returns value for caching winurl keyword in request.
+     * Returns value for win URL tracking.
      */
-    public String winUrlCaching(String bidId, String accountId) {
+    public String winUrl(String bidId, String accountId) {
         return eventUrl(EventRequest.Type.win, bidId, accountId, EventRequest.Format.image);
     }
 
