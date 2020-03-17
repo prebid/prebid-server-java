@@ -32,7 +32,7 @@ public class EventsService {
     }
 
     /**
-     * Returns value for win URL tracking.
+     * Returns url for win tracking.
      */
     public String winUrl(String bidId, String accountId) {
         return eventUrl(EventRequest.Type.win, bidId, accountId, EventRequest.Format.image);

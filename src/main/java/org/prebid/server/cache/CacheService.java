@@ -380,14 +380,13 @@ public class CacheService {
     }
 
     /**
-     * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request and
-     * add winn url.
+     * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}.
+     * Used for OpenRTB auction request. Also, adds win url to result object.
      */
     private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid, String accountId) {
-        final var bid = cacheBid.getBid();
-        final ObjectNode bidObjectNode = mapper.mapper().valueToTree(cacheBid.getBid());
-        final String wurl = eventsService.winUrl(bid.getId(), accountId);
-        bidObjectNode.put("wurl", wurl);
+        final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
+        final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
+        bidObjectNode.put("wurl", eventsService.winUrl(bid.getId(), accountId));
 
         return PutObject.builder()
                 .type("json")
