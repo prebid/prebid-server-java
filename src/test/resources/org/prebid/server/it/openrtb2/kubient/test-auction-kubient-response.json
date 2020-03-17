@@ -54,7 +54,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"w\":1024,\"h\":576}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-banner-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"advertsite.com\"],\"cid\":\"772\",\"crid\":\"29681110\",\"w\":1024,\"h\":576,\"wurl\":\"http://localhost:8000/event?t=win&b=7706636740145184841&a=publisherId&f=i\"}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"78f9a6dd-d08c-4b80-ba0f-0159b9add9bf\"}]}",
             "status": 200
           }

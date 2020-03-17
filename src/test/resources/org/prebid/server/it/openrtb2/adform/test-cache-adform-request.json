@@ -9,7 +9,8 @@
         "adm": "banner",
         "crid": "crid12",
         "w": 400,
-        "h": 300
+        "h": 300,
+        "wurl": "http://localhost:8000/event?t=win&b=impId12&a=publisherId&f=i"
       }
     }
   ]
