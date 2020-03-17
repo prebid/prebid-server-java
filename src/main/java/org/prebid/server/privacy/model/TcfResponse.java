@@ -1,12 +1,10 @@
 package org.prebid.server.privacy.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.Map;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class TcfResponse {
 
     /**
@@ -14,10 +12,12 @@ public class TcfResponse {
      */
     boolean userInGdprScope;
 
+    Map<String, PrivacyEnforcementAction> bidderNameToAction;
+
     /**
      * Gdpr processing result map where key is vendor ID and value is GDPR allowed flag.
      */
-    Map<String, PrivacyEnforcementAction> vendorsToGdpr;
+    Map<Integer, PrivacyEnforcementAction> vendorIdToAction;
 
     /**
      * Defines a country where user comes from.

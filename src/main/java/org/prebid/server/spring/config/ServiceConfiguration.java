@@ -41,6 +41,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
@@ -380,6 +381,11 @@ public class ServiceConfiguration {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
         return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, vendorListService);
+    }
+
+    @Bean
+    TcfDefinerService tcfDefinerService() {
+        return new TcfDefinerService();
     }
 
     @Bean

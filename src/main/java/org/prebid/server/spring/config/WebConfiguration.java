@@ -54,6 +54,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
+import org.prebid.server.privacy.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
@@ -309,7 +310,7 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
@@ -319,7 +320,7 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
+                tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
                 coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
