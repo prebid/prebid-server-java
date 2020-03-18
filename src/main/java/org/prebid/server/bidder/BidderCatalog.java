@@ -124,6 +124,19 @@ public class BidderCatalog {
     }
 
     /**
+     * Returns an VendorId registered by the given name or null if there is none.
+     * <p>
+     * Therefore this method should be called only for names that previously passed validity check
+     * through calling {@link #isValidName(String)}.
+     */
+    public Integer vendorIdByName(String name) {
+        final BidderDeps bidderDeps = bidderDepsMap.get(name);
+        final BidderInfo bidderInfo = bidderDeps != null ? bidderDeps.getBidderInfo() : null;
+        final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
+        return gdprInfo != null ? gdprInfo.getVendorId() : null;
+    }
+
+    /**
      * Returns an {@link Usersyncer} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check

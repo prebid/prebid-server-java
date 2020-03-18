@@ -25,11 +25,11 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.TcfDefinerService;
 import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.privacy.model.PrivacyEnforcementAction;
-import org.prebid.server.privacy.model.TcfResponse;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
@@ -165,7 +165,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
         tcfDefinerService.resultFor(
-                biddersToSync, Collections.singleton(gdprHostVendorId), gdprAsString, gdprConsent, ip, timeout)
+                Collections.singleton(gdprHostVendorId), biddersToSync, gdprAsString, gdprConsent, ip, timeout)
                 .setHandler(asyncResult ->
                         handleResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
     }
@@ -245,12 +245,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         } else {
             final TcfResponse tcfResponse = asyncResult.result();
 
-            final PrivacyEnforcementAction hostActions = tcfResponse.getVendorIdToAction().get(gdprHostVendorId);
+            final PrivacyEnforcementAction hostActions = tcfResponse.getVendorIdToActionMap().get(gdprHostVendorId);
             if (hostActions == null || hostActions.isBlockPixelSync()) {
                 // host vendor should be allowed by TCF verification
                 respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_TCF);
             } else {
-                final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getBidderNameToAction();
+                final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getBidderNameToActionMap();
 
                 final Set<String> biddersRejectedByTcf = biddersToSync.stream()
                         .filter(bidder ->

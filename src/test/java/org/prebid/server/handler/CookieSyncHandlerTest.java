@@ -25,9 +25,9 @@ import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.TcfDefinerService;
-import org.prebid.server.privacy.model.PrivacyEnforcementAction;
-import org.prebid.server.privacy.model.TcfResponse;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -1056,7 +1056,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                         vendorId -> PrivacyEnforcementAction.builder().blockPixelSync(false).build()));
 
         given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, bidderNameToAction, vendorIdToAction, null)));
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToAction, bidderNameToAction, null)));
     }
 
     private static Buffer givenRequestBody(CookieSyncRequest request) {

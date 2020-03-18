@@ -41,10 +41,19 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
-import org.prebid.server.privacy.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.Tcf2Service;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeOneStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.GdprConfig;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.Purposes;
+import org.prebid.server.settings.model.SpecialFeature;
+import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -376,16 +385,73 @@ public class ServiceConfiguration {
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue,
             @Autowired(required = false) GeoLocationService geoLocationService,
+            BidderCatalog bidderCatalog,
             Metrics metrics,
             VendorListService vendorListService) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, vendorListService);
+        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, bidderCatalog,
+                vendorListService);
     }
 
     @Bean
-    TcfDefinerService tcfDefinerService() {
-        return new TcfDefinerService();
+    Tcf2Service tcf2Service(
+            GdprConfig gdprConfig,
+            BidderCatalog bidderCatalog,
+            List<PurposeStrategy> purposeStrategies) {
+
+        return new Tcf2Service(gdprConfig, bidderCatalog, purposeStrategies);
+    }
+
+    @Bean
+    PurposeOneStrategy purposeOneStrategy(BasicTypeStrategy basicTypeStrategy) {
+        return new PurposeOneStrategy(basicTypeStrategy);
+    }
+
+    @Bean
+    BasicTypeStrategy basicTypeStrategy() {
+        return new BasicTypeStrategy();
+    }
+
+    @Bean
+    TcfDefinerService tcfDefinerService(
+            GdprConfig gdprConfig,
+            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
+            GdprService gdprService,
+            Tcf2Service tcf2Service,
+            @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics) {
+
+        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
+        return new TcfDefinerService(gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, metrics);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr")
+    GdprConfig gdprConfig() {
+        return new GdprConfig();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.purposes")
+    Purposes purposes() {
+        return new Purposes();
+    }
+
+    @Bean
+    Purpose purpose() {
+        return new Purpose();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.special-features")
+    SpecialFeatures specialFeatures() {
+        return new SpecialFeatures();
+    }
+
+    @Bean
+    SpecialFeature specialFeature() {
+        return new SpecialFeature();
     }
 
     @Bean
