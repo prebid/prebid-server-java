@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -162,14 +164,15 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldCallAdminManagerIfOneOfAccountIdsIsNull() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+                .willReturn(Future.succeededFuture(givenAuctionContext(requestBuilder ->
+                        requestBuilder.site(Site.builder().publisher(Publisher.builder().id("").build()).build()))));
         given(adminManager.contains(AdminManager.ADMIN_TIME_KEY)).willReturn(true);
 
         // when
         ampHandler.handle(routingContext);
 
         // then
-        verify(adminManager).accept(eq(AdminManager.ADMIN_TIME_KEY), any(), any());
+        verify(adminManager).accept(eq(AdminManager.ADMIN_TIME_KEY), any(), eq("site.publisher.id is null"));
     }
 
     @Test

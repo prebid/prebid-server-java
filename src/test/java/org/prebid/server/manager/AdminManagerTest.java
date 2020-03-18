@@ -10,8 +10,9 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.function.BiConsumer;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 
 public class AdminManagerTest {

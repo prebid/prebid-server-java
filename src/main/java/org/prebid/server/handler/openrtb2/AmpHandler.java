@@ -53,7 +53,6 @@ import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -150,31 +149,45 @@ public class AmpHandler implements Handler<RoutingContext> {
     private AuctionContext validateAccount(AuctionContext context) {
         if (adminManager.contains(AdminManager.ADMIN_TIME_KEY)) {
 
-            try {
-                final List<String> accountIds = new ArrayList<>();
-                accountIds.add(context.getBidRequest().getSite().getPublisher().getId());
-                accountIds.add(context.getBidRequest().getApp().getPublisher().getId());
-                accountIds.add(context.getAccount().getId());
-                accountIds.addAll(context.getBidRequest().getImp().stream()
-                        .map(Imp::getExt)
-                        .map(this::parseExtImpRubicon)
-                        .filter(Objects::nonNull)
-                        .map(ExtImpRubicon::getAccountId)
-                        .map(String::valueOf)
-                        .collect(Collectors.toList()));
-
-                if (accountIds.contains(null)) {
-                    printLog();
+            if (context != null) {
+                if (context.getAccount() != null && StringUtils.isEmpty(context.getAccount().getId())) {
+                    adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "account.id is null");
+                    return context;
                 }
-            } catch (NullPointerException e) {
-                printLog();
+                final BidRequest bidRequest = context.getBidRequest();
+                if (bidRequest != null) {
+                    if (bidRequest.getSite() != null && bidRequest.getSite().getPublisher() != null
+                            && StringUtils.isEmpty(bidRequest.getSite().getPublisher().getId())) {
+                        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
+                                "site.publisher.id is null");
+                        return context;
+                    }
+
+                    if (bidRequest.getApp() != null && bidRequest.getApp().getPublisher() != null
+                            && StringUtils.isEmpty(bidRequest.getApp().getPublisher().getId())) {
+                        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
+                                "app.publisher.id is null");
+                        return context;
+                    }
+                    if (bidRequest.getImp() != null) {
+                        final List<String> accountIdList = bidRequest.getImp().stream()
+                                .map(Imp::getExt)
+                                .map(this::parseExtImpRubicon)
+                                .filter(Objects::nonNull)
+                                .map(ExtImpRubicon::getAccountId)
+                                .map(String::valueOf)
+                                .collect(Collectors.toList());
+
+                        if (accountIdList.contains(null)) {
+                            adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
+                                    "imp[].ext.rubicon.accountId is null");
+                            return context;
+                        }
+                    }
+                }
             }
         }
         return context;
-    }
-
-    private void printLog() {
-        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "accountId is null");
     }
 
     private ExtImpRubicon parseExtImpRubicon(ObjectNode ext) {

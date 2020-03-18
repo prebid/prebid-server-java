@@ -28,9 +28,9 @@ public class AdminHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext context) {
         final HttpServerRequest request = context.request();
-        if (request.getParam(LOGGING_PARAM) != null) {
+        final String loggingParam = request.getParam(LOGGING_PARAM);
+        if (loggingParam != null) {
             final BiConsumer<Logger, String> loggingLevelModifier;
-            final String loggingParam = request.getParam(LOGGING_PARAM);
             final String recordsParam = request.getParam(RECORDS_PARAM);
             final int records;
 
@@ -48,20 +48,29 @@ public class AdminHandler implements Handler<RoutingContext> {
                     (BiConsumer<Logger, String>) (logger, text) -> defaultLogModifier(logger).accept(logger, text));
             context.response()
                     .end(String.format("Logging level was changed to %s, for %s requests", loggingParam, recordsParam));
-        } else if (request.getParam(TIME_PARAM) != null) {
-            final long timeParam = Long.parseLong(request.getParam(TIME_PARAM));
-
-            adminManager.setupByTime(AdminManager.ADMIN_TIME_KEY, timeParam,
-                    (BiConsumer<ConditionalLogger, String>) (conditionalLogger, text) -> {
-                        conditionalLogger.debug(text, 100);
-                    },
-                    (BiConsumer<ConditionalLogger, String>) (conditionalLogger, s) -> {
-                    });
-
         } else {
-            context.response()
-                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                    .end("Invalid request");
+            final String timeParam = request.getParam(TIME_PARAM);
+            if (timeParam != null) {
+                final long time;
+                try {
+                    time = Long.parseLong(timeParam);
+                } catch (NumberFormatException e) {
+                    context.response()
+                            .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                            .end(e.getMessage());
+                    return;
+                }
+                adminManager.setupByTime(AdminManager.ADMIN_TIME_KEY, time,
+                        (BiConsumer<ConditionalLogger, String>) (conditionalLogger, text) ->
+                                conditionalLogger.debug(text, 100),
+                        (BiConsumer<ConditionalLogger, String>) (conditionalLogger, s) -> {
+                        });
+
+            } else {
+                context.response()
+                        .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                        .end("Invalid request");
+            }
         }
     }
 

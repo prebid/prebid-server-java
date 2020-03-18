@@ -2,7 +2,7 @@ package org.prebid.server.manager;
 
 import lombok.AllArgsConstructor;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -53,12 +53,12 @@ public class AdminManager {
         TimeRule(BiConsumer<T, U> onRun, BiConsumer<T, U> onFinish, Long timeMillis) {
             super(onRun, onFinish);
             this.onFinish = onFinish;
-            this.time = new Date().getTime() + timeMillis;
+            this.time = Instant.now().toEpochMilli() + timeMillis;
         }
 
         @Override
         BiConsumer<T, U> applyRule() {
-            if (time != null && new Date().getTime() < time) {
+            if (time != null && Instant.now().toEpochMilli() < time) {
                 return onRun;
             }
             return onFinish;
