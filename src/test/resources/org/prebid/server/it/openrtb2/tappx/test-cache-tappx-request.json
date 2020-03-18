@@ -13,7 +13,8 @@
         "cat": ["IAB2"],
         "adomain": ["test.com"],
         "h": 250,
-        "w": 300
+        "w": 300,
+        "wurl": "http://localhost:8000/event?t=win&b=wehM-93KGr0_0_0&a=publisherId&f=i"
       }
     }
   ]

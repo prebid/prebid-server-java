@@ -1,7 +1,7 @@
 package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
-import io.vertx.ext.web.Cookie;
+import io.vertx.core.http.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Rule;
 import org.junit.Test;
@@ -11,7 +11,7 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Map;
 
-import static java.util.Collections.singleton;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
@@ -124,7 +124,7 @@ public class HttpUtilTest {
     @Test
     public void cookiesAsMapShouldReturnExpectedResult() {
         // given
-        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("name", "value")));
+        given(routingContext.cookieMap()).willReturn(singletonMap("name", Cookie.cookie("name", "value")));
 
         // when
         final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);

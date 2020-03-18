@@ -323,7 +323,7 @@ public class ApplicationTest extends IntegrationTest {
     public void staticShouldReturnHttp200Ok() {
         given(SPEC)
                 .when()
-                .get("/static")
+                .get("/static/index.html")
                 .then()
                 .assertThat()
                 .statusCode(200);
