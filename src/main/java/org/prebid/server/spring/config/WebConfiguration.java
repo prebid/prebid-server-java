@@ -329,14 +329,14 @@ public class WebConfiguration {
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, tcfDefinerService, hostVendorId,
                 useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
