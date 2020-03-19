@@ -166,7 +166,8 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            AdminManager adminManager) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
@@ -187,7 +188,8 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
-                mapper);
+                mapper,
+                adminManager);
     }
 
     private static List<String> splitCommaSeparatedString(String listString) {

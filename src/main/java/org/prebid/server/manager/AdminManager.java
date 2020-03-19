@@ -28,12 +28,21 @@ public class AdminManager {
 
     @SuppressWarnings("unchecked")
     public <T, U> void accept(String key, T t, U u) {
-        final Rule<T, U> rule = (Rule<T, U>) actionMap.get(key);
-        rule.applyRule().accept(t, u);
+        if (contains(key)) {
+            final Rule<T, U> rule = (Rule<T, U>) actionMap.get(key);
+            rule.applyRule().accept(t, u);
+        }
     }
 
     public boolean contains(String key) {
         return actionMap.containsKey(key);
+    }
+
+    public boolean isRunning(String key) {
+        if (!contains(key)) {
+            return false;
+        }
+        return !actionMap.get(key).isFinished;
     }
 
     @AllArgsConstructor
@@ -43,24 +52,27 @@ public class AdminManager {
 
         protected BiConsumer<T, U> onFinish;
 
+        protected boolean isFinished;
+
         abstract BiConsumer<T, U> applyRule();
     }
 
     private static class TimeRule<T, U> extends Rule<T, U> {
 
-        private Long time;
+        private Instant time;
 
         TimeRule(BiConsumer<T, U> onRun, BiConsumer<T, U> onFinish, Long timeMillis) {
-            super(onRun, onFinish);
+            super(onRun, onFinish, false);
             this.onFinish = onFinish;
-            this.time = Instant.now().toEpochMilli() + timeMillis;
+            this.time = Instant.now().plusMillis(timeMillis);
         }
 
         @Override
         BiConsumer<T, U> applyRule() {
-            if (time != null && Instant.now().toEpochMilli() < time) {
+            if (time != null && time.isAfter(Instant.now())) {
                 return onRun;
             }
+            this.isFinished = true;
             return onFinish;
         }
     }
@@ -70,7 +82,7 @@ public class AdminManager {
         private AtomicInteger counter;
 
         CounterRule(BiConsumer<T, U> onRun, BiConsumer<T, U> onFinish, Integer counter) {
-            super(onRun, onFinish);
+            super(onRun, onFinish, false);
             this.counter = new AtomicInteger(counter);
         }
 
@@ -80,6 +92,7 @@ public class AdminManager {
                 counter.decrementAndGet();
                 return onRun;
             }
+            this.isFinished = true;
             return onFinish;
         }
     }

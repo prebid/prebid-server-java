@@ -44,7 +44,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -147,55 +146,15 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private AuctionContext validateAccount(AuctionContext context) {
-        if (adminManager.contains(AdminManager.ADMIN_TIME_KEY)) {
-
+        if (adminManager.isRunning(AdminManager.ADMIN_TIME_KEY)) {
             if (context != null) {
                 if (context.getAccount() != null && StringUtils.isEmpty(context.getAccount().getId())) {
                     adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "account.id is null");
                     return context;
                 }
-                final BidRequest bidRequest = context.getBidRequest();
-                if (bidRequest != null) {
-                    if (bidRequest.getSite() != null && bidRequest.getSite().getPublisher() != null
-                            && StringUtils.isEmpty(bidRequest.getSite().getPublisher().getId())) {
-                        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
-                                "site.publisher.id is null");
-                        return context;
-                    }
-
-                    if (bidRequest.getApp() != null && bidRequest.getApp().getPublisher() != null
-                            && StringUtils.isEmpty(bidRequest.getApp().getPublisher().getId())) {
-                        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
-                                "app.publisher.id is null");
-                        return context;
-                    }
-                    if (bidRequest.getImp() != null) {
-                        final List<String> accountIdList = bidRequest.getImp().stream()
-                                .map(Imp::getExt)
-                                .map(this::parseExtImpRubicon)
-                                .filter(Objects::nonNull)
-                                .map(ExtImpRubicon::getAccountId)
-                                .map(String::valueOf)
-                                .collect(Collectors.toList());
-
-                        if (accountIdList.contains(null)) {
-                            adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
-                                    "imp[].ext.rubicon.accountId is null");
-                            return context;
-                        }
-                    }
-                }
             }
         }
         return context;
-    }
-
-    private ExtImpRubicon parseExtImpRubicon(ObjectNode ext) {
-        try {
-            return mapper.decodeValue(ext.get("rubicon").toString(), ExtImpRubicon.class);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

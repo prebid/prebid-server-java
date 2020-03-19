@@ -31,6 +31,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -42,6 +44,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -68,6 +71,7 @@ import java.util.stream.StreamSupport;
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -85,6 +89,7 @@ public class AuctionRequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final JacksonMapper mapper;
+    private final AdminManager adminManager;
 
     public AuctionRequestFactory(long maxRequestSize,
                                  boolean enforceValidAccount,
@@ -101,7 +106,8 @@ public class AuctionRequestFactory {
                                  TimeoutResolver timeoutResolver,
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
-                                 JacksonMapper mapper) {
+                                 JacksonMapper mapper,
+                                 AdminManager adminManager) {
 
         this.maxRequestSize = maxRequestSize;
         this.enforceValidAccount = enforceValidAccount;
@@ -119,6 +125,7 @@ public class AuctionRequestFactory {
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.mapper = Objects.requireNonNull(mapper);
+        this.adminManager = Objects.requireNonNull(adminManager);
     }
 
     /**
@@ -657,6 +664,10 @@ public class AuctionRequestFactory {
                     + "reach out to the prebid server host.", accountId));
         }
 
+        if (!blankAccountId && adminManager.isRunning(AdminManager.ADMIN_TIME_KEY)) {
+            checkForAccountInImp(bidRequest);
+        }
+
         return blankAccountId
                 ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
@@ -664,13 +675,45 @@ public class AuctionRequestFactory {
     }
 
     /**
+     *  if accountId in Imp is null fire log
+     */
+    private void checkForAccountInImp(BidRequest bidRequest) {
+        if (bidRequest.getImp() != null) {
+            final List<String> accountIdList = bidRequest.getImp().stream()
+                    .map(Imp::getExt)
+                    .map(this::parseExtImpRubicon)
+                    .filter(Objects::nonNull)
+                    .map(ExtImpRubicon::getAccountId)
+                    .map(String::valueOf)
+                    .collect(Collectors.toList());
+
+            if (accountIdList.contains(null)) {
+                adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger,
+                        "imp[].ext.rubicon.accountId is null");
+            }
+        }
+    }
+
+    /**
      * Returns response depending on enforceValidAccount flag.
      */
     private Future<Account> responseToMissingAccount(String accountId) {
+        adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "accountId is null");
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                        String.format("Unauthorised account id %s", accountId), accountId))
+                String.format("Unauthorised account id %s", accountId), accountId))
                 : Future.succeededFuture(emptyAccount(accountId));
+    }
+
+    /**
+     * Parsing imp[].ext to ExtImpRubicon
+     */
+    private ExtImpRubicon parseExtImpRubicon(ObjectNode ext) {
+        try {
+            return mapper.decodeValue(ext.get("rubicon").toString(), ExtImpRubicon.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
