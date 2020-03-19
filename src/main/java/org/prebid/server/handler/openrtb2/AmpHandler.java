@@ -123,7 +123,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .httpContext(HttpContext.from(routingContext));
 
         ampRequestFactory.fromRequest(routingContext, startTime)
-                .map(this::validateAccount)
                 .map(context -> context.toBuilder()
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
@@ -143,18 +142,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
-    }
-
-    private AuctionContext validateAccount(AuctionContext context) {
-        if (adminManager.isRunning(AdminManager.ADMIN_TIME_KEY)) {
-            if (context != null) {
-                if (context.getAccount() != null && StringUtils.isEmpty(context.getAccount().getId())) {
-                    adminManager.accept(AdminManager.ADMIN_TIME_KEY, conditionalLogger, "account.id is null");
-                    return context;
-                }
-            }
-        }
-        return context;
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

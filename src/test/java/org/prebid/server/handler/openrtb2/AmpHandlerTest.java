@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -50,7 +48,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -159,23 +156,6 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AuctionContext auctionContext = captureAuctionContext();
         assertThat(auctionContext.getRequestTypeMetric()).isNotNull();
-    }
-
-    @Test
-    public void shouldCallAdminManagerIfOneOfAccountIdsIsNull() {
-        // given
-        AuctionContext result = givenAuctionContext(identity()).toBuilder()
-                .account(Account.builder().id("").build())
-                .build();
-        given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(result));
-        given(adminManager.isRunning(AdminManager.ADMIN_TIME_KEY)).willReturn(true);
-
-        // when
-        ampHandler.handle(routingContext);
-
-        // then
-        verify(adminManager).accept(eq(AdminManager.ADMIN_TIME_KEY), any(), eq("account.id is null"));
     }
 
     @Test

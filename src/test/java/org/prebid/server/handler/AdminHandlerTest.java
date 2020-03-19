@@ -53,7 +53,7 @@ public class AdminHandlerTest extends VertxTest {
         adminHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(eq("Invalid request"));
+        verify(httpResponse).end(eq("Invalid LoggingLevel: null"));
         verify(httpResponse).setStatusCode(eq(400));
         verifyZeroInteractions(adminManager);
     }

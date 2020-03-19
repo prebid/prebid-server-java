@@ -7,7 +7,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.manager.AdminManager;
 
 import java.util.Objects;
@@ -17,7 +16,6 @@ public class AdminHandler implements Handler<RoutingContext> {
 
     private static final String RECORDS_PARAM = "records";
     private static final String LOGGING_PARAM = "logging";
-    private static final String TIME_PARAM = "time";
 
     private final AdminManager adminManager;
 
@@ -28,50 +26,25 @@ public class AdminHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext context) {
         final HttpServerRequest request = context.request();
+        final BiConsumer<Logger, String> loggingLevelModifier;
         final String loggingParam = request.getParam(LOGGING_PARAM);
-        if (loggingParam != null) {
-            final BiConsumer<Logger, String> loggingLevelModifier;
-            final String recordsParam = request.getParam(RECORDS_PARAM);
-            final int records;
+        final String recordsParam = request.getParam(RECORDS_PARAM);
+        final int records;
 
-            try {
-                loggingLevelModifier = loggingLevel(loggingParam);
-                records = records(recordsParam);
-            } catch (IllegalArgumentException e) {
-                context.response()
-                        .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                        .end(e.getMessage());
-                return;
-            }
-
-            adminManager.setupByCounter(AdminManager.ADMIN_COUNTER_KEY, records, loggingLevelModifier,
-                    (BiConsumer<Logger, String>) (logger, text) -> defaultLogModifier(logger).accept(logger, text));
+        try {
+            loggingLevelModifier = loggingLevel(loggingParam);
+            records = records(recordsParam);
+        } catch (IllegalArgumentException e) {
             context.response()
-                    .end(String.format("Logging level was changed to %s, for %s requests", loggingParam, recordsParam));
-        } else {
-            final String timeParam = request.getParam(TIME_PARAM);
-            if (timeParam != null) {
-                final long time;
-                try {
-                    time = Long.parseLong(timeParam);
-                } catch (NumberFormatException e) {
-                    context.response()
-                            .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                            .end(e.getMessage());
-                    return;
-                }
-                adminManager.setupByTime(AdminManager.ADMIN_TIME_KEY, time,
-                        (BiConsumer<ConditionalLogger, String>) (conditionalLogger, text) ->
-                                conditionalLogger.debug(text, 100),
-                        (BiConsumer<ConditionalLogger, String>) (conditionalLogger, s) -> {
-                        });
-
-            } else {
-                context.response()
-                        .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                        .end("Invalid request");
-            }
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                    .end(e.getMessage());
+            return;
         }
+
+        adminManager.setupByCounter(AdminManager.ADMIN_COUNTER_KEY, records, loggingLevelModifier,
+                (BiConsumer<Logger, String>) (logger, text) -> defaultLogModifier(logger).accept(logger, text));
+        context.response()
+                .end(String.format("Logging level was changed to %s, for %s requests", loggingParam, recordsParam));
     }
 
     private BiConsumer<Logger, String> loggingLevel(String level) {

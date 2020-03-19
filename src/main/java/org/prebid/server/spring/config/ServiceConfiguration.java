@@ -188,8 +188,7 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
-                mapper,
-                adminManager);
+                mapper);
     }
 
     private static List<String> splitCommaSeparatedString(String listString) {
