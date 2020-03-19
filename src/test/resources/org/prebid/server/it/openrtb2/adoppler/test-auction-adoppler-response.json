@@ -1,0 +1,68 @@
+{
+  "id": "req1-unit2",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "imp2",
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "cat": [
+            "IAB1",
+            "IAB2"
+          ],
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "3.30",
+                "hb_bidder_adoppler": "adoppler",
+                "hb_cache_id_adoppler": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_cache_path_adoppler": "{{ cache.path }}",
+                "hb_uuid_adoppler": "e7965b2e-0aa3-4252-a22c-580ed010e619",
+                "hb_cache_host_adoppler": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_uuid": "e7965b2e-0aa3-4252-a22c-580ed010e619",
+                "hb_bidder": "adoppler",
+                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_adoppler": "3.30"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
+                },
+                "vastXml": {
+                  "url": "{{ cache.resource_url }}e7965b2e-0aa3-4252-a22c-580ed010e619",
+                  "cacheId": "e7965b2e-0aa3-4252-a22c-580ed010e619"
+                }
+              }
+            },
+            "bidder": {
+              "ads": {
+                "video": {
+                  "duration": 121
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "adoppler",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adoppler": "{{ adoppler.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 3000
+  }
+}
