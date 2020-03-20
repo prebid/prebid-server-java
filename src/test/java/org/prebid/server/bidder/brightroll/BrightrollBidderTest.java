@@ -193,16 +193,16 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateEachImpIfExtPublisherIsAdthrive() {
+    public void makeHttpRequestsShouldUpdateEachImpIfExtPublisherIsBusinessInsider() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("businessinsider"))))
                                 .build(),
                         Imp.builder()
                                 .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("businessinsider"))))
                                 .build()))
                 .build();
 
@@ -222,12 +222,12 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetRequestBcatIfExtPublisherIsAdthrive() {
+    public void makeHttpRequestsShouldSetRequestBcatIfExtPublisherIsBusinessInsider() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("businessinsider"))))
                         .build()))
                 .build();
 
@@ -239,7 +239,7 @@ public class BrightrollBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getBcat)
-                .hasSize(42);
+                .hasSize(3);
     }
 
     @Test
