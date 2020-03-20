@@ -1,5 +1,8 @@
 package org.prebid.server.auction;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -16,9 +19,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
@@ -48,6 +48,14 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -57,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Used in OpenRTB request processing.
@@ -277,14 +281,40 @@ public class AuctionRequestFactory {
 
         if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
-            builder.ip(StringUtils.isNotBlank(ip) ? ip : paramsExtractor.ipFrom(request));
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
-
+            final String ipFromRequest = paramsExtractor.ipFrom(request);
+            if (StringUtils.isNotBlank(ipFromRequest)) {
+                if (isIpv4(ipFromRequest)) {
+                    builder.ip(ipFromRequest);
+                } else if (isIpv6(ipFromRequest)) {
+                    builder.ipv6(ipFromRequest);
+                }
+            }
             result = builder.build();
         } else {
             result = null;
         }
         return result;
+    }
+
+    private boolean isIpv4(String ip) {
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getByName(ip);
+        } catch (UnknownHostException ex) {
+            logger.debug("Error occurred while checking IP", ex);
+        }
+        return (inetAddress instanceof Inet4Address) && inetAddress.getHostAddress().equals(ip);
+    }
+
+    private boolean isIpv6(String ip) {
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getByName(ip);
+        } catch (UnknownHostException e) {
+            logger.debug("Error occurred while checking IP", e);
+        }
+        return inetAddress instanceof Inet6Address;
     }
 
     /**
@@ -669,7 +699,7 @@ public class AuctionRequestFactory {
     private Future<Account> responseToMissingAccount(String accountId) {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                        String.format("Unauthorised account id %s", accountId), accountId))
+                String.format("Unauthorised account id %s", accountId), accountId))
                 : Future.succeededFuture(emptyAccount(accountId));
     }
 

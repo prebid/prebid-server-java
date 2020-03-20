@@ -278,7 +278,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetFieldsFromHeadersIfBodyFieldsEmpty() {
+    public void shouldSetFieldsFromHeadersIfBodyFieldsEmptyForIpv4() {
         // given
         givenValidBidRequest();
 
@@ -286,6 +286,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
 
         // then
         assertThat(request.getSite()).isEqualTo(Site.builder()
@@ -295,6 +296,27 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
         assertThat(request.getDevice())
                 .isEqualTo(Device.builder().ip("192.168.244.1").ua("UnitTest").build());
+    }
+
+    @Test
+    public void shouldSetFieldsFromHeadersIfBodyFieldsEmptyForIpv6() {
+        // given
+        givenValidBidRequest();
+
+        givenImplicitParams("http://example.com", "example.com", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "UnitTest");
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+
+        // then
+        assertThat(request.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(mapper.valueToTree(ExtSite.of(0, null)))
+                .build());
+        assertThat(request.getDevice())
+                .isEqualTo(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").ua("UnitTest").build());
     }
 
     @Test
