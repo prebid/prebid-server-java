@@ -9,7 +9,8 @@
         "adm": "adm17",
         "crid": "crid17",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=620160380&a=publisherId&f=i"
       }
     }
   ]

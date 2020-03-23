@@ -8,7 +8,8 @@
         "crid": "test_banner_crid",
         "id": "1",
         "impid": "imp123",
-        "price": 0.01
+        "price": 0.01,
+        "wurl": "http://localhost:8000/event?t=win&b=1&a=publisherId&f=i"
       }
     }
   ]

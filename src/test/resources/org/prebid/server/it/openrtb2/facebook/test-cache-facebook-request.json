@@ -10,7 +10,8 @@
         "adid": "10",
         "crid": "10",
         "w": 0,
-        "h": 0
+        "h": 0,
+        "wurl": "http://localhost:8000/event?t=win&b=bid2&a=publisherId&f=i"
       }
     },
     {
@@ -23,7 +24,8 @@
         "adid": "10",
         "crid": "10",
         "w": 0,
-        "h": 0
+        "h": 0,
+        "wurl": "http://localhost:8000/event?t=win&b=bid3&a=publisherId&f=i"
       }
     },
     {
@@ -36,7 +38,8 @@
         "adid": "10",
         "crid": "10",
         "w": 0,
-        "h": 50
+        "h": 50,
+        "wurl": "http://localhost:8000/event?t=win&b=bid1&a=publisherId&f=i"
       }
     },
     {

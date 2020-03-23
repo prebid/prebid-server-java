@@ -55,7 +55,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"triplelift.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"triplelift.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250,\"wurl\":\"http://localhost:8000/event?t=win&b=7706636740145184841&a=test&f=i\"}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"029e95ca-1a14-4e45-9669-8ad8d667de50\"}]}",
             "status": 200
           }
