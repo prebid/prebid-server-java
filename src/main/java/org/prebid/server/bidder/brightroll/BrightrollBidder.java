@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -30,6 +31,7 @@ import org.prebid.server.util.HttpUtil;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,21 @@ import java.util.stream.Collectors;
  */
 public class BrightrollBidder implements Bidder<BidRequest> {
 
+    private static final String VERSION = "2.5";
+    private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+
+    private static final List<Integer> BLOCKED_CREATIVETYPES_FOR_AD_THRIVE = Arrays.asList(1, 2, 3, 6, 9, 10);
+    private static final List<String> BLOCKED_CATEGORIES_FOR_ADTHRIVE =
+            Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30", "IAB14-1", "IAB22-1", "IAB3-7", "IAB7-3",
+                    "IAB14-3", "IAB11", "IAB11-1", "IAB11-2", "IAB11-3", "IAB11-4", "IAB11-5", "IAB23", "IAB23-1",
+                    "IAB23-2", "IAB23-3", "IAB23-4", "IAB23-5", "IAB23-6", "IAB23-7", "IAB23-8", "IAB23-9", "IAB23-10",
+                    "IAB7-39", "IAB9-30", "IAB7-44", "IAB25", "IAB25-1", "IAB25-2", "IAB25-3", "IAB25-4", "IAB25-5",
+                    "IAB25-6", "IAB25-7", "IAB26", "IAB26-1", "IAB26-2", "IAB26-3", "IAB26-4");
+
+    private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
+            };
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -48,10 +65,6 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
-
-    private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
-            };
 
     /**
      * Creates POST HTTP requests which should be made to fetch bids.
@@ -125,14 +138,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         // Defaulting to first price auction for all prebid requests
         builder.at(1);
 
-        final boolean isBIPublisher = Objects.equals(firstImpExtPublisher, "businessinsider");
-        if (isBIPublisher) {
-            builder.bcat(BrightrollConstant.BLOCKED_CATEGORIES_FOR_BUSINESSINSIDER);
+        final boolean isAdthrivePublisher = Objects.equals(firstImpExtPublisher, "adthrive");
+        if (isAdthrivePublisher) {
+            builder.bcat(BLOCKED_CATEGORIES_FOR_ADTHRIVE);
         }
 
         builder.imp(bidRequest.getImp().stream()
                 .filter(imp -> isImpValid(imp, errors))
-                .map(imp -> updateImp(imp, firstImpExtPublisher))
+                .map(imp -> updateImp(imp, isAdthrivePublisher))
                 .collect(Collectors.toList()));
 
         return builder.build();
@@ -154,9 +167,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     /**
      * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
-    private static Imp updateImp(Imp imp, String publisher) {
+    private static Imp updateImp(Imp imp, boolean isAdthrivePublisher) {
         final Banner banner = imp.getBanner();
-        final boolean isBIPublisher = Objects.equals(publisher, "businessinsider");
         if (banner != null) {
             final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
             if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
@@ -166,18 +178,18 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                         .w(firstFormat.getW())
                         .h(firstFormat.getH());
             }
-            if (isBIPublisher) {
-                bannerBuilder.battr(BrightrollConstant.BLOCKED_CREATIVETYPES_FOR_BUSINESSINSIDER);
+            if (isAdthrivePublisher) {
+                bannerBuilder.battr(BLOCKED_CREATIVETYPES_FOR_AD_THRIVE);
             }
             return imp.toBuilder()
                     .banner(bannerBuilder.build())
                     .build();
         }
         final Video video = imp.getVideo();
-        if (video != null && isBIPublisher) {
+        if (video != null && isAdthrivePublisher) {
             return imp.toBuilder()
                     .video(video.toBuilder()
-                            .battr(BrightrollConstant.BLOCKED_CREATIVETYPES_FOR_BUSINESSINSIDER)
+                            .battr(BLOCKED_CREATIVETYPES_FOR_AD_THRIVE)
                             .build())
                     .build();
         }
@@ -190,7 +202,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
 
-        headers.add(BrightrollConstant.OPEN_RTB_VERSION_HEADER, BrightrollConstant.VERSION);
+        headers.add(OPEN_RTB_VERSION_HEADER, VERSION);
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
