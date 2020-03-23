@@ -177,9 +177,10 @@
     }
   ],
   "device": {
+    "ua": "userAgent",
     "pxratio": 4.2,
     "dnt": 2,
-    "ip": "127.0.0.0",
+    "ip": "80.215.195.122",
     "language": "en",
     "ifa": "ifaId",
     "ext": {

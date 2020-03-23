@@ -1,8 +1,5 @@
 package org.prebid.server.auction;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -19,6 +16,9 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
@@ -52,10 +52,6 @@ import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -65,6 +61,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Used in OpenRTB request processing.
@@ -283,12 +283,11 @@ public class AuctionRequestFactory {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
             final String ipFromRequest = paramsExtractor.ipFrom(request);
-            if (StringUtils.isNotBlank(ipFromRequest)) {
-                if (isIpv4(ipFromRequest)) {
-                    builder.ip(ipFromRequest);
-                } else if (isIpv6(ipFromRequest)) {
-                    builder.ipv6(ipFromRequest);
-                }
+            final InetAddress inetAddress = inetAddressByIp(ipFromRequest);
+            if (isIpv4(inetAddress, ipFromRequest)) {
+                builder.ip(ipFromRequest);
+            } else if (isIpv6(inetAddress)) {
+                builder.ipv6(ipFromRequest);
             }
             result = builder.build();
         } else {
@@ -297,23 +296,23 @@ public class AuctionRequestFactory {
         return result;
     }
 
-    private boolean isIpv4(String ip) {
-        InetAddress inetAddress = null;
+    private InetAddress inetAddressByIp(String ip) {
         try {
-            inetAddress = InetAddress.getByName(ip);
+            return InetAddress.getByName(ip);
         } catch (UnknownHostException ex) {
             logger.debug("Error occurred while checking IP", ex);
+            return null;
         }
-        return (inetAddress instanceof Inet4Address) && inetAddress.getHostAddress().equals(ip);
     }
 
-    private boolean isIpv6(String ip) {
-        InetAddress inetAddress = null;
-        try {
-            inetAddress = InetAddress.getByName(ip);
-        } catch (UnknownHostException e) {
-            logger.debug("Error occurred while checking IP", e);
+    private boolean isIpv4(InetAddress inetAddress, String ip) {
+        if (inetAddress instanceof Inet4Address) {
+            return ((Inet4Address) inetAddress).getHostAddress().equals(ip);
         }
+        return false;
+    }
+
+    private boolean isIpv6(InetAddress inetAddress) {
         return inetAddress instanceof Inet6Address;
     }
 

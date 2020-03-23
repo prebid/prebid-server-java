@@ -308,7 +308,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
-
         // then
         assertThat(request.getSite()).isEqualTo(Site.builder()
                 .page("http://example.com")
