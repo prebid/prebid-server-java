@@ -114,17 +114,18 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
-            context.response().setStatusCode(status).setStatusMessage("User has opted out").end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, "user has opted out"));
+            final String message = "User has opted out";
+            context.response().setStatusCode(status).setStatusMessage(message).end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
             return;
         }
 
         final Buffer body = context.getBody();
         if (body == null) {
-            logger.info("Incoming request has no body.");
             final int status = HttpResponseStatus.BAD_REQUEST.code();
-            context.response().setStatusCode(status).end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, "request has no body"));
+            final String message = "Request has no body";
+            context.response().setStatusCode(status).setStatusMessage(message).end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
             return;
         }
 
@@ -132,10 +133,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         try {
             cookieSyncRequest = mapper.decodeValue(body, CookieSyncRequest.class);
         } catch (DecodeException e) {
-            logger.info("Failed to parse /cookie_sync request body", e);
             final int status = HttpResponseStatus.BAD_REQUEST.code();
-            context.response().setStatusCode(status).setStatusMessage("JSON parse failed").end();
-            analyticsReporter.processEvent(CookieSyncEvent.error(status, "JSON parse failed"));
+            final String message = "Request body cannot be parsed";
+            context.response().setStatusCode(status).setStatusMessage(message).end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
+            logger.info(message, e);
             return;
         }
 
@@ -162,10 +164,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
+        final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
-        tcfDefinerService.resultFor(
-                Collections.singleton(gdprHostVendorId), biddersToSync, gdprAsString, gdprConsent, ip, timeout)
+
+        tcfDefinerService.resultFor(vendorIds, biddersToSync, gdprAsString, gdprConsent, ip, timeout)
                 .setHandler(asyncResult ->
                         handleResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
     }
@@ -180,11 +183,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return activeBidders;
         }
 
-        final boolean coop = requestCoop == null ? defaultCoopSync : requestCoop;
-
+        final boolean coop = requestCoop != null ? requestCoop : defaultCoopSync;
         if (coop) {
             return requestLimit == null
-                    ? addAllCoopSyncBidders(requestBidders) : addCoopSyncBidders(requestBidders, requestLimit);
+                    ? addAllCoopSyncBidders(requestBidders)
+                    : addCoopSyncBidders(requestBidders, requestLimit);
         }
 
         return new HashSet<>(requestBidders);
@@ -245,7 +248,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         } else {
             final TcfResponse tcfResponse = asyncResult.result();
 
-            final PrivacyEnforcementAction hostActions = tcfResponse.getVendorIdToActionMap().get(gdprHostVendorId);
+            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getVendorIdToActionMap();
+            final PrivacyEnforcementAction hostActions = vendorIdToAction != null
+                    ? vendorIdToAction.get(gdprHostVendorId)
+                    : null;
             if (hostActions == null || hostActions.isBlockPixelSync()) {
                 // host vendor should be allowed by TCF verification
                 respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_TCF);
