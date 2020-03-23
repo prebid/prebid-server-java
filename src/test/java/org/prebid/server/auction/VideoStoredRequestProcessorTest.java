@@ -11,6 +11,8 @@ import com.iab.openrtb.request.video.CacheConfig;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
+import com.iab.openrtb.request.video.VideoUser;
+import com.iab.openrtb.request.video.VideoVideo;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -92,9 +94,9 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFutureWithMergedStoredAndDefaultRequest() {
         // given
-        final User user = User.builder()
+        final VideoUser user = VideoUser.builder()
                 .yob(123)
-                .buyeruid("buyer")
+                .buyeruids(singletonMap("key", "value"))
                 .gender("gender")
                 .keywords("keywords")
                 .build();
@@ -159,7 +161,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         final BidRequest expectedMergedRequest = BidRequest.builder()
                 .id("bid_id")
                 .imp(Arrays.asList(expectedImp1, expectedImp2))
-                .user(User.builder().buyeruid("buyer").yob(123).gender("gender").keywords("keywords").build())
+                .user(User.builder().buyeruid("appnexus").yob(123).gender("gender").keywords("keywords").build())
                 .site(Site.builder().id("siteId").content(content).build())
                 .bcat(singletonList("bcat"))
                 .badv(singletonList("badv"))
@@ -222,7 +224,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                         .durationRangeSec(Arrays.asList(200, 100)))
                         .build())
                 .site(Site.builder().id("siteId").build())
-                .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                .video(VideoVideo.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
     }
 }

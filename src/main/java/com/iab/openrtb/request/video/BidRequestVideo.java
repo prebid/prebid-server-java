@@ -5,8 +5,6 @@ import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
-import com.iab.openrtb.request.Video;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.PriceGranularity;
@@ -25,7 +23,7 @@ public class BidRequestVideo {
 
     App app;
 
-    Video video;
+    VideoVideo video;
 
     IncludeBrandCategory includebrandcategory;
 
@@ -43,7 +41,7 @@ public class BidRequestVideo {
 
     Regs regs;
 
-    User user;
+    VideoUser user;
 
     Device device;
 
