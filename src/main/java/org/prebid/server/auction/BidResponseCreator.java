@@ -16,6 +16,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -79,6 +81,8 @@ import java.util.stream.StreamSupport;
 
 public class BidResponseCreator {
 
+    private static final Logger logger = LoggerFactory.getLogger(BidResponseCreator.class);
+
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
 
@@ -95,7 +99,7 @@ public class BidResponseCreator {
 
     public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
-                              JacksonMapper mapper, boolean generateBidId) {
+                              JacksonMapper mapper, Boolean generateBidId) {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
@@ -105,12 +109,8 @@ public class BidResponseCreator {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.mapper = Objects.requireNonNull(mapper);
 
-        if (generateBidId) {
-            overwriteBidIdConsumer = overwriteBidIdConsumer();
-        } else {
-            overwriteBidIdConsumer = bidderResponses -> {
-            };
-        }
+        overwriteBidIdConsumer = BooleanUtils.isTrue(generateBidId) ? overwriteBidIdConsumer() : bidResponse -> {
+        };
 
     }
 
@@ -131,8 +131,11 @@ public class BidResponseCreator {
         if (extBidPrebid != null) {
             extBidPrebid.setBidId(UUID.randomUUID().toString());
             try {
-                bid.setExt(ext.set(PREBID_EXT, mapper.mapper().readTree(mapper.encode(extBidPrebid))));
+                final JsonNode extBidPrebidValue = mapper.mapper().readTree(mapper.encode(extBidPrebid));
+                final ObjectNode prebidExtNode = ext.set(PREBID_EXT, extBidPrebidValue);
+                bid.setExt(prebidExtNode);
             } catch (JsonProcessingException e) {
+                logger.debug("Parsing error", e);
             }
         }
     }

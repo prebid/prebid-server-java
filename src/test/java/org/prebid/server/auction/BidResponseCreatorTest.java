@@ -378,9 +378,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder()
                 .id("123")
                 .impid("imp123")
-                .w(123)
-                .h(123)
-                .price(BigDecimal.ONE)
                 .ext(mapper.valueToTree(prebid))
                 .build();
         final List<BidderResponse> bidderResponses = singletonList(
@@ -395,11 +392,10 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1);
         assertThat(bidResponse.getSeatbid().get(0).getBid()).hasSize(1);
-        final ExtBidPrebid ext = mapper.readValue(bidResponse.getSeatbid().get(0).getBid().get(0)
+        final ExtBidPrebid expectedExtBidPrebid = mapper.readValue(bidResponse.getSeatbid().get(0).getBid().get(0)
                 .getExt().get("prebid").toString(), ExtBidPrebid.class);
-        assertThat(ext.getBidId()).isNotNull();
+        assertThat(expectedExtBidPrebid.getBidId()).isNotNull();
 
-        System.out.println(ext.getBidId());
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
     }
 
