@@ -392,9 +392,14 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1);
         assertThat(bidResponse.getSeatbid().get(0).getBid()).hasSize(1);
-        final ExtBidPrebid expectedExtBidPrebid = mapper.readValue(bidResponse.getSeatbid().get(0).getBid().get(0)
-                .getExt().get("prebid").toString(), ExtBidPrebid.class);
-        assertThat(expectedExtBidPrebid.getBidId()).isNotNull();
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .extracting(ext -> ext.get("prebid"))
+                .extracting(extPrebid -> mapper.treeToValue(extPrebid, ExtBidPrebid.class))
+                .extracting(ExtBidPrebid::getBidId)
+                .hasSize(1)
+                .doesNotContainNull();
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
     }
