@@ -284,10 +284,12 @@ public class AuctionRequestFactory {
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
             final String ipFromRequest = paramsExtractor.ipFrom(request);
             final InetAddress inetAddress = inetAddressByIp(ipFromRequest);
-            if (isIpv4(inetAddress, ipFromRequest)) {
-                builder.ip(ipFromRequest);
-            } else if (isIpv6(inetAddress)) {
-                builder.ipv6(ipFromRequest);
+            if (StringUtils.isBlank(ip)) {
+                if (isIpv4(inetAddress, ipFromRequest)) {
+                    builder.ip(ipFromRequest);
+                } else if (isIpv6(inetAddress)) {
+                    builder.ipv6(ipFromRequest);
+                }
             }
             result = builder.build();
         } else {
