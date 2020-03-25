@@ -80,7 +80,7 @@ public class TcfDefinerService {
         }
 
         // TODO Add for another purposes
-        final Set<GdprPurpose> gdprPurposes = Collections.singleton(GdprPurpose.adSelectionAndDeliveryAndReporting);
+        final Set<GdprPurpose> gdprPurposes = Collections.singleton(GdprPurpose.informationStorageAndAccess);
         return tcfPurposeForEachVendor(gdprPurposes, vendorIds, bidderNames, gdpr, gdprConsent, ipAddress, timeout);
     }
 
