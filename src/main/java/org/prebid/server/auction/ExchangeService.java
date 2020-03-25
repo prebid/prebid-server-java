@@ -20,6 +20,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
+import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
@@ -142,7 +143,7 @@ public class ExchangeService {
 
         final List<Imp> imps = bidRequest.getImp();
         final List<SeatBid> storedResponse = new ArrayList<>();
-        final Map<String, String> aliases = aliases(requestExt);
+        final Map<String, BidderAlias> aliases = aliases(requestExt);
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
@@ -199,10 +200,20 @@ public class ExchangeService {
     /**
      * Extracts aliases from {@link ExtBidRequest}.
      */
-    private static Map<String, String> aliases(ExtBidRequest requestExt) {
+    private static Map<String, BidderAlias> aliases(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
-        return aliases != null ? aliases : Collections.emptyMap();
+        final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
+        return aliases != null
+                ? aliases.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> toBidderAlias(entry.getValue(), entry.getKey(), aliasgvlids)))
+                : Collections.emptyMap();
+    }
+
+    private static BidderAlias toBidderAlias(String bidder, String alias, Map<String, Integer> aliasgvlids) {
+        return BidderAlias.of(bidder, aliasgvlids != null ? aliasgvlids.get(alias) : null);
     }
 
     /**
@@ -261,7 +272,8 @@ public class ExchangeService {
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context, List<Imp> requestedImps,
-                                                              ExtBidRequest requestExt, Map<String, String> aliases,
+                                                              ExtBidRequest requestExt,
+                                                              Map<String, BidderAlias> aliases,
                                                               Boolean isGdprEnforced) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
@@ -287,7 +299,7 @@ public class ExchangeService {
     /**
      * Checks if bidder name is valid in case when bidder can also be alias name.
      */
-    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+    private boolean isValidBidder(String bidder, Map<String, BidderAlias> aliases) {
         return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
     }
 
@@ -307,7 +319,7 @@ public class ExchangeService {
      * that don't have first party data allowed.
      */
     private Future<List<BidderRequest>> makeBidderRequests(
-            List<String> bidders, AuctionContext context, Map<String, String> aliases,
+            List<String> bidders, AuctionContext context, Map<String, BidderAlias> aliases,
             ExtBidRequest requestExt, List<Imp> imps, Boolean isGdprEnforced) {
 
         final BidRequest bidRequest = context.getBidRequest();
@@ -367,7 +379,7 @@ public class ExchangeService {
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      */
-    private User prepareUser(User user, ExtUser extUser, String bidder, Map<String, String> aliases,
+    private User prepareUser(User user, ExtUser extUser, String bidder, Map<String, BidderAlias> aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData) {
         final ObjectNode updatedExt = updateUserExt(extUser, useFirstPartyData);
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
@@ -419,7 +431,7 @@ public class ExchangeService {
     /**
      * Returns updated buyerUid or null if it doesn't need to be updated.
      */
-    private String updateUserBuyerUid(User user, String bidder, Map<String, String> aliases,
+    private String updateUserBuyerUid(User user, String bidder, Map<String, BidderAlias> aliases,
                                       Map<String, String> uidsBody, UidsCookie uidsCookie) {
         final String buyerUidFromBodyOrCookie = extractUid(uidsBody, uidsCookie, resolveBidder(bidder, aliases));
         final String buyerUidFromUser = user != null ? user.getBuyeruid() : null;
@@ -433,8 +445,8 @@ public class ExchangeService {
      * Returns the name associated with bidder if bidder is an alias.
      * If it's not an alias, the bidder is returned.
      */
-    private static String resolveBidder(String bidder, Map<String, String> aliases) {
-        return aliases.getOrDefault(bidder, bidder);
+    private static String resolveBidder(String bidder, Map<String, BidderAlias> aliases) {
+        return aliases.containsKey(bidder) ? aliases.get(bidder).getBidder() : bidder;
     }
 
     /**
@@ -682,7 +694,7 @@ public class ExchangeService {
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}.
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                                    Map<String, String> aliases, String publisherId,
+                                                    Map<String, BidderAlias> aliases, String publisherId,
                                                     MetricName requestTypeMetric) {
         metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
 
@@ -751,7 +763,7 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, Timeout timeout,
-                                               boolean debugEnabled, Map<String, String> aliases,
+                                               boolean debugEnabled, Map<String, BidderAlias> aliases,
                                                Map<String, BigDecimal> bidAdjustments,
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidderName = bidderRequest.getBidder();

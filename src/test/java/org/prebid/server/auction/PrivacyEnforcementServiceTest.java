@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.InvalidRequestException;
@@ -243,7 +244,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
         final String alias = "alias";
         final Map<String, User> bidderToUser = singletonMap(alias, user);
-        final Map<String, String> aliases = singletonMap(alias, BIDDER_NAME);
+        final Map<String, BidderAlias> aliases = singletonMap(alias, BidderAlias.of(BIDDER_NAME, 1));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
                 singletonMap(BIDDER_NAME, 1)),

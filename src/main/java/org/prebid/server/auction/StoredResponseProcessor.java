@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.BidderCatalog;
@@ -65,7 +66,9 @@ public class StoredResponseProcessor {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Map<String, String> aliases, Timeout timeout) {
+    Future<StoredResponseResult> getStoredResponseResult(
+            List<Imp> imps, Map<String, BidderAlias> aliases, Timeout timeout) {
+
         final List<Imp> requiredRequestImps = new ArrayList<>();
         final Map<String, String> storedResponseIdToImpId = new HashMap<>();
 
@@ -109,7 +112,7 @@ public class StoredResponseProcessor {
 
     private void fillStoredResponseIdsAndRequestingImps(List<Imp> imps, List<Imp> requiredRequestImps,
                                                         Map<String, String> storedResponseIdToImpId,
-                                                        Map<String, String> aliases) {
+                                                        Map<String, BidderAlias> aliases) {
         for (final Imp imp : imps) {
             final String impId = imp.getId();
             final ObjectNode extImpNode = imp.getExt();
@@ -142,8 +145,9 @@ public class StoredResponseProcessor {
     }
 
     private void resolveStoredBidResponse(List<Imp> requiredRequestImps, Map<String, String> storedResponseIdToImpId,
-                                          Map<String, String> aliases, Imp imp, String impId, ObjectNode extImpNode,
-                                          ExtImpPrebid extImpPrebid) {
+                                          Map<String, BidderAlias> aliases, Imp imp, String impId,
+                                          ObjectNode extImpNode, ExtImpPrebid extImpPrebid) {
+
         final List<ExtStoredBidResponse> storedBidResponse = extImpPrebid.getStoredBidResponse();
         final Map<String, String> bidderToStoredId = storedBidResponse != null
                 ? getBidderToStoredResponseId(storedBidResponse, impId)
@@ -192,7 +196,7 @@ public class StoredResponseProcessor {
         return isUpdated ? imp.toBuilder().ext(extImp).build() : imp;
     }
 
-    private boolean hasValidBidder(Map<String, String> aliases, Imp resolvedBiddersImp) {
+    private boolean hasValidBidder(Map<String, BidderAlias> aliases, Imp resolvedBiddersImp) {
         return asStream(resolvedBiddersImp.getExt().fieldNames())
                 .anyMatch(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)
                         && isValidBidder(bidder, aliases));
@@ -203,7 +207,7 @@ public class StoredResponseProcessor {
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
-    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+    private boolean isValidBidder(String bidder, Map<String, BidderAlias> aliases) {
         return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
     }
 

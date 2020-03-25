@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
@@ -75,7 +76,7 @@ public class PrivacyEnforcementService {
      * bidders name mapped to masked {@link PrivacyEnforcementResult}.
      */
     Future<Map<String, PrivacyEnforcementResult>> mask(
-            Map<String, User> bidderToUser, ExtUser extUser, List<String> bidders, Map<String, String> aliases,
+            Map<String, User> bidderToUser, ExtUser extUser, List<String> bidders, Map<String, BidderAlias> aliases,
             BidRequest bidRequest, Boolean isGdprEnforcedByAccount, Timeout timeout) {
 
         final Regs regs = bidRequest.getRegs();
@@ -137,7 +138,7 @@ public class PrivacyEnforcementService {
      * it means that pbs not enforced particular bidder to follow pbs GDPR procedure.
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(
-            Device device, List<String> bidders, Map<String, String> aliases, ExtUser extUser, Regs regs,
+            Device device, List<String> bidders, Map<String, BidderAlias> aliases, ExtUser extUser, Regs regs,
             Boolean isGdprEnforcedByAccount, Timeout timeout) {
 
         final ExtRegs extRegs = extRegs(regs);
@@ -171,7 +172,7 @@ public class PrivacyEnforcementService {
     /**
      * Extracts GDPR enforced vendor IDs.
      */
-    private Set<Integer> extractGdprEnforcedVendors(List<String> bidders, Map<String, String> aliases) {
+    private Set<Integer> extractGdprEnforcedVendors(List<String> bidders, Map<String, BidderAlias> aliases) {
         return bidders.stream()
                 .map(bidder -> bidderCatalog.bidderInfoByName(resolveBidder(bidder, aliases)).getGdpr())
                 .filter(BidderInfo.GdprInfo::isEnforced)
@@ -183,8 +184,8 @@ public class PrivacyEnforcementService {
      * Returns the name associated with bidder if bidder is an alias.
      * If it's not an alias, the bidder is returned.
      */
-    private static String resolveBidder(String bidder, Map<String, String> aliases) {
-        return aliases.getOrDefault(bidder, bidder);
+    private static String resolveBidder(String bidder, Map<String, BidderAlias> aliases) {
+        return aliases.containsKey(bidder) ? aliases.get(bidder).getBidder() : bidder;
     }
 
     /**
@@ -192,7 +193,7 @@ public class PrivacyEnforcementService {
      * {@link PrivacyEnforcementResult}. Masking depends on GDPR and COPPA.
      */
     private Map<String, PrivacyEnforcementResult> getBidderToPrivacyEnforcementResult(
-            Map<String, User> bidderToUser, Device device, Map<String, String> aliases,
+            Map<String, User> bidderToUser, Device device, Map<String, BidderAlias> aliases,
             Map<Integer, Boolean> vendorToGdprPermission) {
 
         final Integer deviceLmt = device != null ? device.getLmt() : null;
@@ -206,7 +207,7 @@ public class PrivacyEnforcementService {
      * Returns {@link PrivacyEnforcementResult} with GDPR and COPPA masking.
      */
     private PrivacyEnforcementResult createPrivacyEnforcementResult(
-            User user, Device device, String bidder, Map<String, String> aliases, Integer deviceLmt,
+            User user, Device device, String bidder, Map<String, BidderAlias> aliases, Integer deviceLmt,
             Map<Integer, Boolean> vendorToGdprPermission) {
 
         final boolean gdprMasking = isGdprMaskingRequiredFor(bidder, aliases, deviceLmt, vendorToGdprPermission);
@@ -224,7 +225,7 @@ public class PrivacyEnforcementService {
     /**
      * Returns flag if GDPR masking is required for bidder.
      */
-    private boolean isGdprMaskingRequiredFor(String bidder, Map<String, String> aliases, Integer deviceLmt,
+    private boolean isGdprMaskingRequiredFor(String bidder, Map<String, BidderAlias> aliases, Integer deviceLmt,
                                              Map<Integer, Boolean> vendorToGdprPermission) {
         final boolean maskingRequired;
         final boolean isLmtEnabled = deviceLmt != null && deviceLmt.equals(1);
