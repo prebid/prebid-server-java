@@ -708,7 +708,7 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts {@link ExtRequestPrebid} from {@link ExtBidRequest} model.
+     * Extracts auctiontimestamp from {@link ExtBidRequest} model.
      */
     private static long auctionTimestamp(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;

@@ -445,13 +445,12 @@ public class ApplicationTest extends IntegrationTest {
                 .when()
                 .body(jsonFrom("vtrack/test-vtrack-request.json"))
                 .queryParam("a", "14062")
-                .queryParam("t", "win")
+                .queryParam("ts", "1000")
                 .post("/vtrack");
 
         // then
-        String actualStr = response.asString();
         JSONAssert.assertEquals("{\"responses\":[{\"uuid\":\"94531ab8-c662-4fc7-904e-6b5d3be43b1a\"}]}",
-                actualStr, JSONCompareMode.NON_EXTENSIBLE);
+                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -519,6 +518,8 @@ public class ApplicationTest extends IntegrationTest {
                 .queryParam("b", "bidId")
                 .queryParam("a", "14062")
                 .queryParam("f", "i")
+                .queryParam("bidder", "bidder")
+                .queryParam("ts", "1000")
                 .get("/event");
 
         assertThat(response.getStatusCode()).isEqualTo(200);

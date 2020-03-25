@@ -215,6 +215,7 @@ public class EventUtilTest {
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
                 .bidId("bidId")
+                .bidder("bidder")
                 .accountId("accountId")
                 .format(EventRequest.Format.blank)
                 .analytics(EventRequest.Analytics.enabled)
@@ -233,6 +234,7 @@ public class EventUtilTest {
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
                 .bidId("bidId")
+                .bidder("bidder")
                 .accountId("accountId")
                 .build();
 

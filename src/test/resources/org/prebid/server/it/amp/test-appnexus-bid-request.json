@@ -86,7 +86,7 @@
       "cache": {
         "bids": {}
       },
-      "timestamp": 0
+      "auctiontimestamp": 1000
     }
   }
 }

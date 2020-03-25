@@ -91,7 +91,7 @@
           "ttlseconds": 120
         }
       },
-      "timestamp":0
+      "auctiontimestamp": 1000
     }
   }
 }

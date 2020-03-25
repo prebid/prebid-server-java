@@ -312,7 +312,9 @@ public class VtrackHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId"));
+                .add("a", "accountId")
+                .add("ts", "1000")
+                .add("bidder","bidder"));
 
         // when
         handler.handle(routingContext);
@@ -344,7 +346,9 @@ public class VtrackHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId"));
+                .add("a", "accountId")
+                .add("ts", "1000")
+                .add("bidder","bidder"));
 
         // when
         handler.handle(routingContext);

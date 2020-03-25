@@ -44,10 +44,10 @@ public class EventsService {
         final EventRequest eventRequest = EventRequest.builder()
                 .type(type)
                 .bidId(bidId)
-                .bidder(bidder)
                 .accountId(accountId)
                 .format(format)
                 .timestamp(timestamp)
+                .bidder(bidder)
                 .build();
 
         return EventUtil.toUrl(externalUrl, eventRequest);

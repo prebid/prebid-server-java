@@ -42,7 +42,8 @@
             }
           ]
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "id": "tid",
