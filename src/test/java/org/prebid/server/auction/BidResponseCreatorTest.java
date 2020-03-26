@@ -17,6 +17,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import java.util.Collections;
+import java.util.HashMap;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -177,11 +179,20 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, timeout, 1000, false);
 
         // then
+        Map<String, List<String>> biddersToCacheBidIds = new HashMap();
+        biddersToCacheBidIds.put("bidder1", Arrays.asList("bidId1", "bidId2"));
+        biddersToCacheBidIds.put("bidder2", Arrays.asList("bidId3", "bidId4"));
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid4, bid3, bid2))), eq(emptyList()),
-                eq(CacheContext.builder().shouldCacheBids(true).shouldCacheVideoBids(true).cacheBidsTtl(99)
-                        .cacheVideoBidsTtl(101).bidderToVideoBidIdsToModify(emptyMap()).build()),
-                eq(Account.builder().id("accountId").build()), eq(timeout), anyLong());
+                eq(CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .cacheBidsTtl(99)
+                        .cacheVideoBidsTtl(101)
+                        .bidderToVideoBidIdsToModify(emptyMap())
+                        .biddersToCacheBidIds(biddersToCacheBidIds)
+                        .build()),
+                eq(Account.builder().id("accountId").build()), eq(timeout), eq(1000L));
     }
 
     @Test
@@ -210,10 +221,16 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, ACCOUNT, timeout, 1000, false);
 
         // then
+        Map<String, List<String>> biddersToCacheBidIds = new HashMap();
+        biddersToCacheBidIds.put("bidder1", Arrays.asList("bidId1", "bidId2"));
+        biddersToCacheBidIds.put("bidder2", Arrays.asList("bidId3", "bidId4"));
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid2)) && t.size() == 2), eq(emptyList()),
-                eq(CacheContext.builder().bidderToVideoBidIdsToModify(emptyMap()).build()),
-                eq(Account.builder().id("accountId").build()), eq(timeout), anyLong());
+                eq(CacheContext.builder()
+                        .bidderToVideoBidIdsToModify(emptyMap())
+                        .biddersToCacheBidIds(biddersToCacheBidIds)
+                        .build()),
+                eq(Account.builder().id("accountId").build()), eq(timeout), eq(1000L));
     }
 
     @Test
@@ -244,11 +261,17 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, account, timeout, 0, false);
 
         // then
+        Map<String, List<String>> biddersToCacheBidIds = new HashMap();
+        biddersToCacheBidIds.put("bidder1", Collections.singletonList("bidId1"));
+        biddersToCacheBidIds.put("bidder2", Collections.singletonList("bidId2"));
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
-                eq(CacheContext.builder().shouldCacheVideoBids(true).bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
+                eq(CacheContext.builder()
+                        .shouldCacheVideoBids(true)
+                        .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
+                        .biddersToCacheBidIds(biddersToCacheBidIds)
                         .build()),
-                same(account), eq(timeout), anyLong());
+                same(account), eq(timeout), eq(0L));
     }
 
     @Test
@@ -270,8 +293,11 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         verify(cacheService).cacheBidsOpenrtb(
                 argThat(bids -> bids.contains(bid1)), eq(emptyList()),
-                eq(CacheContext.builder().bidderToVideoBidIdsToModify(emptyMap()).build()),
-                eq(Account.builder().id("accountId").build()), eq(timeout), anyLong());
+                eq(CacheContext.builder()
+                        .bidderToVideoBidIdsToModify(emptyMap())
+                        .biddersToCacheBidIds(singletonMap("bidder1", Collections.singletonList("bidId1")))
+                        .build()),
+                eq(Account.builder().id("accountId").build()), eq(timeout), eq(0L));
     }
 
     @Test

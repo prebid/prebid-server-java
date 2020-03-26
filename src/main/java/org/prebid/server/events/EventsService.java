@@ -33,6 +33,13 @@ public class EventsService {
     }
 
     /**
+     * Returns url for win tracking.
+     */
+    public String winUrl(String bidId, String bidder, String accountId, Long timestamp) {
+        return eventUrl(EventRequest.Type.win, bidId, bidder, accountId, EventRequest.Format.image, timestamp);
+    }
+
+    /**
      * Returns url for VAST tracking.
      */
     public String vastUrlTracking(String bidId, String bidder, String accountId, Long timestamp) {

@@ -1,6 +1,7 @@
 package org.prebid.server.cache;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
@@ -202,7 +203,7 @@ public class CacheService {
      */
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, List<Imp> imps,
                                                        CacheContext cacheContext, Account account, Timeout timeout,
-                                                       long timestamp) {
+                                                       Long timestamp) {
         final Future<CacheServiceResult> result;
 
         if (CollectionUtils.isEmpty(bids)) {
@@ -227,7 +228,7 @@ public class CacheService {
                     impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
 
             result = doCacheOpenrtb(cacheBids, videoCacheBids, cacheContext.getBidderToVideoBidIdsToModify(),
-                    account.getId(), timeout, timestamp);
+                    cacheContext.getBiddersToCacheBidIds(), account.getId(), timeout, timestamp);
         }
 
         return result;
@@ -301,10 +302,12 @@ public class CacheService {
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
     private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
-                                                        Map<String, List<String>> bidderToVideoBidIdsToModify,
-                                                        String accountId, Timeout timeout, long timestamp) {
+                                                      Map<String, List<String>> bidderToVideoBidIdsToModify,
+                                                      Map<String, List<String>> biddersToCacheBidIds,
+                                                      String accountId, Timeout timeout, Long timestamp) {
         final List<PutObject> putObjects = Stream.concat(
-                bids.stream().map(this::createJsonPutObjectOpenrtb),
+                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, biddersToCacheBidIds, accountId,
+                        timestamp)),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidderToVideoBidIdsToModify,
                         accountId, timestamp)))
                 .collect(Collectors.toList());
@@ -383,12 +386,25 @@ public class CacheService {
     }
 
     /**
-     * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
+     * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}.
+     * Used for OpenRTB auction request. Also, adds win url to result object.
      */
-    private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
+    private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid, Map<String, List<String>> biddersToCacheBidIds,
+                                                 String accountId, Long timestamp) {
+        final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
+        final String bidId = bid.getId();
+        final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
+        for (Map.Entry<String, List<String>> biddersAndBidIds : biddersToCacheBidIds.entrySet()) {
+            if (biddersAndBidIds.getValue().contains(bidId)) {
+                bidObjectNode.put("wurl", eventsService.winUrl(bid.getId(), biddersAndBidIds.getKey(), accountId,
+                        timestamp));
+                break;
+            }
+        }
+
         return PutObject.builder()
                 .type("json")
-                .value(mapper.mapper().valueToTree(cacheBid.getBid()))
+                .value(bidObjectNode)
                 .expiry(cacheBid.getTtl())
                 .build();
     }
@@ -398,7 +414,7 @@ public class CacheService {
      */
     private PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid,
                                                 Map<String, List<String>> bidderToVideoBidIdsToModify,
-                                                String accountId, long timestamp) {
+                                                String accountId, Long timestamp) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
         String vastXml;
         if (bid.getAdm() == null) {
@@ -427,7 +443,7 @@ public class CacheService {
     }
 
     private String modifyVastXml(String stringValue, String bidId, String bidder, String accountId,
-                                 Long auctionTimestamp) {
+                                 Long timestamp) {
         final String closeTag = "</Impression>";
         final int closeTagIndex = stringValue.indexOf(closeTag);
 
@@ -436,9 +452,10 @@ public class CacheService {
             return stringValue;
         }
 
-        final String vastUrlTracking = eventsService.vastUrlTracking(bidId, bidder, accountId, auctionTimestamp);
+        final String vastUrlTracking = eventsService.vastUrlTracking(bidId, bidder, accountId, timestamp);
         final String impressionUrl = "<![CDATA[" + vastUrlTracking + "]]>";
         final String openTag = "<Impression>";
+
         // empty impression tag - just insert the link
         if (closeTagIndex - stringValue.indexOf(openTag) == openTag.length()) {
             return stringValue.replaceFirst(openTag, openTag + impressionUrl);

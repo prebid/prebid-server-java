@@ -264,7 +264,7 @@ public class BidResponseCreator {
     private Future<CacheServiceResult> toBidsWithCacheIds(List<BidderResponse> bidderResponses, Set<Bid> bidsToCache,
                                                           List<Imp> imps, BidRequestCacheInfo cacheInfo,
                                                           Account account, Timeout timeout,
-                                                          long auctionTimestamp) {
+                                                          Long auctionTimestamp) {
         final Future<CacheServiceResult> result;
 
         if (!cacheInfo.isDoCaching()) {
@@ -281,6 +281,10 @@ public class BidResponseCreator {
             final Map<String, List<String>> bidderToVideoBidIdsToModify = shouldCacheVideoBids && eventsEnabled
                     ? getBidderAndVideoBidIdsToModify(bidderResponses, imps)
                     : Collections.emptyMap();
+            final Map<String, List<String>> biddersToCacheBidIds = bidderResponses.stream()
+                     .collect(Collectors.toMap(BidderResponse::getBidder, bidderResponse -> getBids(bidderResponse)
+                            .map(Bid::getId)
+                            .collect(Collectors.toList())));
 
             final CacheContext cacheContext = CacheContext.builder()
                     .cacheBidsTtl(cacheInfo.getCacheBidsTtl())
@@ -288,6 +292,7 @@ public class BidResponseCreator {
                     .shouldCacheBids(cacheInfo.isShouldCacheBids())
                     .shouldCacheVideoBids(shouldCacheVideoBids)
                     .bidderToVideoBidIdsToModify(bidderToVideoBidIdsToModify)
+                    .biddersToCacheBidIds(biddersToCacheBidIds)
                     .build();
 
             result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, timeout,

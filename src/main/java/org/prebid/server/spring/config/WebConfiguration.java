@@ -9,7 +9,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
@@ -109,11 +108,11 @@ public class WebConfiguration {
         logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
                 httpPort);
 
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
+        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
                 vertx.createHttpServer(httpServerOptions)
                         .exceptionHandler(exceptionHandler)
                         .requestHandler(router)
-                        .listen(httpPort, future));
+                        .listen(httpPort, promise));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
@@ -148,8 +147,7 @@ public class WebConfiguration {
     }
 
     @Bean
-    Router router(CookieHandler cookieHandler,
-                  BodyHandler bodyHandler,
+    Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
                   AuctionHandler auctionHandler,
@@ -169,7 +167,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
@@ -192,11 +189,6 @@ public class WebConfiguration {
         router.get("/").handler(staticHandler); // serves index.html by default
 
         return router;
-    }
-
-    @Bean
-    CookieHandler cookieHandler() {
-        return CookieHandler.create();
     }
 
     @Bean
@@ -517,8 +509,8 @@ public class WebConfiguration {
                 router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
             }
 
-            contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router).listen(adminPort, future));
+            contextRunner.<HttpServer>runOnServiceContext(promise ->
+                    vertx.createHttpServer().requestHandler(router).listen(adminPort, promise));
 
             logger.info("Successfully started Admin Server");
         }
