@@ -93,7 +93,7 @@ gdpr:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
   purposes:
     p1:
-      enforce-purpose: full
+      enforce-purpose: base
       enforce-vendors: true
     p2:
       enforce-purpose: full

@@ -1,6 +1,9 @@
 package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
+import com.iabtcf.utils.BitSetIntIterable;
+import com.iabtcf.utils.IntIterable;
+import com.iabtcf.v2.PublisherRestriction;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -16,6 +19,7 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.GdprConfig;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -144,20 +148,28 @@ public class TcfDefinerService {
             return allowAll(vendorIds, bidderNames, country);
         }
 
-        final TCString decodedTcf = TCString.decode(gdprInfo.getConsent());
-        if (decodedTcf.getVersion() == 2) {
-            return tcf2Service.permissionsFor(decodedTcf, vendorIds, bidderNames, gdprPurposes)
-                    .map(vendorPermissions -> prepareTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
-        } else {
-            return gdprService.resultFor(gdprPurposes, vendorIds, bidderNames, gdprInfo)
-                    .map(vendorPermissions -> prepareTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
+        // parsing TC string should not fail the entire request, assume the user does not consent
+        TCString tcString;
+        try {
+            tcString = TCString.decode(gdprInfo.getConsent());
+        } catch (Throwable e) {
+            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            tcString = new TCStringEmpty(2);
         }
+
+        if (tcString.getVersion() == 2) {
+            return tcf2Service.permissionsFor(tcString, vendorIds, bidderNames, gdprPurposes)
+                    .map(vendorPermissions -> toTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
+        }
+
+        return gdprService.resultFor(gdprPurposes, vendorIds, bidderNames, gdprInfo)
+                .map(vendorPermissions -> toTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
     }
 
-    private TcfResponse prepareTcfResponse(Set<Integer> vendorIds,
-                                           Set<String> bidderNames,
-                                           Collection<VendorPermission> vendorPermissions,
-                                           String country) {
+    private static TcfResponse toTcfResponse(Set<Integer> vendorIds,
+                                             Set<String> bidderNames,
+                                             Collection<VendorPermission> vendorPermissions,
+                                             String country) {
 
         final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = new HashMap<>();
         final Map<String, PrivacyEnforcementAction> bidderNameToGdpr = new HashMap<>();
@@ -177,17 +189,155 @@ public class TcfDefinerService {
         return TcfResponse.of(true, vendorIdToGdpr, bidderNameToGdpr, country);
     }
 
-    private Future<TcfResponse> allowAll(Set<Integer> vendorIds, Set<String> bidderNames, String country) {
+    private static Future<TcfResponse> allowAll(Set<Integer> vendorIds, Set<String> bidderNames, String country) {
         return Future.succeededFuture(TcfResponse.of(false, allowAll(vendorIds), allowAll(bidderNames), country));
     }
 
-    private <T> Map<T, PrivacyEnforcementAction> allowAll(Collection<T> vendorIdentifier) {
-        return vendorIdentifier.stream()
+    private static <T> Map<T, PrivacyEnforcementAction> allowAll(Collection<T> identifiers) {
+        return identifiers.stream()
                 .collect(Collectors.toMap(Function.identity(), ignored -> PrivacyEnforcementAction.allowAll()));
     }
 
     private static boolean inScope(GdprInfoWithCountry<?> gdprInfo) {
         return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
     }
-}
 
+    static class TCStringEmpty implements TCString {
+
+        private int version;
+
+        TCStringEmpty(int version) {
+            this.version = version;
+        }
+
+        @Override
+        public int getVersion() {
+            return version;
+        }
+
+        @Override
+        public Instant getCreated() {
+            return null;
+        }
+
+        @Override
+        public Instant getLastUpdated() {
+            return null;
+        }
+
+        @Override
+        public int getCmpId() {
+            return 0;
+        }
+
+        @Override
+        public int getCmpVersion() {
+            return 0;
+        }
+
+        @Override
+        public int getConsentScreen() {
+            return 0;
+        }
+
+        @Override
+        public String getConsentLanguage() {
+            return null;
+        }
+
+        @Override
+        public int getVendorListVersion() {
+            return 0;
+        }
+
+        @Override
+        public IntIterable getPurposesConsent() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getVendorConsent() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public boolean getDefaultVendorConsent() {
+            return false;
+        }
+
+        @Override
+        public int getTcfPolicyVersion() {
+            return 0;
+        }
+
+        @Override
+        public boolean isServiceSpecific() {
+            return false;
+        }
+
+        @Override
+        public boolean getUseNonStandardStacks() {
+            return false;
+        }
+
+        @Override
+        public IntIterable getSpecialFeatureOptIns() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getPurposesLITransparency() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public boolean getPurposeOneTreatment() {
+            return false;
+        }
+
+        @Override
+        public String getPublisherCC() {
+            return null;
+        }
+
+        @Override
+        public IntIterable getVendorLegitimateInterest() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public List<PublisherRestriction> getPublisherRestrictions() {
+            return null;
+        }
+
+        @Override
+        public IntIterable getAllowedVendors() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getDisclosedVendors() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getPubPurposesConsent() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getPubPurposesLITransparency() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getCustomPurposesConsent() {
+            return BitSetIntIterable.EMPTY;
+        }
+
+        @Override
+        public IntIterable getCustomPurposesLITransparency() {
+            return BitSetIntIterable.EMPTY;
+        }
+    }
+}
