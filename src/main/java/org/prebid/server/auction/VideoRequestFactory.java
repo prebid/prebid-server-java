@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
@@ -15,6 +16,7 @@ import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -85,7 +87,22 @@ public class VideoRequestFactory {
         }
 
         try {
-            return mapper.decodeValue(body, BidRequestVideo.class);
+            BidRequestVideo bidRequestVideo = mapper.decodeValue(body, BidRequestVideo.class);
+            if (bidRequestVideo.getDevice() == null) {
+                bidRequestVideo = bidRequestVideo.toBuilder().device(Device.builder().build()).build();
+            }
+            if (StringUtils.isEmpty(bidRequestVideo.getDevice().getUa())) {
+                final String userAgentHeader = context.request().getHeader(HttpUtil.USER_AGENT_HEADER);
+                if (StringUtils.isEmpty(userAgentHeader)) {
+                    throw new InvalidRequestException("Device.UA and User-Agent Header is not presented");
+                }
+                bidRequestVideo = bidRequestVideo.toBuilder()
+                        .device(bidRequestVideo.getDevice().toBuilder()
+                                .ua(userAgentHeader)
+                                .build())
+                        .build();
+            }
+            return bidRequestVideo;
         } catch (DecodeException e) {
             throw new InvalidRequestException(e.getMessage());
         }
