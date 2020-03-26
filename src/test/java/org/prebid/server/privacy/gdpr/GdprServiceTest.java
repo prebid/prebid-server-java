@@ -396,6 +396,6 @@ public class GdprServiceTest extends VertxTest {
         final PrivacyEnforcementAction expectedChangedAction = PrivacyEnforcementAction.restrictAll();
         expectedChangedAction.setBlockPixelSync(false);
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", expectedChangedAction);
-        assertThat(result.result()).containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
     }
 }

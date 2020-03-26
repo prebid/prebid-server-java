@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public abstract class PurposeStrategy {
 
@@ -66,48 +67,25 @@ public abstract class PurposeStrategy {
     protected Collection<VendorPermission> allowedByBasicTypeStrategy(TCString vendorConsent,
                                                                       Purpose purpose,
                                                                       Collection<VendorPermission> vendorPermissions) {
+        final Collection<VendorPermission> excludedVendors = excludedVendors(vendorPermissions, purpose);
+        final Collection<VendorPermission> vendorForPurpose = vendorPermissions.stream()
+                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
+                .collect(Collectors.toList());
 
-        // TODO We can't exclude any vendor for all Checks (in the config)
-        final Collection<VendorPermission> vendorGdprEnforced = vendorGdprEnforced(vendorPermissions, purpose);
-        final Collection<VendorPermission> purposeAndVendorGdprEnforced =
-                purposeAndVendorGdprEnforced(vendorPermissions, purpose);
+        final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
+        final Collection<VendorPermission> modifiedVendorPermissions = basicTypeStrategy
+                .allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose, isEnforceVendors);
 
-        return basicTypeStrategy.allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorGdprEnforced,
-                purposeAndVendorGdprEnforced);
+        return CollectionUtils.union(modifiedVendorPermissions, excludedVendors);
     }
 
-    protected Collection<VendorPermission> vendorGdprEnforced(Collection<VendorPermission> vendorPermissions,
-                                                              Purpose purpose) {
-        final List<String> nameExceptions = purpose.getVendorExceptions();
-        // Default value is True by configuration
-        if (BooleanUtils.isNotFalse(purpose.getEnforceVendors())) {
-            return CollectionUtils.isEmpty(nameExceptions)
-                    ? vendorPermissions
-                    : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                    !nameExceptions.contains(vendorPermission.getBidderName()));
-        } else {
-            return CollectionUtils.isEmpty(nameExceptions)
-                    ? Collections.emptyList()
-                    : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                    nameExceptions.contains(vendorPermission.getBidderName()));
-        }
-    }
-
-    protected Collection<VendorPermission> purposeAndVendorGdprEnforced(Collection<VendorPermission> vendorPermissions,
-                                                                        Purpose purpose) {
-        final List<String> nameExceptions = purpose.getVendorExceptions();
-        // Default value is True by configuration
-        if (BooleanUtils.isNotFalse(purpose.getEnforceVendors())) {
-            return CollectionUtils.isEmpty(nameExceptions)
-                    ? Collections.emptyList()
-                    : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                    nameExceptions.contains(vendorPermission.getBidderName()));
-        } else {
-            return CollectionUtils.isEmpty(nameExceptions)
-                    ? vendorPermissions
-                    : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                    !nameExceptions.contains(vendorPermission.getBidderName()));
-        }
+    protected Collection<VendorPermission> excludedVendors(Collection<VendorPermission> vendorPermissions,
+                                                           Purpose purpose) {
+        final List<String> bidderNameExceptions = purpose.getVendorExceptions();
+        return CollectionUtils.isEmpty(bidderNameExceptions)
+                ? Collections.emptySet()
+                : CollectionUtils.select(vendorPermissions, vendorPermission ->
+                bidderNameExceptions.contains(vendorPermission.getBidderName()));
     }
 }
 

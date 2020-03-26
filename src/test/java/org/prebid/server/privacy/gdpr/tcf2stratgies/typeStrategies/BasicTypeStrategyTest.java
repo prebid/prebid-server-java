@@ -56,130 +56,138 @@ public class BasicTypeStrategyTest {
     }
 
     @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsNotAllowed() {
+    public void allowedByTypeStrategyShouldReturnEmptyListWhenVendorIsNotAllowedAndVendorIsNotEnforced() {
         // given
-        final List<VendorPermission> vendorGdprEnforced = singletonList(VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
-        final List<VendorPermission> vendorAndPurposeEnforced = singletonList(VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll()));
+        final List<VendorPermission> vendorPurpose = singletonList(VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowed() {
+    public void allowedByTypeStrategyShouldReturnEmptyListWhenVendorIsNotAllowedAndVendorEnforced() {
         // given
-        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorGdprEnforced = singletonList(vendorPermission1);
-        final List<VendorPermission> vendorAndPurposeEnforced = singletonList(VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll()));
+        final List<VendorPermission> vendorPurpose = singletonList(VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowedAndVendorEnforced() {
+        // given
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
 
         // then
-        assertThat(result).containsOnly(vendorPermission1);
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorLIIsAllowed() {
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowedAndVendorIsNotEnforced() {
         // given
-        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorGdprEnforced = singletonList(vendorPermission1);
-        final List<VendorPermission> vendorAndPurposeEnforced = singletonList(VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll()));
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+
+        given(allowedVendors.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorLIIsAllowedAndVendorEnforced() {
+        // given
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
 
         // then
-        assertThat(result).containsOnly(vendorPermission1);
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
+
     @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndPurposeIsAllowed() {
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorLIIsAllowedAndVendorIsNotEnforced() {
         // given
-        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorGdprEnforced = singletonList(vendorPermission1);
-        final List<VendorPermission> vendorAndPurposeEnforced = singletonList(VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll()));
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+
+        given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+        @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndPurposeIsAllowedAndVendorIsNotEnforced() {
+        // given
+            final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+            final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndPurposeAndVendorIsAllowed() {
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndVendorIsAllowedAndVendorIsNotEnforced() {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorGdprEnforced = singletonList(vendorPermission1);
-        final List<VendorPermission> vendorAndPurposeEnforced = singletonList(vendorPermission2);
+        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
-        given(purposesConsent.contains(PURPOSE_ID)).willReturn(true);
         given(purposesLI.contains(PURPOSE_ID)).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
 
         // then
-        assertThat(result).containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
     }
 
-    @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndPurposeAndVendorLIIsAllowed() {
+        @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeAndVendorLIIsAllowedAndVendorIsNotEnforced() {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorGdprEnforced = singletonList(vendorPermission1);
-        final List<VendorPermission> vendorAndPurposeEnforced = singletonList(vendorPermission2);
+            final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(PURPOSE_ID)).willReturn(true);
-        given(purposesLI.contains(PURPOSE_ID)).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
 
         // then
-        assertThat(result).containsOnly(vendorPermission1, vendorPermission2);
-    }
-
-    @Test
-    public void allowedByTypeStrategyShouldReturnExpectedValues() {
-        // given
-        final VendorPermission vendorPermissionInVendorLI = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final VendorPermission vendorPermissionInVendor = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final VendorPermission vendorPermissionRestricted = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
-        final VendorPermission vendorPermissionInPurpose = VendorPermission.of(4, null, PrivacyEnforcementAction.restrictAll());
-        final VendorPermission vendorPermissionInPurposeLi = VendorPermission.of(5, null, PrivacyEnforcementAction.restrictAll());
-        final VendorPermission vendorPermissionPurposeRestricted = VendorPermission.of(6, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorGdprEnforced = Arrays.asList(vendorPermissionInVendorLI, vendorPermissionInVendor, vendorPermissionRestricted);
-        final List<VendorPermission> vendorAndPurposeEnforced = Arrays.asList(vendorPermissionInPurpose, vendorPermissionInPurposeLi, vendorPermissionPurposeRestricted);
-
-        given(allowedVendorsLI.contains(1)).willReturn(true);
-        given(allowedVendors.contains(2)).willReturn(true);
-
-        given(allowedVendors.contains(4)).willReturn(true);
-        given(purposesConsent.contains(PURPOSE_ID)).willReturn(true);
-        given(allowedVendors.contains(5)).willReturn(true);
-        given(purposesLI.contains(PURPOSE_ID)).willReturn(true);
-
-        // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorGdprEnforced, vendorAndPurposeEnforced);
-
-        // then
-        assertThat(result).containsOnly(vendorPermissionInVendorLI, vendorPermissionInVendor, vendorPermissionInPurpose, vendorPermissionInPurposeLi);
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
     }
 }
 

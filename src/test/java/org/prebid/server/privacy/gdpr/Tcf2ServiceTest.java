@@ -94,7 +94,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
         // then
         final VendorPermission expectedVendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        assertThat(result.result()).containsOnly(expectedVendorPermission);
+        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
 
         verify(purposeStrategy).getPurposeId();
         verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1, singletonList(expectedVendorPermission));
@@ -121,7 +121,7 @@ public class Tcf2ServiceTest extends VertxTest {
         // then
         final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, bidderNameWithVendor, PrivacyEnforcementAction.restrictAll());
         final VendorPermission expectedVendorPermission2 = VendorPermission.of(null, "b2", PrivacyEnforcementAction.restrictAll());
-        assertThat(result.result()).containsOnly(expectedVendorPermission1, expectedVendorPermission2);
+        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission1, expectedVendorPermission2);
 
         verify(purposeStrategy).getPurposeId();
         verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1, Arrays.asList(expectedVendorPermission2, expectedVendorPermission1));
