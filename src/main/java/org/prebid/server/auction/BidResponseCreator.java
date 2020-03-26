@@ -115,23 +115,27 @@ public class BidResponseCreator {
     }
 
     private Consumer<BidResponse> overwriteBidIdConsumer() {
-        return bidderResponses -> {
-            bidderResponses.getSeatbid().stream()
-                    .map(SeatBid::getBid)
-                    .forEach(bids -> bids.stream()
-                            .filter(Objects::nonNull)
-                            .forEach(this::replaceBidId));
-
-        };
+        return bidderResponses -> bidderResponses.getSeatbid().stream()
+                .map(SeatBid::getBid)
+                .forEach(bids -> bids.stream()
+                        .filter(Objects::nonNull)
+                        .forEach(this::replaceBidId));
     }
 
     private void replaceBidId(Bid bid) {
         final ObjectNode ext = bid.getExt();
         final ExtBidPrebid extBidPrebid = parsePrebidExt(ext);
         if (extBidPrebid != null) {
-            extBidPrebid.setBidId(UUID.randomUUID().toString());
+            final ExtBidPrebid modifiedExtBidPrebid = ExtBidPrebid.of(
+                    UUID.randomUUID().toString(),
+                    extBidPrebid.getType(),
+                    extBidPrebid.getTargeting(),
+                    extBidPrebid.getCache(),
+                    extBidPrebid.getStoredRequestAttributes(),
+                    extBidPrebid.getEvents(),
+                    extBidPrebid.getVideo());
             try {
-                final JsonNode extBidPrebidValue = mapper.mapper().readTree(mapper.encode(extBidPrebid));
+                final JsonNode extBidPrebidValue = mapper.mapper().readTree(mapper.encode(modifiedExtBidPrebid));
                 final ObjectNode prebidExtNode = ext.set(PREBID_EXT, extBidPrebidValue);
                 bid.setExt(prebidExtNode);
             } catch (JsonProcessingException e) {
@@ -689,12 +693,9 @@ public class BidResponseCreator {
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
         final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), account.getId()) : null;
 
-        final ExtBidPrebid prebidExt = ExtBidPrebid.builder().type(bidType)
-                .targeting(targetingKeywords)
-                .cache(cache)
-                .storedRequestAttributes(storedVideo)
-                .events(events)
-                .build();
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(null, bidType, targetingKeywords, cache, storedVideo,
+                events, null);
+
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
 

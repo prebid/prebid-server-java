@@ -370,11 +370,12 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldOverwriteBidderIdToUUID() throws JsonProcessingException {
+    public void shouldOverwriteBidderIdToUUID() {
         // given
         final BidRequest bidRequest = givenBidRequest();
 
-        final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null);
+        final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.of(null, banner, null,
+                null, null, null, null), null);
         final Bid bid = Bid.builder()
                 .id("123")
                 .impid("imp123")
@@ -427,7 +428,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .price(BigDecimal.ONE)
                         .adm("adm")
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                ExtBidPrebid.builder().type(banner).build(), singletonMap("bidExt", 1))))
+                                ExtBidPrebid.of(null, banner, null, null, null, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
 
@@ -562,7 +563,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null)))
+                                ExtPrebid.of(ExtBidPrebid.of(null, banner, null, null, null, null, null), null)))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any());
