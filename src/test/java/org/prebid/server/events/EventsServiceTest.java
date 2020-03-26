@@ -8,6 +8,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
 
 public class EventsServiceTest {
 
@@ -24,29 +25,29 @@ public class EventsServiceTest {
     @Test
     public void createEventsShouldReturnExpectedEvent() {
         // when
-        final Events events = eventsService.createEvent("bidId", "bidder","accountId", 1000);
+        final Events events = eventsService.createEvent("bidId", "bidder","accountId", 1000L);
 
         // then
         assertThat(events).isEqualTo(Events.of(
-                "http://external-url/event?t=win&b=bidId&a=accountId&f=i",
-                "http://external-url/event?t=imp&b=bidId&a=accountId&f=i"));
+                "http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i",
+                "http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i"));
     }
 
     @Test
     public void winUrlTargetingShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.winUrlTargeting("bidder", "accountId",1000);
+        final String winUrlTargeting = eventsService.winUrlTargeting("bidder", "accountId",1000L);
 
         // then
-        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&f=i");
+        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&ts=1000&bidder=bidder&f=i");
     }
 
     @Test
     public void vastUrlTrackingShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.vastUrlTracking("bidId", "bidder","accountId", 1000);
+        final String winUrlTargeting = eventsService.vastUrlTracking("bidId", "bidder","accountId", 1000L);
 
         // then
-        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=imp&b=bidId&a=accountId&f=b");
+        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b");
     }
 }

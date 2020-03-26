@@ -119,11 +119,47 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBadRequestWhenBidderIsMissing() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("ts", "1000"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenTimestampIsMissing() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("bidder", "bidder"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+    }
+
+    @Test
     public void shouldReturnUnauthorizedWhenAccountIsMissing() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("b", "bidId"));
+                .add("b", "bidId")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -141,7 +177,9 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("t", "win")
                 .add("b", "bidId")
                 .add("a", "accountId")
-                .add("f", "invalid"));
+                .add("f", "invalid")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -177,7 +215,10 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId"));
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000")
+        );
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
@@ -198,7 +239,9 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId"));
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().id("accountId").eventsEnabled(false).build()));
@@ -219,7 +262,9 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId"));
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
 
         final Account account = Account.builder().eventsEnabled(true).build();
         given(applicationSettings.getAccountById(anyString(), any()))
@@ -233,6 +278,8 @@ public class NotificationEventHandlerTest extends VertxTest {
         queryParams.put("t", "win");
         queryParams.put("b", "bidId");
         queryParams.put("a", "accountId");
+        queryParams.put("bidder", "bidder");
+        queryParams.put("ts", "1000");
         final HttpContext expectedHttpContext = HttpContext.builder()
                 .queryParams(queryParams)
                 .headers(Collections.emptyMap())
@@ -271,7 +318,9 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("t", "win")
                 .add("b", "bidId")
                 .add("a", "accountId")
-                .add("f", "i"));
+                .add("f", "i")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
@@ -293,7 +342,9 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId"));
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));

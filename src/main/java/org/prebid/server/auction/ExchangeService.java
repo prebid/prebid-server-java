@@ -146,7 +146,7 @@ public class ExchangeService {
         final Map<String, String> aliases = aliases(requestExt);
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
-        final long auctionTimestamp = auctionTimestamp(requestExt);
+        final Long auctionTimestamp = auctionTimestamp(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final Boolean isGdprEnforced = account.getEnforceGdpr();
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
@@ -710,10 +710,10 @@ public class ExchangeService {
     /**
      * Extracts auctiontimestamp from {@link ExtBidRequest} model.
      */
-    private static long auctionTimestamp(ExtBidRequest requestExt) {
+    private static Long auctionTimestamp(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final long auctionTimestamp = prebid != null ? prebid.getTimestamp() : Instant.now().toEpochMilli();
-        return auctionTimestamp;
+        final Long auctionTmestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
+        return auctionTmestamp != null ? auctionTmestamp : Instant.now().toEpochMilli();
     }
 
     /**

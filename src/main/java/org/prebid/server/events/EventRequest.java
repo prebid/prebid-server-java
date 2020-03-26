@@ -22,8 +22,7 @@ public class EventRequest {
 
     Analytics analytics;
 
-    // According to requirements can not be null
-    long timestamp;
+    Long timestamp;
 
     public enum Type {
 

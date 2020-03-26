@@ -68,7 +68,9 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         try {
             EventUtil.validateType(context);
             EventUtil.validateBidId(context);
+            EventUtil.validateBiddder(context);
             EventUtil.validateFormat(context);
+            EventUtil.validateTimestamp(context);
             EventUtil.validateAnalytics(context);
         } catch (IllegalArgumentException e) {
             respondWithBadStatus(context, e.getMessage());

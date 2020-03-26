@@ -5,12 +5,11 @@ import org.apache.commons.lang3.StringUtils;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 
-import java.time.Instant;
 import java.util.Objects;
 
 public class EventUtil {
 
-    private static final String TEMPLATE_URL = "%s/event?t=%s&b=%s&a=%s";
+    private static final String TEMPLATE_URL = "%s/event?t=%s&b=%s&a=%s&ts=%s&bidder=%s";
 
     // Required  query string parameters
 
@@ -21,6 +20,7 @@ public class EventUtil {
     private static final String BID_ID_PARAMETER = "b";
     private static final String BIDDER_PARAMETER = "bidder";
     private static final String ACCOUNT_ID_PARAMETER = "a";
+    private static final String TIMESTAMP_PARAMETER = "ts";
 
     // Optional query string parameters
 
@@ -87,6 +87,14 @@ public class EventUtil {
         }
     }
 
+    public static void validateTimestamp(RoutingContext context) {
+        final String timestamp = context.request().params().get(TIMESTAMP_PARAMETER);
+        if (StringUtils.isBlank(timestamp)) {
+            throw new IllegalArgumentException(String.format(
+                    "Timestamp '%s' is required query parameter and can't be empty", TIMESTAMP_PARAMETER));
+        }
+    }
+
     public static EventRequest from(RoutingContext context) {
         final MultiMap queryParams = context.request().params();
 
@@ -103,11 +111,9 @@ public class EventUtil {
         return EventRequest.builder()
                 .type(type)
                 .bidId(queryParams.get(BID_ID_PARAMETER))
-                .bidder(queryParams.get(BIDDER_PARAMETER))
                 .accountId(queryParams.get(ACCOUNT_ID_PARAMETER))
                 .format(format)
                 .analytics(analytics)
-                .timestamp(Instant.now().toEpochMilli())
                 .build();
     }
 
@@ -115,7 +121,9 @@ public class EventUtil {
         final String urlWithRequiredParameters = String.format(TEMPLATE_URL, externalUrl,
                 eventRequest.getType(),
                 eventRequest.getBidId(),
-                eventRequest.getAccountId());
+                eventRequest.getAccountId(),
+                eventRequest.getTimestamp(),
+                eventRequest.getBidder());
 
         final String formatQueryString;
         if (eventRequest.getFormat() == EventRequest.Format.blank) {

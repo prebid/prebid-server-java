@@ -40,5 +40,5 @@ public class ExtBidResponse {
     /**
      * Defines the contract for bidresponse.ext.auctiontimestamp
      */
-    Long timestamp;
+    Long auctiontimestamp;
 }
