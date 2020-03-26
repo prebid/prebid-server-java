@@ -864,7 +864,7 @@ public class CacheServiceTest extends VertxTest {
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
         final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
-                emptySet(), "", expiredTimeout, 0);
+                emptySet(), "", expiredTimeout, null);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -874,7 +874,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null, 0);
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null, null);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -899,17 +899,18 @@ public class CacheServiceTest extends VertxTest {
                 .build();
 
         given(eventsService.vastUrlTracking(any(), any(), any(), anyLong()))
-                .willReturn("https://test-event.com/event?t=imp&b=biddid1&f=b&a=account");
+                .willReturn("http://external-url/event?t=imp&b=bidId&a=accountId&ts=bidder&bidder=1000&f=b");
 
         // when
         cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
-                timeout, 0);
+                timeout, 1000L);
 
         // then
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
                 .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
                         "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>" +
-                        "<Impression><![CDATA[https://test-event.com/event?t=imp&b=biddid1&f=b&a=account]]>" +
+                        "<Impression><!" +
+                        "[CDATA[http://external-url/event?t=imp&b=bidId&a=accountId&ts=bidder&bidder=1000&f=b]]>" +
                         "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
                 .build();
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();

@@ -18,7 +18,7 @@ public class EventsService {
     /**
      * Returns {@link Events} object based on given params.
      */
-    public Events createEvent(String bidId, String bidder, String accountId, long timestamp) {
+    public Events createEvent(String bidId, String bidder, String accountId, Long timestamp) {
         return Events.of(
                 eventUrl(EventRequest.Type.win, bidId, bidder, accountId, EventRequest.Format.image, timestamp),
                 eventUrl(EventRequest.Type.imp, bidId, bidder, accountId, EventRequest.Format.image, timestamp));
@@ -27,7 +27,7 @@ public class EventsService {
     /**
      * Returns value for "hb_winurl" targeting keyword.
      */
-    public String winUrlTargeting(String bidder, String accountId, long timestamp) {
+    public String winUrlTargeting(String bidder, String accountId, Long timestamp) {
         return eventUrl(EventRequest.Type.win, BIDID_PLACEHOLDER, bidder, accountId,
                 EventRequest.Format.image, timestamp);
     }
@@ -35,12 +35,12 @@ public class EventsService {
     /**
      * Returns url for VAST tracking.
      */
-    public String vastUrlTracking(String bidId, String bidder, String accountId, long timestamp) {
+    public String vastUrlTracking(String bidId, String bidder, String accountId, Long timestamp) {
         return eventUrl(EventRequest.Type.imp, bidId, bidder, accountId, EventRequest.Format.blank, timestamp);
     }
 
     private String eventUrl(EventRequest.Type type, String bidId, String bidder, String accountId,
-                            EventRequest.Format format, long timestamp) {
+                            EventRequest.Format format, Long timestamp) {
         final EventRequest eventRequest = EventRequest.builder()
                 .type(type)
                 .bidId(bidId)

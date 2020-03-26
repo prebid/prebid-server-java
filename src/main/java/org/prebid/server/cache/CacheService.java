@@ -167,9 +167,9 @@ public class CacheService {
      * The returned result will always have the number of elements equals putObjects list size.
      */
     public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
-                                                    String accountId, Timeout timeout, long timestamp) {
+                                                    String accountId, Timeout timeout, Long auctionTimestamp) {
         final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate,
-                accountId, timestamp);
+                accountId, auctionTimestamp);
         return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout);
     }
 
@@ -177,7 +177,7 @@ public class CacheService {
      * Modify VAST value in putObjects.
      */
     private List<PutObject> updatePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
-                                             String accountId, long timestamp) {
+                                             String accountId, Long auctionTimestamp) {
         if (CollectionUtils.isEmpty(biddersAllowingVastUpdate)) {
             return putObjects;
         }
@@ -187,7 +187,7 @@ public class CacheService {
             final JsonNode value = putObject.getValue();
             if (biddersAllowingVastUpdate.contains(putObject.getBidder()) && value != null) {
                 final String updatedVastValue = modifyVastXml(value.asText(), putObject.getBidid(),
-                        putObject.getBidder(), accountId, timestamp);
+                        putObject.getBidder(), accountId, auctionTimestamp);
                 final PutObject updatedPutObject = putObject.toBuilder().value(new TextNode(updatedVastValue)).build();
                 updatedPutObjects.add(updatedPutObject);
             } else {
@@ -300,10 +300,9 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
-    private Future<CacheServiceResult> doCacheOpenrtb(
-            List<CacheBid> bids, List<CacheBid> videoBids,
-            Map<String, List<String>> bidderToVideoBidIdsToModify,
-            String accountId, Timeout timeout, long timestamp) {
+    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
+                                                        Map<String, List<String>> bidderToVideoBidIdsToModify,
+                                                        String accountId, Timeout timeout, long timestamp) {
         final List<PutObject> putObjects = Stream.concat(
                 bids.stream().map(this::createJsonPutObjectOpenrtb),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidderToVideoBidIdsToModify,
@@ -427,7 +426,8 @@ public class CacheService {
                 .build();
     }
 
-    private String modifyVastXml(String stringValue, String bidId, String bidder, String accountId, long timestamp) {
+    private String modifyVastXml(String stringValue, String bidId, String bidder, String accountId,
+                                 Long auctionTimestamp) {
         final String closeTag = "</Impression>";
         final int closeTagIndex = stringValue.indexOf(closeTag);
 
@@ -436,10 +436,9 @@ public class CacheService {
             return stringValue;
         }
 
-        final String impressionUrl = "<![CDATA[" + eventsService.vastUrlTracking(bidId, bidder,
-                accountId, timestamp) + "]]>";
+        final String vastUrlTracking = eventsService.vastUrlTracking(bidId, bidder, accountId, auctionTimestamp);
+        final String impressionUrl = "<![CDATA[" + vastUrlTracking + "]]>";
         final String openTag = "<Impression>";
-
         // empty impression tag - just insert the link
         if (closeTagIndex - stringValue.indexOf(openTag) == openTag.length()) {
             return stringValue.replaceFirst(openTag, openTag + impressionUrl);
