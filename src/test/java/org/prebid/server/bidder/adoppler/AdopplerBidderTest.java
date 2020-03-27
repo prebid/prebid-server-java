@@ -84,7 +84,7 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL+"/processHeaderBid/adUnit");
     }
 
     @Test
@@ -122,9 +122,9 @@ public class AdopplerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfDuplicateId() throws JsonProcessingException {
         // given
-        Imp imp1 = Imp.builder().id("impId").banner(Banner.builder().build()).build();
-        Imp imp2 = Imp.builder().id("impId").video(Video.builder().build()).build();
-        List imps = new ArrayList();
+        final Imp imp1 = Imp.builder().id("impId").banner(Banner.builder().build()).build();
+        final Imp imp2 = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final List imps = new ArrayList();
         imps.add(imp1);
         imps.add(imp2);
         BidRequest bidRequest = BidRequest.builder()
@@ -148,7 +148,7 @@ public class AdopplerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfEmptyImp() throws JsonProcessingException {
         // given
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("123")
                         .banner(null)
                         .video(null)
@@ -174,7 +174,7 @@ public class AdopplerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidIdEmpty() throws JsonProcessingException {
         // given
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("123")
                         .banner(Banner.builder().build())
                         .build()))
@@ -190,17 +190,17 @@ public class AdopplerBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage())
                 .startsWith("unknown impid: null");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfExtEmpty() throws JsonProcessingException {
         // given
-        Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
-        List imps = new ArrayList();
+        final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
+        final List imps = new ArrayList();
         imps.add(imp);
-        BidRequest bidRequest = BidRequest.builder().imp(imps).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
         final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(null));
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
@@ -215,7 +215,7 @@ public class AdopplerBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage())
                 .startsWith("$.seatbid.bid.ext.ads.video required");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 

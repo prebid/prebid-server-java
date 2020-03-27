@@ -51,7 +51,9 @@ public class SmartrtbTest extends IntegrationTest {
                 "openrtb2/smartrtb/test-auction-smartrtb-response.json",
                 response, singletonList("smartrtb"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+
+        String actualStr = response.asString();
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }
 

@@ -1,11 +1,11 @@
 {
-  "id": "req1-unit2",
+  "id": "req1-unit1",
   "seatbid": [
     {
       "bid": [
         {
           "id": "bid001",
-          "impid": "imp2",
+          "impid": "imp1",
           "price": 3.33,
           "adm": "adm001",
           "adid": "adid001",
@@ -17,16 +17,14 @@
           ],
           "ext": {
             "prebid": {
-              "type": "video",
+              "type": "banner",
               "targeting": {
                 "hb_pb": "3.30",
                 "hb_bidder_adoppler": "adoppler",
                 "hb_cache_id_adoppler": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
                 "hb_cache_path_adoppler": "{{ cache.path }}",
-                "hb_uuid_adoppler": "e7965b2e-0aa3-4252-a22c-580ed010e619",
                 "hb_cache_host_adoppler": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_uuid": "e7965b2e-0aa3-4252-a22c-580ed010e619",
                 "hb_bidder": "adoppler",
                 "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
                 "hb_cache_host": "{{ cache.host }}",
@@ -36,10 +34,6 @@
                 "bids": {
                   "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
                   "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
-                },
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}e7965b2e-0aa3-4252-a22c-580ed010e619",
-                  "cacheId": "e7965b2e-0aa3-4252-a22c-580ed010e619"
                 }
               }
             },

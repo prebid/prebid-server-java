@@ -14,23 +14,6 @@
       }
     }
   ],
-  "id": "req1-unit2",
-  "imp": [
-    {
-      "id": "imp2",
-      "video": {
-        "minduration": 120,
-        "mimes": [
-          "video/mp4"
-        ]
-      },
-      "ext": {
-        "adoppler": {
-          "adunit": "unit2"
-        }
-      }
-    }
-  ],
   "device": {
     "pxratio": 4.2,
     "dnt": 2,

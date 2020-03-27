@@ -7,5 +7,5 @@ import lombok.Value;
 @Value
 public class AdopplerResponseVideoAdsExt {
 
-    int duration;
+    Integer duration;
 }

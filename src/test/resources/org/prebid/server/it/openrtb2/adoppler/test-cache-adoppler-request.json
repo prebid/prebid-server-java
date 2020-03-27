@@ -4,7 +4,7 @@
       "type": "json",
       "value": {
         "id": "bid001",
-        "impid": "imp2",
+        "impid": "imp1",
         "price": 3.33,
         "adm": "adm001",
         "adid": "adid001",
@@ -22,11 +22,6 @@
           }
         }
       }
-    },
-    {
-      "type": "xml",
-      "value": "adm001",
-      "expiry": 120
     }
   ]
 }

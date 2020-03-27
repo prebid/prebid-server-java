@@ -1,17 +1,15 @@
 {
-  "id": "req1-unit2-unit2",
+  "id": "req1-unit1-unit1",
   "imp": [
     {
-      "id": "imp2",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "minduration": 120
+      "id": "imp1",
+      "banner": {
+        "w": 100,
+        "h": 200
       },
       "ext": {
         "bidder": {
-          "adunit": "unit2"
+          "adunit": "unit1"
         }
       }
     }
