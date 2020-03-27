@@ -139,12 +139,14 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(null);
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
 
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).setStatusMessage(eq("Request has no body"));
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
     }
@@ -162,7 +164,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).setStatusMessage(eq("JSON parse failed"));
+        verify(httpResponse).setStatusMessage(eq("Request body cannot be parsed"));
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
     }
@@ -942,7 +944,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(401, "user has opted out"));
+        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(401, "User has opted out"));
     }
 
     @Test
@@ -951,13 +953,14 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(null);
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
 
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "request has no body"));
+        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "Request has no body"));
     }
 
     @Test
@@ -973,7 +976,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncEvent cookieSyncEvent = captureCookieSyncEvent();
-        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "JSON parse failed"));
+        assertThat(cookieSyncEvent).isEqualTo(CookieSyncEvent.error(400, "Request body cannot be parsed"));
     }
 
     @Test

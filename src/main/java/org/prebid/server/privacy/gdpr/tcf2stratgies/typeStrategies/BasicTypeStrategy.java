@@ -8,8 +8,6 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class BasicTypeStrategy {
 
@@ -18,14 +16,13 @@ public class BasicTypeStrategy {
     public Collection<VendorPermission> allowedByTypeStrategy(
             int purposeId,
             TCString vendorConsent,
-            Collection<VendorPermission> vendorGdprEnforced,
-            Collection<VendorPermission> purposeAndVendorGdprEnforced) {
+            Collection<VendorPermission> vendorsForPurpose,
+            boolean isEnforceVendors) {
 
-        logger.info("Basic strategy used fo purpose {}", purposeId);
-        return Stream.concat(
-                allowedByVendor(vendorConsent, vendorGdprEnforced).stream(),
-                allowedByPurposeAndVendor(purposeId, vendorConsent, purposeAndVendorGdprEnforced).stream())
-                .collect(Collectors.toList());
+        logger.info("Basic strategy used fo purpose {0}", purposeId);
+        return isEnforceVendors
+                ? allowedByVendor(vendorConsent, vendorsForPurpose)
+                : allowedByPurposeAndVendor(purposeId, vendorConsent, vendorsForPurpose);
     }
 
     protected Collection<VendorPermission> allowedByVendor(TCString vendorConsent,

@@ -51,16 +51,44 @@ public class Tcf2Service {
 
         final Map<Integer, Purpose> purposeIdToPurpose = purposes.stream()
                 .collect(Collectors.toMap(GdprPurpose::getId, gdprPurpose ->
-                        findCorrespondingPurpose(gdprPurpose, defaultPurposes)));
+                        findPurposeById(gdprPurpose.getId(), defaultPurposes)));
 
         return Future.succeededFuture(processEachPurposeStrategies(gdprConsent, bidderNames, vendorIds,
                 purposeIdToPurpose));
+    }
+
+    private static Purpose findPurposeById(int gdprPurposeId, Purposes purposes) {
+        switch (gdprPurposeId) {
+            case 1:
+                return purposes.getP1();
+            case 2:
+                return purposes.getP2();
+            case 3:
+                return purposes.getP3();
+            case 4:
+                return purposes.getP4();
+            case 5:
+                return purposes.getP5();
+            case 6:
+                return purposes.getP6();
+            case 7:
+                return purposes.getP7();
+            case 8:
+                return purposes.getP8();
+            case 9:
+                return purposes.getP9();
+            case 10:
+                return purposes.getP10();
+            default:
+                throw new IllegalArgumentException(String.format("Illegal GDPR code: %d", gdprPurposeId));
+        }
     }
 
     private Collection<VendorPermission> processEachPurposeStrategies(TCString gdprConsent,
                                                                       Set<String> bidderNames,
                                                                       Set<Integer> vendorIds,
                                                                       Map<Integer, Purpose> purposeIdToPurpose) {
+
         final Collection<VendorPermission> vendorPermissions = restrictAllForEach(bidderNames, vendorIds);
 
         for (Map.Entry<Integer, Purpose> integerPurposeEntry : purposeIdToPurpose.entrySet()) {
@@ -124,34 +152,6 @@ public class Tcf2Service {
     //        return vendorListService.forVersion(vendorConsent.getVendorListVersion());
     //    }
 
-    private Purpose findCorrespondingPurpose(GdprPurpose gdprPurpose, Purposes purposes) {
-        final int gdprPurposeId = gdprPurpose.getId();
-        switch (gdprPurposeId) {
-            case 1:
-                return purposes.getP1();
-            case 2:
-                return purposes.getP2();
-            case 3:
-                return purposes.getP3();
-            case 4:
-                return purposes.getP4();
-            case 5:
-                return purposes.getP5();
-            case 6:
-                return purposes.getP6();
-            case 7:
-                return purposes.getP7();
-            case 8:
-                return purposes.getP8();
-            case 9:
-                return purposes.getP9();
-            case 10:
-                return purposes.getP10();
-            default:
-                throw new IllegalArgumentException(String.format("Illegal GDPR code: %d", gdprPurposeId));
-        }
-    }
-
     private Purposes mergeAccountPurposes(Purposes accountPurposes) {
         return Purposes.builder()
                 .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
@@ -178,4 +178,3 @@ public class Tcf2Service {
         return prioritisedItem == null ? item : prioritisedItem;
     }
 }
-

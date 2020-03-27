@@ -10,7 +10,8 @@
         "crid": "1234567890",
         "w": 300,
         "h": 250,
-        "exp": 30
+        "exp": 30,
+        "wurl": "http://localhost:8000/event?t=win&b=tid&a=publisherId&f=i"
       },
       "expiry": 30
     }

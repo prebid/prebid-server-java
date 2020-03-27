@@ -1,13 +1,13 @@
 adapters:
   brightroll:
     enabled: false
-    endpoint: http://east-bid.ybp.yahoo.com/bid/appnexuspbs
+    endpoint: http://east-bid.ybp.yahoo.com/bid/bid/rubiconpbs
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: smithaa@oath.com
+      maintainer-email: smithaa@verizonmedia.com
       app-media-types:
         - banner
         - video
@@ -15,9 +15,10 @@ adapters:
         - banner
         - video
       supported-vendors:
+        - businessinsider
       vendor-id: 25
     usersync:
-      url: https://pr-bh.ybp.yahoo.com/sync/appnexuspbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+      url: https://pr-bh.ybp.yahoo.com/sync/rubiconpbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
       redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: brightroll
       type: redirect

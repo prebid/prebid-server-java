@@ -17,7 +17,8 @@
           "IAB2"
         ],
         "w": 640,
-        "h": 480
+        "h": 480,
+        "wurl": "http://localhost:8000/event?t=win&b=bid01&a=publisherId&f=i"
       }
     },
     {
