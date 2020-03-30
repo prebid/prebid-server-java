@@ -363,6 +363,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build()))
                         .build()))
+                .cur("UAH")
                 .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -388,7 +389,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "UAH"));
     }
 
     @Test
@@ -432,7 +433,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "USD"));
     }
 
     @Test
