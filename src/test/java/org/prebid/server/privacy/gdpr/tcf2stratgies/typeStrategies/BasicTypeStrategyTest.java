@@ -91,7 +91,7 @@ public class BasicTypeStrategyTest {
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -106,7 +106,7 @@ public class BasicTypeStrategyTest {
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -121,9 +121,8 @@ public class BasicTypeStrategyTest {
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).isEmpty();
     }
-
 
     @Test
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorLIIsAllowedAndVendorIsNotEnforced() {
@@ -137,20 +136,36 @@ public class BasicTypeStrategyTest {
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
-        @Test
+    @Test
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndPurposeIsAllowedAndVendorIsNotEnforced() {
         // given
-            final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-            final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(purposesLI.contains(anyInt())).willReturn(true);
 
         // when
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndPurposeIsAllowedAndVendorEnforced() {
+        // given
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+
+        given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(purposesLI.contains(anyInt())).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
 
         // then
         assertThat(result).isEmpty();
@@ -173,12 +188,12 @@ public class BasicTypeStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
     }
 
-        @Test
+    @Test
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeAndVendorLIIsAllowedAndVendorIsNotEnforced() {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-            final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
+        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(PURPOSE_ID)).willReturn(true);
