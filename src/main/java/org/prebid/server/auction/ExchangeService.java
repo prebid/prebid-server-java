@@ -21,9 +21,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderAlias;
+import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -52,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -147,13 +148,13 @@ public class ExchangeService {
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
-        final Boolean isGdprEnforced = account.getEnforceGdpr();
+        final AccountGdprConfig accountGdprConfig = account.getGdpr();
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
 
         return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest -> extractBidderRequests(context, impsRequiredRequest, requestExt,
-                        aliases, isGdprEnforced))
+                        aliases, accountGdprConfig))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
                                 requestTypeMetric))
@@ -208,12 +209,16 @@ public class ExchangeService {
                 ? aliases.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> toBidderAlias(entry.getValue(), entry.getKey(), aliasgvlids)))
+                        requestBidderAndAlias -> toBidderAlias(requestBidderAndAlias.getValue(),
+                                requestBidderAndAlias.getKey(), aliasgvlids)))
                 : Collections.emptyMap();
     }
 
-    private static BidderAlias toBidderAlias(String bidder, String alias, Map<String, Integer> aliasgvlids) {
-        return BidderAlias.of(bidder, aliasgvlids != null ? aliasgvlids.get(alias) : null);
+    private static BidderAlias toBidderAlias(String bidderAlias,
+                                             String requestBidder,
+                                             Map<String, Integer> aliasgvlids) {
+
+        return BidderAlias.of(bidderAlias, aliasgvlids != null ? aliasgvlids.get(requestBidder) : null);
     }
 
     /**
@@ -271,10 +276,11 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
-    private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context, List<Imp> requestedImps,
+    private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
+                                                              List<Imp> requestedImps,
                                                               ExtBidRequest requestExt,
                                                               Map<String, BidderAlias> aliases,
-                                                              Boolean isGdprEnforced) {
+                                                              AccountGdprConfig accountGdprConfig) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
                 .filter(imp -> imp.getExt() != null)
@@ -288,7 +294,7 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return makeBidderRequests(bidders, context, aliases, requestExt, imps, isGdprEnforced);
+        return makeBidderRequests(bidders, context, aliases, requestExt, imps, accountGdprConfig);
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -318,9 +324,12 @@ public class ExchangeService {
      * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
      * that don't have first party data allowed.
      */
-    private Future<List<BidderRequest>> makeBidderRequests(
-            List<String> bidders, AuctionContext context, Map<String, BidderAlias> aliases,
-            ExtBidRequest requestExt, List<Imp> imps, Boolean isGdprEnforced) {
+    private Future<List<BidderRequest>> makeBidderRequests(List<String> bidders,
+                                                           AuctionContext context,
+                                                           Map<String, BidderAlias> aliases,
+                                                           ExtBidRequest requestExt,
+                                                           List<Imp> imps,
+                                                           AccountGdprConfig accountGdprConfig) {
 
         final BidRequest bidRequest = context.getBidRequest();
         final ExtUser extUser = extUser(bidRequest.getUser());
@@ -335,9 +344,9 @@ public class ExchangeService {
         }
 
         return privacyEnforcementService
-                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, isGdprEnforced, context.getTimeout())
-                .map(bidderToPrivacyEnforcementResult -> getBidderRequests(bidderToPrivacyEnforcementResult,
-                        bidRequest, requestExt, imps, firstPartyDataBidders));
+                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, accountGdprConfig, context.getTimeout())
+                .map(bidderToPrivacyResult -> getBidderRequests(bidderToPrivacyResult, bidRequest, requestExt, imps,
+                        firstPartyDataBidders));
     }
 
     /**
@@ -445,6 +454,7 @@ public class ExchangeService {
      * Returns the name associated with bidder if bidder is an alias.
      * If it's not an alias, the bidder is returned.
      */
+
     private static String resolveBidder(String bidder, Map<String, BidderAlias> aliases) {
         return aliases.containsKey(bidder) ? aliases.get(bidder).getBidder() : bidder;
     }
@@ -467,18 +477,21 @@ public class ExchangeService {
     /**
      * Returns Shuffled List of {@link BidderRequest}
      */
-    private List<BidderRequest> getBidderRequests(
-            Map<String, PrivacyEnforcementResult> bidderToPrivacyEnforcementResult, BidRequest bidRequest,
-            ExtBidRequest requestExt, List<Imp> imps, List<String> firstPartyDataBidders) {
+    private List<BidderRequest> getBidderRequests(List<BidderPrivacyResult> bidderPrivacyResults,
+                                                  BidRequest bidRequest,
+                                                  ExtBidRequest requestExt,
+                                                  List<Imp> imps,
+                                                  List<String> firstPartyDataBidders) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(requestExt);
         final Map<String, ObjectNode> bidderToPrebidSchains = bidderToPrebidSchains(requestExt);
-        final List<BidderRequest> bidderRequests = bidderToPrivacyEnforcementResult.entrySet().stream()
+        final List<BidderRequest> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
-                .map(entry -> createBidderRequest(entry.getKey(), bidRequest, requestExt, imps, entry.getValue(),
+                .map(bidderPrivacyResult -> createBidderRequest(bidderPrivacyResult, bidRequest, requestExt, imps,
                         firstPartyDataBidders, bidderToPrebidBidders, bidderToPrebidSchains))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         Collections.shuffle(bidderRequests);
         return bidderRequests;
@@ -528,19 +541,27 @@ public class ExchangeService {
     /**
      * Returns created {@link BidderRequest}
      */
-    private BidderRequest createBidderRequest(String bidder, BidRequest bidRequest, ExtBidRequest requestExt,
-                                              List<Imp> imps, PrivacyEnforcementResult privacyEnforcementResult,
+    private BidderRequest createBidderRequest(BidderPrivacyResult bidderPrivacyResult,
+                                              BidRequest bidRequest,
+                                              ExtBidRequest requestExt,
+                                              List<Imp> imps,
                                               List<String> firstPartyDataBidders,
                                               Map<String, JsonNode> bidderToPrebidBidders,
                                               Map<String, ObjectNode> bidderToPrebidSchains) {
+        final String bidder = bidderPrivacyResult.getRequestBidder();
+        if (bidderPrivacyResult.isBlockedRequestByTcf()) {
+            // TODO log metric
+            return null;
+        }
+
         final App app = bidRequest.getApp();
         final ExtApp extApp = extApp(app);
         final Site site = bidRequest.getSite();
         final ExtSite extSite = extSite(site);
 
         return BidderRequest.of(bidder, bidRequest.toBuilder()
-                .user(privacyEnforcementResult.getUser())
-                .device(privacyEnforcementResult.getDevice())
+                .user(bidderPrivacyResult.getUser())
+                .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                 .app(prepareApp(app, extApp, firstPartyDataBidders.contains(bidder)))
                 .site(prepareSite(site, extSite, firstPartyDataBidders.contains(bidder)))

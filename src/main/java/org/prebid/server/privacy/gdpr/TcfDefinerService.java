@@ -17,6 +17,7 @@ import org.prebid.server.privacy.gdpr.model.GdprPurpose;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.GdprConfig;
 
 import java.time.Instant;
@@ -72,20 +73,36 @@ public class TcfDefinerService {
         }
     }
 
-    // vendorIds and BidderNames can't contain null elements
     public Future<TcfResponse> resultFor(Set<Integer> vendorIds,
                                          Set<String> bidderNames,
                                          String gdpr,
                                          String gdprConsent,
                                          String ipAddress,
                                          Timeout timeout) {
-        if (BooleanUtils.isFalse(gdprEnabled)) {
+        return resultFor(vendorIds, bidderNames, gdpr, gdprConsent, ipAddress, null, timeout);
+    }
+
+    // vendorIds and BidderNames can't contain null elements
+    public Future<TcfResponse> resultFor(Set<Integer> vendorIds,
+                                         Set<String> bidderNames,
+                                         String gdpr,
+                                         String gdprConsent,
+                                         String ipAddress,
+                                         AccountGdprConfig accountGdprConfig,
+                                         Timeout timeout) {
+        if (isGdprDisabled(gdprEnabled, accountGdprConfig)) {
             return allowAll(vendorIds, bidderNames, null);
         }
 
         // TODO Add for another purposes
         final Set<GdprPurpose> gdprPurposes = Collections.singleton(GdprPurpose.informationStorageAndAccess);
-        return tcfPurposeForEachVendor(gdprPurposes, vendorIds, bidderNames, gdpr, gdprConsent, ipAddress, timeout);
+        return tcfPurposeForEachVendor(gdprPurposes, vendorIds, bidderNames, gdpr, gdprConsent, ipAddress,
+                accountGdprConfig, timeout);
+    }
+
+    private boolean isGdprDisabled(Boolean gdprEnabled, AccountGdprConfig accountGdprConfig) {
+        final Boolean accountEnabled = accountGdprConfig != null ? accountGdprConfig.getEnabled() : null;
+        return BooleanUtils.isFalse(gdprEnabled) || BooleanUtils.isFalse(accountEnabled);
     }
 
     // vendorIds and BidderNames can't contain null elements
@@ -95,10 +112,11 @@ public class TcfDefinerService {
                                                         String gdpr,
                                                         String gdprConsent,
                                                         String ipAddress,
+                                                        AccountGdprConfig accountGdprConfig,
                                                         Timeout timeout) {
         return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
                 .compose(gdprInfoWithCountry -> distributeGdprResponse(gdprInfoWithCountry, vendorIds, bidderNames,
-                        gdprPurposes));
+                        gdprPurposes, accountGdprConfig));
     }
 
     private Future<GdprInfoWithCountry<String>> toGdprInfo(String gdpr, String gdprConsent, String ipAddress,
@@ -142,7 +160,8 @@ public class TcfDefinerService {
     private Future<TcfResponse> distributeGdprResponse(GdprInfoWithCountry<String> gdprInfo,
                                                        Set<Integer> vendorIds,
                                                        Set<String> bidderNames,
-                                                       Set<GdprPurpose> gdprPurposes) {
+                                                       Set<GdprPurpose> gdprPurposes,
+                                                       AccountGdprConfig accountGdprConfig) {
         final String country = gdprInfo.getCountry();
         if (!inScope(gdprInfo)) {
             return allowAll(vendorIds, bidderNames, country);
@@ -158,7 +177,7 @@ public class TcfDefinerService {
         }
 
         if (tcString.getVersion() == 2) {
-            return tcf2Service.permissionsFor(tcString, vendorIds, bidderNames, gdprPurposes)
+            return tcf2Service.permissionsFor(tcString, vendorIds, bidderNames, gdprPurposes, accountGdprConfig)
                     .map(vendorPermissions -> toTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
         }
 

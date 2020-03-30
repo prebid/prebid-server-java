@@ -9,6 +9,7 @@ import org.prebid.server.privacy.gdpr.model.GdprPurpose;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
@@ -45,43 +46,17 @@ public class Tcf2Service {
     public Future<Collection<VendorPermission>> permissionsFor(TCString gdprConsent,
                                                                Set<Integer> vendorIds,
                                                                Set<String> bidderNames,
-                                                               Set<GdprPurpose> purposes) {
+                                                               Set<GdprPurpose> purposes,
+                                                               AccountGdprConfig accountGdprConfig) {
         // TODO GVL list will be needed only for `full` purpose strategy
         //  vendorIdToPurposesByVersion(gdprConsent)
-
+        final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
         final Map<Integer, Purpose> purposeIdToPurpose = purposes.stream()
                 .collect(Collectors.toMap(GdprPurpose::getId, gdprPurpose ->
-                        findPurposeById(gdprPurpose.getId(), defaultPurposes)));
+                        findPurposeById(gdprPurpose.getId(), mergedPurposes)));
 
         return Future.succeededFuture(processEachPurposeStrategies(gdprConsent, bidderNames, vendorIds,
                 purposeIdToPurpose));
-    }
-
-    private static Purpose findPurposeById(int gdprPurposeId, Purposes purposes) {
-        switch (gdprPurposeId) {
-            case 1:
-                return purposes.getP1();
-            case 2:
-                return purposes.getP2();
-            case 3:
-                return purposes.getP3();
-            case 4:
-                return purposes.getP4();
-            case 5:
-                return purposes.getP5();
-            case 6:
-                return purposes.getP6();
-            case 7:
-                return purposes.getP7();
-            case 8:
-                return purposes.getP8();
-            case 9:
-                return purposes.getP9();
-            case 10:
-                return purposes.getP10();
-            default:
-                throw new IllegalArgumentException(String.format("Illegal GDPR code: %d", gdprPurposeId));
-        }
     }
 
     private Collection<VendorPermission> processEachPurposeStrategies(TCString gdprConsent,
@@ -152,7 +127,38 @@ public class Tcf2Service {
     //        return vendorListService.forVersion(vendorConsent.getVendorListVersion());
     //    }
 
-    private Purposes mergeAccountPurposes(Purposes accountPurposes) {
+    private Purpose findPurposeById(int gdprPurposeId, Purposes purposes) {
+        switch (gdprPurposeId) {
+            case 1:
+                return purposes.getP1();
+            case 2:
+                return purposes.getP2();
+            case 3:
+                return purposes.getP3();
+            case 4:
+                return purposes.getP4();
+            case 5:
+                return purposes.getP5();
+            case 6:
+                return purposes.getP6();
+            case 7:
+                return purposes.getP7();
+            case 8:
+                return purposes.getP8();
+            case 9:
+                return purposes.getP9();
+            case 10:
+                return purposes.getP10();
+            default:
+                throw new IllegalArgumentException(String.format("Illegal GDPR code: %d", gdprPurposeId));
+        }
+    }
+
+    private Purposes mergeAccountPurposes(AccountGdprConfig accountGdprConfig) {
+        if (accountGdprConfig == null || accountGdprConfig.getPurposes() == null) {
+            return defaultPurposes;
+        }
+        final Purposes accountPurposes = accountGdprConfig.getPurposes();
         return Purposes.builder()
                 .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
                 .p2(mergeItem(accountPurposes.getP2(), defaultPurposes.getP2()))
@@ -178,3 +184,4 @@ public class Tcf2Service {
         return prioritisedItem == null ? item : prioritisedItem;
     }
 }
+

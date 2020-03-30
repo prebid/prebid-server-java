@@ -55,7 +55,8 @@ public class AppnexusVideoTest extends IntegrationTest {
                 .post("/openrtb2/video");
 
         // then
-        final String expectedAuctionResponse = jsonFrom("openrtb2/video/test-video-appnexus-response.json");
+        // TODO remove "empty" when VideoRequest will proceed consentValue.
+        final String expectedAuctionResponse = jsonFrom("openrtb2/video/test-video-appnexus-response-empty.json");
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

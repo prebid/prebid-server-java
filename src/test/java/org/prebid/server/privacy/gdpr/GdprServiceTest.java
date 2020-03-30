@@ -392,10 +392,22 @@ public class GdprServiceTest extends VertxTest {
         // then
         assertThat(result.succeeded()).isTrue();
 
-        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final PrivacyEnforcementAction expectedChangedAction = PrivacyEnforcementAction.restrictAll();
+        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, restrictAllTcf1());
+        final PrivacyEnforcementAction expectedChangedAction = restrictAllTcf1();
         expectedChangedAction.setBlockPixelSync(false);
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", expectedChangedAction);
         assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+    }
+
+    public static PrivacyEnforcementAction restrictAllTcf1() {
+        return PrivacyEnforcementAction.builder()
+                .removeUserBuyerUid(true)
+                .maskGeo(true)
+                .maskDeviceIp(true)
+                .maskDeviceInfo(true)
+                .blockAnalyticsReport(false)
+                .blockBidderRequest(false)
+                .blockPixelSync(true)
+                .build();
     }
 }
