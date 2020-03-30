@@ -139,14 +139,14 @@ public class BidResponseCreator {
                 final ObjectNode prebidExtNode = ext.set(PREBID_EXT, extBidPrebidValue);
                 bid.setExt(prebidExtNode);
             } catch (JsonProcessingException e) {
-                logger.debug("Parsing error", e);
+                logger.debug("Error overwriting bid id", e);
             }
         }
     }
 
     private ExtBidPrebid parsePrebidExt(ObjectNode ext) {
         try {
-            return mapper.decodeValue(ext.get(PREBID_EXT).toString(), ExtBidPrebid.class);
+            return mapper.mapper().treeToValue(ext.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (Exception e) {
             return null;
         }

@@ -391,8 +391,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 null, CACHE_INFO, ACCOUNT, timeout, false).result();
 
         // then
-        assertThat(bidResponse.getSeatbid()).hasSize(1);
-        assertThat(bidResponse.getSeatbid().get(0).getBid()).hasSize(1);
         assertThat(bidResponse.getSeatbid())
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getExt)
