@@ -18,6 +18,8 @@ import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,14 +54,14 @@ public class GdprServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private VendorListService vendorListService;
+    private VendorListService<VendorListV1, VendorV1> vendorListService;
 
     private GdprService gdprService;
 
     @Before
     public void setUp() {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, singleton(GdprPurpose.informationStorageAndAccess.getId()))));
+                singletonMap(1, VendorV1.of(1, singleton(GdprPurpose.informationStorageAndAccess.getId()), emptySet()))));
         given(geoLocationService.lookup(anyString(), any()))
                 .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country1").build()));
 
@@ -259,7 +261,7 @@ public class GdprServiceTest extends VertxTest {
     public void shouldReturnAllowedResultIfNoPurposesProvided() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3)))));
+                singletonMap(1, VendorV1.of(1, new HashSet<>(Arrays.asList(1, 2, 3)), emptySet()))));
 
         // when
         final Future<?> future =
@@ -344,8 +346,9 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void shouldReturnRestrictedResultIfGdprParamIsOneAndConsentHasNotAllVendorPurposes() {
         // given
+        final Set<Integer> purposesForVendorV1 = new HashSet<>(Arrays.asList(1, 2, 3, 4));
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3, 4)))));
+                singletonMap(1, VendorV1.of(1, purposesForVendorV1, emptySet()))));
 
         // when
         final Future<?> future =
@@ -359,8 +362,9 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void shouldReturnAllowedResultIfGdprParamIsOneAndConsentHasAllVendorPurposes() {
         // given
+        final Set<Integer> purposesForVendorV1 = new HashSet<>(Arrays.asList(1, 2, 3));
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3)))));
+                singletonMap(1, VendorV1.of(1, purposesForVendorV1, emptySet()))));
 
         // when
         final Future<?> future =
@@ -379,11 +383,12 @@ public class GdprServiceTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.vendorIdByName(anyString())).willReturn(2);
 
-        final Map<Integer, Set<Integer>> vendorPermission =new HashMap<>();
-        vendorPermission.put(1, new HashSet<>(Arrays.asList(2, 3, 4)));
-        vendorPermission.put(2, new HashSet<>(Arrays.asList(1, 2)));
-
-        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(vendorPermission));
+        final VendorV1 vendor1 = VendorV1.of(1, new HashSet<>(Arrays.asList(2, 3, 4)), emptySet());
+        final VendorV1 vendor2 = VendorV1.of(2, new HashSet<>(Arrays.asList(1, 2)), emptySet());
+        final HashMap<Integer, VendorV1> idToVendor = new HashMap<>();
+        idToVendor.put(1, vendor1);
+        idToVendor.put(2, vendor2);
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(idToVendor));
 
         // when
         final Future<Collection<VendorPermission>> result =

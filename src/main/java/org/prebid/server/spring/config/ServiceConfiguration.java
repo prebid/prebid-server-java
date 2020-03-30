@@ -47,7 +47,8 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeOneStrategy;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
@@ -359,25 +360,33 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VendorListService vendorListService(
-            @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.http-default-timeout-ms}") int defaultTimeoutMs,
+    VendorListServiceV1 vendorListServiceV1(
+            @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v1.http-default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             BidderCatalog bidderCatalog,
             FileSystem fileSystem,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return VendorListService.create(
-                cacheDir,
-                endpointTemplate,
-                defaultTimeoutMs,
-                hostVendorId,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                mapper);
+        return new VendorListServiceV1(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
+                fileSystem, httpClient, mapper);
+    }
+
+    @Bean
+    VendorListServiceV2 vendorListServiceV2(
+            @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v2.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            BidderCatalog bidderCatalog,
+            FileSystem fileSystem,
+            HttpClient httpClient,
+            JacksonMapper mapper) {
+
+        return new VendorListServiceV2(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
+                fileSystem, httpClient, mapper);
     }
 
     @Bean
@@ -387,11 +396,11 @@ public class ServiceConfiguration {
             @Autowired(required = false) GeoLocationService geoLocationService,
             BidderCatalog bidderCatalog,
             Metrics metrics,
-            VendorListService vendorListService) {
+            VendorListServiceV1 vendorListServiceV1) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
         return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, bidderCatalog,
-                vendorListService);
+                vendorListServiceV1);
     }
 
     @Bean

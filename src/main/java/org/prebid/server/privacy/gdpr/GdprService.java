@@ -21,6 +21,8 @@ import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,7 +52,7 @@ public class GdprService {
     private final String gdprDefaultValue;
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
-    private final VendorListService vendorListService;
+    private final VendorListService<VendorListV1, VendorV1> vendorListService;
     private BidderCatalog bidderCatalog;
 
     public GdprService(List<String> eeaCountries,
@@ -58,7 +60,7 @@ public class GdprService {
                        GeoLocationService geoLocationService,
                        Metrics metrics,
                        BidderCatalog bidderCatalog,
-                       VendorListService vendorListService) {
+                       VendorListService<VendorListV1, VendorV1> vendorListService) {
 
         this.geoLocationService = geoLocationService;
         this.metrics = Objects.requireNonNull(metrics);
@@ -181,9 +183,8 @@ public class GdprService {
     /**
      * Confirms vendor has all given purposes.
      */
-    private static boolean verdictForVendorHasAllGivenPurposes(Set<Integer> givenPurposeIds,
-                                                               Set<Integer> vendorPurposeIds) {
-        return vendorPurposeIds.containsAll(givenPurposeIds);
+    private static boolean verdictForVendorHasAllGivenPurposes(Set<Integer> givenPurposeIds, VendorV1 vendor) {
+        return vendor.combinedPurposes().containsAll(givenPurposeIds);
     }
 
     /**
@@ -198,14 +199,13 @@ public class GdprService {
     /**
      * Confirms consent purposes (as superset) contains all vendor purposes (as subset).
      */
-    private static Boolean verdictForConsentHasAllVendorPurposes(Set<Integer> consentPurposeIds,
-                                                                 Set<Integer> vendorPurposeIds) {
-        return consentPurposeIds.containsAll(vendorPurposeIds);
+    private static Boolean verdictForConsentHasAllVendorPurposes(Set<Integer> consentPurposeIds, VendorV1 vendor) {
+        return consentPurposeIds.containsAll(vendor.combinedPurposes());
     }
 
     private Future<Map<Integer, Boolean>> toResultByVendor(
             GdprInfoWithCountry<VendorConsent> gdprInfo, Set<Integer> vendorIds, Set<Integer> purposeIds,
-            BiFunction<Set<Integer>, Set<Integer>, Boolean> verdictForPurposes) {
+            BiFunction<Set<Integer>, VendorV1, Boolean> verdictForVendor) {
 
         if (!inScope(gdprInfo)) {
             return sameResultFor(vendorIds, true); // allow all vendors
@@ -224,8 +224,7 @@ public class GdprService {
         }
 
         return vendorListService.forVersion(vendorConsent.getVendorListVersion())
-                .map(vendorIdToPurposes ->
-                        toResult(vendorIdToPurposes, vendorIds, vendorConsent, purposeIds, verdictForPurposes));
+                .map(idToVendor -> toResult(idToVendor, vendorIds, vendorConsent, purposeIds, verdictForVendor));
     }
 
     /**
@@ -253,17 +252,23 @@ public class GdprService {
      * Processes {@link VendorListService} response and returns GDPR result by vendor ID.
      */
     private static Map<Integer, Boolean> toResult(
-            Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds, VendorConsent vendorConsent,
-            Set<Integer> purposeIds, BiFunction<Set<Integer>, Set<Integer>, Boolean> verdictForPurposes) {
+            Map<Integer, VendorV1> idToVendor, Set<Integer> vendorIds, VendorConsent vendorConsent,
+            Set<Integer> purposeIds, BiFunction<Set<Integer>, VendorV1, Boolean> verdictForVendor) {
 
         final Map<Integer, Boolean> result = new HashMap<>(vendorIds.size());
         for (Integer vendorId : vendorIds) {
+
+            final VendorV1 vendor = idToVendor.get(vendorId);
+            if (vendor == null) {
+                result.put(vendorId, false);
+                continue;
+            }
+
             // confirm consent is allowed the vendor
-            final boolean vendorIsAllowed = isVendorAllowed(vendorConsent, vendorIdToPurposes, vendorId);
+            final boolean vendorIsAllowed = isVendorAllowed(vendorConsent, vendor);
 
             // confirm purposes
-            final boolean purposesAreMatched = vendorIsAllowed
-                    && verdictForPurposes.apply(purposeIds, vendorIdToPurposes.get(vendorId));
+            final boolean purposesAreMatched = vendorIsAllowed && verdictForVendor.apply(purposeIds, vendor);
 
             result.put(vendorId, vendorIsAllowed && purposesAreMatched);
         }
@@ -274,14 +279,9 @@ public class GdprService {
      * Checks if vendorId is in list of allowed vendors in consent string. Throws {@link InvalidRequestException}
      * in case of gdpr sdk throws exception when consent string is not valid.
      */
-    private static boolean isVendorAllowed(VendorConsent vendorConsent,
-                                           Map<Integer, Set<Integer>> vendorIdToPurposes,
-                                           Integer vendorId) {
-        if (vendorId == null || !vendorIdToPurposes.containsKey(vendorId)) {
-            return false;
-        }
+    private static boolean isVendorAllowed(VendorConsent vendorConsent, VendorV1 vendor) {
         try {
-            return vendorConsent.isVendorAllowed(vendorId);
+            return vendorConsent.isVendorAllowed(vendor.getId());
         } catch (ArrayIndexOutOfBoundsException | VendorConsentParseException e) {
             throw new InvalidRequestException(
                     "Error when checking if vendor is allowed in a reason of invalid consent string");

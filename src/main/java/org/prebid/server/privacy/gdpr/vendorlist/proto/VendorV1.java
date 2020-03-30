@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class Vendor {
+public class VendorV1 {
 
     Integer id;
 
@@ -23,7 +23,6 @@ public class Vendor {
     Set<Integer> legIntPurposeIds;
 
     public Set<Integer> combinedPurposes() {
-
         return Stream.of(purposeIds != null ? purposeIds : Collections.<Integer>emptySet(),
                 legIntPurposeIds != null ? legIntPurposeIds : Collections.<Integer>emptySet())
                 .flatMap(Collection::stream)
