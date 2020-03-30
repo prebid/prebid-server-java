@@ -35,7 +35,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(VtrackHandler.class);
 
     private static final String ACCOUNT_PARAMETER = "a";
-    private static final String TIMESTAMP_PARAMETER = "ts";
+    private static final String TIMESTAMP_PARAMETER = "timestamp";
 
     private final long defaultTimeout;
     private final boolean allowUnknownBidder;

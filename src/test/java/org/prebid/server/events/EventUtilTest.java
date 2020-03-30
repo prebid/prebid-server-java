@@ -198,8 +198,7 @@ public class EventUtilTest {
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "i")
-                .add("x", "0")
-        );
+                .add("x", "0"));
 
         // when
         final EventRequest result = EventUtil.from(routingContext);

@@ -394,13 +394,12 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
         final String bidId = bid.getId();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
-        for (Map.Entry<String, List<String>> biddersAndBidIds : biddersToCacheBidIds.entrySet()) {
-            if (biddersAndBidIds.getValue().contains(bidId)) {
-                bidObjectNode.put("wurl", eventsService.winUrl(bid.getId(), biddersAndBidIds.getKey(), accountId,
-                        timestamp));
-                break;
-            }
-        }
+        biddersToCacheBidIds.entrySet().stream()
+                .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
+                .findFirst()
+                .map(Map.Entry::getKey)
+                .ifPresent(bidder -> bidObjectNode.put("wurl", eventsService.winUrl(bidId, bidder, accountId,
+                        timestamp)));
 
         return PutObject.builder()
                 .type("json")
@@ -416,28 +415,28 @@ public class CacheService {
                                                 Map<String, List<String>> bidderToVideoBidIdsToModify,
                                                 String accountId, Long timestamp) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
-        String vastXml;
+        final String[] vastXml = new String[1];
         if (bid.getAdm() == null) {
-            vastXml = "<VAST version=\"3.0\"><Ad><Wrapper>"
+            vastXml[0] = "<VAST version=\"3.0\"><Ad><Wrapper>"
                     + "<AdSystem>prebid.org wrapper</AdSystem>"
                     + "<VASTAdTagURI><![CDATA[" + bid.getNurl() + "]]></VASTAdTagURI>"
                     + "<Impression></Impression><Creatives></Creatives>"
                     + "</Wrapper></Ad></VAST>";
         } else {
-            vastXml = bid.getAdm();
+            vastXml[0] = bid.getAdm();
         }
-
         final String bidId = bid.getId();
-        for (Map.Entry<String, List<String>> biddersAndBidIds : bidderToVideoBidIdsToModify.entrySet()) {
-            if (biddersAndBidIds.getValue().contains(bidId)) {
-                vastXml = modifyVastXml(vastXml, bidId, biddersAndBidIds.getKey(), accountId, timestamp);
-                break;
-            }
-        }
+        bidderToVideoBidIdsToModify.entrySet().stream()
+                .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
+                .findFirst()
+                .map(Map.Entry::getKey)
+                .ifPresent(bidder -> {
+                    vastXml[0] = modifyVastXml(vastXml[0], bidId, bidder, accountId, timestamp);
+                });
 
         return PutObject.builder()
                 .type("xml")
-                .value(new TextNode(vastXml))
+                .value(new TextNode(vastXml[0]))
                 .expiry(cacheBid.getTtl())
                 .build();
     }

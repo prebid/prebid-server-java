@@ -43,11 +43,11 @@ public class EventsServiceTest {
     }
 
     @Test
-    public void winUrlTrackingShouldReturnExpectedUrl() {
+    public void winUrlShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.winUrl("bidId", "bidder","accountId", 1000L);
+        final String winUrl = eventsService.winUrl("bidId", "bidder","accountId", 1000L);
 
         // then
-        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i");
+        assertThat(winUrl).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i");
     }
 }

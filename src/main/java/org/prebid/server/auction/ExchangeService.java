@@ -708,12 +708,12 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts auctiontimestamp from {@link ExtBidRequest} model.
+     * Extracts auctiontimestamp or creates if it is null from {@link ExtBidRequest} model.
      */
     private static Long auctionTimestamp(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final Long auctionTmestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
-        return auctionTmestamp != null ? auctionTmestamp : Instant.now().toEpochMilli();
+        final Long auctionTimestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
+        return auctionTimestamp != null ? auctionTimestamp : Instant.now().toEpochMilli();
     }
 
     /**

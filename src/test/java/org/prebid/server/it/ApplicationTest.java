@@ -445,7 +445,7 @@ public class ApplicationTest extends IntegrationTest {
                 .when()
                 .body(jsonFrom("vtrack/test-vtrack-request.json"))
                 .queryParam("a", "14062")
-                .queryParam("ts", "1000")
+                .queryParam("timestamp", "1000")
                 .post("/vtrack");
 
         // then

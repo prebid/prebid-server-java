@@ -263,8 +263,7 @@ public class BidResponseCreator {
      */
     private Future<CacheServiceResult> toBidsWithCacheIds(List<BidderResponse> bidderResponses, Set<Bid> bidsToCache,
                                                           List<Imp> imps, BidRequestCacheInfo cacheInfo,
-                                                          Account account, Timeout timeout,
-                                                          Long auctionTimestamp) {
+                                                          Account account, Timeout timeout, Long auctionTimestamp) {
         final Future<CacheServiceResult> result;
 
         if (!cacheInfo.isDoCaching()) {
@@ -652,8 +651,9 @@ public class BidResponseCreator {
         }
 
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), bidder, account.getId(),
-                auctionTimestamp) : null;
+        final Events events = eventsEnabled
+                ? eventsService.createEvent(bid.getId(), bidder, account.getId(), auctionTimestamp)
+                : null;
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidType, targetingKeywords, cache, storedVideo, events, null);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());

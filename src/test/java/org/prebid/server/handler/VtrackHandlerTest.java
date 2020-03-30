@@ -78,7 +78,7 @@ public class VtrackHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
         given(httpRequest.getParam("a")).willReturn("accountId");
-        given(httpRequest.getParam("ts")).willReturn("1000");
+        given(httpRequest.getParam("timestamp")).willReturn("1000");
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         handler = new VtrackHandler(
@@ -103,7 +103,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestWhenTimestampParameterIsMissing() {
         // given
-        given(httpRequest.getParam("ts")).willReturn(null);
+        given(httpRequest.getParam("timestamp")).willReturn(null);
 
         // when
         handler.handle(routingContext);
@@ -112,7 +112,7 @@ public class VtrackHandlerTest extends VertxTest {
         verifyZeroInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Timestamp 'ts' is required query parameter and can't be empty"));
+        verify(httpResponse).end(eq("Timestamp 'timestamp' is required query parameter and can't be empty"));
     }
 
     @Test
