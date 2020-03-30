@@ -21,8 +21,8 @@ public class BasicTypeStrategy {
 
         logger.debug("Basic strategy used fo purpose {0}", purposeId);
         return isEnforceVendors
-                ? allowedByPurposeAndVendor(purposeId, vendorConsent, vendorsForPurpose)
-                : allowedByVendor(vendorConsent, vendorsForPurpose);
+                ? allowedByVendor(vendorConsent, vendorsForPurpose)
+                : allowedByPurposeAndVendor(purposeId, vendorConsent, vendorsForPurpose);
     }
 
     protected Collection<VendorPermission> allowedByVendor(TCString vendorConsent,
