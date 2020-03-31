@@ -42,7 +42,7 @@ public class BasicTypeStrategyTest {
 
     @Before
     public void setUp() {
-        given(tcString.getAllowedVendors()).willReturn(allowedVendors);
+        given(tcString.getVendorConsent()).willReturn(allowedVendors);
         given(tcString.getVendorLegitimateInterest()).willReturn(allowedVendorsLI);
         given(tcString.getPurposesConsent()).willReturn(purposesConsent);
         given(tcString.getPurposesLITransparency()).willReturn(purposesLI);

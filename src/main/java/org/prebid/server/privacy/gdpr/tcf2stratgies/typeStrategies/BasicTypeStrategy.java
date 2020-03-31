@@ -19,7 +19,7 @@ public class BasicTypeStrategy {
             Collection<VendorPermission> vendorsForPurpose,
             boolean isEnforceVendors) {
 
-        logger.info("Basic strategy used fo purpose {0}", purposeId);
+        logger.debug("Basic strategy used fo purpose {0}", purposeId);
         return isEnforceVendors
                 ? allowedByVendor(vendorConsent, vendorsForPurpose)
                 : allowedByPurposeAndVendor(purposeId, vendorConsent, vendorsForPurpose);
@@ -29,11 +29,11 @@ public class BasicTypeStrategy {
                                                            Collection<VendorPermission> vendorForCheck) {
         final Collection<VendorPermission> allowedByVendorAllowed = new ArrayList<>();
 
-        final IntIterable allowedVendorLI = vendorConsent.getVendorLegitimateInterest();
-        final IntIterable allowedVendors = vendorConsent.getAllowedVendors();
+        final IntIterable allowedVendors = vendorConsent.getVendorConsent();
+        final IntIterable allowedVendorsLI = vendorConsent.getVendorLegitimateInterest();
         for (VendorPermission vendorPermission : vendorForCheck) {
             final Integer vendorId = vendorPermission.getVendorId();
-            if (vendorId != null && (allowedVendors.contains(vendorId) || allowedVendorLI.contains(vendorId))) {
+            if (vendorId != null && (allowedVendors.contains(vendorId) || allowedVendorsLI.contains(vendorId))) {
                 allowedByVendorAllowed.add(vendorPermission);
             }
         }
@@ -60,4 +60,3 @@ public class BasicTypeStrategy {
         return allowedByPurposeAndVendorAllowed;
     }
 }
-
