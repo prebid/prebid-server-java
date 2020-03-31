@@ -125,8 +125,8 @@ public class Tcf2Service {
                 // this check only for illegal arguments...
                 .filter(Objects::nonNull)
                 .filter(vendorId -> !foundVendorIds.contains(vendorId))
-                // TODO but in config we can exclude by bidderName. (Reverse mapping for exclude?)
-                .map(vendorId -> VendorPermission.of(vendorId, null, PrivacyEnforcementAction.restrictAll()))
+                .map(vendorId -> VendorPermission.of(vendorId, bidderCatalog.nameByVendorId(vendorId),
+                        PrivacyEnforcementAction.restrictAll()))
                 .forEach(vendorPermissions::add);
 
         return vendorPermissions;

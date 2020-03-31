@@ -86,6 +86,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldReturnByGdprPurpose() {
         // given
+        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
         target = new Tcf2Service(GdprConfig.builder().purposes(purposes).build(), bidderCatalog, singletonList(purposeStrategy));
 
         // when
@@ -93,14 +94,14 @@ public class Tcf2ServiceTest extends VertxTest {
         final Future<Collection<VendorPermission>> result = target.permissionsFor(tcString, singleton(1), emptySet(), firstGdprPurpose);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll());
         assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
 
         verify(purposeStrategy).getPurposeId();
         verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1, singletonList(expectedVendorPermission));
+        verify(bidderCatalog).nameByVendorId(1);
 
         verifyZeroInteractions(tcString);
-        verifyZeroInteractions(bidderCatalog);
         verifyZeroInteractions(purposeStrategy);
     }
 
