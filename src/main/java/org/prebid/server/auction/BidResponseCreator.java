@@ -642,13 +642,13 @@ public class BidResponseCreator {
             cache = null;
         }
 
-        final String generatedBidId = BooleanUtils.toBoolean(this.generateBidId) ? UUID.randomUUID().toString() : null;
+        final String extBidPrebidId = BooleanUtils.toBoolean(this.generateBidId) ? UUID.randomUUID().toString() : null;
+        final String eventId = BooleanUtils.toBoolean(this.generateBidId) ? extBidPrebidId : bid.getId();
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = eventsEnabled ? eventsService.createEvent(
-                generatedBidId != null ? generatedBidId : bid.getId(), account.getId()) : null;
+        final Events events = eventsEnabled ? eventsService.createEvent(eventId, account.getId()) : null;
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(
-                generatedBidId, bidType, targetingKeywords, cache, storedVideo, events, null
+                extBidPrebidId, bidType, targetingKeywords, cache, storedVideo, events, null
         );
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
