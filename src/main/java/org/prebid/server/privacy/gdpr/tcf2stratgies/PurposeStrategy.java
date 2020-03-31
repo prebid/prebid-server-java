@@ -6,6 +6,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 
@@ -18,9 +19,11 @@ import java.util.stream.Collectors;
 public abstract class PurposeStrategy {
 
     private BasicTypeStrategy basicTypeStrategy;
+    private NoTypeStrategy noTypeStrategy;
 
-    public PurposeStrategy(BasicTypeStrategy basicTypeStrategy) {
+    public PurposeStrategy(BasicTypeStrategy basicTypeStrategy, NoTypeStrategy noTypeStrategy) {
         this.basicTypeStrategy = basicTypeStrategy;
+        this.noTypeStrategy = noTypeStrategy;
     }
 
     public abstract int getPurposeId();
@@ -40,14 +43,20 @@ public abstract class PurposeStrategy {
     private Collection<VendorPermission> allowedByTypeStrategy(TCString vendorConsent,
                                                                Purpose purpose,
                                                                Collection<VendorPermission> vendorPermissions) {
+        final Collection<VendorPermission> excludedVendors = excludedVendors(vendorPermissions, purpose);
+        final Collection<VendorPermission> vendorForPurpose = vendorPermissions.stream()
+                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
+                .collect(Collectors.toList());
+        final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
+
         final EnforcePurpose purposeType = purpose.getEnforcePurpose();
         // Base by default
         if (purposeType == null || Objects.equals(purposeType, EnforcePurpose.base)) {
-            return allowedByBasicTypeStrategy(vendorConsent, purpose, vendorPermissions);
+            return allowedByBasicTypeStrategy(vendorConsent, isEnforceVendors, excludedVendors, vendorForPurpose);
         }
 
         if (Objects.equals(purposeType, EnforcePurpose.no)) {
-            return allowedByNoTypeStrategy(vendorPermissions);
+            return allowedByNoTypeStrategy(vendorConsent, isEnforceVendors, excludedVendors, vendorForPurpose);
         }
 
         if (Objects.equals(purposeType, EnforcePurpose.full)) {
@@ -60,19 +69,20 @@ public abstract class PurposeStrategy {
 
     protected abstract Collection<VendorPermission> allowedByFullTypeStrategy();
 
-    protected Collection<VendorPermission> allowedByNoTypeStrategy(Collection<VendorPermission> vendorPermissions) {
-        return vendorPermissions;
+    protected Collection<VendorPermission> allowedByNoTypeStrategy(TCString vendorConsent,
+                                                                   boolean isEnforceVendors,
+                                                                   Collection<VendorPermission> excludedVendors,
+                                                                   Collection<VendorPermission> vendorForPurpose) {
+        final Collection<VendorPermission> modifiedVendorPermissions = noTypeStrategy
+                .allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose, isEnforceVendors);
+
+        return CollectionUtils.union(modifiedVendorPermissions, excludedVendors);
     }
 
     protected Collection<VendorPermission> allowedByBasicTypeStrategy(TCString vendorConsent,
-                                                                      Purpose purpose,
-                                                                      Collection<VendorPermission> vendorPermissions) {
-        final Collection<VendorPermission> excludedVendors = excludedVendors(vendorPermissions, purpose);
-        final Collection<VendorPermission> vendorForPurpose = vendorPermissions.stream()
-                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
-                .collect(Collectors.toList());
-
-        final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
+                                                                      boolean isEnforceVendors,
+                                                                      Collection<VendorPermission> excludedVendors,
+                                                                      Collection<VendorPermission> vendorForPurpose) {
         final Collection<VendorPermission> modifiedVendorPermissions = basicTypeStrategy
                 .allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose, isEnforceVendors);
 

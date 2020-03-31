@@ -49,6 +49,7 @@ import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
@@ -413,13 +414,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PurposeOneStrategy purposeOneStrategy(BasicTypeStrategy basicTypeStrategy) {
-        return new PurposeOneStrategy(basicTypeStrategy);
+    PurposeOneStrategy purposeOneStrategy(BasicTypeStrategy basicTypeStrategy, NoTypeStrategy noTypeStrategy) {
+        return new PurposeOneStrategy(basicTypeStrategy, noTypeStrategy);
     }
 
     @Bean
     BasicTypeStrategy basicTypeStrategy() {
         return new BasicTypeStrategy();
+    }
+
+    @Bean
+    NoTypeStrategy noTypeStrategy() {
+        return new NoTypeStrategy();
     }
 
     @Bean

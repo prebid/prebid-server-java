@@ -10,16 +10,15 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +26,6 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class PurposeOneStrategyTest {
 
@@ -37,6 +35,9 @@ public class PurposeOneStrategyTest {
     @Mock
     private BasicTypeStrategy basicTypeStrategy;
 
+    @Mock
+    private NoTypeStrategy noTypeStrategy;
+
     private PurposeOneStrategy target;
 
     @Mock
@@ -44,7 +45,7 @@ public class PurposeOneStrategyTest {
 
     @Before
     public void setUp() {
-        target = new PurposeOneStrategy(basicTypeStrategy);
+        target = new PurposeOneStrategy(basicTypeStrategy, noTypeStrategy);
     }
 
     @Test
@@ -68,20 +69,26 @@ public class PurposeOneStrategyTest {
     }
 
     @Test
-    public void processTypePurposeStrategyShouldReturnAllAllowedActionWithoutAnyCheck() {
+    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToNoType() {
         // given
-        final Purpose purpose = new Purpose(EnforcePurpose.no, true, Collections.emptyList());
+        final Purpose purpose = new Purpose(EnforcePurpose.no, false, Arrays.asList("b1", "b3"));
+        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2, vendorPermission3);
+
+        given(noTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(singletonList(vendorPermission1));
 
         // when
-        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, singleton(vendorPermission));
+        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
 
         // then
-        final PrivacyEnforcementAction expectedAction = PrivacyEnforcementAction.restrictAll();
-        expectedAction.setBlockPixelSync(false);
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(VendorPermission.of(1, null, expectedAction));
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowBlockPixel());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowBlockPixel());
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
+        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verifyZeroInteractions(basicTypeStrategy);
+        verify(noTypeStrategy).allowedByTypeStrategy(1, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
     }
 
     @Test
@@ -108,7 +115,7 @@ public class PurposeOneStrategyTest {
     }
 
     @Test
-    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBidders() {
+    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToBaseType() {
         // given
         final Purpose purpose = new Purpose(EnforcePurpose.base, false, Arrays.asList("b1", "b3"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());

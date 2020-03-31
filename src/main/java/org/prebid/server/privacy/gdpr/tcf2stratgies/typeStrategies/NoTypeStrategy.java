@@ -7,9 +7,9 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 
 import java.util.Collection;
 
-public class BasicTypeStrategy extends PurposeTypeStrategy {
+public class NoTypeStrategy extends PurposeTypeStrategy {
 
-    private static final Logger logger = LoggerFactory.getLogger(BasicTypeStrategy.class);
+    private static final Logger logger = LoggerFactory.getLogger(NoTypeStrategy.class);
 
     public Collection<VendorPermission> allowedByTypeStrategy(
             int purposeId,
@@ -19,7 +19,7 @@ public class BasicTypeStrategy extends PurposeTypeStrategy {
 
         logger.debug("Basic strategy used fo purpose {0}", purposeId);
         return isEnforceVendors
-                ? allowedByPurposeAndVendor(purposeId, vendorConsent, vendorsForPurpose)
-                : allowedByPurpose(purposeId, vendorConsent, vendorsForPurpose);
+                ? allowedByVendor(vendorConsent, vendorsForPurpose)
+                : vendorsForPurpose;
     }
 }
