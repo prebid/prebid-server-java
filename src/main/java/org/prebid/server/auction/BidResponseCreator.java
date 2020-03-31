@@ -16,8 +16,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -74,14 +72,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class BidResponseCreator {
-
-    private static final Logger logger = LoggerFactory.getLogger(BidResponseCreator.class);
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
@@ -95,7 +90,7 @@ public class BidResponseCreator {
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
     private final StoredRequestProcessor storedRequestProcessor;
-    private final Supplier<String> bidIdSupplier;
+    private final Boolean generateBidId;
 
     public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -108,11 +103,7 @@ public class BidResponseCreator {
         this.cacheAssetUrlTemplate = Objects.requireNonNull(cacheService.getCachedAssetURLTemplate());
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.mapper = Objects.requireNonNull(mapper);
-
-        bidIdSupplier = BooleanUtils.isTrue(generateBidId)
-                ? () -> UUID.randomUUID().toString()
-                : () -> null;
-
+        this.generateBidId = generateBidId;
     }
 
     /**
@@ -651,12 +642,14 @@ public class BidResponseCreator {
             cache = null;
         }
 
+        final String generatedBidId = BooleanUtils.toBoolean(this.generateBidId) ? UUID.randomUUID().toString() : null;
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), account.getId()) : null;
+        final Events events = eventsEnabled ? eventsService.createEvent(
+                generatedBidId != null ? generatedBidId : bid.getId(), account.getId()) : null;
 
-        final String bidId = bidIdSupplier.get();
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidId, bidType, targetingKeywords, cache, storedVideo,
-                events, null);
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(
+                generatedBidId, bidType, targetingKeywords, cache, storedVideo, events, null
+        );
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
