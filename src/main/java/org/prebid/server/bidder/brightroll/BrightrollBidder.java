@@ -138,7 +138,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                 .orElse(null);
 
         if (bidderAccount != null) {
-            builder.bcat(bidderAccount.getBcat());
+            builder.bcat(bidderAccount.getBcat())
+                    .badv(bidderAccount.getBadv());
         }
 
         builder.imp(bidRequest.getImp().stream()

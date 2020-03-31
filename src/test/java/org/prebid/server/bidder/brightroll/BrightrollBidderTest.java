@@ -46,18 +46,14 @@ public class BrightrollBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://brightroll.com";
     private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
-    private static final List<String> BLOCKED_CATEGORIES =
-            Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30", "IAB14-1", "IAB22-1", "IAB3-7", "IAB7-3",
-                    "IAB14-3", "IAB11", "IAB11-1", "IAB11-2", "IAB11-3", "IAB11-4", "IAB11-5", "IAB23", "IAB23-1",
-                    "IAB23-2", "IAB23-3", "IAB23-4", "IAB23-5", "IAB23-6", "IAB23-7", "IAB23-8", "IAB23-9", "IAB23-10",
-                    "IAB7-39", "IAB9-30", "IAB7-44", "IAB25", "IAB25-1", "IAB25-2", "IAB25-3", "IAB25-4", "IAB25-5",
-                    "IAB25-6", "IAB25-7", "IAB26", "IAB26-1", "IAB26-2", "IAB26-3", "IAB26-4");
+    private static final List<String> BLOCKED_CATEGORIES = Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30");
+    private static final List<String> BLOCKED_ADVERTISERS = Arrays.asList("adv1", "adv2", "adv3");
 
     private BrightrollBidder brightrollBidder;
 
     @Before
     public void setUp() {
-        final List<BidderAccount> bidderAccounts = singletonList(new BidderAccount("testPublisher", BLOCKED_CATEGORIES, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+        final List<BidderAccount> bidderAccounts = singletonList(new BidderAccount("testPublisher", BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
         brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, bidderAccounts);
     }
 
@@ -103,6 +99,7 @@ public class BrightrollBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
                         .bcat(BLOCKED_CATEGORIES)
+                        .badv(BLOCKED_ADVERTISERS)
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .at(1)
                         .build()));
