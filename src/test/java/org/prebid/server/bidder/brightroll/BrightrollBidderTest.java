@@ -23,12 +23,12 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.spring.config.bidder.model.BidderAccount;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
@@ -45,12 +45,20 @@ import static org.assertj.core.api.Assertions.tuple;
 public class BrightrollBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://brightroll.com";
+    private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
+    private static final List<String> BLOCKED_CATEGORIES =
+            Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30", "IAB14-1", "IAB22-1", "IAB3-7", "IAB7-3",
+                    "IAB14-3", "IAB11", "IAB11-1", "IAB11-2", "IAB11-3", "IAB11-4", "IAB11-5", "IAB23", "IAB23-1",
+                    "IAB23-2", "IAB23-3", "IAB23-4", "IAB23-5", "IAB23-6", "IAB23-7", "IAB23-8", "IAB23-9", "IAB23-10",
+                    "IAB7-39", "IAB9-30", "IAB7-44", "IAB25", "IAB25-1", "IAB25-2", "IAB25-3", "IAB25-4", "IAB25-5",
+                    "IAB25-6", "IAB25-7", "IAB26", "IAB26-1", "IAB26-2", "IAB26-3", "IAB26-4");
 
     private BrightrollBidder brightrollBidder;
 
     @Before
     public void setUp() {
-        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper);
+        final List<BidderAccount> bidderAccounts = singletonList(new BidderAccount("testPublisher", BLOCKED_CATEGORIES, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, bidderAccounts);
     }
 
     @Test
@@ -60,7 +68,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher")))).build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("testPublisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
                 .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
@@ -73,7 +81,7 @@ public class BrightrollBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("http://brightroll.com?publisher=publisher");
+                .containsExactly("http://brightroll.com?publisher=testPublisher");
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -86,13 +94,15 @@ public class BrightrollBidderTest extends VertxTest {
                         tuple("x-openrtb-version", "2.5"));
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
+                        .imp(singletonList(Imp.builder()
+                                .banner(Banner.builder().battr(BLOCKED_CREATIVETYPES).build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("testPublisher"))))
                                 .build()))
                         .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
                         .user(User.builder()
                                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                 .build())
+                        .bcat(BLOCKED_CATEGORIES)
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .at(1)
                         .build()));
@@ -193,7 +203,7 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateEachImpIfExtPublisherIsAdthrive() {
+    public void makeHttpRequestsShouldNotUpdateEachImpIfExtPublisherIsNotInBidderAccounts() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(Imp.builder()
@@ -210,19 +220,18 @@ public class BrightrollBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = brightrollBidder.makeHttpRequests(bidRequest);
 
         // then
-        final List<Integer> expectedBattr = Arrays.asList(1, 2, 3, 6, 9, 10);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).hasSize(2)
                 .extracting(Imp::getBanner, Imp::getVideo)
                 .containsOnly(
-                        tuple(Banner.builder().battr(expectedBattr).build(), null),
-                        tuple(null, Video.builder().battr(expectedBattr).build()));
+                        tuple(Banner.builder().build(), null),
+                        tuple(null, Video.builder().build()));
     }
 
     @Test
-    public void makeHttpRequestsShouldSetRequestBcatIfExtPublisherIsAdthrive() {
+    public void makeHttpRequestsShouldNotSetRequestBcatIfExtPublisherIsNotInTheBidderAccountList() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()
@@ -238,8 +247,8 @@ public class BrightrollBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getBcat)
-                .hasSize(42);
+                .extracting(BidRequest::getBcat)
+                .containsNull();
     }
 
     @Test

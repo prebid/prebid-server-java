@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.brightroll.BrightrollBidder;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.spring.config.bidder.model.BidderAccount;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
@@ -17,6 +18,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
+import java.util.Collections;
+import java.util.List;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/brightroll.yaml", factory = YamlPropertySourceFactory.class)
@@ -43,11 +46,14 @@ public class BrightrollConfiguration {
 
     @Bean
     BidderDeps brightrollBidderDeps() {
+        final List<BidderAccount> bidderAccounts = configProperties.getAccounts() == null
+                ? Collections.emptyList()
+                : configProperties.getAccounts();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper))
+                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper, bidderAccounts))
                 .assemble();
     }
 }

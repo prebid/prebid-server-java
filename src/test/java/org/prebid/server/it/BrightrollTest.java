@@ -27,7 +27,7 @@ public class BrightrollTest extends IntegrationTest {
         // given
         // brightroll bid response for imp 15
         wireMockRule.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
-                .withQueryParam("publisher", equalTo("publisher"))
+                .withQueryParam("publisher", equalTo("businessinsider"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))

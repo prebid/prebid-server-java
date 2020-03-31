@@ -11,11 +11,19 @@
             "w": 300,
             "h": 250
           }
+        ],
+        "battr": [
+          1,
+          2,
+          3,
+          6,
+          9,
+          10
         ]
       },
       "ext": {
         "bidder": {
-          "publisher": "publisher"
+          "publisher": "businessinsider"
         }
       }
     }
@@ -53,6 +61,11 @@
   "tmax": 3000,
   "cur": [
     "USD"
+  ],
+  "bcat": [
+    "IAB8-5",
+    "IAB8-18",
+    "IAB15-1"
   ],
   "source": {
     "fd": 1,
