@@ -86,7 +86,8 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.*;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class BidResponseCreatorTest extends VertxTest {
 
