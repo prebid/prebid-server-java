@@ -87,25 +87,30 @@ public class VideoRequestFactory {
         }
 
         try {
-            BidRequestVideo bidRequestVideo = mapper.decodeValue(body, BidRequestVideo.class);
-            if (bidRequestVideo.getDevice() == null) {
-                bidRequestVideo = bidRequestVideo.toBuilder().device(Device.builder().build()).build();
-            }
-            if (StringUtils.isEmpty(bidRequestVideo.getDevice().getUa())) {
-                final String userAgentHeader = context.request().getHeader(HttpUtil.USER_AGENT_HEADER);
-                if (StringUtils.isEmpty(userAgentHeader)) {
-                    throw new InvalidRequestException("Device.UA and User-Agent Header is not presented");
-                }
-                bidRequestVideo = bidRequestVideo.toBuilder()
-                        .device(bidRequestVideo.getDevice().toBuilder()
-                                .ua(userAgentHeader)
-                                .build())
-                        .build();
-            }
-            return bidRequestVideo;
+            final BidRequestVideo bidRequestVideo = mapper.decodeValue(body, BidRequestVideo.class);
+            return insertDeviceUa(context, bidRequestVideo);
         } catch (DecodeException e) {
             throw new InvalidRequestException(e.getMessage());
         }
+    }
+
+    private BidRequestVideo insertDeviceUa(RoutingContext context, BidRequestVideo bidRequestVideo) {
+        final Device device = bidRequestVideo.getDevice();
+        final String deviceUa = device != null ? device.getUa() : null;
+        if (StringUtils.isBlank(deviceUa)) {
+            final String userAgentHeader = context.request().getHeader(HttpUtil.USER_AGENT_HEADER);
+            if (StringUtils.isEmpty(userAgentHeader)) {
+                throw new InvalidRequestException("Device.UA and User-Agent Header is not presented");
+            }
+            final Device.DeviceBuilder deviceBuilder = device == null ? Device.builder() : device.toBuilder();
+
+            return bidRequestVideo.toBuilder()
+                    .device(deviceBuilder
+                            .ua(userAgentHeader)
+                            .build())
+                    .build();
+        }
+        return bidRequestVideo;
     }
 
     private static Set<String> podConfigIds(BidRequestVideo incomingBidRequest) {
