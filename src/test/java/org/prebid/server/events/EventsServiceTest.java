@@ -8,7 +8,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
 
 public class EventsServiceTest {
 
@@ -25,7 +24,7 @@ public class EventsServiceTest {
     @Test
     public void createEventsShouldReturnExpectedEvent() {
         // when
-        final Events events = eventsService.createEvent("bidId", "bidder","accountId", 1000L);
+        final Events events = eventsService.createEvent("bidId", "bidder", "accountId", 1000L);
 
         // then
         assertThat(events).isEqualTo(Events.of(
@@ -36,7 +35,7 @@ public class EventsServiceTest {
     @Test
     public void winUrlTargetingShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.winUrlTargeting("bidder", "accountId",1000L);
+        final String winUrlTargeting = eventsService.winUrlTargeting("bidder", "accountId", 1000L);
 
         // then
         assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&ts=1000&bidder=bidder&f=i");
@@ -45,7 +44,16 @@ public class EventsServiceTest {
     @Test
     public void winUrlShouldReturnExpectedUrl() {
         // when
-        final String winUrl = eventsService.winUrl("bidId", "bidder","accountId", 1000L);
+        final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", 1000L);
+
+        // then
+        assertThat(winUrl).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i");
+    }
+
+    @Test
+    public void vastUrlShouldReturnExpectedUrl() {
+        // when
+        final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", 1000L);
 
         // then
         assertThat(winUrl).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i");

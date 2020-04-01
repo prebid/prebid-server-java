@@ -812,7 +812,8 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .auctiontimestamp(1000L).build()))));
+                        .auctiontimestamp(1000L)
+                        .build()))));
 
         given(responseBidValidator.validate(any()))
                 .willReturn(ValidationResult.error("bid validation error"));

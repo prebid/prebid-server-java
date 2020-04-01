@@ -415,28 +415,28 @@ public class CacheService {
                                                 Map<String, List<String>> bidderToVideoBidIdsToModify,
                                                 String accountId, Long timestamp) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
-        final String[] vastXml = new String[1];
+        String vastXml;
         if (bid.getAdm() == null) {
-            vastXml[0] = "<VAST version=\"3.0\"><Ad><Wrapper>"
+            vastXml = "<VAST version=\"3.0\"><Ad><Wrapper>"
                     + "<AdSystem>prebid.org wrapper</AdSystem>"
                     + "<VASTAdTagURI><![CDATA[" + bid.getNurl() + "]]></VASTAdTagURI>"
                     + "<Impression></Impression><Creatives></Creatives>"
                     + "</Wrapper></Ad></VAST>";
         } else {
-            vastXml[0] = bid.getAdm();
+            vastXml = bid.getAdm();
         }
+
         final String bidId = bid.getId();
-        bidderToVideoBidIdsToModify.entrySet().stream()
+        final String modifiedVastXml = bidderToVideoBidIdsToModify.entrySet().stream()
                 .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
                 .findFirst()
                 .map(Map.Entry::getKey)
-                .ifPresent(bidder -> {
-                    vastXml[0] = modifyVastXml(vastXml[0], bidId, bidder, accountId, timestamp);
-                });
+                .map(bidder -> modifyVastXml(vastXml, bidId, bidder, accountId, timestamp))
+                .orElse(vastXml);
 
         return PutObject.builder()
                 .type("xml")
-                .value(new TextNode(vastXml[0]))
+                .value(new TextNode(modifiedVastXml))
                 .expiry(cacheBid.getTtl())
                 .build();
     }

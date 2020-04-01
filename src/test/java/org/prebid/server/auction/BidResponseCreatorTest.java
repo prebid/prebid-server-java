@@ -17,8 +17,16 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,15 +68,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.VideoStoredDataResult;
-
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -309,14 +308,14 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
-                null, null, ACCOUNT, timeout, 1000,false).result();
+                null, null, ACCOUNT, timeout, 1000, false).result();
 
         // then
         final BidResponse responseWithExpectedFields = BidResponse.builder()
                 .id("123")
                 .cur("USD")
                 .ext(mapper.valueToTree(
-                        ExtBidResponse.of(null, null, singletonMap("bidder1", 100), 1000L, null, (long)1000 )))
+                        ExtBidResponse.of(null, null, singletonMap("bidder1", 100), 1000L, null, 1000L)))
                 .build();
 
         assertThat(bidResponse)
@@ -332,7 +331,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(emptyList(), bidRequest, null,
-                null, ACCOUNT, timeout,0, false).result();
+                null, ACCOUNT, timeout, 0, false).result();
 
         // then
         assertThat(bidResponse).returns(0, BidResponse::getNbr);
@@ -724,7 +723,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
-                targeting, CACHE_INFO, account, timeout, 0,false).result();
+                targeting, CACHE_INFO, account, timeout, 0, false).result();
 
         // then
         verify(eventsService).winUrlTargeting(eq("bidder1"), eq("accountId"), eq(0L));
@@ -874,7 +873,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
-                targeting, cacheInfo, ACCOUNT, timeout, 0,false).result();
+                targeting, cacheInfo, ACCOUNT, timeout, 0, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -990,7 +989,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final Future<BidResponse> result =
-                bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, 0,false);
+                bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO, ACCOUNT, timeout, 0, false);
 
         // then
         verify(storedRequestProcessor).videoStoredDataResult(eq(singletonList(imp)), any(), eq(timeout));
