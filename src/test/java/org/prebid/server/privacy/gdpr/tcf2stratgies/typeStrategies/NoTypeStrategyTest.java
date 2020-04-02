@@ -22,16 +22,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class NoTypeStrategyTest {
+
     private static final int PURPOSE_ID = 1;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private NoTypeStrategy target;
-
     @Mock
     private TCString tcString;
-
     @Mock
     private IntIterable allowedVendors;
     @Mock
@@ -55,7 +54,8 @@ public class NoTypeStrategyTest {
         final List<VendorPermission> vendorPermissions = singletonList(vendorPermission);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPermissions, false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPermissions, false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -64,10 +64,12 @@ public class NoTypeStrategyTest {
     @Test
     public void allowedByTypeStrategyShouldReturnEmptyListWhenVendorIsNotAllowedAndVendorEnforced() {
         // given
-        final List<VendorPermission> vendorPurpose = singletonList(VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
+        final List<VendorPermission> vendorPurpose = singletonList(
+                VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                true);
 
         // then
         assertThat(result).isEmpty();
@@ -82,7 +84,8 @@ public class NoTypeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -97,7 +100,8 @@ public class NoTypeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -112,7 +116,8 @@ public class NoTypeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -127,12 +132,12 @@ public class NoTypeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
-
 
     @Test
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowedForFirstAndVendorIsNotEnforced() {
@@ -145,7 +150,8 @@ public class NoTypeStrategyTest {
         given(allowedVendors.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
@@ -162,7 +168,8 @@ public class NoTypeStrategyTest {
         given(allowedVendors.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
@@ -179,7 +186,8 @@ public class NoTypeStrategyTest {
         given(allowedVendorsLI.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
@@ -196,10 +204,10 @@ public class NoTypeStrategyTest {
         given(allowedVendorsLI.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose, true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
     }
 }
-

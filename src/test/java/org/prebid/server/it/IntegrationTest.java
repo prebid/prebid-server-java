@@ -49,19 +49,19 @@ public abstract class IntegrationTest extends VertxTest {
 
     @SuppressWarnings("unchecked")
     @ClassRule
-    public static final WireMockClassRule wireMockRule = new WireMockClassRule(
+    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(
             options().port(WIREMOCK_PORT).extensions(IntegrationTest.CacheResponseTransformer.class));
 
     @Rule
-    public WireMockClassRule instanceRule = wireMockRule;
+    public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
 
-    static final RequestSpecification spec = spec(APP_PORT);
+    static final RequestSpecification SPEC = spec(APP_PORT);
 
     @BeforeClass
     public static void setUp() throws IOException {
-        wireMockRule.stubFor(get(urlPathEqualTo("/periodic-update"))
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
-        wireMockRule.stubFor(get(urlPathEqualTo("/currency-rates"))
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
     }
 

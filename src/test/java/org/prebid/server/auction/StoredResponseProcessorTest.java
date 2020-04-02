@@ -121,8 +121,8 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldAddImpToRequiredRequestWhenItsStoredBidResponseIsEmpty() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId1")
-                .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder().
-                        storedBidResponse(emptyList())
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                        .storedBidResponse(emptyList())
                         .build(), null)))
                 .build());
 
@@ -133,8 +133,8 @@ public class StoredResponseProcessorTest extends VertxTest {
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
                 singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder().
-                                storedBidResponse(emptyList())
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                                .storedBidResponse(emptyList())
                                 .build(), null)))
                         .build()),
                 emptyList()));
@@ -171,8 +171,8 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
                                 .storedBidResponse(asList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"),
                                         ExtStoredBidResponse.of("appnexus", "storedBidResponseId2")))
-                                .build()
-                        , null)))
+                                .build(),
+                        null)))
                 .build());
 
         final Map<String, String> storedResponse = new HashMap<>();
@@ -182,7 +182,6 @@ public class StoredResponseProcessorTest extends VertxTest {
         storedResponse.put("storedBidResponseId2", mapper.writeValueAsString(singletonList(
                 SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id2").build()))
                         .build())));
-
 
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));

@@ -25,33 +25,33 @@ public class PubnativeTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromThePubnative() throws IOException, JSONException {
         // given
         // Pubnative bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/pubnative-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubnative-exchange"))
                 .withQueryParam("zoneid", equalTo("1"))
                 .withQueryParam("apptoken", equalTo("4fd53a12b78af4b39835de9e449c3082"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubnative/test-pubnative-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubnative/test-pubnative-bid-response-1.json"))));
 
         // Pubnative bid response for imp 002
-        wireMockRule.stubFor(post(urlPathEqualTo("/pubnative-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubnative-exchange"))
                 .withQueryParam("zoneid", equalTo("2"))
                 .withQueryParam("apptoken", equalTo("4fd53a12b78af4b39835de9e449c"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubnative/test-pubnative-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubnative/test-pubnative-bid-response-2.json"))));
 
         // Pubnative bid response for imp 003
-        wireMockRule.stubFor(post(urlPathEqualTo("/pubnative-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubnative-exchange"))
                 .withQueryParam("zoneid", equalTo("3"))
                 .withQueryParam("apptoken", equalTo("4fd53a12b78af4b39835de9e"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubnative/test-pubnative-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubnative/test-pubnative-bid-response-3.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubnative/test-cache-pubnative-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubnative/test-cache-pubnative-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

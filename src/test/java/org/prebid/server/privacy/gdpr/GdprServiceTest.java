@@ -374,12 +374,13 @@ public class GdprServiceTest extends VertxTest {
     @Test
     public void resultForShouldReturnVendorPermissionsWhenBidderNamesAndVendorIdsIsProvided() {
         // given
-        final GdprInfoWithCountry<String> gdprInfo = GdprInfoWithCountry.of("1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null);
+        final GdprInfoWithCountry<String> gdprInfo = GdprInfoWithCountry.of("1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
+                null);
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.vendorIdByName(anyString())).willReturn(2);
 
-        final Map<Integer, Set<Integer>> vendorPermission =new HashMap<>();
+        final Map<Integer, Set<Integer>> vendorPermission = new HashMap<>();
         vendorPermission.put(1, new HashSet<>(Arrays.asList(2, 3, 4)));
         vendorPermission.put(2, new HashSet<>(Arrays.asList(1, 2)));
 
@@ -387,7 +388,8 @@ public class GdprServiceTest extends VertxTest {
 
         // when
         final Future<Collection<VendorPermission>> result =
-                gdprService.resultFor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), singleton("b1"), gdprInfo);
+                gdprService.resultFor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), singleton("b1"),
+                        gdprInfo);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -396,6 +398,7 @@ public class GdprServiceTest extends VertxTest {
         final PrivacyEnforcementAction expectedChangedAction = PrivacyEnforcementAction.restrictAll();
         expectedChangedAction.setBlockPixelSync(false);
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", expectedChangedAction);
-        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(vendorPermission1,
+                vendorPermission2);
     }
 }

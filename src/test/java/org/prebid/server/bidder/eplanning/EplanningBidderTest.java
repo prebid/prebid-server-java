@@ -23,7 +23,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -227,8 +226,8 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly(
-                        "https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de"
+                        + ":300x200");
     }
 
     @Test
@@ -246,8 +245,8 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
-                        + "&uid=Buyer-ID");
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de"
+                        + ":1x1&uid=Buyer-ID");
     }
 
     @Test
@@ -265,8 +264,8 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
-                        + "&ip=123.321.321.123");
+                .containsOnly("https://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de"
+                        + ":1x1&ip=123.321.321.123");
     }
 
     @Test
