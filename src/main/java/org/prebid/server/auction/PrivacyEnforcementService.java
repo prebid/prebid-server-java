@@ -9,11 +9,13 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -70,14 +72,13 @@ public class PrivacyEnforcementService {
         privacyExtractor = new PrivacyExtractor(mapper);
     }
 
-    Future<List<BidderPrivacyResult>> mask(Map<String, User> bidderToUser,
+    Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
+                                           Map<String, User> bidderToUser,
                                            ExtUser extUser,
                                            List<String> bidders,
-                                           Map<String, BidderAlias> aliases,
-                                           BidRequest bidRequest,
-                                           AccountGdprConfig accountConfig,
-                                           Timeout timeout) {
+                                           Map<String, BidderAlias> aliases) {
 
+        final BidRequest bidRequest = auctionContext.getBidRequest();
         final Regs regs = bidRequest.getRegs();
         final Device device = bidRequest.getDevice();
 
@@ -91,7 +92,11 @@ public class PrivacyEnforcementService {
             return maskCcpa(bidderToUser, device);
         }
 
+        final AccountGdprConfig accountConfig = auctionContext.getAccount().getGdpr();
+        final Timeout timeout = auctionContext.getTimeout();
+        final MetricName requestType = auctionContext.getRequestTypeMetric();
         return getBidderToEnforcementAction(device, bidders, aliases, extUser, regs, accountConfig, timeout)
+                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToUser, device, bidderToEnforcement));
     }
 
@@ -283,6 +288,25 @@ public class PrivacyEnforcementService {
         }
 
         return bidderNameToEnforcementResult;
+    }
+
+    private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement, MetricName requestType) {
+
+        for (final Map.Entry<String, PrivacyEnforcementAction> bidderEnforcement : bidderToEnforcement.entrySet()) {
+            final String bidder = bidderEnforcement.getKey();
+            final PrivacyEnforcementAction enforcement = bidderEnforcement.getValue();
+
+            metrics.updateAuctionTcfMetrics(
+                    bidder,
+                    requestType,
+                    enforcement.isRemoveUserBuyerUid(),
+                    enforcement.isMaskGeo(),
+                    enforcement.isBlockBidderRequest(),
+                    enforcement.isBlockAnalyticsReport());
+        }
+
+        return bidderToEnforcement;
     }
 
     /**

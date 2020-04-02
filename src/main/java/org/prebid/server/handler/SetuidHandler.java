@@ -149,7 +149,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
         respondWith(context, status, body);
-        metrics.updateUserSyncGdprPreventMetric(bidder);
+        metrics.updateUserSyncTcfBlockedMetric(bidder);
         analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 

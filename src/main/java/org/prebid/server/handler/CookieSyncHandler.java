@@ -312,7 +312,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
-                metrics.updateCookieSyncGdprPreventMetric(bidder);
+                metrics.updateCookieSyncTcfBlockedMetric(bidder);
             } else {
                 metrics.updateCookieSyncGenMetric(bidder);
             }

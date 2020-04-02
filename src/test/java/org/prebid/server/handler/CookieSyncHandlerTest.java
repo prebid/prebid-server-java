@@ -491,7 +491,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateRejectedBidderByGdpr() throws IOException {
+    public void shouldTolerateRejectedBidderByTcf() throws IOException {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
                 Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
@@ -526,7 +526,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateCookieSyncSetAndRejectByGdprMetricForEachRejectedAndSyncedBidder() {
+    public void shouldUpdateCookieSyncSetAndRejectByTcfMetricForEachRejectedAndSyncedBidder() {
         // given
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(
@@ -549,7 +549,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateCookieSyncGdprPreventMetric(APPNEXUS);
+        verify(metrics).updateCookieSyncTcfBlockedMetric(APPNEXUS);
         verify(metrics).updateCookieSyncGenMetric(RUBICON);
     }
 
@@ -582,7 +582,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByGdpr() throws IOException {
+    public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByTcf() throws IOException {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
                 tcfDefinerService, privacyEnforcementService, null, false, false, emptyList(), analyticsReporter,
@@ -811,7 +811,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateMissingGdprParamsInRequestForUsersyncInfo() throws IOException {
+    public void shouldTolerateMissingTcfParamsInRequestForUsersyncInfo() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.of(singletonList(APPNEXUS), null, "", null, null, null)));

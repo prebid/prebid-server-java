@@ -52,7 +52,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -148,13 +147,12 @@ public class ExchangeService {
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
-        final AccountGdprConfig accountGdprConfig = account.getGdpr();
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
 
         return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest -> extractBidderRequests(context, impsRequiredRequest, requestExt,
-                        aliases, accountGdprConfig))
+                        aliases))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId,
                                 requestTypeMetric))
@@ -279,8 +277,7 @@ public class ExchangeService {
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
                                                               List<Imp> requestedImps,
                                                               ExtBidRequest requestExt,
-                                                              Map<String, BidderAlias> aliases,
-                                                              AccountGdprConfig accountGdprConfig) {
+                                                              Map<String, BidderAlias> aliases) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
                 .filter(imp -> imp.getExt() != null)
@@ -294,7 +291,7 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return makeBidderRequests(bidders, context, aliases, requestExt, imps, accountGdprConfig);
+        return makeBidderRequests(bidders, context, aliases, requestExt, imps);
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -328,8 +325,7 @@ public class ExchangeService {
                                                            AuctionContext context,
                                                            Map<String, BidderAlias> aliases,
                                                            ExtBidRequest requestExt,
-                                                           List<Imp> imps,
-                                                           AccountGdprConfig accountGdprConfig) {
+                                                           List<Imp> imps) {
 
         final BidRequest bidRequest = context.getBidRequest();
         final ExtUser extUser = extUser(bidRequest.getUser());
@@ -344,7 +340,7 @@ public class ExchangeService {
         }
 
         return privacyEnforcementService
-                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, accountGdprConfig, context.getTimeout())
+                .mask(context, bidderToUser, extUser, bidders, aliases)
                 .map(bidderToPrivacyResult -> getBidderRequests(bidderToPrivacyResult, bidRequest, requestExt, imps,
                         firstPartyDataBidders));
     }
@@ -550,7 +546,6 @@ public class ExchangeService {
                                               Map<String, ObjectNode> bidderToPrebidSchains) {
         final String bidder = bidderPrivacyResult.getRequestBidder();
         if (bidderPrivacyResult.isBlockedRequestByTcf()) {
-            // TODO log metric
             return null;
         }
 

@@ -12,7 +12,8 @@ import java.util.function.Function;
  */
 class AdapterMetrics extends UpdatableMetrics {
 
-    private final RequestTypeMetrics requestTypeMetrics;
+    private final Function<MetricName, RequestTypeMetrics> requestTypeMetricsCreator;
+    private final Map<MetricName, RequestTypeMetrics> requestTypeMetrics;
     private final RequestMetrics requestMetrics;
     private final Function<String, BidTypeMetrics> bidTypeMetricsCreator;
     private final Map<String, BidTypeMetrics> bidTypeMetrics;
@@ -23,7 +24,9 @@ class AdapterMetrics extends UpdatableMetrics {
 
         bidTypeMetricsCreator = bidType ->
                 new BidTypeMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType), bidType);
-        requestTypeMetrics = new RequestTypeMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
+        requestTypeMetricsCreator = requestType ->
+                new RequestTypeMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType), requestType);
+        requestTypeMetrics = new HashMap<>();
         requestMetrics = new RequestMetrics(metricRegistry, counterType, createAdapterPrefix(adapterType));
         bidTypeMetrics = new HashMap<>();
     }
@@ -37,8 +40,9 @@ class AdapterMetrics extends UpdatableMetrics {
                 createAccountAdapterPrefix(account, adapterType));
 
         // not used for account.adapter metrics
-        bidTypeMetricsCreator = null;
+        requestTypeMetricsCreator = null;
         requestTypeMetrics = null;
+        bidTypeMetricsCreator = null;
         bidTypeMetrics = null;
     }
 
@@ -54,8 +58,8 @@ class AdapterMetrics extends UpdatableMetrics {
         return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
-    RequestTypeMetrics requestType() {
-        return requestTypeMetrics;
+    RequestTypeMetrics requestType(MetricName requestType) {
+        return requestTypeMetrics.computeIfAbsent(requestType, requestTypeMetricsCreator);
     }
 
     RequestMetrics request() {
