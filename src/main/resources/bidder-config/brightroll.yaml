@@ -1,7 +1,7 @@
 adapters:
   brightroll:
     enabled: false
-    endpoint: http://east-bid.ybp.yahoo.com/bid/bid/rubiconpbs
+    endpoint: http://east-bid.ybp.yahoo.com/bid/rubiconpbs
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names:
@@ -16,9 +16,10 @@ adapters:
         - video
       supported-vendors:
         - businessinsider
+        - publisher
       vendor-id: 25
     usersync:
-      url: https://pr-bh.ybp.yahoo.com/sync/rubiconpbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+      url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
       redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: brightroll
       type: redirect

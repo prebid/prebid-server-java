@@ -31,9 +31,11 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -43,9 +45,11 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final Set<String> supportedVendors;
 
-    public BrightrollBidder(String endpointUrl, JacksonMapper mapper) {
+    public BrightrollBidder(String endpointUrl, List<String> supportedVendors, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.supportedVendors = new HashSet<>(supportedVendors);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -111,7 +115,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         if (StringUtils.isEmpty(publisher)) {
             throw new PreBidException("publisher is empty");
         }
-
+        if (!supportedVendors.contains(publisher)) {
+            throw new PreBidException("publisher is not valid");
+        }
         return publisher;
     }
 
@@ -128,6 +134,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         final boolean isBIPublisher = Objects.equals(firstImpExtPublisher, "businessinsider");
         if (isBIPublisher) {
             builder.bcat(BrightrollConstant.BLOCKED_CATEGORIES_FOR_BUSINESSINSIDER);
+            builder.badv(BrightrollConstant.BLOCKED_ADVERTISERS_FOR_BUSINESSINSIDER);
         }
 
         builder.imp(bidRequest.getImp().stream()

@@ -48,9 +48,11 @@ public class BrightrollBidderTest extends VertxTest {
 
     private BrightrollBidder brightrollBidder;
 
+    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("publisher");
+
     @Before
     public void setUp() {
-        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper);
+        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, SUPPORTED_VENDORS, jacksonMapper);
     }
 
     @Test

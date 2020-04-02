@@ -47,7 +47,9 @@ public class BrightrollConfiguration {
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper))
+                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(),
+                configProperties.getMetaInfo().getSupportedVendors(),
+                mapper))
                 .assemble();
     }
 }
