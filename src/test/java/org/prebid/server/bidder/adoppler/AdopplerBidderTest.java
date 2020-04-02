@@ -11,10 +11,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -28,6 +25,11 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.util.HttpUtil;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -84,7 +86,7 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo(ENDPOINT_URL+"/processHeaderBid/adUnit");
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/processHeaderBid/adUnit");
     }
 
     @Test
@@ -102,21 +104,6 @@ public class AdopplerBidderTest extends VertxTest {
                 .containsOnly(tuple("x-openrtb-version", "2.5"),
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
-
-        // when
-        final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("invalid body:");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -198,8 +185,7 @@ public class AdopplerBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfExtEmpty() throws JsonProcessingException {
         // given
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
-        final List imps = new ArrayList();
-        imps.add(imp);
+        final List imps = Collections.singletonList(imp);
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
         final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(null));
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
@@ -254,8 +240,8 @@ public class AdopplerBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAdoppler.of("adUnit")))))
+                .banner(Banner.builder().id("banner_id").build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit")))))
                 .build();
     }
 

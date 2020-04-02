@@ -31,11 +31,13 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class AdopplerBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
@@ -43,11 +45,11 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private final String endpointUrl;
+    private final String endpointTemplate;
     private final JacksonMapper mapper;
 
-    public AdopplerBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+    public AdopplerBidder(String endpointTemplate, JacksonMapper mapper) {
+        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -61,8 +63,9 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                 final ExtImpAdoppler validExtImp = parseAndValidateImpExt(imp);
                 final String updateRequestId = request.getId() + "-" + validExtImp.getAdunit();
                 final BidRequest updateRequest = request.toBuilder().id(updateRequestId).build();
-                final String url = endpointUrl + "/processHeaderBid/" + validExtImp.getAdunit();
-                result.add(createSingleRequest(imp, updateRequest, url));
+                final String uri = String.format("%s/processHeaderBid/%s", endpointTemplate,
+                        HttpUtil.encodeUrl(validExtImp.getAdunit()));
+                result.add(createSingleRequest(imp, updateRequest, uri));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -108,36 +111,26 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     statusCode)));
         }
 
-        final BidResponse bidResponse;
         try {
-            bidResponse = decodeBodyToBidResponse(httpCall);
-        } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(String.format("invalid body: %s",
-                    e.getMessage())));
-        }
-        final Map<String, BidType> impTypes;
-        final List<BidderBid> bidderBids;
-        try {
-            impTypes = getImpTypes(bidRequest);
-            bidderBids = getBids(bidResponse, impTypes);
+            final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
+            final Map<String, BidType> impTypes = getImpTypes(bidRequest);
+            final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
+                    .filter(Objects::nonNull)
+                    .map(SeatBid::getBid)
+                    .filter(Objects::nonNull)
+                    .flatMap(Collection::stream)
+                    .map(bid -> createBid(bid, impTypes))
+                    .collect(Collectors.toList());
+            return Result.of(bidderBids, Collections.emptyList());
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
-        return Result.of(bidderBids, Collections.emptyList());
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private AdopplerResponseExt parseResponseExt(ObjectNode ext) {
-        try {
-            return mapper.mapper().treeToValue(ext, AdopplerResponseExt.class);
-        } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
@@ -164,30 +157,19 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         return impTypes;
     }
 
-    private List<BidderBid> getBids(BidResponse bidResponse, Map<String, BidType> impTypes) {
-        final List<BidderBid> bidderBids = new ArrayList<>();
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            for (Bid bid : seatBid.getBid()) {
-                if (impTypes.get(bid.getImpid()) == null) {
-                    throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
-                }
-                setExtBidPrebidVideo(bid, impTypes);
-                final BidderBid bidderBid = BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
-                bidderBids.add(bidderBid);
-            }
+    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes) {
+        if (impTypes.get(bid.getImpid()) == null) {
+            throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
         }
-        return bidderBids;
+        getExtBidPrebidVideo(bid, impTypes);
+        final BidderBid bidderBid = BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
+        return bidderBid;
     }
 
-    private ExtBidPrebidVideo setExtBidPrebidVideo(Bid bid, Map<String, BidType> impTypes) {
-        final AdopplerResponseExt adopplerResponseExt;
+    private ExtBidPrebidVideo getExtBidPrebidVideo(Bid bid, Map<String, BidType> impTypes) {
         if (impTypes.get(bid.getImpid()) == BidType.video) {
             final ObjectNode ext = bid.getExt();
-            try {
-                adopplerResponseExt = parseResponseExt(ext);
-            } catch (PreBidException e) {
-                throw new PreBidException(e.getMessage());
-            }
+            final AdopplerResponseExt adopplerResponseExt = parseResponseExt(ext);
             final AdopplerResponseVideoExt adopplerResponseVideoExt = adopplerResponseExt.getAds();
             if (adopplerResponseVideoExt == null) {
                 throw new PreBidException("$.seatbid.bid.ext.ads.video required");
@@ -197,6 +179,14 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             return ExtBidPrebidVideo.of(duration, head(bid.getCat()));
         }
         return null;
+    }
+
+    private AdopplerResponseExt parseResponseExt(ObjectNode ext) {
+        try {
+            return mapper.mapper().treeToValue(ext, AdopplerResponseExt.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private String head(List<String> cat) {
