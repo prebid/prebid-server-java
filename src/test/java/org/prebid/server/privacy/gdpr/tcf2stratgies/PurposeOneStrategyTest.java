@@ -29,8 +29,6 @@ import static org.mockito.Mockito.verify;
 
 public class PurposeOneStrategyTest {
 
-    private static final int PURPOSE_ID = 1;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -67,7 +65,7 @@ public class PurposeOneStrategyTest {
     @Test
     public void getPurposeIdShouldReturnExpectedValue() {
         // when and then
-        assertThat(target.getPurposeId()).isEqualTo(PURPOSE_ID);
+        assertThat(target.getPurposeId()).isEqualTo(1);
     }
 
     @Test
@@ -85,12 +83,12 @@ public class PurposeOneStrategyTest {
         final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowBlockPixel());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowBlockPixel());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(noTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
+        verify(noTypeStrategy).allowedByTypeStrategy(1, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
     }
 
     @Test
@@ -108,12 +106,12 @@ public class PurposeOneStrategyTest {
         final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
-        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, allowPurpose());
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowBlockPixel());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowBlockPixel());
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, allowBlockPixel());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPermissions, true);
+        verify(basicTypeStrategy).allowedByTypeStrategy(1, tcString, vendorPermissions, true);
     }
 
     @Test
@@ -131,12 +129,12 @@ public class PurposeOneStrategyTest {
         final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowBlockPixel());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowBlockPixel());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
+        verify(basicTypeStrategy).allowedByTypeStrategy(1, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
     }
 
     @Test
@@ -154,15 +152,15 @@ public class PurposeOneStrategyTest {
         final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurpose());
-        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowBlockPixel());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowBlockPixel());
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowBlockPixel());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(), true);
+        verify(basicTypeStrategy).allowedByTypeStrategy(1, tcString, emptyList(), true);
     }
 
-    private static PrivacyEnforcementAction allowPurpose() {
+    private static PrivacyEnforcementAction allowBlockPixel() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         privacyEnforcementAction.setBlockPixelSync(false);
         return privacyEnforcementAction;
