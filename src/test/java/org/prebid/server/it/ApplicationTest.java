@@ -355,8 +355,10 @@ public class ApplicationTest extends IntegrationTest {
                 .as(CookieSyncResponse.class);
 
         // then
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok",
-                asList(BidderUsersyncStatus.builder()
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .hasSize(3)
+                .containsOnly(BidderUsersyncStatus.builder()
                                 .bidder(RUBICON)
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
@@ -378,8 +380,8 @@ public class ApplicationTest extends IntegrationTest {
                                 .build(),
                         BidderUsersyncStatus.builder()
                                 .bidder(ADFORM)
-                                .error("Rejected by GDPR")
-                                .build())));
+                                .error("Rejected by TCF")
+                                .build());
     }
 
     @Test

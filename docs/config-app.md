@@ -243,6 +243,13 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).
 - `gdpr.default-value` - determines GDPR in scope default value (if no information in request and no geolocation data).
 - `gdpr.host-vendor-id` - the organization running a cluster of Prebid Servers.
+- `gdpr.enabled` - gdpr feature switch. Default `true`.
+- `gdpr.purposes.pN.enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
+- `gdpr.purposes.pN.enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
+- `gdpr.purposes.pN.vendor-exceptions[]` - bidder names that will be treated opposite to `pN.enforce-vendors` value.
+- `gdpr.special-features.sfN.enforce` - if equals to `true`, special feature will be enforced for purpose. Default `true`
+- `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
+- `gdpr.purpose-one-treatment-interpretation` - flag that allowing to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
 - `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.

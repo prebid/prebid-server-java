@@ -14,10 +14,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
