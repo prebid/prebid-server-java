@@ -10,7 +10,6 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -76,7 +75,7 @@ public class PrivacyEnforcementService {
                                            Map<String, User> bidderToUser,
                                            ExtUser extUser,
                                            List<String> bidders,
-                                           Map<String, BidderAlias> aliases) {
+                                           BidderAliases aliases) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Regs regs = bidRequest.getRegs();
@@ -196,13 +195,15 @@ public class PrivacyEnforcementService {
      * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link PrivacyEnforcementAction}&gt;&gt;},
      * where bidder names mapped to actions for GDPR masking for pbs server.
      */
-    private Future<Map<String, PrivacyEnforcementAction>> getBidderToEnforcementAction(Device device,
-                                                                                       List<String> bidders,
-                                                                                       Map<String, BidderAlias> aliases,
-                                                                                       ExtUser extUser,
-                                                                                       Regs regs,
-                                                                                       AccountGdprConfig accountConfig,
-                                                                                       Timeout timeout) {
+    private Future<Map<String, PrivacyEnforcementAction>> getBidderToEnforcementAction(
+            Device device,
+            List<String> bidders,
+            BidderAliases aliases,
+            ExtUser extUser,
+            Regs regs,
+            AccountGdprConfig accountConfig,
+            Timeout timeout) {
+
         final ExtRegs extRegs = extRegs(regs);
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
@@ -238,11 +239,10 @@ public class PrivacyEnforcementService {
      * Returns the name associated with vendor id alias.
      */
     private Map<String, Integer> requestBidderToVendorIdAlias(Collection<String> requestBidders,
-                                                              Map<String, BidderAlias> requestBidderToAlias) {
+                                                              BidderAliases aliases) {
         final Map<String, Integer> bidderToVendorId = new HashMap<>();
         for (String requestBidder : requestBidders) {
-            final BidderAlias bidderAlias = requestBidderToAlias.get(requestBidder);
-            final Integer aliasVendorId = bidderAlias != null ? bidderAlias.getAliasVendorId() : null;
+            final Integer aliasVendorId = aliases.resolveAliasVendorId(requestBidder);
             if (aliasVendorId != null) {
                 bidderToVendorId.put(requestBidder, aliasVendorId);
             }
@@ -254,13 +254,12 @@ public class PrivacyEnforcementService {
      * Returns the name associated with bidder name.
      */
     private Map<String, String> requestBidderToBidderName(Collection<String> requestBidders,
-                                                          Map<String, BidderAlias> requestBidderToAlias,
+                                                          BidderAliases aliases,
                                                           Set<String> alreadyMappedBidders) {
         final Map<String, String> bidderToBidderNameAlias = new HashMap<>();
         for (String requestBidder : requestBidders) {
             if (!alreadyMappedBidders.contains(requestBidder)) {
-                final BidderAlias bidderAlias = requestBidderToAlias.get(requestBidder);
-                final String bidderNameAlias = bidderAlias != null ? bidderAlias.getBidder() : null;
+                final String bidderNameAlias = aliases.resolveBidder(requestBidder);
                 final String bidderName = StringUtils.isNotBlank(bidderNameAlias) ? bidderNameAlias : requestBidder;
                 bidderToBidderNameAlias.put(requestBidder, bidderName);
             }

@@ -15,7 +15,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -105,7 +104,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -141,7 +140,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -168,7 +167,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, emptyMap(), null, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, emptyMap(), null, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -203,7 +202,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -241,7 +240,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -280,7 +279,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -314,7 +313,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -355,7 +354,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -396,7 +395,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -437,7 +436,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -479,7 +478,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -522,7 +521,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -570,9 +569,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         bidderToUser.put(requestAliasBidder1Name, notMaskedUser());
         bidderToUser.put(requestAliasBidder2Name, notMaskedUser());
         bidderToUser.put(requestBidder3Name, notMaskedUser());
-        final Map<String, BidderAlias> aliases = new HashMap<>();
-        aliases.put(requestAliasBidder1Name, BidderAlias.of(requestBidder1Name, null));
-        aliases.put(requestAliasBidder2Name, BidderAlias.of(bidder2Name, bidder2VendorIdAlias));
+        final Map<String, String> aliases = new HashMap<>();
+        final Map<String, Integer> aliasgvlids = new HashMap<>();
+        aliases.put(requestAliasBidder1Name, requestBidder1Name);
+        aliases.put(requestAliasBidder2Name, bidder2Name);
+        aliasgvlids.put(requestAliasBidder2Name, bidder2VendorIdAlias);
 
         final Map<String, PrivacyEnforcementAction> bidderNameToTcfEnforcement = new HashMap<>();
         bidderNameToTcfEnforcement.put(requestBidder1Name, PrivacyEnforcementAction.restrictAll());
@@ -588,7 +589,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final List<String> bidders = Arrays.asList(requestBidder1Name, requestAliasBidder1Name,
                 requestAliasBidder2Name, requestBidder3Name);
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, bidders, aliases)
+                .mask(context, bidderToUser, null, bidders, BidderAliases.of(aliases, aliasgvlids))
                 .result();
 
         // then
@@ -640,7 +641,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), emptyMap())
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
@@ -674,7 +675,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<List<BidderPrivacyResult>> firstFuture = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap());
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null));
 
         // then
         assertThat(firstFuture.failed()).isTrue();
@@ -699,7 +700,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // when and then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> privacyEnforcementService.mask(
-                        context, emptyMap(), null, singletonList(BIDDER_NAME), emptyMap()))
+                        context, emptyMap(), null, singletonList(BIDDER_NAME), BidderAliases.of(null, null)))
                 .withMessageStartingWith("Error decoding bidRequest.regs.ext:");
     }
 
@@ -773,7 +774,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, bidders, emptyMap())
+                .mask(context, bidderToUser, extUser, bidders, BidderAliases.of(null, null))
                 .result();
 
         // then

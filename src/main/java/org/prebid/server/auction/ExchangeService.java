@@ -20,7 +20,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
-import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
@@ -143,7 +142,7 @@ public class ExchangeService {
 
         final List<Imp> imps = bidRequest.getImp();
         final List<SeatBid> storedResponse = new ArrayList<>();
-        final Map<String, BidderAlias> aliases = aliases(requestExt);
+        final BidderAliases aliases = aliases(requestExt);
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
@@ -199,24 +198,11 @@ public class ExchangeService {
     /**
      * Extracts aliases from {@link ExtBidRequest}.
      */
-    private static Map<String, BidderAlias> aliases(ExtBidRequest requestExt) {
+    private static BidderAliases aliases(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
-        return aliases != null
-                ? aliases.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        requestBidderAndAlias -> toBidderAlias(requestBidderAndAlias.getValue(),
-                                requestBidderAndAlias.getKey(), aliasgvlids)))
-                : Collections.emptyMap();
-    }
-
-    private static BidderAlias toBidderAlias(String bidderAlias,
-                                             String requestBidder,
-                                             Map<String, Integer> aliasgvlids) {
-
-        return BidderAlias.of(bidderAlias, aliasgvlids != null ? aliasgvlids.get(requestBidder) : null);
+        return BidderAliases.of(aliases, aliasgvlids);
     }
 
     /**
@@ -277,7 +263,7 @@ public class ExchangeService {
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context,
                                                               List<Imp> requestedImps,
                                                               ExtBidRequest requestExt,
-                                                              Map<String, BidderAlias> aliases) {
+                                                              BidderAliases aliases) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
                 .filter(imp -> imp.getExt() != null)
@@ -302,8 +288,8 @@ public class ExchangeService {
     /**
      * Checks if bidder name is valid in case when bidder can also be alias name.
      */
-    private boolean isValidBidder(String bidder, Map<String, BidderAlias> aliases) {
-        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+    private boolean isValidBidder(String bidder, BidderAliases aliases) {
+        return bidderCatalog.isValidName(bidder) || aliases.isAliasDefined(bidder);
     }
 
     /**
@@ -323,7 +309,7 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> makeBidderRequests(List<String> bidders,
                                                            AuctionContext context,
-                                                           Map<String, BidderAlias> aliases,
+                                                           BidderAliases aliases,
                                                            ExtBidRequest requestExt,
                                                            List<Imp> imps) {
 
@@ -384,7 +370,7 @@ public class ExchangeService {
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      */
-    private User prepareUser(User user, ExtUser extUser, String bidder, Map<String, BidderAlias> aliases,
+    private User prepareUser(User user, ExtUser extUser, String bidder, BidderAliases aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData) {
         final ObjectNode updatedExt = updateUserExt(extUser, useFirstPartyData);
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
@@ -436,23 +422,14 @@ public class ExchangeService {
     /**
      * Returns updated buyerUid or null if it doesn't need to be updated.
      */
-    private String updateUserBuyerUid(User user, String bidder, Map<String, BidderAlias> aliases,
+    private String updateUserBuyerUid(User user, String bidder, BidderAliases aliases,
                                       Map<String, String> uidsBody, UidsCookie uidsCookie) {
-        final String buyerUidFromBodyOrCookie = extractUid(uidsBody, uidsCookie, resolveBidder(bidder, aliases));
+        final String buyerUidFromBodyOrCookie = extractUid(uidsBody, uidsCookie, aliases.resolveBidder(bidder));
         final String buyerUidFromUser = user != null ? user.getBuyeruid() : null;
 
         return StringUtils.isBlank(buyerUidFromUser) && StringUtils.isNotBlank(buyerUidFromBodyOrCookie)
                 ? buyerUidFromBodyOrCookie
                 : null;
-    }
-
-    /**
-     * Returns the name associated with bidder if bidder is an alias.
-     * If it's not an alias, the bidder is returned.
-     */
-
-    private static String resolveBidder(String bidder, Map<String, BidderAlias> aliases) {
-        return aliases.containsKey(bidder) ? aliases.get(bidder).getBidder() : bidder;
     }
 
     /**
@@ -710,12 +687,12 @@ public class ExchangeService {
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}.
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                                    Map<String, BidderAlias> aliases, String publisherId,
+                                                    BidderAliases aliases, String publisherId,
                                                     MetricName requestTypeMetric) {
         metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
 
         for (BidderRequest bidderRequest : bidderRequests) {
-            final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
+            final String bidder = aliases.resolveBidder(bidderRequest.getBidder());
             final boolean isApp = bidderRequest.getBidRequest().getApp() != null;
             final boolean noBuyerId = !bidderCatalog.isActive(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName()));
@@ -779,14 +756,14 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, Timeout timeout,
-                                               boolean debugEnabled, Map<String, BidderAlias> aliases,
+                                               boolean debugEnabled, BidderAliases aliases,
                                                Map<String, BigDecimal> bidAdjustments,
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
         final List<String> cur = bidderRequest.getBidRequest().getCur();
         final String adServerCurrency = cur.get(0);
-        final Bidder<?> bidder = bidderCatalog.bidderByName(resolveBidder(bidderName, aliases));
+        final Bidder<?> bidder = bidderCatalog.bidderByName(aliases.resolveBidder(bidderName));
         final long startTime = clock.millis();
 
         return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)

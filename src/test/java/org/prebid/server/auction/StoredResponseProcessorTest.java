@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.BidderAlias;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.BidderCatalog;
@@ -42,7 +41,6 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,7 +89,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -109,7 +107,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -129,7 +127,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -156,7 +154,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -190,7 +188,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -231,7 +229,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -264,7 +262,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
@@ -309,7 +307,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -343,7 +341,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                singletonMap("appnexusAlias", BidderAlias.of("appnexus", 1)), timeout);
+                BidderAliases.of(singletonMap("appnexusAlias", "appnexus"), singletonMap("appnexusAlias", 1)), timeout);
 
         // then
         final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
@@ -365,7 +363,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -383,7 +381,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -400,7 +398,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -426,7 +424,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -448,7 +446,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
