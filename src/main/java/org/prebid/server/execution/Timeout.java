@@ -8,6 +8,7 @@ import java.time.Clock;
 public class Timeout {
 
     private final Clock clock;
+
     private final long deadline;
 
     Timeout(Clock clock, long deadline) {

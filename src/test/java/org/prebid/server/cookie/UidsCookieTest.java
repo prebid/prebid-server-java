@@ -243,7 +243,7 @@ public class UidsCookieTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(uidsCookie.toJson()).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
-                "\"expires\":\"2017-12-30T12:30:40.123456789Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
+        assertThat(uidsCookie.toJson()).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\","
+                + "\"expires\":\"2017-12-30T12:30:40.123456789Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
     }
 }

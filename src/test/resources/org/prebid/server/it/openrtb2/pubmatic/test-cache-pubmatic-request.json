@@ -12,7 +12,8 @@
         "h": 600,
         "ext": {
           "BidType": 1
-        }
+        },
+        "wurl": "http://localhost:8000/event?t=win&b=113343587&a=publisherId&f=i"
       }
     },
     {
@@ -24,7 +25,8 @@
         "adm": "adm9",
         "crid": "crid9",
         "w": 300,
-        "h": 600
+        "h": 600,
+        "wurl": "http://localhost:8000/event?t=win&b=158758924&a=publisherId&f=i"
       }
     },
     {

@@ -642,12 +642,16 @@ public class AppnexusAdapterTest extends VertxTest {
                                         Bid.builder()
                                                 .impid("adUnitCode1")
                                                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                        AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build())))
+                                                        AppnexusBidExtAppnexus.builder()
+                                                                .bidAdType(BANNER_TYPE)
+                                                                .build())))
                                                 .build(),
                                         Bid.builder()
                                                 .impid("adUnitCode2")
                                                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                                        AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build())))
+                                                        AppnexusBidExtAppnexus.builder()
+                                                                .bidAdType(BANNER_TYPE)
+                                                                .build())))
                                                 .build()))
                                 .build())));
 

@@ -1,6 +1,7 @@
 package org.prebid.server.cache;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
@@ -301,7 +302,7 @@ public class CacheService {
             List<CacheBid> bids, List<CacheBid> videoBids, List<String> videoBidIdsToModify, String accountId,
             Timeout timeout) {
         final List<PutObject> putObjects = Stream.concat(
-                bids.stream().map(this::createJsonPutObjectOpenrtb),
+                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, accountId)),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, videoBidIdsToModify, accountId)))
                 .collect(Collectors.toList());
 
@@ -379,12 +380,17 @@ public class CacheService {
     }
 
     /**
-     * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
+     * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}.
+     * Used for OpenRTB auction request. Also, adds win url to result object.
      */
-    private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
+    private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid, String accountId) {
+        final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
+        final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
+        bidObjectNode.put("wurl", eventsService.winUrl(bid.getId(), accountId));
+
         return PutObject.builder()
                 .type("json")
-                .value(mapper.mapper().valueToTree(cacheBid.getBid()))
+                .value(bidObjectNode)
                 .expiry(cacheBid.getTtl())
                 .build();
     }
