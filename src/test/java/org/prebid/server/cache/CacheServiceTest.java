@@ -331,8 +331,7 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder().type("json").value(
                                 mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300))).build(),
                         PutObject.builder().type("xml").value(new TextNode(adm3)).build(),
-                        PutObject.builder().type("xml").value(new TextNode(adm4)).build()
-                );
+                        PutObject.builder().type("xml").value(new TextNode(adm4)).build());
     }
 
     @Test
@@ -588,7 +587,8 @@ public class CacheServiceTest extends VertxTest {
         given(eventsService.winUrl(anyString(), anyString(), any(), any())).willReturn("http://win-url");
 
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1"));
-        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.id("bid2").impid("impId2").adm("adm2"));
+        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.id("bid2").impid("impId2")
+                .adm("adm2"));
         final Imp imp1 = givenImp(identity());
         final Imp imp2 = givenImp(builder -> builder.id("impId2").video(Video.builder().build()));
 
@@ -874,8 +874,10 @@ public class CacheServiceTest extends VertxTest {
         // given
         given(eventsService.winUrl(anyString(), anyString(), any(), any())).willReturn("http://win-url");
 
-        final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1").adm("adm1"));
-        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.id("bid2").impid("impId1").nurl("adm2"));
+        final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
+                .adm("adm1"));
+        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.id("bid2").impid("impId1")
+                .nurl("adm2"));
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
         // when
@@ -901,9 +903,9 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder().type("json").value(bidObjectNode2).build(),
                         PutObject.builder().type("xml").value(new TextNode("adm1")).build(),
                         PutObject.builder().type("xml").value(new TextNode(
-                                "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>" +
-                                        "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>" +
-                                        "<Creatives></Creatives></Wrapper></Ad></VAST>"))
+                                "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>"
+                                        + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>"
+                                        + "<Creatives></Creatives></Wrapper></Ad></VAST>"))
                                 .build());
     }
 
@@ -998,8 +1000,8 @@ public class CacheServiceTest extends VertxTest {
                                 .build(),
                         PutObject.builder()
                                 .type("xml")
-                                .value(new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&" +
-                                        "b=bid1&f=b&a=accountId]]></Impression>"))
+                                .value(new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&"
+                                        + "b=bid1&f=b&a=accountId]]></Impression>"))
                                 .build());
     }
 
@@ -1038,8 +1040,8 @@ public class CacheServiceTest extends VertxTest {
                                 .build(),
                         PutObject.builder()
                                 .type("xml")
-                                .value(new TextNode("<Impression>http:/test.com</Impression><Impression>" +
-                                        "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
+                                .value(new TextNode("<Impression>http:/test.com</Impression><Impression>"
+                                        + "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
                                         + "</Impression>"))
                                 .build());
     }
@@ -1072,9 +1074,9 @@ public class CacheServiceTest extends VertxTest {
                 .type("xml")
                 .bidid("biddid1")
                 .bidder("bidder1")
-                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
-                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build();
+                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
+                        + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>"
+                        + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build();
         final PutObject secondPutObject = PutObject.builder()
                 .type("xml")
                 .value(new TextNode("VAST"))
@@ -1091,11 +1093,11 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
-                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>" +
-                        "<Impression><!" +
-                        "[CDATA[http://external-url/event?t=imp&b=bidId&a=accountId&ts=bidder&bidder=1000&f=b]]>" +
-                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
+                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
+                        + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
+                        + "<Impression><!"
+                        + "[CDATA[http://external-url/event?t=imp&b=bidId&a=accountId&ts=bidder&bidder=1000&f=b]]>"
+                        + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
                 .build();
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2).containsOnly(modifiedSecondPutObject, secondPutObject);

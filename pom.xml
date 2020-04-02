@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.32.0-SNAPSHOT</version>
+    <version>1.33.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -15,8 +15,8 @@
 
     <scm>
         <developerConnection>scm:git:git@github.com:rubicon-project/prebid-server-java.git</developerConnection>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,6 +45,7 @@
         <metrics.version>4.0.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
+        <iab-tcf>2.0.0-alpha.0</iab-tcf>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
 
@@ -248,6 +249,11 @@
             <version>${consent-string-sdk.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.iabtcf</groupId>
+            <artifactId>iabtcf-core</artifactId>
+            <version>${iab-tcf}</version>
+        </dependency>
+        <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_vertx</artifactId>
             <version>${metrics-prometheus.version}</version>
@@ -345,6 +351,7 @@
                         <!-- true if project build should fails on any style violation. -->
                         <failsOnError>true</failsOnError>
                         <linkXRef>false</linkXRef>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     </configuration>
                     <dependencies>
                         <dependency>

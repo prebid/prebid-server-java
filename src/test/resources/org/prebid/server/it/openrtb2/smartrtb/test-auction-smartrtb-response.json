@@ -46,6 +46,6 @@
       "smartrtb": "{{ smartrtb.response_time_ms }}"
     },
     "auctiontimestamp": 1000,
-    "tmaxrequest": 3000
+    "tmaxrequest": 5000
   }
 }

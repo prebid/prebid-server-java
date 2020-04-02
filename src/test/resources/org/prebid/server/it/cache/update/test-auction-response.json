@@ -78,6 +78,6 @@
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
     "auctiontimestamp": 1000,
-    "tmaxrequest": 1900
+    "tmaxrequest": 5000
   }
 }

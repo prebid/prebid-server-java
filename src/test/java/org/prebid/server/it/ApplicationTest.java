@@ -69,7 +69,7 @@ public class ApplicationTest extends IntegrationTest {
 
     private static final int ADMIN_PORT = 8060;
 
-    private static final RequestSpecification adminSpec = new RequestSpecBuilder()
+    private static final RequestSpecification ADMIN_SPEC = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
             .setPort(ADMIN_PORT)
             .setConfig(RestAssuredConfig.config()
@@ -80,7 +80,7 @@ public class ApplicationTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
         // rubicon bid response for imp 1
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("dmbjs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -91,25 +91,25 @@ public class ApplicationTest extends IntegrationTest {
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
         // rubicon bid response for imp 2
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
         // appnexus bid response for imp 3
-        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         // appnexus bid response for imp 3 with alias parameters
-        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json"), true, false))
                 .willReturn(aResponse()
@@ -119,7 +119,7 @@ public class ApplicationTest extends IntegrationTest {
                 ));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
@@ -140,17 +140,17 @@ public class ApplicationTest extends IntegrationTest {
     public void auctionShouldRespondWithBidsFromAppnexusAlias() throws IOException {
         // given
         // appnexus bid response for ad unit 4
-        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-districtm-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-districtm-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-cache-districtm-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-cache-districtm-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -178,7 +178,7 @@ public class ApplicationTest extends IntegrationTest {
     public void auctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException {
         // given
         // rubicon bid response for ad unit 1
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -189,32 +189,32 @@ public class ApplicationTest extends IntegrationTest {
                         jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
         // rubicon bid response for ad unit 2
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
         // rubicon bid response for ad unit 3
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-3.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-3.json"))));
 
         // appnexus bid response for ad unit 4
-        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom(
                         "auction/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "auction/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -242,17 +242,17 @@ public class ApplicationTest extends IntegrationTest {
     public void ampShouldReturnTargeting() throws IOException, JSONException {
         // given
         // rubicon exchange
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("amp/test-rubicon-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("amp/test-rubicon-bid-response.json"))));
 
         // appnexus exchange
-        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("amp/test-appnexus-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("amp/test-appnexus-bid-response.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json"), true, false))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
@@ -260,7 +260,7 @@ public class ApplicationTest extends IntegrationTest {
                 ));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -268,15 +268,15 @@ public class ApplicationTest extends IntegrationTest {
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
                 .when()
-                .get("/openrtb2/amp" +
-                        "?tag_id=test-amp-stored-request" +
-                        "&ow=980" +
-                        "&oh=120" +
-                        "&timeout=10000000" +
-                        "&slot=overwrite-tagId" +
-                        "&curl=https%3A%2F%2Fgoogle.com" +
-                        "&account=accountId" +
-                        "&us_privacy=1YNN");
+                .get("/openrtb2/amp"
+                        + "?tag_id=test-amp-stored-request"
+                        + "&ow=980"
+                        + "&oh=120"
+                        + "&timeout=10000000"
+                        + "&slot=overwrite-tagId"
+                        + "&curl=https%3A%2F%2Fgoogle.com"
+                        + "&account=accountId"
+                        + "&us_privacy=1YNN");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
@@ -285,7 +285,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void statusShouldReturnReadyWithinResponseBodyAndHttp200Ok() {
-        assertThat(given(spec).when().get("/status"))
+        assertThat(given(SPEC).when().get("/status"))
                 .extracting(Response::getStatusCode, response -> response.getBody().asString())
                 .containsOnly(200, "{\"application\":{\"status\":\"ok\"}}");
     }
@@ -293,12 +293,12 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() throws IOException {
         // given
-        wireMockRule.stubFor(post("/optout")
+        WIRE_MOCK_RULE.stubFor(post("/optout")
                 .withRequestBody(equalTo("secret=abc&response=recaptcha1"))
                 .willReturn(aResponse().withBody("{\"success\": true}")));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
@@ -321,7 +321,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void staticShouldReturnHttp200Ok() {
-        given(spec)
+        given(SPEC)
                 .when()
                 .get("/static/index.html")
                 .then()
@@ -344,7 +344,7 @@ public class ApplicationTest extends IntegrationTest {
                 .build());
 
         // when
-        final CookieSyncResponse cookieSyncResponse = given(spec)
+        final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
                 .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null))
                 .when()
@@ -355,8 +355,10 @@ public class ApplicationTest extends IntegrationTest {
                 .as(CookieSyncResponse.class);
 
         // then
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok",
-                asList(BidderUsersyncStatus.builder()
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .hasSize(3)
+                .containsOnly(BidderUsersyncStatus.builder()
                                 .bidder(RUBICON)
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
@@ -378,14 +380,14 @@ public class ApplicationTest extends IntegrationTest {
                                 .build(),
                         BidderUsersyncStatus.builder()
                                 .bidder(ADFORM)
-                                .error("Rejected by GDPR")
-                                .build())));
+                                .error("Rejected by TCF")
+                                .build());
     }
 
     @Test
     public void setuidShouldUpdateRubiconUidInUidCookie() throws IOException {
         // when
-        final Cookie uidsCookie = given(spec)
+        final Cookie uidsCookie = given(SPEC)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
                 // "bday":"2017-08-15T19:47:59.523908376Z"}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0"
@@ -421,7 +423,7 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void getuidsShouldReturnJsonWithUids() throws JSONException {
         // given and when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
                 // "bday":"2017-08-15T19:47:59.523908376Z"}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0"
@@ -437,11 +439,11 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void vtrackShouldReturnJsonWithUids() throws JSONException, IOException {
         // given and when
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("vtrack/test-cache-request.json"), true, false))
                 .willReturn(aResponse().withBody(jsonFrom("vtrack/test-vtrack-response.json"))));
 
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .when()
                 .body(jsonFrom("vtrack/test-vtrack-request.json"))
                 .queryParam("a", "14062")
@@ -456,7 +458,7 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void optionsRequestShouldRespondWithOriginalPolicyHeaders() {
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Origin", "origin.com")
                 .header("Access-Control-Request-Method", "GET")
                 .when()
@@ -477,7 +479,7 @@ public class ApplicationTest extends IntegrationTest {
                 .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .when()
                 .get("/bidders/params");
 
@@ -492,7 +494,7 @@ public class ApplicationTest extends IntegrationTest {
         final List<String> bidderAliases = getBidderAliasesFromConfigFiles();
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .when()
                 .get("/info/bidders");
 
@@ -503,7 +505,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void infoBidderDetailsShouldReturnMetadataForBidder() throws IOException {
-        given(spec)
+        given(SPEC)
                 .when()
                 .get("/info/bidders/rubicon")
                 .then()
@@ -513,7 +515,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void eventHandlerShouldRespondWithTrackingPixel() throws IOException {
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .queryParam("t", "win")
                 .queryParam("b", "bidId")
                 .queryParam("a", "14062")
@@ -532,7 +534,7 @@ public class ApplicationTest extends IntegrationTest {
     public void shouldAskExchangeWithUpdatedSettingsFromCache() throws IOException, JSONException {
         // given
         // update stored settings cache
-        given(adminSpec)
+        given(ADMIN_SPEC)
                 .body(jsonFrom("cache/update/test-update-settings-request.json"))
                 .when()
                 .post("/storedrequests/openrtb2")
@@ -542,16 +544,16 @@ public class ApplicationTest extends IntegrationTest {
                 .statusCode(200);
 
         // rubicon bid response
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response1.json"))));
 
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response2.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -571,7 +573,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void versionHandlerShouldRespondWithCommitRevision() {
-        given(adminSpec)
+        given(ADMIN_SPEC)
                 .get("/version")
                 .then()
                 .assertThat()
@@ -580,7 +582,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void adminHandlerShouldRespondWithOk() {
-        given(adminSpec)
+        given(ADMIN_SPEC)
                 .get("/admin?logging=error&records=1200")
                 .then()
                 .assertThat()
@@ -595,7 +597,7 @@ public class ApplicationTest extends IntegrationTest {
         // ask endpoint after some time to ensure currency rates have already been fetched
         Vertx.vertx().setTimer(1000L, ignored -> {
             // when
-            final Response response = given(adminSpec).get("/currency-rates");
+            final Response response = given(ADMIN_SPEC).get("/currency-rates");
 
             // then
             final String lastUpdateValue = response.jsonPath().getString("last_update");
@@ -606,7 +608,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void invalidateSettingsCacheShouldReturnExpectedResponse() {
-        given(adminSpec)
+        given(ADMIN_SPEC)
                 .body("{\"requests\":[],\"imps\":[]}")
                 .when()
                 .delete("/storedrequests/openrtb2")
@@ -618,7 +620,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void updateAmpSettingsCacheShouldReturnExpectedResponse() {
-        given(adminSpec)
+        given(ADMIN_SPEC)
                 .body("{\"requests\":{},\"imps\":{}}")
                 .when()
                 .post("/storedrequests/amp")
@@ -630,7 +632,7 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void invalidateAmpSettingsCacheShouldReturnExpectedResponse() {
-        given(adminSpec)
+        given(ADMIN_SPEC)
                 .body("{\"requests\":[],\"imps\":[]}")
                 .when()
                 .delete("/storedrequests/amp")

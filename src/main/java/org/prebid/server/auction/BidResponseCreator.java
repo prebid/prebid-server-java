@@ -108,7 +108,7 @@ public class BidResponseCreator {
      */
     Future<BidResponse> create(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo,
-                               Account account, Timeout timeout, long auctionTimestamp, boolean debugEnabled) {
+                               Account account, Timeout timeout, Long auctionTimestamp, boolean debugEnabled) {
 
         final Future<BidResponse> result;
 

@@ -8,7 +8,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import java.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,15 +20,12 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
-import org.prebid.server.events.EventRequest;
-import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
@@ -48,8 +44,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-
 
 public class VtrackHandlerTest extends VertxTest {
 
@@ -270,7 +264,8 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastNotAllowed() throws JsonProcessingException {
+    public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastNotAllowed()
+            throws JsonProcessingException {
         // given
         handler = new VtrackHandler(
                 2000, false, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
@@ -300,7 +295,8 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"), any(), anyLong());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"),
+                any(), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"}]}"));
     }
@@ -330,7 +326,7 @@ public class VtrackHandlerTest extends VertxTest {
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("ts", "1000")
-                .add("bidder","bidder"));
+                .add("bidder", "bidder"));
 
         // when
         handler.handle(routingContext);
@@ -343,11 +339,20 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheExpectedPutsAndUpdatableUnknownBiddersWhenUnknownBidderIsAllowed() throws JsonProcessingException {
+    public void shouldSendToCacheExpectedPutsAndUpdatableUnknownBiddersWhenUnknownBidderIsAllowed()
+            throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = asList(
-                PutObject.builder().bidid("bidId1").bidder("bidder").value(new TextNode("value1")).build(),
-                PutObject.builder().bidid("bidId2").bidder("updatable_bidder").value(new TextNode("value2")).build());
+                PutObject.builder()
+                        .bidid("bidId1")
+                        .bidder("bidder")
+                        .value(new TextNode("value1"))
+                        .build(),
+                PutObject.builder()
+                        .bidid("bidId2")
+                        .bidder("updatable_bidder")
+                        .value(new TextNode("value2"))
+                        .build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
 
@@ -364,7 +369,7 @@ public class VtrackHandlerTest extends VertxTest {
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("ts", "1000")
-                .add("bidder","bidder"));
+                .add("bidder", "bidder"));
 
         // when
         handler.handle(routingContext);
@@ -378,7 +383,8 @@ public class VtrackHandlerTest extends VertxTest {
 
     @SafeVarargs
     private static Buffer givenVtrackRequest(
-            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers) throws JsonProcessingException {
+            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers)
+            throws JsonProcessingException {
 
         final List<PutObject> putObjects;
         if (customizers != null) {
