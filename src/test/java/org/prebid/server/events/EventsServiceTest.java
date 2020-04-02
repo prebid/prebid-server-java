@@ -53,9 +53,9 @@ public class EventsServiceTest {
     @Test
     public void vastUrlShouldReturnExpectedUrl() {
         // when
-        final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", 1000L);
+        final String vastUrl = eventsService.vastUrlTracking("bidId", "bidder", "accountId", 1000L);
 
         // then
-        assertThat(winUrl).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i");
+        assertThat(vastUrl).isEqualTo("http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b");
     }
 }
