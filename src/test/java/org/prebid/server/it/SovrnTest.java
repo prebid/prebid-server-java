@@ -29,7 +29,7 @@ public class SovrnTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSovrn() throws IOException, JSONException {
         // given
         // sovrn bid response for imp 13
-        wireMockRule.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
@@ -41,12 +41,12 @@ public class SovrnTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/sovrn/test-sovrn-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/sovrn/test-cache-sovrn-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/sovrn/test-cache-sovrn-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -68,7 +68,7 @@ public class SovrnTest extends IntegrationTest {
     public void auctionShouldRespondWithBidsFromSovrn() throws IOException {
         // given
         // sovrn bid response for ad unit 11
-        wireMockRule.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
@@ -80,12 +80,12 @@ public class SovrnTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/sovrn/test-sovrn-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/sovrn/test-cache-sovrn-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/sovrn/test-cache-sovrn-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

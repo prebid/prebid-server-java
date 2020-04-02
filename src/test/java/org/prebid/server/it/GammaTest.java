@@ -26,7 +26,7 @@ public class GammaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromGamma() throws IOException, JSONException {
         // given
-        wireMockRule.stubFor(get(urlPathEqualTo("/gamma-exchange/"))
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/gamma-exchange/"))
                 .withQueryParam("id", equalTo("id"))
                 .withQueryParam("zid", equalTo("zid"))
                 .withQueryParam("wid", equalTo("wid"))
@@ -48,12 +48,12 @@ public class GammaTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-gamma-bid-response.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/gamma/test-cache-gamma-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-cache-gamma-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

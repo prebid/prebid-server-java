@@ -25,7 +25,7 @@ public class EmxdigitalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromEmxdigital() throws IOException, JSONException {
         // given
-        wireMockRule.stubFor(post(urlPathEqualTo("/emx_digital-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/emx_digital-exchange"))
                 .withQueryParam("t", equalTo("1000"))
                 .withQueryParam("ts", equalTo("2060541160"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -40,12 +40,12 @@ public class EmxdigitalTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-response.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/emxdigital/test-cache-emxdigital-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-cache-emxdigital-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

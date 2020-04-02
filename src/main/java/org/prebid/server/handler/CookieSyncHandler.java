@@ -167,6 +167,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
+
         tcfDefinerService.resultFor(vendorIds, biddersToSync, gdprAsString, gdprConsent, ip, timeout)
                 .setHandler(asyncResult ->
                         handleResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));

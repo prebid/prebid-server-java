@@ -58,8 +58,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class PrivacyEnforcementServiceTest extends VertxTest {
 
-    private final static String BIDDER_NAME = "someBidder";
-    private final static String BUYER_UID = "uidval";
+    private static final String BIDDER_NAME = "someBidder";
+    private static final String BUYER_UID = "uidval";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -171,15 +171,15 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .result();
 
         // then
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
         verifyNoMoreInteractions(tcfDefinerService);
 
         assertThat(result).isEqualTo(emptyList());
     }
 
     @Test
-    public void shouldNotMaskWhenDeviceLmtIsNullAndTcfDefinerServiceAllowAll() {
+    public void shouldNotMaskWhenDeviceLmtIsNullAndExtRegsGdprIsOneAndNotGdprEnforcedAndResultByVendorNoEnforcement() {
         // given
         given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), singletonMap(BIDDER_NAME,
@@ -290,8 +290,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -324,8 +324,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -365,8 +365,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -406,8 +406,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -443,13 +443,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Device deviceTcfMasked = deviceTcfMasked();
         final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
                 .user(notMaskedUser())
-                .device(givenNotMaskedDevice(deviceBuilder -> deviceBuilder.ip(deviceTcfMasked.getIp()).ipv6(deviceTcfMasked.getIpv6())))
+                .device(givenNotMaskedDevice(
+                        deviceBuilder -> deviceBuilder.ip(deviceTcfMasked.getIp()).ipv6(deviceTcfMasked.getIpv6())))
                 .requestBidder(BIDDER_NAME)
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -494,8 +495,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -533,8 +534,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
     }
 
     @Test
@@ -613,8 +614,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .user(notMaskedUser())
                 .device(notMaskedDevice())
                 .build();
-        assertThat(result).containsOnly(expectedBidder1Masked, expectedAliasBidder1Masked, expectedAliasBidder2Masked
-                , expectedBidder3Masked);
+        assertThat(result).containsOnly(expectedBidder1Masked, expectedAliasBidder1Masked, expectedAliasBidder2Masked,
+                expectedBidder3Masked);
 
         final Set<Integer> vendorIds = new HashSet<>(singletonList(bidder2VendorIdAlias));
         final Set<String> bidderNames = new HashSet<>(Arrays.asList(requestBidder1Name, requestBidder3Name));
@@ -682,8 +683,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         assertThat(firstFuture.cause().getMessage())
                 .isEqualTo("Error when retrieving allowed purpose ids in a reason of invalid consent string");
 
-        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any()
-                , eq(timeout));
+        verify(tcfDefinerService).resultFor(eq(emptySet()), eq(singleton(BIDDER_NAME)), isNull(), any(), any(), any(),
+                eq(timeout));
         verifyNoMoreInteractions(tcfDefinerService);
         verifyZeroInteractions(metrics);
     }
@@ -863,7 +864,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(List<Imp> imp,
-                                              UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         return bidRequestBuilderCustomizer.apply(BidRequest.builder().cur(singletonList("USD")).imp(imp)).build();
     }
 

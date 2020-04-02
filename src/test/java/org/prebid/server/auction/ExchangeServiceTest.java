@@ -933,7 +933,6 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
-
         // when
         final Future<BidResponse> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
 
@@ -1334,8 +1333,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
-        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad" +
-                " server currency USD. no currency conversion available");
+        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad"
+                + " server currency USD. no currency conversion available");
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
         assertThat(firstSeatBid.getBids()).isEmpty();
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
@@ -1405,8 +1404,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final Bid expectedBid = Bid.builder().price(updatedPrice).build();
         final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
-        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR2 to desired ad" +
-                " server currency USD. no currency conversion available");
+        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR2 to desired ad"
+                + " server currency USD. no currency conversion available");
 
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
         assertThat(firstSeatBid.getBids()).containsOnly(expectedBidderBid);
@@ -1451,8 +1450,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .flatExtracting(BidderSeatBid::getBids)
                 .containsOnly(expectedBidderBid);
 
-        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad" +
-                " server currency BAD. no currency conversion available");
+        final BidderError expectedError = BidderError.generic("Unable to covert bid currency CUR to desired ad"
+                + " server currency BAD. no currency conversion available");
         assertThat(argumentCaptor.getValue())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getErrors)
@@ -1484,8 +1483,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
-        final BidderError expectedError = BidderError.badInput("Cur parameter contains more than one currency." +
-                " CUR1 will be used");
+        final BidderError expectedError = BidderError.badInput("Cur parameter contains more than one currency."
+                + " CUR1 will be used");
         final BidderSeatBid firstSeatBid = argumentCaptor.getValue().get(0).getSeatBid();
         assertThat(firstSeatBid.getBids())
                 .extracting(BidderBid::getBid)
@@ -1773,6 +1772,14 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(response));
     }
 
+    private static SeatBid givenSeatBid(List<Bid> bids,
+                                        Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidCustomizer) {
+        return seatBidCustomizer.apply(SeatBid.builder()
+                .seat("someBidder")
+                .bid(bids))
+                .build();
+    }
+
     private static BidderSeatBid givenSeatBid(List<BidderBid> bids) {
         return BidderSeatBid.of(bids, emptyList(), emptyList());
     }
@@ -1840,14 +1847,6 @@ public class ExchangeServiceTest extends VertxTest {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(givenSeatBid(bids, identity())))
-                .build();
-    }
-
-    private static SeatBid givenSeatBid(List<Bid> bids,
-                                        Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidCustomizer) {
-        return seatBidCustomizer.apply(SeatBid.builder()
-                .seat("someBidder")
-                .bid(bids))
                 .build();
     }
 

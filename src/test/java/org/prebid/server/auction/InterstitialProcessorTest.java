@@ -225,8 +225,8 @@ public class InterstitialProcessorTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> interstitialProcessor.process(bidRequest))
                 .isExactlyInstanceOf(InvalidRequestException.class)
-                .hasMessageEndingWith("Unable to read max interstitial size for Imp id=impId (No Device sizes and no " +
-                        "Format objects)");
+                .hasMessageEndingWith("Unable to read max interstitial size for Imp id=impId (No Device sizes and no "
+                        + "Format objects)");
     }
 
     @Test
