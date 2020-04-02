@@ -1,9 +1,9 @@
 package org.prebid.server.events;
 
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
 

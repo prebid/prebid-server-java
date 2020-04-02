@@ -4,7 +4,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import java.time.Instant;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

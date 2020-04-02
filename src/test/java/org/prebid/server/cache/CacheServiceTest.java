@@ -6,17 +6,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,6 +37,18 @@ import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -90,6 +91,41 @@ public class CacheServiceTest extends VertxTest {
     private Timeout expiredTimeout;
 
     private Account account;
+
+    private static List<Bid> singleBidList() {
+        return singletonList(givenBid(identity()));
+    }
+
+    private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()).build();
+    }
+
+    private static com.iab.openrtb.response.Bid givenBidOpenrtb(
+            Function<com.iab.openrtb.response.Bid.BidBuilder, com.iab.openrtb.response.Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(com.iab.openrtb.response.Bid.builder()).build();
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()).build();
+    }
+
+    private static CacheHttpRequest givenCacheHttpRequest(com.iab.openrtb.response.Bid... bids)
+            throws JsonProcessingException {
+        final List<PutObject> putObjects;
+        if (bids != null) {
+            putObjects = new ArrayList<>();
+            for (com.iab.openrtb.response.Bid bid : bids) {
+                final ObjectNode bidObjectNode = mapper.valueToTree(bid);
+                bidObjectNode.put("wurl", "http://win-url");
+                putObjects.add(PutObject.builder().type("json").value(bidObjectNode).build());
+            }
+        } else {
+            putObjects = null;
+        }
+        return CacheHttpRequest.of(
+                "http://cache-service/cache",
+                mapper.writeValueAsString(BidCacheRequest.of(putObjects)));
+    }
 
     @Before
     public void setUp() throws MalformedURLException, JsonProcessingException {
@@ -1063,41 +1099,6 @@ public class CacheServiceTest extends VertxTest {
                 .build();
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2).containsOnly(modifiedSecondPutObject, secondPutObject);
-    }
-
-    private static List<Bid> singleBidList() {
-        return singletonList(givenBid(identity()));
-    }
-
-    private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
-    }
-
-    private static com.iab.openrtb.response.Bid givenBidOpenrtb(
-            Function<com.iab.openrtb.response.Bid.BidBuilder, com.iab.openrtb.response.Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(com.iab.openrtb.response.Bid.builder()).build();
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()).build();
-    }
-
-    private static CacheHttpRequest givenCacheHttpRequest(com.iab.openrtb.response.Bid... bids)
-            throws JsonProcessingException {
-        final List<PutObject> putObjects;
-        if (bids != null) {
-            putObjects = new ArrayList<>();
-            for (com.iab.openrtb.response.Bid bid : bids) {
-                final ObjectNode bidObjectNode = mapper.valueToTree(bid);
-                bidObjectNode.put("wurl", "http://win-url");
-                putObjects.add(PutObject.builder().type("json").value(bidObjectNode).build());
-            }
-        } else {
-            putObjects = null;
-        }
-        return CacheHttpRequest.of(
-                "http://cache-service/cache",
-                mapper.writeValueAsString(BidCacheRequest.of(putObjects)));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
