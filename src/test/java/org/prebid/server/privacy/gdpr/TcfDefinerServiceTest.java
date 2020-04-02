@@ -77,7 +77,7 @@ public class TcfDefinerServiceTest {
     }
 
     private void initPurposes() {
-        purpose1 = new Purpose(EnforcePurpose.base, true, emptyList());
+        purpose1 = Purpose.of(EnforcePurpose.base, true, emptyList());
         purposes = Purposes.builder()
                 .p1(purpose1)
                 .build();
