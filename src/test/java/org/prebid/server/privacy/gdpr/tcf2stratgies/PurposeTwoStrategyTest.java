@@ -27,9 +27,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-public class PurposeOneStrategyTest {
+public class PurposeTwoStrategyTest {
 
-    private static final int PURPOSE_ID = 1;
+    private static final int PURPOSE_ID = 2;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -40,14 +40,14 @@ public class PurposeOneStrategyTest {
     @Mock
     private NoTypeStrategy noTypeStrategy;
 
-    private PurposeOneStrategy target;
+    private PurposeTwoStrategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeOneStrategy(basicTypeStrategy, noTypeStrategy);
+        target = new PurposeTwoStrategy(basicTypeStrategy, noTypeStrategy);
     }
 
     @Test
@@ -60,7 +60,7 @@ public class PurposeOneStrategyTest {
 
         // then
         final PrivacyEnforcementAction expectedAction = PrivacyEnforcementAction.restrictAll();
-        expectedAction.setBlockPixelSync(false);
+        expectedAction.setBlockBidderRequest(false);
         assertThat(privacyEnforcementAction).isEqualTo(expectedAction);
     }
 
@@ -164,7 +164,7 @@ public class PurposeOneStrategyTest {
 
     private static PrivacyEnforcementAction allowPurpose() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setBlockPixelSync(false);
+        privacyEnforcementAction.setBlockBidderRequest(false);
         return privacyEnforcementAction;
     }
 }
