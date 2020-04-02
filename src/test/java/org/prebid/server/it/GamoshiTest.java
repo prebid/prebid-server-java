@@ -25,7 +25,7 @@ public class GamoshiTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromGamoshi() throws IOException, JSONException {
         // given
         // Gamoshi bid response for imp 001 and 002
-        wireMockRule.stubFor(post(urlPathEqualTo("/gamoshi-exchange/r/1701/bidr"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gamoshi-exchange/r/1701/bidr"))
                 .withQueryParam("bidder", equalTo("prebid-server"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -38,12 +38,12 @@ public class GamoshiTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamoshi/test-gamoshi-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/gamoshi/test-cache-gamoshi-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamoshi/test-cache-gamoshi-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

@@ -25,30 +25,30 @@ public class FacebookTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromFacebook() throws IOException, JSONException {
         // given
         // facebook bid response for impId001
-        wireMockRule.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-1.json"))));
 
         // facebook bid response for impId002
-        wireMockRule.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-2.json"))));
 
         // facebook bid response for impId003
-        wireMockRule.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/audienceNetwork-exchange"))
                 .withHeader("X-Fb-Pool-Routing-Token", equalTo("FB-UID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-facebook-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-facebook-bid-response-3.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/facebook/test-cache-facebook-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/facebook/test-cache-facebook-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

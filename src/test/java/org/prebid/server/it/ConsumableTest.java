@@ -25,7 +25,7 @@ public class ConsumableTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromConsumable() throws IOException, JSONException {
         // given
         // consumable bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/consumable-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/consumable-exchange"))
                 .withHeader("Cookie", equalTo("azk=CS-UID"))
                 .withHeader("Origin", equalTo("http://www.example.com"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -43,12 +43,12 @@ public class ConsumableTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-consumable-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/consumable/test-cache-consumable-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-cache-consumable-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

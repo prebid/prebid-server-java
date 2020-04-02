@@ -11,9 +11,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -27,6 +24,10 @@ import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
 import org.prebid.server.util.HttpUtil;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -124,7 +125,6 @@ public class SmartrtbBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
-
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
@@ -148,7 +148,8 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Invalid bid extension from endpoint."));
+        assertThat(result.getErrors()).containsOnly(
+                BidderError.badServerResponse("Invalid bid extension from endpoint."));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -180,7 +181,8 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse("Unsupported creative type wrong type."));
+        assertThat(result.getErrors()).containsOnly(
+                BidderError.badServerResponse("Unsupported creative type wrong type."));
     }
 
     @Test

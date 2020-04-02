@@ -77,20 +77,26 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2, vendorPermission3);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
+                vendorPermission3);
 
-        given(noTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(singletonList(vendorPermission1));
+        given(noTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(
+                singletonList(vendorPermission1));
 
         // when
-        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
+        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowPurpose());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
-        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null,
+                PrivacyEnforcementAction.restrictAll());
+        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+                Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(noTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
+        verify(noTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString,
+                Arrays.asList(vendorPermission1, vendorPermission3), false);
     }
 
     @Test
@@ -100,18 +106,22 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2, vendorPermission3);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
+                vendorPermission3);
 
-        given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(vendorPermissions);
+        given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(
+                vendorPermissions);
 
         // when
-        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
+        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowPurpose());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, allowPurpose());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
+        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+                Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPermissions, true);
     }
@@ -123,20 +133,26 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2, vendorPermission3);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
+                vendorPermission3);
 
-        given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(singletonList(vendorPermission1));
+        given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(
+                singletonList(vendorPermission1));
 
         // when
-        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
+        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowPurpose());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
-        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null,
+                PrivacyEnforcementAction.restrictAll());
+        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+                Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, Arrays.asList(vendorPermission1, vendorPermission3), false);
+        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString,
+                Arrays.asList(vendorPermission1, vendorPermission3), false);
     }
 
     @Test
@@ -146,18 +162,21 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2, vendorPermission3);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
+                vendorPermission3);
 
         given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), anyBoolean())).willReturn(emptyList());
 
         // when
-        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose, vendorPermissions);
+        final Collection<VendorPermission> result = target.processTypePurposeStrategy(tcString, purpose,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurpose());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurpose());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
+        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+                Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(), true);
     }

@@ -115,7 +115,6 @@ public class GdprService {
                                 GdprResponse.of(inScope(gdprInfo), vendorIdToResult, gdprInfo.getCountry())));
     }
 
-    // TODO if it appropriate to not block request for tcf 1.0 ?
     private Collection<VendorPermission> toVendorPermission(Set<String> bidderNames, Set<Integer> vendorIds) {
         final Collection<Integer> foundVendorIds = new HashSet<>();
         final Collection<VendorPermission> vendorPermissions = new ArrayList<>();

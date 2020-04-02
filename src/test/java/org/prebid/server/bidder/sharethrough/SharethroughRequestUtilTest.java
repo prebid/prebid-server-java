@@ -70,7 +70,6 @@ public class SharethroughRequestUtilTest extends VertxTest {
         assertThat(requestUtil.getHost(thirdUri)).isEqualTo("http://a.domain.com");
     }
 
-
     @Test
     public void retrieveFromUserInfoShouldReturnEmptyStringWhenUserInfoOrParameterIsNull() {
         // given

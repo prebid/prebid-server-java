@@ -51,17 +51,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(VertxUnitRunner.class)
 public class JdbcApplicationSettingsTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     private static final String JDBC_URL = "jdbc:h2:mem:test";
 
-    private static final String selectQuery =
+    private static final String SELECT_QUERY =
             "SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
                     + "SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)";
 
-    private static final String selectUnionQuery =
+    private static final String SELECT_UNION_QUERY =
             "SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
                     + "SELECT reqid, requestData, 'request' as dataType FROM stored_requests2 "
@@ -71,14 +68,15 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     + "UNION ALL "
                     + "SELECT impid, impData, 'imp' as dataType FROM stored_imps2 WHERE impid IN (%IMP_ID_LIST%)";
 
-    private static final String selectFromOneColumnTableQuery = "SELECT reqid FROM one_column_table WHERE reqid IN " +
-            "(%REQUEST_ID_LIST%)";
+    private static final String SELECT_FROM_ONE_COLUMN_TABLE_QUERY =
+            "SELECT reqid FROM one_column_table WHERE reqid IN "
+                    + "(%REQUEST_ID_LIST%)";
 
-    private static final String selectResponseQuery = "SELECT responseId, responseData FROM stored_responses" +
-            " WHERE responseId IN (%RESPONSE_ID_LIST%)";
+    private static final String SELECT_RESPONSE_QUERY = "SELECT responseId, responseData FROM stored_responses"
+            + " WHERE responseId IN (%RESPONSE_ID_LIST%)";
 
-    private static final String selectOneColumnResponseQuery = "SELECT responseId FROM stored_responses" +
-            " WHERE responseId IN (%RESPONSE_ID_LIST%)";
+    private static final String SELECT_ONE_COLUMN_RESPONSE_QUERY = "SELECT responseId FROM stored_responses"
+            + " WHERE responseId IN (%RESPONSE_ID_LIST%)";
 
     private static Connection connection;
 
@@ -95,12 +93,12 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @BeforeClass
     public static void beforeClass() throws SQLException {
         connection = DriverManager.getConnection(JDBC_URL);
-        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, " +
-                "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), " +
-                "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, " +
-                "tcf_config varchar(512), analytics_sampling_factor INT);");
-        connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) " +
-                "NOT NULL, config varchar(512));");
+        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
+                + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
+                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, "
+                + "tcf_config varchar(512), analytics_sampling_factor INT);");
+        connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
+                + "NOT NULL, config varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
                 + "NOT NULL, requestData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, reqid varchar(40) "
@@ -110,16 +108,16 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, impid varchar(40) "
                 + "NOT NULL, impData varchar(512));");
         connection.createStatement().execute(
-                "CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) NOT NULL," +
-                        " responseData varchar(512));");
+                "CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) NOT NULL,"
+                        + " responseData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
-        connection.createStatement().execute("insert into accounts_account " +
-                "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_gdpr, " +
-                "tcf_config, analytics_sampling_factor) " +
-                "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1);");
-        connection.createStatement().execute("insert into s2sconfig_config (uuid, config)" +
-                " values ('adUnitConfigId', 'config');");
+        connection.createStatement().execute("insert into accounts_account "
+                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_gdpr, "
+                + "tcf_config, analytics_sampling_factor)"
+                + " values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1);");
+        connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
+                + " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('2','value2');");
         connection.createStatement().execute(
@@ -127,10 +125,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('4','value4');");
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('5','value5');");
         connection.createStatement().execute("insert into stored_imps2 (impid, impData) values ('6','value6');");
-        connection.createStatement().execute("insert into stored_responses (responseId, responseData) " +
-                "values ('1','response1');");
-        connection.createStatement().execute("insert into stored_responses (responseId, responseData) " +
-                "values ('2','response2');");
+        connection.createStatement().execute("insert into stored_responses (responseId, responseData) "
+                + "values ('1','response1');");
+        connection.createStatement().execute("insert into stored_responses (responseId, responseData) "
+                + "values ('2','response2');");
         connection.createStatement().execute("insert into one_column_table (reqid) values ('3');");
     }
 
@@ -144,8 +142,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(), jacksonMapper, selectQuery, selectQuery, selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
+                SELECT_RESPONSE_QUERY);
     }
 
     @After
@@ -279,8 +277,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getVideoStoredDataShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(), jacksonMapper, selectUnionQuery, selectUnionQuery, selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -307,8 +305,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(), jacksonMapper, selectUnionQuery, selectUnionQuery, selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -335,8 +333,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getAmpStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(), jacksonMapper, selectUnionQuery, selectUnionQuery, selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -404,12 +402,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(),
-                jacksonMapper,
-                selectFromOneColumnTableQuery,
-                selectFromOneColumnTableQuery,
-                selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -427,12 +421,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getAmpStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(),
-                jacksonMapper,
-                selectFromOneColumnTableQuery,
-                selectFromOneColumnTableQuery,
-                selectResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -530,8 +520,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredResponseShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(
-                jdbcClient(), jacksonMapper, selectQuery, selectQuery, selectOneColumnResponseQuery);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
+                SELECT_ONE_COLUMN_RESPONSE_QUERY);
 
         // when
         final Future<StoredResponseDataResult> storedResponseDataResultFuture =

@@ -82,7 +82,8 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null, PrivacyEnforcementAction.allowAll());
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null,
+                PrivacyEnforcementAction.allowAll());
         given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, emptyMap(), null)));
 

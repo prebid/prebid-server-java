@@ -58,8 +58,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class PrivacyEnforcementServiceTest extends VertxTest {
 
-    private final static String BIDDER_NAME = "someBidder";
-    private final static String BUYER_UID = "uidval";
+    private static final String BIDDER_NAME = "someBidder";
+    private static final String BUYER_UID = "uidval";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -179,7 +179,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotMaskWhenDeviceLmtIsNullAndTcfDefinerServiceAllowAll() {
+    public void shouldNotMaskWhenDeviceLmtIsNullAndExtRegsGdprIsOneAndNotGdprEnforcedAndResultByVendorNoEnforcement() {
         // given
         given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), singletonMap(BIDDER_NAME,
