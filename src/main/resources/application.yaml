@@ -83,11 +83,51 @@ host-cookie:
   ttl-days: 90
   max-cookie-size-bytes: 0
 gdpr:
+  enabled: true
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
+    v2:
+      http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
+  purposes:
+    p1:
+      enforce-purpose: base
+      enforce-vendors: true
+    p2:
+      enforce-purpose: full
+      enforce-vendors: true
+    p3:
+      enforce-purpose: full
+      enforce-vendors: true
+    p4:
+      enforce-purpose: full
+      enforce-vendors: true
+    p5:
+      enforce-purpose: full
+      enforce-vendors: true
+    p6:
+      enforce-purpose: full
+      enforce-vendors: true
+    p7:
+      enforce-purpose: full
+      enforce-vendors: true
+    p8:
+      enforce-purpose: full
+      enforce-vendors: true
+    p9:
+      enforce-purpose: full
+      enforce-vendors: true
+    p10:
+      enforce-purpose: full
+      enforce-vendors: true
+  special-features:
+    sf1:
+      enforce: true
+    sf2:
+      enforce: true
+
 ccpa:
   enforce: false
 geolocation:

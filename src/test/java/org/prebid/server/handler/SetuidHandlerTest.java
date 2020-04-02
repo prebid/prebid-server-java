@@ -26,8 +26,9 @@ import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.gdpr.GdprService;
-import org.prebid.server.privacy.gdpr.model.GdprResponse;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfResponse;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -65,7 +66,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private GdprService gdprService;
+    private TcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporter analyticsReporter;
     @Mock
@@ -81,8 +82,9 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(null, true), null)));
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null, PrivacyEnforcementAction.allowAll());
+        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, emptyMap(), null)));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -97,7 +99,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
                 null, false, analyticsReporter, metrics, timeoutFactory);
     }
 
@@ -152,8 +154,10 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(null, false), null)));
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
+        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, singletonMap(null, privacyEnforcementAction),
+                        emptyMap(), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -174,7 +178,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -196,7 +200,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
         // given
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("unexpected error"));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -221,7 +225,7 @@ public class SetuidHandlerTest extends VertxTest {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
                 null, true, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -239,7 +243,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(gdprService).resultByVendor(anySet(), anySet(), any(), any(), eq("192.168.144.1"), any());
+        verify(tcfDefinerService).resultFor(anySet(), anySet(), any(), any(), eq("192.168.144.1"), any());
     }
 
     @Test
@@ -289,7 +293,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
                 null, false, analyticsReporter, metrics, timeoutFactory);
 
         // when
@@ -369,8 +373,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(false, emptyMap(), null)));
+        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), emptyMap(), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -528,7 +532,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, gdprService,
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
                 null, false, analyticsReporter, metrics, timeoutFactory);
 
         // when
