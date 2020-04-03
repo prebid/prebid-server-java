@@ -44,12 +44,12 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeOneStrategy;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeOneStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
@@ -414,18 +414,21 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PurposeOneStrategy purposeOneStrategy(BasicTypeStrategy basicTypeStrategy, NoTypeStrategy noTypeStrategy) {
-        return new PurposeOneStrategy(basicTypeStrategy, noTypeStrategy);
+    PurposeOneStrategy purposeOneStrategy(
+            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new PurposeOneStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
     }
 
     @Bean
-    BasicTypeStrategy basicTypeStrategy() {
-        return new BasicTypeStrategy();
+    BasicEnforcePurposeStrategy basicTypeStrategy() {
+        return new BasicEnforcePurposeStrategy();
     }
 
     @Bean
-    NoTypeStrategy noTypeStrategy() {
-        return new NoTypeStrategy();
+    NoEnforcePurposeStrategy noTypeStrategy() {
+        return new NoEnforcePurposeStrategy();
     }
 
     @Bean

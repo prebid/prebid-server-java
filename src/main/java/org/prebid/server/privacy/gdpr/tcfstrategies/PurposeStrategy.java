@@ -1,12 +1,12 @@
-package org.prebid.server.privacy.gdpr.tcf2stratgies;
+package org.prebid.server.privacy.gdpr.tcfstrategies;
 
 import com.iabtcf.decoder.TCString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 
@@ -18,12 +18,13 @@ import java.util.stream.Collectors;
 
 public abstract class PurposeStrategy {
 
-    private BasicTypeStrategy basicTypeStrategy;
-    private NoTypeStrategy noTypeStrategy;
+    private BasicEnforcePurposeStrategy basicEnforcePurposeStrategy;
+    private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    public PurposeStrategy(BasicTypeStrategy basicTypeStrategy, NoTypeStrategy noTypeStrategy) {
-        this.basicTypeStrategy = basicTypeStrategy;
-        this.noTypeStrategy = noTypeStrategy;
+    public PurposeStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                           NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        this.basicEnforcePurposeStrategy = basicEnforcePurposeStrategy;
+        this.noEnforcePurposeStrategy = noEnforcePurposeStrategy;
     }
 
     public abstract int getPurposeId();
@@ -73,7 +74,7 @@ public abstract class PurposeStrategy {
                                                                    boolean isEnforceVendors,
                                                                    Collection<VendorPermission> excludedVendors,
                                                                    Collection<VendorPermission> vendorForPurpose) {
-        final Collection<VendorPermission> modifiedVendorPermissions = noTypeStrategy
+        final Collection<VendorPermission> modifiedVendorPermissions = noEnforcePurposeStrategy
                 .allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose, isEnforceVendors);
 
         return CollectionUtils.union(modifiedVendorPermissions, excludedVendors);
@@ -83,7 +84,7 @@ public abstract class PurposeStrategy {
                                                                       boolean isEnforceVendors,
                                                                       Collection<VendorPermission> excludedVendors,
                                                                       Collection<VendorPermission> vendorForPurpose) {
-        final Collection<VendorPermission> modifiedVendorPermissions = basicTypeStrategy
+        final Collection<VendorPermission> modifiedVendorPermissions = basicEnforcePurposeStrategy
                 .allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose, isEnforceVendors);
 
         return CollectionUtils.union(modifiedVendorPermissions, excludedVendors);

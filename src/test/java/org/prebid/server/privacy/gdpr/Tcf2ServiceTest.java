@@ -13,7 +13,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.privacy.gdpr.model.GdprPurpose;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeStrategy;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.GdprConfig;

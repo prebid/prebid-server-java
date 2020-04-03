@@ -1,4 +1,4 @@
-package org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies;
+package org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.logging.Logger;
@@ -7,9 +7,9 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 
 import java.util.Collection;
 
-public class NoTypeStrategy extends PurposeTypeStrategy {
+public class NoEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
-    private static final Logger logger = LoggerFactory.getLogger(NoTypeStrategy.class);
+    private static final Logger logger = LoggerFactory.getLogger(NoEnforcePurposeStrategy.class);
 
     public Collection<VendorPermission> allowedByTypeStrategy(
             int purposeId,

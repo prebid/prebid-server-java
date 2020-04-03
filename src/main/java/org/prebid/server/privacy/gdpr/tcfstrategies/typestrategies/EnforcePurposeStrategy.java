@@ -1,4 +1,4 @@
-package org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies;
+package org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
@@ -7,7 +7,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public abstract class PurposeTypeStrategy {
+public abstract class EnforcePurposeStrategy {
 
     public abstract Collection<VendorPermission> allowedByTypeStrategy(
             int purposeId,
