@@ -20,17 +20,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -86,6 +75,18 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
@@ -149,6 +150,12 @@ public class ExchangeServiceTest extends VertxTest {
     private ExchangeService exchangeService;
 
     private Timeout timeout;
+
+    private static final String GBP = "GBP";
+
+    private static final String EUR = "EUR";
+
+    private static final String UAH = "UAH";
 
     @SuppressWarnings("unchecked")
     @Before
@@ -300,9 +307,6 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldExtractRequestWithCurrencyRatesExtension() {
         // given
         givenBidder(givenEmptySeatBid());
-        final String GBP = "GBP";
-        final String EUR = "EUR";
-        final String UAH = "UAH";
         final Map<String, Map<String, BigDecimal>> currencyRates = new HashMap<>();
         currencyRates.put(GBP, singletonMap(EUR, BigDecimal.valueOf(1.15)));
         currencyRates.put(UAH, singletonMap(EUR, BigDecimal.valueOf(1.1565)));
@@ -314,7 +318,8 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()))),
                 builder -> builder
                         .id("requestId")
-                        .ext(mapper.valueToTree(ExtRequestPrebid.builder().currency(ExtCurrency.of(currencyRates)).build()))
+                        .ext(mapper.valueToTree(ExtRequestPrebid.builder().currency(ExtCurrency.of(currencyRates))
+                                .build()))
                         .tmax(500L));
 
         // when
