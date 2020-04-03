@@ -12,7 +12,8 @@
         ],
         "crid": "11_222222",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=1&a=publisherId&f=i"
       }
     }
   ]

@@ -105,7 +105,6 @@ public class TtxBidderTest extends VertxTest {
                 .containsOnly("siteId");
     }
 
-
     @Test
     public void makeHttpRequestsShouldChangeOnlyFirstImpExt() {
         // given

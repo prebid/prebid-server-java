@@ -5,7 +5,8 @@
       "value": {
         "id": "f227a07f-1579-4465-bc5e-5c5b02a0c180",
         "impid": "impStoredAuctionResponse",
-        "price": 0.8
+        "price": 0.8,
+        "wurl": "http://localhost:8000/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c180&a=5001&f=i"
       }
     },
     {
@@ -17,7 +18,8 @@
         "adm": "adm2",
         "crid": "crid2",
         "w": 300,
-        "h": 600
+        "h": 600,
+        "wurl": "http://localhost:8000/event?t=win&b=466223845&a=5001&f=i"
       }
     },
     {
@@ -37,6 +39,7 @@
         "cat": [],
         "w": 300,
         "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184840&a=5001&f=i",
         "ext": {
           "appnexus": {
             "brand_id": 350,
@@ -54,7 +57,8 @@
       "value": {
         "id": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
         "impid": "impStoredBidResponse",
-        "price": 0.8
+        "price": 0.8,
+        "wurl": "http://localhost:8000/event?t=win&b=f227a07f-1579-4465-bc5e-5c5b02a0c181&a=5001&f=i"
       }
     },
     {
@@ -82,7 +86,8 @@
             "bidder_id": 2,
             "bid_ad_type": 3
           }
-        }
+        },
+        "wurl": "http://localhost:8000/event?t=win&b=928185755156387460&a=5001&f=i"
       }
     },
     {
@@ -90,7 +95,8 @@
       "value": {
         "id": "a121a07f-1579-4465-bc5e-5c5b02a0c421",
         "impid": "impStoredAuctionResponse",
-        "price": 0.9
+        "price": 0.9,
+        "wurl": "http://localhost:8000/event?t=win&b=a121a07f-1579-4465-bc5e-5c5b02a0c421&a=5001&f=i"
       }
     },
     {
@@ -103,6 +109,7 @@
         "crid": "crid1",
         "w": 300,
         "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=880290288&a=5001&f=i",
         "ext": {
           "rp": {
             "targeting": [
@@ -133,6 +140,7 @@
         "crid": "29681110",
         "w": 300,
         "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=5001&f=i",
         "ext": {
           "appnexus": {
             "brand_id": 1,

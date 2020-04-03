@@ -59,7 +59,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSJ9LCJ2ZXJzaW9uIjowfV19\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"w\":50,\"h\":50}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bid\",\"impid\":\"bid\",\"price\":10,\"adm\":\"<img src=\\\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\\\" />\\n\\t\\t<div data-str-native-key=\\\"abc123\\\" data-stx-response-name=\\\"str_response_bid\\\"></div>\\n\\t\\t<script>var str_response_bid = \\\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSJ9LCJ2ZXJzaW9uIjowfV19\\\"</script>\\n\\t\\t\\t<script src=\\\"//native.sharethrough.com/assets/sfp.js\\\"></script>\\n\",\"adid\":\"arid\",\"cid\":\"cmpKey\",\"crid\":\"creaKey\",\"w\":50,\"h\":50,\"wurl\":\"http://localhost:8000/event?t=win&b=bid&a=publisherId&f=i\"}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"a03927f1-86e1-48fb-9efc-da9104a44e39\"}]}",
             "status": 200
           }

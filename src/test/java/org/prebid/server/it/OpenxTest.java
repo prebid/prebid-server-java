@@ -24,29 +24,29 @@ public class OpenxTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromOpenx() throws IOException, JSONException {
         // given
         // openx bid response for imp 011 and 02
-        wireMockRule.stubFor(post(urlPathEqualTo("/openx-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/openx-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-openx-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/openx/test-openx-bid-response-1.json"))));
 
         // openx bid response for imp 03
-        wireMockRule.stubFor(post(urlPathEqualTo("/openx-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/openx-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-openx-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/openx/test-openx-bid-response-2.json"))));
 
         // openx bid response for imp 04
-        wireMockRule.stubFor(post(urlPathEqualTo("/openx-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/openx-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-openx-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/openx/test-openx-bid-response-3.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-cache-openx-request.json"), true, false))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "openrtb2/openx/test-cache-matcher-openx.json")
                 ));
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

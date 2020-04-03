@@ -9,6 +9,7 @@ adapters:
     meta-info:
       maintainer-email: service@yoc.com
       app-media-types:
+        - banner
       site-media-types:
         - banner
       supported-vendors:

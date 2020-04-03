@@ -442,9 +442,9 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badServerResponse(
-                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at" +
-                                " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, " +
-                                "column: 3]"));
+                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
+                                + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
+                                + "column: 3]"));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

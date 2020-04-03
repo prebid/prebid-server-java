@@ -65,7 +65,7 @@
     }
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
@@ -103,10 +103,12 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
+      "cache":{
+        "bids":{
+
+        },
+        "vastxml":{
+          "ttlseconds":120
         }
       }
     }
