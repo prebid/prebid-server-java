@@ -81,7 +81,7 @@ public class FileApplicationSettingsTest {
                         + "gdpr: {"
                         + "enabled: true,"
                         + "purposes: {"
-                        + "p1: {enforce-purpose: base,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
+                        + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
                         + "p2: {enforce-purpose: full,enforce-vendors: true,vendor-exceptions: [openx]}"
                         + "},"
                         + "special-features: {"
@@ -112,7 +112,7 @@ public class FileApplicationSettingsTest {
                 .gdpr(AccountGdprConfig.builder()
                         .enabled(true)
                         .purposes(Purposes.builder()
-                                .p1(Purpose.of(EnforcePurpose.base, false, asList("rubicon", "appnexus")))
+                                .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
                                 .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
                                 .build())
                         .specialFeatures(SpecialFeatures.builder()

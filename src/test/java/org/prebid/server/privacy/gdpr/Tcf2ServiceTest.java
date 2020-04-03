@@ -70,7 +70,7 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     private void initPurposes() {
-        purpose1 = Purpose.of(EnforcePurpose.base, true, emptyList());
+        purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList());
         purposes = Purposes.builder()
                 .p1(purpose1)
                 .build();

@@ -102,7 +102,7 @@ public class PurposeOneStrategyTest {
     @Test
     public void processTypePurposeStrategyShouldPassListWithEnforcements() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.base, true, null);
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, true, null);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
@@ -129,7 +129,7 @@ public class PurposeOneStrategyTest {
     @Test
     public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToBaseType() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.base, false, Arrays.asList("b1", "b3"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, false, Arrays.asList("b1", "b3"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
@@ -158,7 +158,7 @@ public class PurposeOneStrategyTest {
     @Test
     public void processTypePurposeStrategyShouldPassEmptyListWithEnforcementsWhenAllBiddersAreExcluded() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.base, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());

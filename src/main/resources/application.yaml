@@ -95,7 +95,7 @@ gdpr:
       http-default-timeout-ms: 2000
   purposes:
     p1:
-      enforce-purpose: base
+      enforce-purpose: basic
       enforce-vendors: true
     p2:
       enforce-purpose: full

@@ -51,8 +51,8 @@ public abstract class PurposeStrategy {
         final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
 
         final EnforcePurpose purposeType = purpose.getEnforcePurpose();
-        // Base by default
-        if (purposeType == null || Objects.equals(purposeType, EnforcePurpose.base)) {
+        // Basic by default
+        if (purposeType == null || Objects.equals(purposeType, EnforcePurpose.basic)) {
             return allowedByBasicTypeStrategy(vendorConsent, isEnforceVendors, excludedVendors, vendorForPurpose);
         }
 
