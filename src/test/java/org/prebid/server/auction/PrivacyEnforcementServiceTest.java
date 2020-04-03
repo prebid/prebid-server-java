@@ -58,8 +58,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class PrivacyEnforcementServiceTest extends VertxTest {
 
-    private final static String BIDDER_NAME = "someBidder";
-    private final static String BUYER_UID = "uidval";
+    private static final String BIDDER_NAME = "someBidder";
+    private static final String BUYER_UID = "uidval";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -111,7 +111,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotMaskWhenDeviceLmtIsNullAndExtRegsGdprIsOneAndGdprEnforcedIsTrueAndResultByVendorWithoutEnforcement() {
+    public void shouldNotMaskWhenDeviceLmtIsNullAndExtRegsGdprIsOneAndNotGdprEnforcedAndResultByVendorNoEnforcement() {
         // given
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(15, true), null)));
@@ -527,7 +527,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
     }
 
-
     @Test
     public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
         // given
@@ -556,7 +555,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         vendorIdToGdprEnforce.put(3, true);
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorIdToGdprEnforce, null)));
-
 
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();

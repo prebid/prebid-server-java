@@ -9,7 +9,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
@@ -56,6 +55,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
@@ -109,11 +109,11 @@ public class WebConfiguration {
         logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
                 httpPort);
 
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
+        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
                 vertx.createHttpServer(httpServerOptions)
                         .exceptionHandler(exceptionHandler)
                         .requestHandler(router)
-                        .listen(httpPort, future));
+                        .listen(httpPort, promise));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
@@ -148,8 +148,7 @@ public class WebConfiguration {
     }
 
     @Bean
-    Router router(CookieHandler cookieHandler,
-                  BodyHandler bodyHandler,
+    Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
                   AuctionHandler auctionHandler,
@@ -169,7 +168,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
@@ -192,11 +190,6 @@ public class WebConfiguration {
         router.get("/").handler(staticHandler); // serves index.html by default
 
         return router;
-    }
-
-    @Bean
-    CookieHandler cookieHandler() {
-        return CookieHandler.create();
     }
 
     @Bean
@@ -317,7 +310,7 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
@@ -327,7 +320,7 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
+                tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
                 coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
@@ -336,14 +329,14 @@ public class WebConfiguration {
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, tcfDefinerService, hostVendorId,
                 useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
@@ -517,8 +510,8 @@ public class WebConfiguration {
                 router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
             }
 
-            contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router).listen(adminPort, future));
+            contextRunner.<HttpServer>runOnServiceContext(promise ->
+                    vertx.createHttpServer().requestHandler(router).listen(adminPort, promise));
 
             logger.info("Successfully started Admin Server");
         }

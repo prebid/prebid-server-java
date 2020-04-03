@@ -11,7 +11,8 @@
         "cid": "987",
         "crid": "12345678",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=randomid&a=publisherId&f=i"
       }
     }
   ]

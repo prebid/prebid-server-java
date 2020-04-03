@@ -27,22 +27,22 @@ public class IxTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromIx() throws IOException, JSONException {
         // given
         // ix bid response for imp 6
-        wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-1.json"))));
 
         // ix bid response for imp 61
-        wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-2.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-cache-ix-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-cache-ix-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -64,17 +64,17 @@ public class IxTest extends IntegrationTest {
     public void auctionShouldRespondWithBidsFromIx() throws IOException {
         // given
         // ix bid response for ad unit 7
-        wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/ix/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/ix/test-ix-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/ix/test-cache-ix-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/ix/test-cache-ix-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

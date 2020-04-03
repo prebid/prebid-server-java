@@ -10,7 +10,8 @@
         "price": 2.942808,
         "crid": "94395500",
         "adid": "94395500",
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=uuid&a=publisherId&f=i"
       }
     }
   ]

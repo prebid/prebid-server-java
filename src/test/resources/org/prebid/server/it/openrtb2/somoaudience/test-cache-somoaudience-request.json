@@ -9,7 +9,8 @@
         "adm": "adm16",
         "crid": "crid16",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=bidId01&a=publisherId&f=i"
       }
     },
     {
@@ -21,7 +22,8 @@
         "adm": "adm17",
         "crid": "crid17",
         "w": 360,
-        "h": 240
+        "h": 240,
+        "wurl": "http://localhost:8000/event?t=win&b=bidId02&a=publisherId&f=i"
       }
     },
     {
@@ -33,7 +35,8 @@
         "adm": "adm18",
         "crid": "crid18",
         "w": 1024,
-        "h": 576
+        "h": 576,
+        "wurl": "http://localhost:8000/event?t=win&b=bidId03&a=publisherId&f=i"
       }
     },
     {
@@ -52,7 +55,8 @@
         "crid": "crid19",
         "cat": [
           "IAB3-1"
-        ]
+        ],
+        "wurl": "http://localhost:8000/event?t=win&b=bidId04&a=publisherId&f=i"
       }
     },
     {

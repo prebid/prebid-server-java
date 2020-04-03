@@ -9,7 +9,8 @@
         "adm": "adm003",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=600527796&a=publisherId&f=i"
       }
     },
     {
@@ -21,7 +22,8 @@
         "adm": "adm001",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=600527794&a=publisherId&f=i"
       }
     },
     {
@@ -33,7 +35,8 @@
         "adm": "adm002",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=600527795&a=publisherId&f=i"
       }
     },
     {
@@ -45,7 +48,8 @@
         "adm": "adm00",
         "crid": "crid00",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "wurl": "http://localhost:8000/event?t=win&b=600527793&a=publisherId&f=i"
       }
     },
     {

@@ -50,9 +50,7 @@
         <module name="StaticVariableName"/>
         <module name="TypeName"/>
         <module name="AvoidStarImport"/>
-        <module name="AvoidStaticImport">
-            <property name="excludes" value="java.util.Objects.*,org.assertj.core.api.Assertions.*,org.mockito.Mockito.*,org.mockito.Matchers.*,org.junit.Assert.*" />
-        </module>
+        <module name="AvoidStaticImport"/>
         <module name="IllegalImport">
             <!-- Avoids shaded imports if IDE autosuggests them. Avoid lang in favor of lang3. -->
             <property name="illegalPkgs" value="autovalue.shaded.com.google,org.inferred.freebuilder.shaded.com.google,org.apache.commons.lang"/>
@@ -147,6 +145,15 @@
     </module>
     <module name="SuppressionSingleFilter">
         <property name="id" value="BanVertxJsonImport"/>
-        <property name="files" value="src/main/java/org/prebid/server/json/ObjectMapperProvider.java"/>
+        <property name="files" value="src/main/java/org/prebid/server/json/ObjectMapperProvider\.java"/>
+    </module>
+
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="AvoidStaticImport"/>
+        <property name="files" value=".*Test\.java"/>
+    </module>
+    <module name="SuppressionSingleFilter">
+        <property name="checks" value="FileLength"/>
+        <property name="files" value=".*Test\.java"/>
     </module>
 </module>

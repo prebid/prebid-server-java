@@ -82,6 +82,6 @@
       "pulsepoint": "{{ pulsepoint.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 3000
+    "tmaxrequest": 5000
   }
 }

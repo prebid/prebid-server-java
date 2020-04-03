@@ -355,14 +355,17 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     private static ConsumableDecision givenDecision(
-            Function<ConsumableDecision.ConsumableDecisionBuilder, ConsumableDecision.ConsumableDecisionBuilder> decision) {
+            Function<ConsumableDecision.ConsumableDecisionBuilder,
+                    ConsumableDecision.ConsumableDecisionBuilder> decision) {
+
         return decision.apply(ConsumableDecision.builder())
                 .build();
     }
 
     private static HttpCall<ConsumableBidRequest> givenHttpCall(
             Function<ConsumableBidResponse, ConsumableBidResponse> bidResponse,
-            Function<ConsumableDecision.ConsumableDecisionBuilder, ConsumableDecision.ConsumableDecisionBuilder> decision)
+            Function<ConsumableDecision.ConsumableDecisionBuilder,
+                    ConsumableDecision.ConsumableDecisionBuilder> decision)
             throws JsonProcessingException {
 
         final String body = mapper.writeValueAsString(
