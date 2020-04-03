@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -92,21 +93,6 @@ public class VtrackHandlerTest extends VertxTest {
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Account 'a' is required query parameter and can't be empty"));
-    }
-
-    @Test
-    public void shouldRespondWithBadRequestWhenTimestampParameterIsMissing() {
-        // given
-        given(httpRequest.getParam("timestamp")).willReturn(null);
-
-        // when
-        handler.handle(routingContext);
-
-        // then
-        verifyZeroInteractions(applicationSettings, cacheService);
-
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Timestamp 'timestamp' is required query parameter and can't be empty"));
     }
 
     @Test
@@ -198,7 +184,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
+        given(cacheService.cachePutObjects(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.failedFuture("error"));
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
@@ -223,7 +209,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("not found")));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
+        given(cacheService.cachePutObjects(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
@@ -234,7 +220,26 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any(), anyLong());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), anyLong(), any());
+    }
+
+    @Test
+    public void shouldTolerateInvalidTimestampParameter() throws JsonProcessingException {
+        // given
+        given(httpRequest.getParam("timestamp")).willReturn("invalid-number");
+
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(cacheService).cachePutObjects(any(), any(), any(), isNull(), any());
     }
 
     @Test
@@ -247,7 +252,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
+        given(cacheService.cachePutObjects(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
@@ -260,7 +265,7 @@ public class VtrackHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(bidderCatalog);
 
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), any(), anyLong());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), anyLong(), any());
     }
 
     @Test
@@ -283,7 +288,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
+        given(cacheService.cachePutObjects(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -318,7 +323,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
+        given(cacheService.cachePutObjects(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -333,7 +338,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), any(), anyLong());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), anyLong(), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }
@@ -361,7 +366,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), anyLong()))
+        given(cacheService.cachePutObjects(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -376,7 +381,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), any(), anyLong());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), anyLong(), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }

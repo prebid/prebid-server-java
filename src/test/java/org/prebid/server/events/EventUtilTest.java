@@ -30,13 +30,11 @@ public class EventUtilTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
     }
 
     @Test
     public void validateTypeShouldFailWhenTypeIsMissing() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
-
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateType(routingContext))
                 .withMessage("Type 't' is required query parameter. Possible values are win and imp, but was null");
@@ -76,51 +74,28 @@ public class EventUtilTest {
     }
 
     @Test
-    public void validateBidIdShouldFailWhenBidIdIsMissing() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("t", "win"));
-
-        // when and then
-        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateBidId(routingContext))
-                .withMessage("BidId 'b' is required query parameter and can't be empty");
-    }
-
-    @Test
     public void validateAccountIdShouldFailWhenAccountIsMissing() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("b", "bidId"));
-
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateAccountId(routingContext))
                 .withMessage("Account 'a' is required query parameter and can't be empty");
     }
 
     @Test
-    public void validateTimestampShouldFailWhenTimestampIsMissing() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("b", "bidId")
-                .add("a", "accountId"));
-
+    public void validateBidIdShouldFailWhenBidIdIsMissing() {
         // when and then
-        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateTimestamp(routingContext))
-                .withMessage("Timestamp 'ts' is required query parameter and can't be empty");
+        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateBidId(routingContext))
+                .withMessage("BidId 'b' is required query parameter and can't be empty");
     }
 
     @Test
-    public void validateBidderShouldFailWhenBidderIsMissing() {
+    public void validateTimestampShouldFailWhenTimestampIsInvalid() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("t", "win")
-                .add("b", "bidId")
-                .add("a", "accountId")
-                .add("ts", "1000"));
+                .add("ts", "invalid"));
 
         // when and then
-        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateBiddder(routingContext))
-                .withMessage("Bidder 'bidder' is required query parameter and can't be empty");
+        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateTimestamp(routingContext))
+                .withMessage("Timestamp 'ts' query parameter is not valid number: invalid");
     }
 
     @Test
@@ -194,18 +169,23 @@ public class EventUtilTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("b", "bidId")
                 .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("b", "bidId")
+                .add("ts", "1000")
                 .add("f", "i")
                 .add("x", "0"));
 
         // when
         final EventRequest result = EventUtil.from(routingContext);
+
         // then
         assertThat(result).isEqualTo(EventRequest.builder()
                 .type(EventRequest.Type.win)
-                .bidId("bidId")
                 .accountId("accountId")
+                .bidder("bidder")
+                .bidId("bidId")
+                .timestamp(1000L)
                 .format(EventRequest.Format.image)
                 .analytics(EventRequest.Analytics.disabled)
                 .build());
@@ -216,8 +196,9 @@ public class EventUtilTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("b", "bidId")
                 .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("b", "bidId")
                 .add("ts", "1000"));
 
         // when
@@ -226,10 +207,12 @@ public class EventUtilTest {
         // then
         assertThat(result).isEqualTo(EventRequest.builder()
                 .type(EventRequest.Type.win)
-                .bidId("bidId")
                 .accountId("accountId")
+                .bidder("bidder")
+                .bidId("bidId")
                 .format(EventRequest.Format.blank)
                 .analytics(EventRequest.Analytics.enabled)
+                .timestamp(1000L)
                 .build());
     }
 
@@ -238,9 +221,9 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
-                .bidId("bidId")
-                .bidder("bidder")
                 .accountId("accountId")
+                .bidder("bidder")
+                .bidId("bidId")
                 .format(EventRequest.Format.blank)
                 .analytics(EventRequest.Analytics.enabled)
                 .timestamp(1000L)
@@ -250,7 +233,8 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&x=1");
+        assertThat(result)
+                .isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&x=1");
     }
 
     @Test
@@ -258,9 +242,9 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
-                .bidId("bidId")
-                .bidder("bidder")
                 .accountId("accountId")
+                .bidder("bidder")
+                .bidId("bidId")
                 .timestamp(1000L)
                 .build();
 
@@ -269,5 +253,23 @@ public class EventUtilTest {
 
         // then
         assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder");
+    }
+
+    @Test
+    public void toUrlShouldReturnExpectedUrlWithoutTimestamp() {
+        // given
+        final EventRequest eventRequest = EventRequest.builder()
+                .type(EventRequest.Type.win)
+                .accountId("accountId")
+                .bidder("bidder")
+                .bidId("bidId")
+                .timestamp(null)
+                .build();
+
+        // when
+        final String result = EventUtil.toUrl("http://external-url", eventRequest);
+
+        // then
+        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&bidder=bidder");
     }
 }

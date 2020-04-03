@@ -54,7 +54,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.time.Instant;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -145,10 +144,10 @@ public class ExchangeService {
         final List<SeatBid> storedResponse = new ArrayList<>();
         final Map<String, String> aliases = aliases(requestExt);
         final String publisherId = account.getId();
-        final ExtRequestTargeting targeting = targeting(requestExt);
-        final Long auctionTimestamp = auctionTimestamp(requestExt);
-        final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final Boolean isGdprEnforced = account.getEnforceGdpr();
+        final ExtRequestTargeting targeting = targeting(requestExt);
+        final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
+        final long auctionTimestamp = auctionTimestamp(requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
 
         return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
@@ -178,21 +177,13 @@ public class ExchangeService {
     }
 
     /**
-     * Populates storedResponse parameter with stored {@link List<SeatBid>} and returns {@link List<Imp>} for which
-     * request to bidders should be performed.
-     */
-    private List<Imp> populateStoredResponse(StoredResponseResult storedResponseResult, List<SeatBid> storedResponse) {
-        storedResponse.addAll(storedResponseResult.getStoredResponse());
-        return storedResponseResult.getRequiredRequestImps();
-    }
-
-    /**
      * Extracts {@link ExtBidRequest} from {@link BidRequest}.
      */
     private ExtBidRequest requestExt(BidRequest bidRequest) {
         try {
             return bidRequest.getExt() != null
-                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
+                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class)
+                    : null;
         } catch (JsonProcessingException e) {
             throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
         }
@@ -208,6 +199,64 @@ public class ExchangeService {
     }
 
     /**
+     * Extracts {@link ExtRequestTargeting} from {@link ExtBidRequest} model.
+     */
+    private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        return prebid != null ? prebid.getTargeting() : null;
+    }
+
+    /**
+     * Creates {@link BidRequestCacheInfo} based on {@link ExtBidRequest} model.
+     */
+    private BidRequestCacheInfo bidRequestCacheInfo(ExtRequestTargeting targeting, ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+
+        if (targeting != null && cache != null) {
+            final boolean shouldCacheBids = cache.getBids() != null;
+            final boolean shouldCacheVideoBids = cache.getVastxml() != null;
+            final boolean shouldCacheWinningBidsOnly = targeting.getIncludebidderkeys()
+                    ? false // ext.prebid.targeting.includebidderkeys takes precedence
+                    : ObjectUtils.defaultIfNull(cache.getWinningonly(), false);
+
+            if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
+                final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
+                final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
+
+                final boolean returnCreativeBid = shouldCacheBids
+                        ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
+                        : false;
+                final boolean returnCreativeVideoBid = shouldCacheVideoBids
+                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
+                        : false;
+
+                return BidRequestCacheInfo.builder()
+                        .doCaching(true)
+                        .shouldCacheBids(shouldCacheBids)
+                        .cacheBidsTtl(cacheBidsTtl)
+                        .shouldCacheVideoBids(shouldCacheVideoBids)
+                        .cacheVideoBidsTtl(cacheVideoBidsTtl)
+                        .returnCreativeBids(returnCreativeBid)
+                        .returnCreativeVideoBids(returnCreativeVideoBid)
+                        .shouldCacheWinningBidsOnly(shouldCacheWinningBidsOnly)
+                        .build();
+            }
+        }
+
+        return BidRequestCacheInfo.noCache();
+    }
+
+    /**
+     * Extracts auction timestamp from {@link ExtBidRequest} or get it from {@link Clock} if it is null.
+     */
+    private long auctionTimestamp(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final Long auctionTimestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
+        return auctionTimestamp != null ? auctionTimestamp : clock.millis();
+    }
+
+    /**
      * Determines debug flag from {@link BidRequest} or {@link ExtBidRequest}.
      */
     private static boolean isDebugEnabled(BidRequest bidRequest, ExtBidRequest extBidRequest) {
@@ -219,19 +268,12 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts bidAdjustments from {@link ExtBidRequest}.
+     * Populates storedResponse parameter with stored {@link List<SeatBid>} and returns {@link List<Imp>} for which
+     * request to bidders should be performed.
      */
-    private static Map<String, BigDecimal> bidAdjustments(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
-        return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
-    }
-
-    /**
-     * Extracts currency rates from {@link ExtRequestTargeting}.
-     */
-    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
-        return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
+    private List<Imp> populateStoredResponse(StoredResponseResult storedResponseResult, List<SeatBid> storedResponse) {
+        storedResponse.addAll(storedResponseResult.getStoredResponse());
+        return storedResponseResult.getRequiredRequestImps();
     }
 
     /**
@@ -455,7 +497,7 @@ public class ExchangeService {
     }
 
     /**
-     * Returns Shuffled List of {@link BidderRequest}
+     * Returns Shuffled List of {@link BidderRequest}.
      */
     private List<BidderRequest> getBidderRequests(
             Map<String, PrivacyEnforcementResult> bidderToPrivacyEnforcementResult, BidRequest bidRequest,
@@ -700,61 +742,19 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts {@link ExtRequestTargeting} from {@link ExtBidRequest} model.
+     * Extracts currency rates from {@link ExtRequestTargeting}.
      */
-    private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        return prebid != null ? prebid.getTargeting() : null;
+    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
+        return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
     }
 
     /**
-     * Extracts auctiontimestamp or creates if it is null from {@link ExtBidRequest} model.
+     * Extracts bidAdjustments from {@link ExtBidRequest}.
      */
-    private static Long auctionTimestamp(ExtBidRequest requestExt) {
+    private static Map<String, BigDecimal> bidAdjustments(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final Long auctionTimestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
-        return auctionTimestamp != null ? auctionTimestamp : Instant.now().toEpochMilli();
-    }
-
-    /**
-     * Creates {@link BidRequestCacheInfo} based on {@link ExtBidRequest} model.
-     */
-    private BidRequestCacheInfo bidRequestCacheInfo(ExtRequestTargeting targeting, ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
-
-        if (targeting != null && cache != null) {
-            final boolean shouldCacheBids = cache.getBids() != null;
-            final boolean shouldCacheVideoBids = cache.getVastxml() != null;
-            final boolean shouldCacheWinningBidsOnly = targeting.getIncludebidderkeys()
-                    ? false // ext.prebid.targeting.includebidderkeys takes precedence
-                    : ObjectUtils.defaultIfNull(cache.getWinningonly(), false);
-
-            if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
-                final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
-                final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
-
-                final boolean returnCreativeBid = shouldCacheBids
-                        ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
-                        : false;
-                final boolean returnCreativeVideoBid = shouldCacheVideoBids
-                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
-                        : false;
-
-                return BidRequestCacheInfo.builder()
-                        .doCaching(true)
-                        .shouldCacheBids(shouldCacheBids)
-                        .cacheBidsTtl(cacheBidsTtl)
-                        .shouldCacheVideoBids(shouldCacheVideoBids)
-                        .cacheVideoBidsTtl(cacheVideoBidsTtl)
-                        .returnCreativeBids(returnCreativeBid)
-                        .returnCreativeVideoBids(returnCreativeVideoBid)
-                        .shouldCacheWinningBidsOnly(shouldCacheWinningBidsOnly)
-                        .build();
-            }
-        }
-
-        return BidRequestCacheInfo.noCache();
+        final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
+        return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
     }
 
     /**

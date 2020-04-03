@@ -68,9 +68,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         try {
             EventUtil.validateType(context);
             EventUtil.validateBidId(context);
-            EventUtil.validateBiddder(context);
-            EventUtil.validateFormat(context);
             EventUtil.validateTimestamp(context);
+            EventUtil.validateFormat(context);
             EventUtil.validateAnalytics(context);
         } catch (IllegalArgumentException e) {
             respondWithBadStatus(context, e.getMessage());
@@ -122,6 +121,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                                 ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
                         .bidId(eventRequest.getBidId())
                         .account(account)
+                        .bidder(eventRequest.getBidder())
+                        .timestamp(eventRequest.getTimestamp())
                         .httpContext(HttpContext.from(context))
                         .build();
                 analyticsReporter.processEvent(notificationEvent);

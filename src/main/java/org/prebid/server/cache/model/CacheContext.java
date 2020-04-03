@@ -23,5 +23,5 @@ public class CacheContext {
 
     Map<String, List<String>> bidderToVideoBidIdsToModify;
 
-    Map<String, List<String>> biddersToCacheBidIds;
+    Map<String, List<String>> bidderToBidIds;
 }

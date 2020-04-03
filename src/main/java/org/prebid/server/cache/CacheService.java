@@ -168,9 +168,9 @@ public class CacheService {
      * The returned result will always have the number of elements equals putObjects list size.
      */
     public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
-                                                    String accountId, Timeout timeout, Long auctionTimestamp) {
+                                                    String accountId, Long timestamp, Timeout timeout) {
         final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate,
-                accountId, auctionTimestamp);
+                accountId, timestamp);
         return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout);
     }
 
@@ -228,7 +228,7 @@ public class CacheService {
                     impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
 
             result = doCacheOpenrtb(cacheBids, videoCacheBids, cacheContext.getBidderToVideoBidIdsToModify(),
-                    cacheContext.getBiddersToCacheBidIds(), account.getId(), timeout, timestamp);
+                    cacheContext.getBidderToBidIds(), account.getId(), timeout, timestamp);
         }
 
         return result;
