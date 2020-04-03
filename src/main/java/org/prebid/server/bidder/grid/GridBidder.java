@@ -9,8 +9,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
 
-import static java.util.Objects.isNull;
-
 public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
 
     public GridBidder(String endpointUrl, JacksonMapper mapper) {
@@ -19,7 +17,7 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
 
     @Override
     protected Imp modifyImp(Imp imp, ExtImpGrid impExt) {
-        if (isNull(impExt.getUid()) || impExt.getUid() == 0) {
+        if (impExt.getUid() == null || impExt.getUid() == 0) {
             throw new PreBidException("uid is empty");
         }
         return imp;
