@@ -96,7 +96,7 @@ public abstract class PurposeStrategy {
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Collections.emptySet()
                 : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                bidderNameExceptions.contains(vendorPermission.getBidderName()));
+                        bidderNameExceptions.contains(vendorPermission.getBidderName()));
     }
 }
 

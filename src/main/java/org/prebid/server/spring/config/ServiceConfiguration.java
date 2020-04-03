@@ -44,6 +44,9 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeFourStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeSevenStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeTwoStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
@@ -419,6 +422,24 @@ public class ServiceConfiguration {
             NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
         return new PurposeOneStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    }
+
+    @Bean
+    PurposeTwoStrategy purposeTwoStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                          NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        return new PurposeTwoStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    }
+
+    @Bean
+    PurposeFourStrategy purposeFourStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        return new PurposeFourStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    }
+
+    @Bean
+    PurposeSevenStrategy purposeSevenStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        return new PurposeSevenStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
     }
 
     @Bean

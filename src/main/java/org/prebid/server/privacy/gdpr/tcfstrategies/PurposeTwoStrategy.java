@@ -8,18 +8,17 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurp
 
 import java.util.Collection;
 
-public class PurposeOneStrategy extends PurposeStrategy {
+public class PurposeTwoStrategy extends PurposeStrategy {
 
-    private static final int PURPOSE_ID = 1;
+    private static final int PURPOSE_ID = 2;
 
-    public PurposeOneStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        super(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    public PurposeTwoStrategy(BasicEnforcePurposeStrategy basicTypeStrategy, NoEnforcePurposeStrategy noTypeStrategy) {
+        super(basicTypeStrategy, noTypeStrategy);
     }
 
     @Override
     public void allow(PrivacyEnforcementAction privacyEnforcementAction) {
-        privacyEnforcementAction.setBlockPixelSync(false);
+        privacyEnforcementAction.setBlockBidderRequest(false);
     }
 
     @Override
