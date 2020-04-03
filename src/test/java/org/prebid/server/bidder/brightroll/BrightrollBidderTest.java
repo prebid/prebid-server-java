@@ -53,7 +53,8 @@ public class BrightrollBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final List<BidderAccount> bidderAccounts = singletonList(new BidderAccount("testPublisher", BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+        final List<BidderAccount> bidderAccounts = singletonList(
+                new BidderAccount("testPublisher", BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
         brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, bidderAccounts);
     }
 
