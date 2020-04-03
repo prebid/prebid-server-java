@@ -168,9 +168,8 @@ public class CacheService {
      * The returned result will always have the number of elements equals putObjects list size.
      */
     public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
-                                                    String accountId, Long timestamp, Timeout timeout) {
-        final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate,
-                accountId, timestamp);
+                                                    String accountId, Timeout timeout) {
+        final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate, accountId);
         return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout);
     }
 
@@ -178,22 +177,27 @@ public class CacheService {
      * Modify VAST value in putObjects.
      */
     private List<PutObject> updatePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
-                                             String accountId, Long auctionTimestamp) {
+                                             String accountId) {
         if (CollectionUtils.isEmpty(biddersAllowingVastUpdate)) {
             return putObjects;
         }
 
         final List<PutObject> updatedPutObjects = new ArrayList<>();
         for (PutObject putObject : putObjects) {
+            final PutObject.PutObjectBuilder builder = putObject.toBuilder()
+                    // remove "/vtrack" specific fields
+                    .bidid(null)
+                    .bidder(null)
+                    .timestamp(null);
+
             final JsonNode value = putObject.getValue();
             if (biddersAllowingVastUpdate.contains(putObject.getBidder()) && value != null) {
-                final String updatedVastValue = modifyVastXml(value.asText(), putObject.getBidid(),
-                        putObject.getBidder(), accountId, auctionTimestamp);
-                final PutObject updatedPutObject = putObject.toBuilder().value(new TextNode(updatedVastValue)).build();
-                updatedPutObjects.add(updatedPutObject);
-            } else {
-                updatedPutObjects.add(putObject);
+                final String updatedVastXml = modifyVastXml(value.asText(), putObject.getBidid(),
+                        putObject.getBidder(), accountId, putObject.getTimestamp());
+                builder.value(new TextNode(updatedVastXml)).build();
             }
+
+            updatedPutObjects.add(builder.build());
         }
         return updatedPutObjects;
     }
@@ -441,8 +445,7 @@ public class CacheService {
                 .build();
     }
 
-    private String modifyVastXml(String stringValue, String bidId, String bidder, String accountId,
-                                 Long timestamp) {
+    private String modifyVastXml(String stringValue, String bidId, String bidder, String accountId, Long timestamp) {
         final String closeTag = "</Impression>";
         final int closeTagIndex = stringValue.indexOf(closeTag);
 

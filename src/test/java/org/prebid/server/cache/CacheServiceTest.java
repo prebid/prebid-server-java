@@ -45,7 +45,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -599,7 +598,7 @@ public class CacheServiceTest extends VertxTest {
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder2", singletonList("bid2")))
-                        .bidderToBidIds(singletonMap("bidder1", Arrays.asList("bid1", "bid2")))
+                        .bidderToBidIds(singletonMap("bidder1", asList("bid1", "bid2")))
                         .build(),
                 account, timeout, 1000L);
 
@@ -887,7 +886,7 @@ public class CacheServiceTest extends VertxTest {
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bid1")))
-                        .bidderToBidIds(singletonMap("bidder1", Arrays.asList("bid1", "bid2")))
+                        .bidderToBidIds(singletonMap("bidder1", asList("bid1", "bid2")))
                         .build(),
                 account, timeout, 0L);
 
@@ -1050,7 +1049,7 @@ public class CacheServiceTest extends VertxTest {
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
         final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
-                emptySet(), "", null, expiredTimeout);
+                emptySet(), "", expiredTimeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -1060,7 +1059,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null, null);
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -1072,35 +1071,63 @@ public class CacheServiceTest extends VertxTest {
         // given
         final PutObject firstPutObject = PutObject.builder()
                 .type("xml")
-                .bidid("biddid1")
+                .bidid("bidId1")
                 .bidder("bidder1")
                 .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
                         + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>"
-                        + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build();
+                        + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
+                .build();
         final PutObject secondPutObject = PutObject.builder()
                 .type("xml")
-                .value(new TextNode("VAST"))
-                .bidid("biddid2")
+                .bidid("bidId2")
                 .bidder("bidder2")
+                .value(new TextNode("VAST"))
                 .build();
 
         given(eventsService.vastUrlTracking(any(), any(), any(), any()))
-                .willReturn("http://external-url/event?t=imp&b=bidId&a=accountId&ts=bidder&bidder=1000&f=b");
+                .willReturn("http://external-url/event");
 
         // when
-        cacheService.cachePutObjects(Arrays.asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
-                1000L, timeout);
+        cacheService.cachePutObjects(asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
+                timeout);
 
         // then
-        final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
+        final PutObject modifiedFirstPutObject = firstPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
                 .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
                         + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
                         + "<Impression><!"
-                        + "[CDATA[http://external-url/event?t=imp&b=bidId&a=accountId&ts=bidder&bidder=1000&f=b]]>"
+                        + "[CDATA[http://external-url/event]]>"
                         + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
                 .build();
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(2).containsOnly(modifiedSecondPutObject, secondPutObject);
+        final PutObject modifiedSecondPutObject = secondPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).hasSize(2)
+                .containsOnly(modifiedFirstPutObject, modifiedSecondPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldCallEventsServiceWithExpectedArguments() {
+        // given
+        final PutObject firstPutObject = PutObject.builder()
+                .type("xml")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1000L)
+                .value(new TextNode("<Impression></Impression>"))
+                .build();
+
+        // when
+        cacheService.cachePutObjects(singletonList(firstPutObject), singleton("bidder1"), "account", timeout);
+
+        // then
+        verify(eventsService).vastUrlTracking(eq("bidId1"), eq("bidder1"), eq("account"), eq(1000L));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
