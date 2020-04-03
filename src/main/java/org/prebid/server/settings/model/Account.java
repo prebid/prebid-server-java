@@ -19,6 +19,8 @@ public class Account {
 
     Boolean enforceGdpr;
 
+    GdprConfig gdpr;
+
     Integer analyticsSamplingFactor;
 }
 

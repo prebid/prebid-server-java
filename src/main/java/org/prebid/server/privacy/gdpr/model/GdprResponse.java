@@ -5,6 +5,7 @@ import lombok.Value;
 
 import java.util.Map;
 
+@Deprecated
 @AllArgsConstructor(staticName = "of")
 @Value
 public class GdprResponse {

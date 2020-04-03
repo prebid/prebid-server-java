@@ -22,6 +22,7 @@ public class BidderCatalog {
     private final Map<String, BidderDeps> bidderDepsMap;
     private final Map<String, String> deprecatedNameToError = new HashMap<>();
     private final Map<String, String> aliases = new HashMap<>();
+    private final Map<Integer, String> vendorIdToBidderName = new HashMap<>();
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
@@ -30,6 +31,13 @@ public class BidderCatalog {
         for (BidderDeps deps : bidderDeps) {
             deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps.getDeprecatedNames(), deps.getName()));
             aliases.putAll(createAliases(deps.getAliases(), deps.getName()));
+
+            final BidderInfo bidderInfo = deps.getBidderInfo();
+            final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
+            final Integer vendorId = gdprInfo != null ? gdprInfo.getVendorId() : null;
+            if (vendorId != null && vendorId != 0) {
+                vendorIdToBidderName.put(vendorId, deps.getName());
+            }
         }
     }
 
@@ -121,6 +129,26 @@ public class BidderCatalog {
     public BidderInfo bidderInfoByName(String name) {
         final BidderDeps bidderDeps = bidderDepsMap.get(name);
         return bidderDeps != null ? bidderDeps.getBidderInfo() : null;
+    }
+
+    /**
+     * Returns an VendorId registered by the given name or null if there is none.
+     * <p>
+     * Therefore this method should be called only for names that previously passed validity check
+     * through calling {@link #isValidName(String)}.
+     */
+    public Integer vendorIdByName(String name) {
+        final BidderDeps bidderDeps = bidderDepsMap.get(name);
+        final BidderInfo bidderInfo = bidderDeps != null ? bidderDeps.getBidderInfo() : null;
+        final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
+        return gdprInfo != null ? gdprInfo.getVendorId() : null;
+    }
+
+    /**
+     * Returns a Bidder name registered by the vendor ID or null if there is none.
+     */
+    public String nameByVendorId(Integer vendorId) {
+        return vendorIdToBidderName.get(vendorId);
     }
 
     /**

@@ -26,7 +26,7 @@ public class AdkernelAdnTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdkerneladn() throws IOException, JSONException {
         // given
         // adkernelAdn bid response for imp 021
-        wireMockRule.stubFor(post(urlPathEqualTo("/adkernelAdn-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkernelAdn-exchange"))
                 .withQueryParam("account", equalTo("101"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -36,7 +36,7 @@ public class AdkernelAdnTest extends IntegrationTest {
                         jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response-1.json"))));
 
         // adkernelAdn bid response for imp 022
-        wireMockRule.stubFor(post(urlPathEqualTo("/adkernelAdn-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkernelAdn-exchange"))
                 .withQueryParam("account", equalTo("102"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -46,13 +46,13 @@ public class AdkernelAdnTest extends IntegrationTest {
                         jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response-2.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
