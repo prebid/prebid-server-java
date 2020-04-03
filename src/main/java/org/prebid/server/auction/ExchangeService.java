@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidEvents;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -145,6 +146,7 @@ public class ExchangeService {
         final Map<String, String> aliases = aliases(requestExt);
         final String publisherId = account.getId();
         final ExtRequestTargeting targeting = targeting(requestExt);
+        final ExtRequestPrebidEvents events = events(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final Boolean isGdprEnforced = account.getEnforceGdpr();
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
@@ -168,8 +170,8 @@ public class ExchangeService {
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
-                        bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
-                                debugEnabled))
+                        bidResponseCreator.create(bidderResponses, bidRequest, events, targeting, cacheInfo, account,
+                                timeout, debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
                                 account));
@@ -703,6 +705,14 @@ public class ExchangeService {
     private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         return prebid != null ? prebid.getTargeting() : null;
+    }
+
+    /**
+     * Extracts {@link ExtRequestPrebidEvents} from {@link ExtBidRequest} model.
+     */
+    private static ExtRequestPrebidEvents events(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        return prebid != null ? prebid.getEvents() : null;
     }
 
     /**

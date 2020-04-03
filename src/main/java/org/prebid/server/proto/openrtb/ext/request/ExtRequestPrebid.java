@@ -51,6 +51,11 @@ public class ExtRequestPrebid {
     ExtRequestPrebidData data;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.events
+     */
+    ExtRequestPrebidEvents events;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.schains
      */
     List<ExtRequestPrebidSchain> schains;

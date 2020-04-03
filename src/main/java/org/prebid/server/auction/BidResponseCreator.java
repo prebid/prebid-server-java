@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidEvents;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
@@ -107,7 +108,8 @@ public class BidResponseCreator {
      * including processing of winning bids with cache IDs.
      */
     Future<BidResponse> create(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                               ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo, Account account,
+                               ExtRequestPrebidEvents extRequestPrebidEvents, ExtRequestTargeting targeting,
+                               BidRequestCacheInfo cacheInfo, Account account,
                                Timeout timeout, boolean debugEnabled) {
 
         final Future<BidResponse> result;
@@ -136,9 +138,9 @@ public class BidResponseCreator {
 
             result = toBidsWithCacheIds(bidderResponses, bidsToCache, bidRequest.getImp(), cacheInfo, account, timeout)
                     .compose(cacheResult -> videoStoredDataResult(bidRequest.getImp(), timeout)
-                            .map(videoStoredDataResult -> toBidResponse(bidderResponses, bidRequest, targeting,
-                                    winningBids, winningBidsByBidder, cacheInfo, cacheResult, videoStoredDataResult,
-                                    account, debugEnabled)));
+                            .map(videoStoredDataResult -> toBidResponse(bidderResponses, bidRequest,
+                                    extRequestPrebidEvents, targeting, winningBids, winningBidsByBidder, cacheInfo,
+                                    cacheResult, videoStoredDataResult, account, debugEnabled)));
         }
 
         return result;
@@ -497,17 +499,17 @@ public class BidResponseCreator {
      * Returns {@link BidResponse} based on list of {@link BidderResponse}s and {@link CacheServiceResult}.
      */
     private BidResponse toBidResponse(
-            List<BidderResponse> bidderResponses, BidRequest bidRequest, ExtRequestTargeting targeting,
-            Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-            CacheServiceResult cacheResult, VideoStoredDataResult videoStoredDataResult, Account account,
-            boolean debugEnabled) {
+            List<BidderResponse> bidderResponses, BidRequest bidRequest, ExtRequestPrebidEvents extRequestPrebidEvents,
+            ExtRequestTargeting targeting, Set<Bid> winningBids, Set<Bid> winningBidsByBidder,
+            BidRequestCacheInfo cacheInfo, CacheServiceResult cacheResult, VideoStoredDataResult videoStoredDataResult,
+            Account account, boolean debugEnabled) {
 
         final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
-                .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest, winningBids,
-                        winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), videoStoredDataResult, account,
-                        bidErrors))
+                .map(bidderResponse -> toSeatBid(bidderResponse, targeting, extRequestPrebidEvents, bidRequest,
+                        winningBids, winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), videoStoredDataResult,
+                        account, bidErrors))
                 .collect(Collectors.toList());
 
         final ExtBidResponse extBidResponse =
@@ -563,15 +565,18 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
      * extension field populated.
      */
-    private SeatBid toSeatBid(BidderResponse bidderResponse, ExtRequestTargeting targeting, BidRequest bidRequest,
-                              Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                              Map<Bid, CacheIdInfo> cachedBids, VideoStoredDataResult videoStoredDataResult,
-                              Account account, Map<String, List<ExtBidderError>> bidErrors) {
+    private SeatBid toSeatBid(BidderResponse bidderResponse, ExtRequestTargeting targeting,
+                              ExtRequestPrebidEvents extRequestPrebidEvents, BidRequest bidRequest,
+                              Set<Bid> winningBids, Set<Bid> winningBidsByBidder,
+                              BidRequestCacheInfo cacheInfo, Map<Bid, CacheIdInfo> cachedBids,
+                              VideoStoredDataResult videoStoredDataResult, Account account, Map<String,
+                              List<ExtBidderError>> bidErrors) {
         final String bidder = bidderResponse.getBidder();
 
         final List<Bid> bids = bidderResponse.getSeatBid().getBids().stream()
-                .map(bidderBid -> toBid(bidderBid, bidder, targeting, bidRequest, winningBids, winningBidsByBidder,
-                        cacheInfo, cachedBids, videoStoredDataResult.getImpIdToStoredVideo(), account, bidErrors))
+                .map(bidderBid -> toBid(bidderBid, bidder, targeting, extRequestPrebidEvents, bidRequest, winningBids,
+                        winningBidsByBidder, cacheInfo, cachedBids, videoStoredDataResult.getImpIdToStoredVideo(),
+                        account, bidErrors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -585,8 +590,9 @@ public class BidResponseCreator {
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
-    private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting, BidRequest bidRequest,
-                      Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+    private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting,
+                      ExtRequestPrebidEvents extRequestPrebidEvents, BidRequest bidRequest, Set<Bid> winningBids,
+                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
                       Map<Bid, CacheIdInfo> bidsWithCacheIds, Map<String, Video> impIdToStoredVideo, Account account,
                       Map<String, List<ExtBidderError>> bidErrors) {
 
@@ -639,8 +645,10 @@ public class BidResponseCreator {
         }
 
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), account.getId()) : null;
-
+        Events events = null;
+        if (extRequestPrebidEvents != null) {
+            events = eventsEnabled ? eventsService.createEvent(bid.getId(), account.getId()) : null;
+        }
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidType, targetingKeywords, cache, storedVideo, events, null);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));

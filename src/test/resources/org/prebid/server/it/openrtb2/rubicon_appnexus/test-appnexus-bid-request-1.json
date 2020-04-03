@@ -123,13 +123,17 @@
   "regs": {
     "ext": {
       "us_privacy": "1YNN"
-  }
+    }
   },
   "ext": {
     "prebid": {
       "debug": 1,
       "aliases": {
         "appnexusAlias": "appnexus"
+      },
+      "events": {
+        "win": "win",
+        "imp": "imp"
       },
       "targeting": {
         "pricegranularity": {
