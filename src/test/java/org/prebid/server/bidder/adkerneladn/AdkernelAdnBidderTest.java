@@ -448,7 +448,8 @@ public class AdkernelAdnBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder,
+                    ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
@@ -461,14 +462,16 @@ public class AdkernelAdnBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder,
+                    ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
 
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
     private static Imp givenImp(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder,
+                    ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")

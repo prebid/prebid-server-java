@@ -73,7 +73,7 @@
     "fd": 1,
     "tid": "tid"
   },
-  "tmax": 3000,
+  "tmax": 5000,
   "user": {
     "buyeruid": "SCM-UID",
     "ext": {

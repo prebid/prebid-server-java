@@ -295,8 +295,7 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder().type("json").value(
                                 mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300))).build(),
                         PutObject.builder().type("xml").value(new TextNode(adm3)).build(),
-                        PutObject.builder().type("xml").value(new TextNode(adm4)).build()
-                );
+                        PutObject.builder().type("xml").value(new TextNode(adm4)).build());
     }
 
     @Test
@@ -771,9 +770,9 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder().type("json").value(bidObjectNode2).build(),
                         PutObject.builder().type("xml").value(new TextNode("adm1")).build(),
                         PutObject.builder().type("xml").value(new TextNode(
-                                "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>" +
-                                        "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>" +
-                                        "<Creatives></Creatives></Wrapper></Ad></VAST>"))
+                                "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>"
+                                        + "<VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>"
+                                        + "<Creatives></Creatives></Wrapper></Ad></VAST>"))
                                 .build());
     }
 
@@ -853,8 +852,8 @@ public class CacheServiceTest extends VertxTest {
                                 .build(),
                         PutObject.builder()
                                 .type("xml")
-                                .value(new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&" +
-                                        "b=bid1&f=b&a=accountId]]></Impression>"))
+                                .value(new TextNode("<Impression><![CDATA[https://test-event.com/event?t=imp&"
+                                        + "b=bid1&f=b&a=accountId]]></Impression>"))
                                 .build());
     }
 
@@ -888,8 +887,8 @@ public class CacheServiceTest extends VertxTest {
                                 .build(),
                         PutObject.builder()
                                 .type("xml")
-                                .value(new TextNode("<Impression>http:/test.com</Impression><Impression>" +
-                                        "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
+                                .value(new TextNode("<Impression>http:/test.com</Impression><Impression>"
+                                        + "<![CDATA[https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId]]>"
                                         + "</Impression>"))
                                 .build());
     }
@@ -922,9 +921,9 @@ public class CacheServiceTest extends VertxTest {
                 .type("xml")
                 .bidid("biddid1")
                 .bidder("bidder1")
-                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
-                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build();
+                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
+                        + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>"
+                        + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>")).build();
         final PutObject secondPutObject = PutObject.builder()
                 .type("xml")
                 .value(new TextNode("VAST"))
@@ -941,10 +940,10 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final PutObject modifiedSecondPutObject = firstPutObject.toBuilder()
-                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
-                        "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>" +
-                        "<Impression><![CDATA[https://test-event.com/event?t=imp&b=biddid1&f=b&a=account]]>" +
-                        "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
+                .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
+                        + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>"
+                        + "<Impression><![CDATA[https://test-event.com/event?t=imp&b=biddid1&f=b&a=account]]>"
+                        + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
                 .build();
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(2).containsOnly(modifiedSecondPutObject, secondPutObject);
@@ -969,6 +968,7 @@ public class CacheServiceTest extends VertxTest {
 
     private static CacheHttpRequest givenCacheHttpRequest(com.iab.openrtb.response.Bid... bids)
             throws JsonProcessingException {
+
         final List<PutObject> putObjects;
         if (bids != null) {
             putObjects = new ArrayList<>();

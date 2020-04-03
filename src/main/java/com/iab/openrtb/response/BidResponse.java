@@ -7,8 +7,6 @@ import lombok.Value;
 import java.util.Comparator;
 import java.util.List;
 
-import static java.util.Objects.isNull;
-
 /**
  * This object is the top-level bid response object (i.e., the unnamed outer
  * JSON object). The {@code id} attribute is a reflection of the bid request ID
@@ -65,7 +63,7 @@ public class BidResponse {
     ObjectNode ext;
 
     public static final Comparator<BidResponse> COMPARATOR = (left, right) -> {
-        if (isNull(left)) {
+        if (left == null) {
             return -1;
         }
         if (left.getSeatbid().isEmpty()) {
@@ -74,7 +72,7 @@ public class BidResponse {
         if (left.getSeatbid().get(0).getBid().isEmpty()) {
             return -1;
         }
-        if (isNull(right)) {
+        if (right == null) {
             return -1;
         }
         if (right.getSeatbid().isEmpty()) {

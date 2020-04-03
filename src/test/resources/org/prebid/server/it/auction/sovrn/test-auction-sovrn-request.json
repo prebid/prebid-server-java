@@ -3,7 +3,7 @@
   "tid": "tid",
   "cache_markup": 1,
   "sort_bids": 1,
-  "timeout_millis": 1000,
+  "timeout_millis": 5000,
   "ad_units": [
     {
       "code": "adUnitCode11",

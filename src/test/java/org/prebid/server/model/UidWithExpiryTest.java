@@ -9,7 +9,6 @@ import java.time.temporal.ChronoUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-
 public class UidWithExpiryTest {
 
     @Test

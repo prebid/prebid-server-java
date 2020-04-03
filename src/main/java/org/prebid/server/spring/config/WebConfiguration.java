@@ -55,6 +55,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
@@ -309,7 +310,7 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
@@ -319,7 +320,7 @@ public class WebConfiguration {
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
         return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
+                tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
                 coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
@@ -328,14 +329,14 @@ public class WebConfiguration {
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, tcfDefinerService, hostVendorId,
                 useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
