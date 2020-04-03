@@ -19,7 +19,7 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
 
     @Override
     protected Imp modifyImp(Imp imp, ExtImpGrid impExt) {
-        if (impExt.getUid() == 0 || isNull(impExt.getUid())) {
+        if (isNull(impExt.getUid()) || impExt.getUid() == 0) {
             throw new PreBidException("uid is empty");
         }
         return imp;
