@@ -1,13 +1,14 @@
 package org.prebid.server.it;
 
 import io.restassured.response.Response;
-import java.io.IOException;
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -24,19 +25,19 @@ public class AdopplerTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdoppler() throws IOException, JSONException {
         // given
         // Adoppler bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/adoppler-exchange/processHeaderBid/unit1"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adoppler-exchange/processHeaderBid/unit1"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adoppler/test-adoppler-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adoppler/test-adoppler-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adoppler/test-cache-adoppler-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adoppler/test-cache-adoppler-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
