@@ -35,7 +35,6 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(VtrackHandler.class);
 
     private static final String ACCOUNT_PARAMETER = "a";
-    private static final String TIMESTAMP_PARAMETER = "timestamp";
 
     private final long defaultTimeout;
     private final boolean allowUnknownBidder;
@@ -66,10 +65,8 @@ public class VtrackHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext context) {
         final String accountId;
         final List<PutObject> vtrackPuts;
-        final Long timestamp;
         try {
             accountId = accountId(context);
-            timestamp = timestamp(context);
             vtrackPuts = vtrackPuts(context);
         } catch (IllegalArgumentException e) {
             respondWithBadRequest(context, e.getMessage());
@@ -79,7 +76,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
-                .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout, timestamp));
+                .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout));
     }
 
     private static String accountId(RoutingContext context) {
@@ -89,15 +86,6 @@ public class VtrackHandler implements Handler<RoutingContext> {
                     String.format("Account '%s' is required query parameter and can't be empty", ACCOUNT_PARAMETER));
         }
         return accountId;
-    }
-
-    public static Long timestamp(RoutingContext context) {
-        final String timestamp = context.request().getParam(TIMESTAMP_PARAMETER);
-        if (StringUtils.isBlank(timestamp)) {
-            throw new IllegalArgumentException(String.format(
-                    "Timestamp '%s' is required query parameter and can't be empty", TIMESTAMP_PARAMETER));
-        }
-        return Long.valueOf(timestamp);
     }
 
     private List<PutObject> vtrackPuts(RoutingContext context) {
@@ -136,7 +124,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     }
 
     private void handleAccountResult(AsyncResult<Account> asyncAccount, RoutingContext context,
-                                     List<PutObject> vtrackPuts, String accountId, Timeout timeout, Long timestamp) {
+                                     List<PutObject> vtrackPuts, String accountId, Timeout timeout) {
         if (asyncAccount.failed()) {
             respondWithServerError(context, "Error occurred while fetching account", asyncAccount.cause());
         } else {
@@ -144,7 +132,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             final Set<String> biddersAllowingVastUpdate = Objects.equals(asyncAccount.result().getEventsEnabled(), true)
                     ? biddersAllowingVastUpdate(vtrackPuts)
                     : Collections.emptySet();
-            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout, timestamp)
+            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
         }
     }

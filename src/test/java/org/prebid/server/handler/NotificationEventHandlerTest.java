@@ -119,29 +119,13 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBadRequestWhenBidderIsMissing() {
+    public void shouldReturnBadRequestWhenTimestampIsInvalid() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("ts", "1000"));
-
-        // when
-        notificationHandler.handle(routingContext);
-
-        // then
-        verifyZeroInteractions(analyticsReporter);
-
-        assertThat(captureResponseStatusCode()).isEqualTo(400);
-    }
-
-    @Test
-    public void shouldReturnBadRequestWhenTimestampIsMissing() {
-        // given
-        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("t", "win")
-                .add("b", "bidId")
-                .add("bidder", "bidder"));
+                .add("bidder", "bidder")
+                .add("ts", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -157,9 +141,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("b", "bidId")
-                .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("b", "bidId"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -177,9 +159,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("t", "win")
                 .add("b", "bidId")
                 .add("a", "accountId")
-                .add("f", "invalid")
-                .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("f", "invalid"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -215,10 +195,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId")
-                .add("bidder", "bidder")
-                .add("ts", "1000")
-        );
+                .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
@@ -239,9 +216,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId")
-                .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().id("accountId").eventsEnabled(false).build()));
@@ -262,9 +237,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId")
-                .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("a", "accountId"));
 
         final Account account = Account.builder().eventsEnabled(true).build();
         given(applicationSettings.getAccountById(anyString(), any()))
@@ -278,8 +251,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         queryParams.put("t", "win");
         queryParams.put("b", "bidId");
         queryParams.put("a", "accountId");
-        queryParams.put("bidder", "bidder");
-        queryParams.put("ts", "1000");
         final HttpContext expectedHttpContext = HttpContext.builder()
                 .queryParams(queryParams)
                 .headers(Collections.emptyMap())
@@ -318,9 +289,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .add("t", "win")
                 .add("b", "bidId")
                 .add("a", "accountId")
-                .add("f", "i")
-                .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("f", "i"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
@@ -342,9 +311,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
                 .add("b", "bidId")
-                .add("a", "accountId")
-                .add("bidder", "bidder")
-                .add("ts", "1000"));
+                .add("a", "accountId"));
 
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
@@ -355,6 +322,46 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse);
+    }
+
+    @Test
+    public void shouldPassExpectedEventToAnalyticsReporter() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
+
+        final Account account = Account.builder().eventsEnabled(true).build();
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        final Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("t", "win");
+        queryParams.put("b", "bidId");
+        queryParams.put("a", "accountId");
+        queryParams.put("bidder", "bidder");
+        queryParams.put("ts", "1000");
+        final HttpContext expectedHttpContext = HttpContext.builder()
+                .queryParams(queryParams)
+                .headers(Collections.emptyMap())
+                .cookies(Collections.emptyMap())
+                .build();
+
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
+                .type(NotificationEvent.Type.win)
+                .bidId("bidId")
+                .account(account)
+                .bidder("bidder")
+                .timestamp(1000L)
+                .httpContext(expectedHttpContext)
+                .build());
     }
 
     private Integer captureResponseStatusCode() {

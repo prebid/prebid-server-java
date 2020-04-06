@@ -14,15 +14,15 @@ public class EventRequest {
 
     String bidId;
 
+    String accountId;
+
     String bidder;
 
-    String accountId;
+    Long timestamp;
 
     Format format;
 
     Analytics analytics;
-
-    Long timestamp;
 
     public enum Type {
 

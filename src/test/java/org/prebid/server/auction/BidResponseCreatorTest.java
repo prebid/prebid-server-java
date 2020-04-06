@@ -65,10 +65,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -190,7 +190,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .cacheBidsTtl(99)
                         .cacheVideoBidsTtl(101)
                         .bidderToVideoBidIdsToModify(emptyMap())
-                        .biddersToCacheBidIds(biddersToCacheBidIds)
+                        .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
                 eq(Account.builder().id("accountId").build()), eq(timeout), eq(1000L));
     }
@@ -228,7 +228,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 argThat(t -> t.containsAll(asList(bid1, bid2)) && t.size() == 2), eq(emptyList()),
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
-                        .biddersToCacheBidIds(biddersToCacheBidIds)
+                        .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
                 eq(Account.builder().id("accountId").build()), eq(timeout), eq(1000L));
     }
@@ -269,7 +269,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(CacheContext.builder()
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
-                        .biddersToCacheBidIds(biddersToCacheBidIds)
+                        .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
                 same(account), eq(timeout), eq(0L));
     }
@@ -295,7 +295,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 argThat(bids -> bids.contains(bid1)), eq(emptyList()),
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
-                        .biddersToCacheBidIds(singletonMap("bidder1", Collections.singletonList("bidId1")))
+                        .bidderToBidIds(singletonMap("bidder1", Collections.singletonList("bidId1")))
                         .build()),
                 eq(Account.builder().id("accountId").build()), eq(timeout), eq(0L));
     }
