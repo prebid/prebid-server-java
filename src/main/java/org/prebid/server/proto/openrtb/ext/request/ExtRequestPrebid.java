@@ -53,7 +53,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.events
      */
-    ExtRequestPrebidEvents events;
+    ObjectNode events;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.schains

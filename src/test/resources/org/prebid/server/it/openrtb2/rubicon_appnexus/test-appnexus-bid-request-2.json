@@ -119,10 +119,7 @@
       "aliases": {
         "appnexusAlias": "appnexus"
       },
-      "events": {
-        "win": "win",
-        "imp": "imp"
-      },
+      "events": {},
       "targeting": {
         "pricegranularity": {
           "precision": 2,
