@@ -1073,6 +1073,7 @@ public class CacheServiceTest extends VertxTest {
                 .type("xml")
                 .bidid("bidId1")
                 .bidder("bidder1")
+                .timestamp(1L)
                 .value(new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>"
                         + "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>"
                         + "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"))
@@ -1081,6 +1082,7 @@ public class CacheServiceTest extends VertxTest {
                 .type("xml")
                 .bidid("bidId2")
                 .bidder("bidder2")
+                .timestamp(1L)
                 .value(new TextNode("VAST"))
                 .build();
 
