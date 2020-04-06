@@ -10,7 +10,7 @@
         "crid": "crid001",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&ts=1000&bidder=sonobi&f=i"
       }
     },
     {
@@ -31,7 +31,7 @@
         ],
         "w": 640,
         "h": 480,
-        "wurl": "http://localhost:8000/event?t=win&b=bid01&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid01&a=publisherId&ts=1000&bidder=sonobi&f=i"
       }
     },
     {

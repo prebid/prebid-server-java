@@ -22,7 +22,7 @@
             ]
           }
         },
-        "wurl": "http://localhost:8000/event?t=win&b=326132363&a=accountId&f=i"
+        "wurl":"http://localhost:8000/event?t=win&b=326132363&a=accountId&ts=1000&bidder=rubicon&f=i"
       }
     },
     {
@@ -50,7 +50,7 @@
             "ranking_price": 0.0
           }
         },
-        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=accountId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=accountId&ts=1000&bidder=appnexus&f=i"
       }
     }
   ]

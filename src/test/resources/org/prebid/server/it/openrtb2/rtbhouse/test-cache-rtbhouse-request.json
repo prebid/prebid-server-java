@@ -12,7 +12,7 @@
         "crid": "12345678",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=randomid&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=randomid&a=publisherId&ts=1000&bidder=rtbhouse&f=i"
       }
     }
   ]

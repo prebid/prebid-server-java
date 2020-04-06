@@ -268,7 +268,8 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "user": {
