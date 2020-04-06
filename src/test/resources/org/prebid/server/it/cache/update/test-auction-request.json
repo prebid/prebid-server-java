@@ -53,7 +53,8 @@
             }
           }
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "regs": {

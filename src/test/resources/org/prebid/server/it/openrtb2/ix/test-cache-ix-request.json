@@ -10,7 +10,7 @@
         "crid": "crid6",
         "w": 300,
         "h": 600,
-        "wurl": "http://localhost:8000/event?t=win&b=975135373&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=975135373&a=publisherId&ts=1000&bidder=ix&f=i"
       }
     },
     {
@@ -23,7 +23,7 @@
         "crid": "crid6",
         "w": 600,
         "h": 480,
-        "wurl": "http://localhost:8000/event?t=win&b=894859517&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=894859517&a=publisherId&ts=1000&bidder=ix&f=i"
       }
     }
   ]

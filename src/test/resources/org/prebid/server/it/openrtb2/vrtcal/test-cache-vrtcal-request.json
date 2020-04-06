@@ -10,7 +10,7 @@
         "crid": "crid001",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=&ts=1000&bidder=vrtcal&f=i"
       }
     }
   ]

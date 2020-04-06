@@ -61,6 +61,11 @@ public class ExtRequestPrebid {
     List<ExtRequestPrebidSchain> schains;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.auctiontimestamp
+     */
+    Long auctiontimestamp;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.bidders
      */
     ObjectNode bidders;

@@ -16,7 +16,7 @@
         "crid": "29681110",
         "h": 250,
         "w": 300,
-        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=test&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=test&ts=1000&bidder=triplelift_native&f=i"
       }
     }
   ]
