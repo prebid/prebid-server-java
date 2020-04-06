@@ -1,25 +1,36 @@
 package org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies;
 
 import com.iabtcf.decoder.TCString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import com.iabtcf.utils.IntIterable;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class NoTypeStrategy extends PurposeTypeStrategy {
 
-    private static final Logger logger = LoggerFactory.getLogger(NoTypeStrategy.class);
-
     public Collection<VendorPermission> allowedByTypeStrategy(
             int purposeId,
-            TCString vendorConsent,
+            TCString tcString,
             Collection<VendorPermission> vendorsForPurpose,
             boolean isEnforceVendors) {
 
-        logger.debug("Basic strategy used fo purpose {0}", purposeId);
-        return isEnforceVendors
-                ? allowedByVendor(vendorConsent, vendorsForPurpose)
-                : vendorsForPurpose;
+        final IntIterable vendorConsent = tcString.getVendorConsent();
+        final IntIterable vendorLIConsent = tcString.getVendorLegitimateInterest();
+
+        return vendorsForPurpose.stream()
+                .filter(vendorPermission -> isAllowedByVendorConsent(vendorPermission.getVendorId(), isEnforceVendors,
+                        vendorConsent, vendorLIConsent))
+                .collect(Collectors.toList());
+    }
+
+    protected boolean isAllowedByVendorConsent(Integer vendorId,
+                                               boolean isEnforceVendors,
+                                               IntIterable vendorConsent,
+                                               IntIterable vendorLIConsent) {
+        if (vendorId == null) {
+            return false;
+        }
+        return !isEnforceVendors || vendorConsent.contains(vendorId) || vendorLIConsent.contains(vendorId);
     }
 }

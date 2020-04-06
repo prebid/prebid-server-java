@@ -215,4 +215,23 @@ public class BasicTypeStrategyTest {
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
     }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeLIAndVendorLIIsAllowedAndVendorIsEnforced() {
+        // given
+        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
+
+        given(allowedVendorsLI.contains(1)).willReturn(true);
+        given(allowedVendors.contains(2)).willReturn(true);
+        given(purposesConsent.contains(PURPOSE_ID)).willReturn(true);
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
+                true);
+
+        // then
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+    }
 }
