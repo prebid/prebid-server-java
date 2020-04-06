@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -24,6 +25,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +46,7 @@ public class TcfDefinerService {
     private final Tcf2Service tcf2Service;
     private final List<String> eeaCountries;
     private final GeoLocationService geoLocationService;
+    private final BidderCatalog bidderCatalog;
     private final Metrics metrics;
 
     public TcfDefinerService(GdprConfig gdprConfig,
@@ -51,13 +54,16 @@ public class TcfDefinerService {
                              GdprService gdprService,
                              Tcf2Service tcf2Service,
                              GeoLocationService geoLocationService,
+                             BidderCatalog bidderCatalog,
                              Metrics metrics) {
+
         this.gdprEnabled = gdprConfig != null && BooleanUtils.isNotFalse(gdprConfig.getEnabled());
         this.gdprDefaultValue = gdprConfig != null ? gdprConfig.getDefaultValue() : null;
         this.gdprService = gdprService;
         this.tcf2Service = tcf2Service;
         this.eeaCountries = eeaCountries;
         this.geoLocationService = geoLocationService;
+        this.bidderCatalog = bidderCatalog;
         this.metrics = metrics;
 
         checkForRequiredServices();
@@ -79,6 +85,7 @@ public class TcfDefinerService {
                                          String gdprConsent,
                                          String ipAddress,
                                          Timeout timeout) {
+
         return resultFor(vendorIds, bidderNames, gdpr, gdprConsent, ipAddress, null, timeout);
     }
 
@@ -90,6 +97,7 @@ public class TcfDefinerService {
                                          String ipAddress,
                                          AccountGdprConfig accountGdprConfig,
                                          Timeout timeout) {
+
         if (isGdprDisabled(gdprEnabled, accountGdprConfig)) {
             return allowAll(vendorIds, bidderNames, null);
         }
@@ -114,13 +122,15 @@ public class TcfDefinerService {
                                                         String ipAddress,
                                                         AccountGdprConfig accountGdprConfig,
                                                         Timeout timeout) {
+
         return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
                 .compose(gdprInfoWithCountry -> distributeGdprResponse(gdprInfoWithCountry, vendorIds, bidderNames,
                         gdprPurposes, accountGdprConfig));
     }
 
-    private Future<GdprInfoWithCountry<String>> toGdprInfo(String gdpr, String gdprConsent, String ipAddress,
-                                                           Timeout timeout) {
+    private Future<GdprInfoWithCountry<String>> toGdprInfo(
+            String gdpr, String gdprConsent, String ipAddress, Timeout timeout) {
+
         // from request param
         final boolean isValidGdpr = gdpr != null && (gdpr.equals(GDPR_ZERO) || gdpr.equals(GDPR_ONE));
         if (isValidGdpr) {
@@ -162,6 +172,7 @@ public class TcfDefinerService {
                                                        Set<String> bidderNames,
                                                        Set<GdprPurpose> gdprPurposes,
                                                        AccountGdprConfig accountGdprConfig) {
+
         final String country = gdprInfo.getCountry();
         if (!inScope(gdprInfo)) {
             return allowAll(vendorIds, bidderNames, country);
@@ -177,18 +188,28 @@ public class TcfDefinerService {
         }
 
         if (tcString.getVersion() == 2) {
-            return tcf2Service.permissionsFor(tcString, vendorIds, bidderNames, gdprPurposes, accountGdprConfig)
-                    .map(vendorPermissions -> toTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
+            return resultFromTcf2(vendorIds, bidderNames, gdprPurposes, accountGdprConfig, country, tcString);
         }
 
-        return gdprService.resultFor(gdprPurposes, vendorIds, bidderNames, gdprInfo)
-                .map(vendorPermissions -> toTcfResponse(vendorIds, bidderNames, vendorPermissions, country));
+        return resultFromGdpr(gdprInfo, vendorIds, bidderNames);
     }
 
-    private static TcfResponse toTcfResponse(Set<Integer> vendorIds,
-                                             Set<String> bidderNames,
-                                             Collection<VendorPermission> vendorPermissions,
-                                             String country) {
+    private Future<TcfResponse> resultFromTcf2(Set<Integer> vendorIds,
+                                               Set<String> bidderNames,
+                                               Set<GdprPurpose> gdprPurposes,
+                                               AccountGdprConfig accountGdprConfig,
+                                               String country,
+                                               TCString tcString) {
+
+        return tcf2Service.permissionsFor(tcString, vendorIds, bidderNames, gdprPurposes, accountGdprConfig)
+                .map(vendorPermissions ->
+                        tcf2ResponseToTcfResponse(vendorPermissions, vendorIds, bidderNames, country));
+    }
+
+    private static TcfResponse tcf2ResponseToTcfResponse(Collection<VendorPermission> vendorPermissions,
+                                                         Set<Integer> vendorIds,
+                                                         Set<String> bidderNames,
+                                                         String country) {
 
         final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = new HashMap<>();
         final Map<String, PrivacyEnforcementAction> bidderNameToGdpr = new HashMap<>();
@@ -208,6 +229,73 @@ public class TcfDefinerService {
         return TcfResponse.of(true, vendorIdToGdpr, bidderNameToGdpr, country);
     }
 
+    /**
+     * Here is a hint to what is going on here.
+     * <p>
+     * {@link GdprService} knows about vendorIds only and doesn't work with bidder names. That's why it's necessary
+     * to resolve vendorId of each bidder name to pass them (vendorIds) all to {@link GdprService} and perform reverse
+     * conversion afterwards, i.e. group returned {@link PrivacyEnforcementAction}s by whether they have been
+     * requested by vendorId or bidder name (or both) - this is done in
+     * {@link #gdprResponseToTcfResponse(Collection, Set, Map, String)} method.
+     */
+    private Future<TcfResponse> resultFromGdpr(GdprInfoWithCountry<String> gdprInfo,
+                                               Set<Integer> vendorIds,
+                                               Set<String> bidderNames) {
+
+        final Map<String, Integer> bidderToVendorId = resolveBidderToVendorId(bidderNames);
+
+        return gdprService.resultFor(combineVendorIds(vendorIds, bidderToVendorId), gdprInfo.getConsent())
+                .map(vendorPermissions -> gdprResponseToTcfResponse(
+                        vendorPermissions, vendorIds, bidderToVendorId, gdprInfo.getCountry()));
+    }
+
+    private Map<String, Integer> resolveBidderToVendorId(Set<String> bidderNames) {
+        final Map<String, Integer> bidderToVendorId = new HashMap<>();
+        for (final String bidderName : bidderNames) {
+            final Integer vendorId =
+                    bidderCatalog.isActive(bidderName) ? bidderCatalog.vendorIdByName(bidderName) : null;
+            bidderToVendorId.put(bidderName, vendorId);
+        }
+        return bidderToVendorId;
+    }
+
+    private static Set<Integer> combineVendorIds(Set<Integer> vendorIds, Map<String, Integer> bidderToVendorId) {
+        final Set<Integer> combinedVendorIds = new HashSet<>(vendorIds);
+        bidderToVendorId.values().stream().filter(Objects::nonNull).forEach(combinedVendorIds::add);
+        return combinedVendorIds;
+    }
+
+    private static TcfResponse gdprResponseToTcfResponse(Collection<VendorPermission> vendorPermissions,
+                                                         Set<Integer> originalVendorIds,
+                                                         Map<String, Integer> bidderToVendorId,
+                                                         String country) {
+
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = new HashMap<>();
+        final Map<String, PrivacyEnforcementAction> bidderNameToAction = new HashMap<>();
+
+        final Map<Integer, String> vendorIdToBidder = reverseMap(bidderToVendorId);
+
+        for (VendorPermission vendorPermission : vendorPermissions) {
+            final Integer vendorId = vendorPermission.getVendorId();
+
+            if (originalVendorIds.contains(vendorId)) {
+                vendorIdToAction.put(vendorId, vendorPermission.getPrivacyEnforcementAction());
+            }
+
+            if (vendorIdToBidder.containsKey(vendorId)) {
+                bidderNameToAction.put(vendorIdToBidder.get(vendorId), vendorPermission.getPrivacyEnforcementAction());
+            }
+        }
+
+        // process bidders whose vendorIds weren't resolved
+        bidderToVendorId.entrySet().stream()
+                .filter(entry -> entry.getValue() == null)
+                .map(Map.Entry::getKey)
+                .forEach(bidder -> bidderNameToAction.put(bidder, restrictAllButAnalyticsAndAuction()));
+
+        return TcfResponse.of(true, vendorIdToAction, bidderNameToAction, country);
+    }
+
     private static Future<TcfResponse> allowAll(Set<Integer> vendorIds, Set<String> bidderNames, String country) {
         return Future.succeededFuture(TcfResponse.of(false, allowAll(vendorIds), allowAll(bidderNames), country));
     }
@@ -219,6 +307,24 @@ public class TcfDefinerService {
 
     private static boolean inScope(GdprInfoWithCountry<?> gdprInfo) {
         return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
+    }
+
+    private static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
+        return map.entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, (first, second) -> first));
+    }
+
+    private static PrivacyEnforcementAction restrictAllButAnalyticsAndAuction() {
+        return PrivacyEnforcementAction.builder()
+                .removeUserBuyerUid(true)
+                .maskGeo(true)
+                .maskDeviceIp(true)
+                .maskDeviceInfo(true)
+                .blockAnalyticsReport(false)
+                .blockBidderRequest(false)
+                .blockPixelSync(true)
+                .build();
     }
 
     static class TCStringEmpty implements TCString {

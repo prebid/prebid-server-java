@@ -27,4 +27,3 @@ public class TcfResponse {
      */
     String country;
 }
-

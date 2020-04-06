@@ -45,10 +45,10 @@ import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeFourStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeSevenStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeTwoStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeOneStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeSevenStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeTwoStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
@@ -394,17 +394,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    GdprService gdprService(
-            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            @Value("${gdpr.default-value}") String defaultValue,
-            @Autowired(required = false) GeoLocationService geoLocationService,
-            BidderCatalog bidderCatalog,
-            Metrics metrics,
-            VendorListServiceV1 vendorListServiceV1) {
-
-        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, bidderCatalog,
-                vendorListServiceV1);
+    GdprService gdprService(VendorListServiceV1 vendorListServiceV1) {
+        return new GdprService(vendorListServiceV1);
     }
 
     @Bean
@@ -459,10 +450,13 @@ public class ServiceConfiguration {
             GdprService gdprService,
             Tcf2Service tcf2Service,
             @Autowired(required = false) GeoLocationService geoLocationService,
+            BidderCatalog bidderCatalog,
             Metrics metrics) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new TcfDefinerService(gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, metrics);
+
+        return new TcfDefinerService(
+                gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
     }
 
     @Bean

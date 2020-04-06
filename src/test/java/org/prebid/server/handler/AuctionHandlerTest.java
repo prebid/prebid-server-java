@@ -36,8 +36,9 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
-import org.prebid.server.privacy.gdpr.GdprService;
-import org.prebid.server.privacy.gdpr.model.GdprResponse;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -112,7 +113,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private Clock clock;
     @Mock
-    private GdprService gdprService;
+    private TcfDefinerService tcfDefinerService;
     private PrivacyExtractor privacyExtractor;
 
     private AuctionHandler auctionHandler;
@@ -151,8 +152,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, emptyMap(), null)));
+        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), emptyMap(), null)));
 
         privacyExtractor = new PrivacyExtractor(jacksonMapper);
 
@@ -164,7 +165,7 @@ public class AuctionHandlerTest extends VertxTest {
                 metrics,
                 httpAdapterConnector,
                 clock,
-                gdprService,
+                tcfDefinerService,
                 privacyExtractor,
                 jacksonMapper,
                 null,
@@ -757,8 +758,12 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
-        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, false), null)));
+        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(
+                        true,
+                        singletonMap(1, actionWithUserSync(true)),
+                        emptyMap(),
+                        null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -783,12 +788,16 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
-        final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
-        vendorsToGdpr.put(1, true); // host vendor id from app config
-        vendorsToGdpr.put(15, true); // Rubicon bidder
-        vendorsToGdpr.put(20, false); // Appnexus bidder
-        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorsToGdpr, null)));
+        final Map<Integer, PrivacyEnforcementAction> vendorToAction = new HashMap<>();
+        vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
+        vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
+        vendorToAction.put(20, actionWithUserSync(true)); // Appnexus bidder
+        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(
+                        true,
+                        vendorToAction,
+                        emptyMap(),
+                        null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -813,11 +822,15 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith1AdUnitAndOneBid(identity());
 
-        final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
-        vendorsToGdpr.put(1, true); // host vendor id from app config
-        vendorsToGdpr.put(15, true); // Rubicon bidder
-        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorsToGdpr, null)));
+        final Map<Integer, PrivacyEnforcementAction> vendorToAction = new HashMap<>();
+        vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
+        vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
+        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(
+                        true,
+                        vendorToAction,
+                        emptyMap(),
+                        null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -832,8 +845,10 @@ public class AuctionHandlerTest extends VertxTest {
                 cacheService,
                 metrics,
                 httpAdapterConnector,
-                clock, gdprService,
-                privacyExtractor, jacksonMapper,
+                clock,
+                tcfDefinerService,
+                privacyExtractor,
+                jacksonMapper,
                 1,
                 false);
 
@@ -917,5 +932,9 @@ public class AuctionHandlerTest extends VertxTest {
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
         return new BidderInfo(true, null, null, null,
                 new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), false);
+    }
+
+    private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {
+        return PrivacyEnforcementAction.builder().blockPixelSync(blockPixelSync).build();
     }
 }
