@@ -11,7 +11,7 @@ import java.util.Map;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtCurrency {
+public class ExtRequestCurrency {
     /**
      * Defines the contract for bidrequest.ext.prebid.currency.rates
      */

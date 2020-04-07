@@ -33,7 +33,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.currency
      */
-    ExtCurrency currency;
+    ExtRequestCurrency currency;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting

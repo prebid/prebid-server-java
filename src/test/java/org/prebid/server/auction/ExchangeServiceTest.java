@@ -53,7 +53,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -319,7 +319,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()))),
                 builder -> builder
                         .id("requestId")
-                        .ext(mapper.valueToTree(ExtRequestPrebid.builder().currency(ExtCurrency.of(currencyRates))
+                        .ext(mapper.valueToTree(ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates))
                                 .build()))
                         .tmax(500L));
 
@@ -338,7 +338,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
-                .ext(mapper.valueToTree(ExtRequestPrebid.builder().currency(ExtCurrency.of(currencyRates)).build()))
+                .ext(mapper.valueToTree(ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
                 .tmax(500L)
                 .build());
     }
