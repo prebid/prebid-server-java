@@ -209,6 +209,14 @@ public class ExchangeService {
     }
 
     /**
+     * Extracts {@link ExtCurrency} from {@link ExtBidRequest} model.
+     */
+    private static ExtCurrency currency(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        return prebid != null ? prebid.getCurrency() : null;
+    }
+
+    /**
      * Creates {@link BidRequestCacheInfo} based on {@link ExtBidRequest} model.
      */
     private BidRequestCacheInfo bidRequestCacheInfo(ExtRequestTargeting targeting, ExtBidRequest requestExt) {
@@ -748,14 +756,6 @@ public class ExchangeService {
      */
     private static Map<String, Map<String, BigDecimal>> currencyRates(ExtCurrency currency) {
         return currency != null ? currency.getRates() : null;
-    }
-
-    /**
-     * Extracts {@link ExtCurrency} from {@link ExtBidRequest} model.
-     */
-    private static ExtCurrency currency(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        return prebid != null ? prebid.getCurrency() : null;
     }
 
     /**
