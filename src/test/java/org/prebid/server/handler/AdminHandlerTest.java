@@ -131,4 +131,3 @@ public class AdminHandlerTest extends VertxTest {
         verify(adminManager).setupByCounter(eq(AdminManager.ADMIN_COUNTER_KEY), eq(123), any(), any());
     }
 }
-

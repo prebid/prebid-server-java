@@ -345,8 +345,8 @@ public class AmpHandlerTest extends VertxTest {
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
         given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponse(
-                        mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, targeting, null, null, null, null), null))));
+                .willReturn(givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(
+                        null, targeting, null, null, null, null), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -400,8 +400,8 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("Content-Type", "application/json"));
-        verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\"," +
-                "\"hb_cache_id_bidder1\":\"value2\"}}"));
+        verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
+                + "\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
 
     @Test
@@ -414,15 +414,15 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null))));
+                                null, 1000L))));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq(
-                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1," +
-                        "\"tmax\":1000}}}"));
+                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,"
+                        + "\"tmax\":5000}}}"));
     }
 
     @Test
@@ -437,14 +437,14 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null))));
+                                null, 1000L))));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
         verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":1000,"
+                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000,"
                         + "\"ext\":{\"prebid\":{\"debug\":1}}}}}"));
     }
 
@@ -494,8 +494,8 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        httpRequest.headers().add(HttpUtil.USER_AGENT_HEADER, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
-                "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
+        httpRequest.headers().add(HttpUtil.USER_AGENT_HEADER, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) "
+                + "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
 
         // when
         ampHandler.handle(routingContext);
@@ -758,7 +758,7 @@ public class AmpHandlerTest extends VertxTest {
     private AuctionContext givenAuctionContext(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
-                .imp(emptyList()).tmax(1000L)).build();
+                .imp(emptyList()).tmax(5000L)).build();
 
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)

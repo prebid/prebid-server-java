@@ -17,6 +17,10 @@ public class NotificationEvent {
 
     Account account;
 
+    String bidder;
+
+    Long timestamp;
+
     HttpContext httpContext;
 
     public enum Type {

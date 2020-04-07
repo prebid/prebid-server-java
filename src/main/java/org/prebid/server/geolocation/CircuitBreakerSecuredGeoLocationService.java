@@ -60,6 +60,6 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     @Override
     public Future<GeoInfo> lookup(String ip, Timeout timeout) {
-        return breaker.execute(future -> geoLocationService.lookup(ip, timeout).setHandler(future));
+        return breaker.execute(promise -> geoLocationService.lookup(ip, timeout).setHandler(promise));
     }
 }

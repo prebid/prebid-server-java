@@ -3,10 +3,10 @@ package org.prebid.server.util;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
@@ -149,8 +149,8 @@ public final class HttpUtil {
     }
 
     public static Map<String, String> cookiesAsMap(RoutingContext context) {
-        return context.cookies().stream()
-                .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
+        return context.cookieMap().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
     }
 
     public static String toSetCookieHeaderValue(Cookie cookie) {

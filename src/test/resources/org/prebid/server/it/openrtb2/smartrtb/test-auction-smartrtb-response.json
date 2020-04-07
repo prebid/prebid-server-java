@@ -1,12 +1,5 @@
 {
   "cur": "USD",
-  "ext": {
-    "responsetimemillis": {
-      "cache": "{{ cache.response_time_ms }}",
-      "smartrtb": "{{ smartrtb.response_time_ms }}"
-    },
-    "tmaxrequest": 3000
-  },
   "id": "tid",
   "seatbid": [
     {
@@ -46,5 +39,13 @@
       "group": 0,
       "seat": "smartrtb"
     }
-  ]
+  ],
+  "ext": {
+    "responsetimemillis": {
+      "cache": "{{ cache.response_time_ms }}",
+      "smartrtb": "{{ smartrtb.response_time_ms }}"
+    },
+    "auctiontimestamp": 1000,
+    "tmaxrequest": 5000
+  }
 }

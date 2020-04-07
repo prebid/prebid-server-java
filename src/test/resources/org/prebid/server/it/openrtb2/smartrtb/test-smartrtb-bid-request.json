@@ -20,17 +20,17 @@
           "ttlseconds": 120
         }
       },
-      "targeting": {
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
           }
-        },
+        }
+      },
+      "targeting": {
         "includebidderkeys": true,
         "includewinners": true,
         "pricegranularity": {
@@ -42,7 +42,8 @@
             }
           ]
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "id": "tid",
@@ -110,7 +111,7 @@
     "fd": 1,
     "tid": "tid"
   },
-  "tmax": 3000,
+  "tmax": 5000,
   "user": {
     "ext": {
       "consent": "consentValue",

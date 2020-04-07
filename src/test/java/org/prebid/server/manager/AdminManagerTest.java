@@ -11,9 +11,8 @@ import org.mockito.junit.MockitoRule;
 import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
-
+import static org.mockito.Mockito.verify;
 
 public class AdminManagerTest {
 
@@ -22,7 +21,7 @@ public class AdminManagerTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    AdminManager adminManager;
+    private AdminManager adminManager;
 
     @Mock
     Logger logger;
@@ -90,5 +89,4 @@ public class AdminManagerTest {
         verify(logger, times(10)).info("Text");
         verify(logger, times(5)).info("Done Text");
     }
-
 }

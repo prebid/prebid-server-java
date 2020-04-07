@@ -14,10 +14,11 @@ public class PutObject {
 
     Integer expiry;
 
-    String bidid;
-
-    String bidder;
-
     Integer ttlseconds;
-}
 
+    String bidid; // this is "/vtrack" specific
+
+    String bidder; // this is "/vtrack" specific
+
+    Long timestamp; // this is "/vtrack" specific
+}

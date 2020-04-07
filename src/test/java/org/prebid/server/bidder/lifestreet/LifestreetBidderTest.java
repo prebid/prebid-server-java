@@ -299,7 +299,6 @@ public class LifestreetBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
-
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(lifestreetBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());

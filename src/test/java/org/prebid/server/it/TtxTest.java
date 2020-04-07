@@ -24,17 +24,17 @@ public class TtxTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFrom33Across() throws IOException, JSONException {
         // given
         // 33Across bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/ttx-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ttx-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ttx/test-ttx-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ttx/test-ttx-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ttx/test-cache-ttx-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ttx/test-cache-ttx-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
