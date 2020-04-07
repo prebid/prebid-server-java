@@ -14,7 +14,9 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -27,9 +29,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.spring.config.bidder.model.BidderAccount;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,12 +51,15 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
-    private final List<BidderAccount> bidderAccounts;
+    private final Map<String, PublisherOverride> publisherIdToOverride;
 
-    public BrightrollBidder(String endpointUrl, JacksonMapper mapper, List<BidderAccount> bidderAccounts) {
+    public BrightrollBidder(String endpointUrl,
+                            JacksonMapper mapper,
+                            Map<String, PublisherOverride> publisherIdToOverride) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-        this.bidderAccounts = Objects.requireNonNull(bidderAccounts);
+        this.publisherIdToOverride = Objects.requireNonNull(publisherIdToOverride);
     }
 
     /**
@@ -131,20 +134,16 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         // Defaulting to first price auction for all prebid requests
         builder.at(1);
 
-        final BidderAccount bidderAccount = bidderAccounts.stream()
-                .filter(Objects::nonNull)
-                .filter(account -> Objects.equals(firstImpExtPublisher, account.getId()))
-                .findAny()
-                .orElse(null);
+        final PublisherOverride publisherOverride = publisherIdToOverride.get(firstImpExtPublisher);
 
-        if (bidderAccount != null) {
-            builder.bcat(bidderAccount.getBcat())
-                    .badv(bidderAccount.getBadv());
+        if (publisherOverride != null) {
+            builder.bcat(publisherOverride.getBcat())
+                    .badv(publisherOverride.getBadv());
         }
 
         builder.imp(bidRequest.getImp().stream()
                 .filter(imp -> isImpValid(imp, errors))
-                .map(imp -> updateImp(imp, bidderAccount))
+                .map(imp -> updateImp(imp, publisherOverride))
                 .collect(Collectors.toList()));
 
         return builder.build();
@@ -166,7 +165,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     /**
      * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
-    private Imp updateImp(Imp imp, BidderAccount bidderAccount) {
+    private Imp updateImp(Imp imp, PublisherOverride publisherOverride) {
         final Banner banner = imp.getBanner();
         if (banner != null) {
             final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
@@ -177,18 +176,18 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                         .w(firstFormat.getW())
                         .h(firstFormat.getH());
             }
-            if (bidderAccount != null) {
-                bannerBuilder.battr(bidderAccount.getImpBattr());
+            if (publisherOverride != null) {
+                bannerBuilder.battr(publisherOverride.getImpBattr());
             }
             return imp.toBuilder()
                     .banner(bannerBuilder.build())
                     .build();
         }
         final Video video = imp.getVideo();
-        if (video != null && bidderAccount != null) {
+        if (video != null && publisherOverride != null) {
             return imp.toBuilder()
                     .video(video.toBuilder()
-                            .battr(bidderAccount.getImpBattr())
+                            .battr(publisherOverride.getImpBattr())
                             .build())
                     .build();
         }

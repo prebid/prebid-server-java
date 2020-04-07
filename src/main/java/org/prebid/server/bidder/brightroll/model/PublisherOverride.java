@@ -1,18 +1,13 @@
-package org.prebid.server.spring.config.bidder.model;
+package org.prebid.server.bidder.brightroll.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class BidderAccount {
-
-    private String id;
-
+@Value
+@AllArgsConstructor(staticName = "of")
+public class PublisherOverride {
     /**
      * Blocked advertisers.
      */

@@ -17,6 +17,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -28,7 +29,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.spring.config.bidder.model.BidderAccount;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
@@ -39,6 +39,7 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -53,9 +54,9 @@ public class BrightrollBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final List<BidderAccount> bidderAccounts = singletonList(
-                new BidderAccount("testPublisher", BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
-        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, bidderAccounts);
+        final Map<String, PublisherOverride> publisherIdToOverride = singletonMap("testPublisher",
+                PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, publisherIdToOverride);
     }
 
     @Test

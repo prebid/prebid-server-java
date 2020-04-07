@@ -38,7 +38,5 @@ public class BidderConfigurationProperties {
     @NotNull
     private UsersyncConfigurationProperties usersync;
 
-    private List<BidderAccount> accounts;
-
     private Map<String, String> extraInfo;
 }
