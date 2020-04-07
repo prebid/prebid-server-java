@@ -56,6 +56,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -150,6 +151,12 @@ public class ExchangeServiceTest extends VertxTest {
     private ExchangeService exchangeService;
 
     private Timeout timeout;
+
+    private static final String GBP = "GBP";
+
+    private static final String EUR = "EUR";
+
+    private static final String UAH = "UAH";
 
     @SuppressWarnings("unchecked")
     @Before
@@ -292,6 +299,47 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
+                .tmax(500L)
+
+                .build());
+    }
+
+    @Test
+    public void shouldExtractRequestWithCurrencyRatesExtension() {
+        // given
+        givenBidder(givenEmptySeatBid());
+        final Map<String, Map<String, BigDecimal>> currencyRates = new HashMap<>();
+        currencyRates.put(GBP, singletonMap(EUR, BigDecimal.valueOf(1.15)));
+        currencyRates.put(UAH, singletonMap(EUR, BigDecimal.valueOf(1.1565)));
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()))),
+                builder -> builder
+                        .id("requestId")
+                        .ext(mapper.valueToTree(
+                                ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
+                        .tmax(500L));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+        assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
+                .id("requestId")
+                .cur(singletonList("USD"))
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
+                        .build()))
+                .ext(mapper.valueToTree(
+                        ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
                 .tmax(500L)
                 .build());
     }

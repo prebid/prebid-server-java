@@ -59,6 +59,16 @@
   },
   "ext": {
     "prebid": {
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -68,16 +78,6 @@
               "increment": 0.1
             }
           ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
         }
       },
       "cache": {
