@@ -106,6 +106,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private RoutingContext routingContext;
     @Mock
+    private HttpServerRequest httpRequest;
+    @Mock
     private TimeoutResolver timeoutResolver;
     @Mock
     private TimeoutFactory timeoutFactory;
@@ -113,6 +115,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Before
     public void setUp() {
         given(interstitialProcessor.process(any())).will(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -189,10 +194,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
-        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
-        given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
         factory = new AuctionRequestFactory(
                 1000,
                 true,
@@ -415,6 +416,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .site(Site.builder().domain("home.com").build())
                 .build());
 
+        given(paramsExtractor.refererFrom(any())).willReturn("http://not-valid-site");
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
@@ -1250,10 +1252,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAuctionContextWithEmptyAccountIfNotFound() {
         // given
-        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
-        given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
@@ -1275,7 +1273,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccured() {
+    public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccurred() {
         // given
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()

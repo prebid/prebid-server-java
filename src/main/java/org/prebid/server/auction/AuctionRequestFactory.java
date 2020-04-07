@@ -31,6 +31,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -69,6 +70,7 @@ import java.util.stream.StreamSupport;
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -658,19 +660,9 @@ public class AuctionRequestFactory {
         }
 
         return blankAccountId
-                ? responseToMissingAccount(accountId)
+                ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId), routingContext));
-    }
-
-    /**
-     * Returns response depending on enforceValidAccount flag.
-     */
-    private Future<Account> responseToMissingAccount(String accountId) {
-        return enforceValidAccount
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Unauthorised account id %s", accountId), accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
+                .recover(exception -> accountFallback(exception, accountId, routingContext));
     }
 
     /**
@@ -716,20 +708,35 @@ public class AuctionRequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    /**
-     * Log any not {@link PreBidException} errors. Returns response provided in method parameters.
-     */
-    private static Future<Account> accountFallback(Throwable exception, Future<Account> response,
-                                                   RoutingContext routingContext) {
+    private Future<Account> responseForEmptyAccount(RoutingContext routingContext) {
+        conditionalLogger.warn(accountErrorMessage("Account not specified", routingContext), 100);
+        return responseForUnknownAccount(StringUtils.EMPTY);
+    }
+
+    private static String accountErrorMessage(String message, RoutingContext routingContext) {
+        final HttpServerRequest request = routingContext.request();
+        return String.format("%s, Url: %s and Referer: %s", message, request.absoluteURI(),
+                request.headers().get(HttpUtil.REFERER_HEADER));
+    }
+
+    private Future<Account> accountFallback(Throwable exception, String accountId,
+                                            RoutingContext routingContext) {
         if (exception instanceof PreBidException) {
-            // log additional details for unknown account
-            logger.warn("{0}, Referer: {1}", exception.getMessage(),
-                    routingContext.request().headers().get(HttpUtil.REFERER_HEADER));
+            conditionalLogger.warn(accountErrorMessage(exception.getMessage(), routingContext), 100);
         } else {
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
-        return response;
+
+        // hide all errors occurred while fetching account
+        return responseForUnknownAccount(accountId);
+    }
+
+    private Future<Account> responseForUnknownAccount(String accountId) {
+        return enforceValidAccount
+                ? Future.failedFuture(new UnauthorizedAccountException(
+                String.format("Unauthorised account id %s", accountId), accountId))
+                : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**
