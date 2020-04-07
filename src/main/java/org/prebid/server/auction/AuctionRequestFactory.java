@@ -721,9 +721,12 @@ public class AuctionRequestFactory {
      */
     private static Future<Account> accountFallback(Throwable exception, Future<Account> response,
                                                    RoutingContext routingContext) {
-        if (!(exception instanceof PreBidException)) {
-            logger.warn("Error occurred while fetching account: {0}, Referer: {1}", exception.getMessage(),
+        if (exception instanceof PreBidException) {
+            // log additional details for unknown account
+            logger.warn("{0}, Referer: {1}", exception.getMessage(),
                     routingContext.request().headers().get(HttpUtil.REFERER_HEADER));
+        } else {
+            logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
         return response;

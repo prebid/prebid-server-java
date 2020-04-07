@@ -189,6 +189,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
+        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
         factory = new AuctionRequestFactory(
                 1000,
@@ -1247,6 +1250,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAuctionContextWithEmptyAccountIfNotFound() {
         // given
+        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
@@ -1270,10 +1277,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccured() {
         // given
-        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
-        given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId").build())
@@ -1315,13 +1318,13 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private void givenBidRequest(BidRequest bidRequest) {
         try {
             given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsString(bidRequest)));
-
-            given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
-
-            given(requestValidator.validate(any())).willReturn(ValidationResult.success());
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
+
+        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
+
+        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
     }
 
     private void givenValidBidRequest() {
