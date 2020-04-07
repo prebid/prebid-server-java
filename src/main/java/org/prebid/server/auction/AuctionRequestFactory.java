@@ -487,7 +487,6 @@ public class AuctionRequestFactory {
                     .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
                     .mediatypepricegranularity(targeting.getMediatypepricegranularity())
-                    .currency(targeting.getCurrency())
                     .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())

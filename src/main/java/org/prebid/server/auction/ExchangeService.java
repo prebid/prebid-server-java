@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -161,7 +162,7 @@ public class ExchangeService {
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest,
                                 auctionTimeout(timeout, cacheInfo.isDoCaching()), debugEnabled, aliases,
-                                bidAdjustments(requestExt), currencyRates(targeting)))
+                                bidAdjustments(requestExt), currencyRates(requestExt)))
                         .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
@@ -170,6 +171,8 @@ public class ExchangeService {
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
+                        bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
+                                auctionTimestamp(requestExt), debugEnabled))
                         bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account,
                                 eventsEnabled, timeout, auctionTimestamp, debugEnabled))
                 .compose(bidResponse ->
@@ -765,6 +768,15 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
+    }
+
+    /**
+     * Extracts currency rates from {@link ExtBidRequest}.
+     */
+    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getRates() : null;
     }
 
     /**
