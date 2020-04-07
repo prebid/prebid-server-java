@@ -2,6 +2,7 @@ package org.prebid.server.log;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.logging.Logger;
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -15,12 +16,14 @@ public class ConditionalLogger {
     private static final int CACHE_MAXIMUM_SIZE = 10_000;
     private static final int EXPIRE_CACHE_DURATION = 1;
 
+    private final String key;
     private final Logger logger;
 
     private ConcurrentMap<String, AtomicInteger> messageToCount;
     private ConcurrentMap<String, Long> messageToWait;
 
-    public ConditionalLogger(Logger logger) {
+    public ConditionalLogger(String key, Logger logger) {
+        this.key = key; // can be null
         this.logger = Objects.requireNonNull(logger);
 
         messageToCount = Caffeine.newBuilder()
@@ -34,6 +37,10 @@ public class ConditionalLogger {
                 .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
                 .<String, Long>build()
                 .asMap();
+    }
+
+    public ConditionalLogger(Logger logger) {
+        this(null, logger);
     }
 
     public void info(String message, int limit) {
@@ -72,7 +79,8 @@ public class ConditionalLogger {
      * Calls {@link Consumer} if the given limit for specified key is not exceeded.
      */
     private void log(String key, int limit, Consumer<Logger> consumer) {
-        final AtomicInteger count = messageToCount.computeIfAbsent(key, ignored -> new AtomicInteger());
+        final String resolvedKey = ObjectUtils.defaultIfNull(this.key, key);
+        final AtomicInteger count = messageToCount.computeIfAbsent(resolvedKey, ignored -> new AtomicInteger());
         if (count.incrementAndGet() >= limit) {
             count.set(0);
             consumer.accept(logger);
@@ -84,10 +92,11 @@ public class ConditionalLogger {
      */
     private void log(String key, long duration, TimeUnit unit, Consumer<Logger> consumer) {
         final long currentTime = Instant.now().toEpochMilli();
-        final long endTime = messageToWait.computeIfAbsent(key, ignored -> calculateEndTime(duration, unit));
+        final String resolvedKey = ObjectUtils.defaultIfNull(this.key, key);
+        final long endTime = messageToWait.computeIfAbsent(resolvedKey, ignored -> calculateEndTime(duration, unit));
 
         if (currentTime >= endTime) {
-            messageToWait.replace(key, endTime, calculateEndTime(duration, unit));
+            messageToWait.replace(resolvedKey, endTime, calculateEndTime(duration, unit));
             consumer.accept(logger);
         }
     }

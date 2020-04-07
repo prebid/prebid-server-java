@@ -70,7 +70,8 @@ import java.util.stream.StreamSupport;
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
-    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+    private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
+    private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -709,7 +710,7 @@ public class AuctionRequestFactory {
     }
 
     private Future<Account> responseForEmptyAccount(RoutingContext routingContext) {
-        conditionalLogger.warn(accountErrorMessage("Account not specified", routingContext), 100);
+        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", routingContext), 100);
         return responseForUnknownAccount(StringUtils.EMPTY);
     }
 
@@ -722,7 +723,7 @@ public class AuctionRequestFactory {
     private Future<Account> accountFallback(Throwable exception, String accountId,
                                             RoutingContext routingContext) {
         if (exception instanceof PreBidException) {
-            conditionalLogger.warn(accountErrorMessage(exception.getMessage(), routingContext), 100);
+            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), routingContext), 100);
         } else {
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
