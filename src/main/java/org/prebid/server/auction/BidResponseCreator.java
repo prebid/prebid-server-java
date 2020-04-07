@@ -108,9 +108,8 @@ public class BidResponseCreator {
      */
     Future<BidResponse> create(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo,
-                               Account account, Timeout timeout, long auctionTimestamp, boolean debugEnabled) {
-                               ExtRequestTargeting targeting, BidRequestCacheInfo cacheInfo, Account account,
-                               boolean eventsFromRequestEnabled, Timeout timeout, boolean debugEnabled) {
+                               Account account, boolean eventsFromRequestEnabled, Timeout timeout,
+                               long auctionTimestamp, boolean debugEnabled) {
 
         final Future<BidResponse> result;
 
@@ -142,8 +141,7 @@ public class BidResponseCreator {
                     .compose(cacheResult -> videoStoredDataResult(bidRequest.getImp(), timeout)
                             .map(videoStoredDataResult -> toBidResponse(bidderResponses, bidRequest, targeting,
                                     winningBids, winningBidsByBidder, cacheInfo, cacheResult, videoStoredDataResult,
-                                    account, eventsFromRequestEnabled, debugEnabled)));
-                                    account, auctionTimestamp, debugEnabled)));
+                                    account, eventsFromRequestEnabled, auctionTimestamp, debugEnabled)));
         }
 
         return result;
@@ -513,16 +511,14 @@ public class BidResponseCreator {
             List<BidderResponse> bidderResponses, BidRequest bidRequest, ExtRequestTargeting targeting,
             Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
             CacheServiceResult cacheResult, VideoStoredDataResult videoStoredDataResult, Account account,
-            boolean eventsFromRequestEnabled, boolean debugEnabled) {
-            long auctionTimestamp, boolean debugEnabled) {
+            boolean eventsFromRequestEnabled, long auctionTimestamp, boolean debugEnabled) {
 
         final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest, winningBids,
                         winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), videoStoredDataResult, account,
-                        bidErrors, auctionTimestamp))
-                        eventsFromRequestEnabled, bidErrors))
+                        eventsFromRequestEnabled, bidErrors, auctionTimestamp))
                 .collect(Collectors.toList());
 
         final ExtBidResponse extBidResponse =
@@ -582,17 +578,14 @@ public class BidResponseCreator {
                               Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
                               Map<Bid, CacheIdInfo> cachedBids, VideoStoredDataResult videoStoredDataResult,
                               Account account, boolean eventsFromRequestEnabled,
-                              Map<String, List<ExtBidderError>> bidErrors) {
-                              Account account, Map<String, List<ExtBidderError>> bidErrors, long auctionTimestamp) {
+                              Map<String, List<ExtBidderError>> bidErrors, long auctionTimestamp) {
 
         final String bidder = bidderResponse.getBidder();
 
         final List<Bid> bids = bidderResponse.getSeatBid().getBids().stream()
                 .map(bidderBid -> toBid(bidderBid, bidder, targeting, bidRequest, winningBids, winningBidsByBidder,
                         cacheInfo, cachedBids, videoStoredDataResult.getImpIdToStoredVideo(), account,
-                        eventsFromRequestEnabled, bidErrors))
-                        cacheInfo, cachedBids, videoStoredDataResult.getImpIdToStoredVideo(), account, bidErrors,
-                        auctionTimestamp))
+                        eventsFromRequestEnabled, auctionTimestamp, bidErrors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -609,9 +602,8 @@ public class BidResponseCreator {
     private Bid toBid(BidderBid bidderBid, String bidder, ExtRequestTargeting targeting, BidRequest bidRequest,
                       Set<Bid> winningBids, Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
                       Map<Bid, CacheIdInfo> bidsWithCacheIds, Map<String, Video> impIdToStoredVideo, Account account,
-                      boolean eventsFromRequestEnabled, Map<String, List<ExtBidderError>> bidErrors) {
-                      Map<Bid, CacheIdInfo> bidsWithCacheIds, Map<String, Video> impIdToStoredVideo,
-                      Account account, Map<String, List<ExtBidderError>> bidErrors, long auctionTimestamp) {
+                      boolean eventsFromRequestEnabled, long auctionTimestamp,
+                      Map<String, List<ExtBidderError>> bidErrors) {
 
         final Bid bid = bidderBid.getBid();
         final BidType bidType = bidderBid.getType();
@@ -648,8 +640,6 @@ public class BidResponseCreator {
                     keywordsCreatorByBidType(targeting, isApp);
             final boolean isWinningBid = winningBids.contains(bid);
             final String winUrl = eventsEnabled && eventsFromRequestEnabled && bidType != BidType.video
-                    ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(account.getId()))
-            final String winUrl = eventsEnabled && bidType != BidType.video
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(bidder, account.getId(), auctionTimestamp))
                     : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
@@ -664,9 +654,7 @@ public class BidResponseCreator {
         }
 
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
-        final Events events = eventsEnabled && eventsFromRequestEnabled ? eventsService.createEvent(bid.getId(),
-                account.getId()) : null;
-        final Events events = eventsEnabled
+        final Events events = eventsEnabled && eventsFromRequestEnabled
                 ? eventsService.createEvent(bid.getId(), bidder, account.getId(), auctionTimestamp)
                 : null;
 
