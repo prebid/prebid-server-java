@@ -117,7 +117,8 @@ public class GdprServiceTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, action(true, false)));
+        assertThat(future.result()).asList().containsOnly(
+                VendorPermission.of(1, null, action(true, false)));
     }
 
     @Test
@@ -131,7 +132,8 @@ public class GdprServiceTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, action(true, true)));
+        assertThat(future.result()).asList().containsOnly(
+                VendorPermission.of(1, null, action(true, true)));
     }
 
     @Test
@@ -145,7 +147,8 @@ public class GdprServiceTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, action(false, true)));
+        assertThat(future.result()).asList().containsOnly(
+                VendorPermission.of(1, null, action(false, true)));
     }
 
     @Test
@@ -159,7 +162,8 @@ public class GdprServiceTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, action(true, false)));
+        assertThat(future.result()).asList().containsOnly(
+                VendorPermission.of(1, null, action(true, false)));
     }
 
     @Test

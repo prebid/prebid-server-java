@@ -32,5 +32,17 @@ public class VendorV2 {
 
     @JsonProperty("specialFeatures")
     Set<Integer> specialFeatures;
+
+    public static VendorV2 empty(Integer id) {
+        return VendorV2.builder()
+                .id(id)
+                .purposes(null)
+                .legIntPurposes(null)
+                .flexiblePurposes(null)
+                .specialPurposes(null)
+                .features(null)
+                .specialFeatures(null)
+                .build();
+    }
 }
 

@@ -106,6 +106,7 @@ public class TcfDefinerService {
         final Set<GdprPurpose> gdprPurposes = Collections.singleton(GdprPurpose.informationStorageAndAccess);
         return tcfPurposeForEachVendor(gdprPurposes, vendorIds, bidderNames, gdpr, gdprConsent, ipAddress,
                 accountGdprConfig, timeout);
+        // TODO FailedFuture
     }
 
     private boolean isGdprDisabled(Boolean gdprEnabled, AccountGdprConfig accountGdprConfig) {
@@ -179,14 +180,7 @@ public class TcfDefinerService {
         }
 
         // parsing TC string should not fail the entire request, assume the user does not consent
-        TCString tcString;
-        try {
-            tcString = TCString.decode(gdprInfo.getConsent());
-        } catch (Throwable e) {
-            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
-            tcString = new TCStringEmpty(2);
-        }
-
+        final TCString tcString = decodeTcString(gdprInfo);
         if (tcString.getVersion() == 2) {
             return resultFromTcf2(vendorIds, bidderNames, gdprPurposes, accountGdprConfig, country, tcString);
         }
@@ -204,6 +198,15 @@ public class TcfDefinerService {
         return tcf2Service.permissionsFor(tcString, vendorIds, bidderNames, gdprPurposes, accountGdprConfig)
                 .map(vendorPermissions ->
                         tcf2ResponseToTcfResponse(vendorPermissions, vendorIds, bidderNames, country));
+    }
+
+    private TCString decodeTcString(GdprInfoWithCountry<String> gdprInfo) {
+        try {
+            return TCString.decode(gdprInfo.getConsent());
+        } catch (Throwable e) {
+            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            return new TCStringEmpty(2);
+        }
     }
 
     private static TcfResponse tcf2ResponseToTcfResponse(Collection<VendorPermission> vendorPermissions,

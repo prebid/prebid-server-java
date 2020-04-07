@@ -401,10 +401,11 @@ public class ServiceConfiguration {
     @Bean
     Tcf2Service tcf2Service(
             GdprConfig gdprConfig,
+            VendorListServiceV2 vendorListServiceV2,
             BidderCatalog bidderCatalog,
             List<PurposeStrategy> purposeStrategies) {
 
-        return new Tcf2Service(gdprConfig, bidderCatalog, purposeStrategies);
+        return new Tcf2Service(gdprConfig, vendorListServiceV2, bidderCatalog, purposeStrategies);
     }
 
     @Bean

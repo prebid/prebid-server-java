@@ -62,20 +62,6 @@ public class NoEnforcePurposeStrategyTest {
     }
 
     @Test
-    public void allowedByTypeStrategyShouldReturnEmptyListWhenVendorIsNotAllowedAndVendorEnforced() {
-        // given
-        final List<VendorPermission> vendorPurpose = singletonList(
-                VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
-
-        // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                true);
-
-        // then
-        assertThat(result).isEmpty();
-    }
-
-    @Test
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowedAndVendorEnforced() {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
