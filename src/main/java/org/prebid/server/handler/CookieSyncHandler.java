@@ -3,6 +3,7 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
@@ -34,6 +35,8 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -56,6 +59,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final String externalUrl;
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
+    private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
     private final Set<String> activeBidders;
     private final TcfDefinerService tcfDefinerService;
@@ -72,6 +76,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     public CookieSyncHandler(String externalUrl,
                              long defaultTimeout,
                              UidsCookieService uidsCookieService,
+                             ApplicationSettings applicationSettings,
                              BidderCatalog bidderCatalog,
                              TcfDefinerService tcfDefinerService,
                              PrivacyEnforcementService privacyEnforcementService,
@@ -87,6 +92,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.activeBidders = activeBidders(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
@@ -164,11 +170,14 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
+        final String requestAccount = cookieSyncRequest.getAccount();
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
-        tcfDefinerService.resultFor(vendorIds, biddersToSync, gdprAsString, gdprConsent, ip, timeout)
+        accountById(requestAccount, timeout)
+                .compose(account -> tcfDefinerService.resultFor(vendorIds, biddersToSync, gdprAsString, gdprConsent,
+                        ip, account, timeout))
                 .setHandler(asyncResult ->
                         handleResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
     }
@@ -408,5 +417,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             }
         }
         return null;
+    }
+
+    private Future<Account> accountById(String accountId, Timeout timeout) {
+        return StringUtils.isBlank(accountId)
+                ? Future.succeededFuture(null)
+                : applicationSettings.getAccountById(accountId, timeout)
+                        .otherwise((Account) null);
     }
 }

@@ -668,8 +668,8 @@ public class AuctionRequestFactory {
     private Future<Account> responseToMissingAccount(String accountId) {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                        String.format("Unauthorised account id %s", accountId), accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
+                String.format("Unauthorised account id %s", accountId), accountId))
+                : Future.succeededFuture(Account.empty(accountId));
     }
 
     /**
@@ -724,12 +724,5 @@ public class AuctionRequestFactory {
             logger.debug("Error occurred while fetching account", exception);
         }
         return response;
-    }
-
-    /**
-     * Creates {@link Account} instance with filled out ID field only.
-     */
-    private static Account emptyAccount(String accountId) {
-        return Account.builder().id(accountId).build();
     }
 }
