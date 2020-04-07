@@ -312,7 +312,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
-                logModifier.get().accept(logger, logMessageFrom(invalidRequestException, message, context));
+                logModifier.get().accept(logger, String.format("%s, Referer: %s",
+                        message, context.request().headers().get(HttpUtil.REFERER_HEADER)));
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = message;
@@ -364,12 +365,6 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
-    }
-
-    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
-        return exception.isNeedEnhancedLogging()
-                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
-                : message;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,

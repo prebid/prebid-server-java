@@ -190,7 +190,7 @@ public class AuctionRequestFactory {
         try {
             return mapper.decodeValue(body, BidRequest.class);
         } catch (DecodeException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()), true);
+            throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
         }
     }
 
