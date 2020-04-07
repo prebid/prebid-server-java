@@ -12,7 +12,7 @@
         "crid": "crid001",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&ts=1000&bidder=cpmstar&f=i"
       }
     },
     {
@@ -27,7 +27,7 @@
         "crid": "crid002",
         "w": 1024,
         "h": 576,
-        "wurl": "http://localhost:8000/event?t=win&b=bid002&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid002&a=publisherId&ts=1000&bidder=cpmstar&f=i"
       }
     },
     {

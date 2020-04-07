@@ -10,7 +10,7 @@
         "adid": "adid001",
         "cid": "cid001",
         "crid": "crid001",
-        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&ts=1000&bidder=gumgum&f=i"
       }
     },
     {
@@ -23,7 +23,7 @@
         "adid": "adid002",
         "cid": "cid002",
         "crid": "crid002",
-        "wurl": "http://localhost:8000/event?t=win&b=bid002&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid002&a=publisherId&ts=1000&bidder=gumgum&f=i"
       }
     }
   ]

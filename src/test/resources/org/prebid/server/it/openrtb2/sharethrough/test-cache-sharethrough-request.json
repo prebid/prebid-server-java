@@ -12,7 +12,7 @@
         "crid": "creaKey",
         "w": 50,
         "h": 50,
-        "wurl": "http://localhost:8000/event?t=win&b=bid&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid&a=publisherId&ts=1000&bidder=sharethrough&f=i"
       }
     }
   ]

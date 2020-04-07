@@ -302,12 +302,13 @@ public class AuctionHandlerTest extends VertxTest {
         final BidRequest resolvedRequest = BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder().mediatypepricegranularity(priceGranuality).build())
+                        .auctiontimestamp(0L)
                         .build())))
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-                                null, null, null, null)))
+                                null, null, null, null, null)))
                         .build()));
 
         // when
@@ -315,10 +316,9 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(exchangeService).holdAuction(any());
-
         verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":"
                 + "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":"
-                + "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
+                + "[{\"max\":10,\"increment\":1}]},\"native\":{}}},\"auctiontimestamp\":0}}}}}}"));
     }
 
     @Test
