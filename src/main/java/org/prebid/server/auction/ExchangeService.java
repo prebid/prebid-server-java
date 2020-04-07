@@ -147,8 +147,6 @@ public class ExchangeService {
         final String publisherId = account.getId();
         final Boolean isGdprEnforced = account.getEnforceGdpr();
         final ExtRequestTargeting targeting = targeting(requestExt);
-        final boolean eventsEnabled = eventsEnabled(requestExt);
-        final long auctionTimestamp = auctionTimestamp(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
 
@@ -171,10 +169,8 @@ public class ExchangeService {
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
-                        bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account, timeout,
-                                auctionTimestamp(requestExt), debugEnabled))
                         bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account,
-                                eventsEnabled, timeout, auctionTimestamp, debugEnabled))
+                                eventsEnabled(requestExt), timeout, auctionTimestamp(requestExt), debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
                                 account));
@@ -208,6 +204,15 @@ public class ExchangeService {
     private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         return prebid != null ? prebid.getTargeting() : null;
+    }
+
+    /**
+     * Extracts currency rates from {@link ExtBidRequest}.
+     */
+    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getRates() : null;
     }
 
     /**
@@ -755,28 +760,12 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts currency rates from {@link ExtRequestTargeting}.
-     */
-    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
-        return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
-    }
-
-    /**
      * Extracts bidAdjustments from {@link ExtBidRequest}.
      */
     private static Map<String, BigDecimal> bidAdjustments(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
-    }
-
-    /**
-     * Extracts currency rates from {@link ExtBidRequest}.
-     */
-    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        return currency != null ? currency.getRates() : null;
     }
 
     /**
