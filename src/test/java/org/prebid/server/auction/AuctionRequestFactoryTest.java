@@ -15,6 +15,8 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -1268,6 +1270,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccured() {
         // given
+        final HttpServerRequest httpRequest = mock(HttpServerRequest.class);
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId").build())

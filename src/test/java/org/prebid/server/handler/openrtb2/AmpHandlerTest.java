@@ -205,7 +205,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(adminManager).accept(eq(AdminManager.ADMIN_COUNTER_KEY), any(), any());
+        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(

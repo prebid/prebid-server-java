@@ -568,7 +568,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adminManager).accept(eq(AdminManager.ADMIN_COUNTER_KEY), any(), any());
+        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()

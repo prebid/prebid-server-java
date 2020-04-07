@@ -12,82 +12,91 @@ import java.util.function.Consumer;
 
 public class ConditionalLogger {
 
-    private static final int EXPIRE_CACHE_DURATION = 1;
     private static final int CACHE_MAXIMUM_SIZE = 10_000;
+    private static final int EXPIRE_CACHE_DURATION = 1;
+
+    private final Logger logger;
 
     private ConcurrentMap<String, AtomicInteger> messageToCount;
     private ConcurrentMap<String, Long> messageToWait;
 
-    private final Logger logger;
-
     public ConditionalLogger(Logger logger) {
         this.logger = Objects.requireNonNull(logger);
-        messageToWait = Caffeine.newBuilder()
-                .maximumSize(CACHE_MAXIMUM_SIZE)
-                .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
-                .<String, Long>build()
-                .asMap();
+
         messageToCount = Caffeine.newBuilder()
                 .maximumSize(CACHE_MAXIMUM_SIZE)
                 .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
                 .<String, AtomicInteger>build()
                 .asMap();
+
+        messageToWait = Caffeine.newBuilder()
+                .maximumSize(CACHE_MAXIMUM_SIZE)
+                .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
+                .<String, Long>build()
+                .asMap();
     }
 
-    public void info(String message, Integer maxValue) {
-        log(message, maxValue, logger -> logger.info(message));
+    public void info(String message, int limit) {
+        log(message, limit, logger -> logger.info(message));
     }
 
-    public void info(String message, long amount, TimeUnit unit) {
-        log(message, amount, unit, logger -> logger.info(message));
+    public void info(String message, long duration, TimeUnit unit) {
+        log(message, duration, unit, logger -> logger.info(message));
     }
 
-    public void error(String message, Integer maxValue) {
-        log(message, maxValue, logger -> logger.error(message));
+    public void error(String message, int limit) {
+        log(message, limit, logger -> logger.error(message));
     }
 
-    public void error(String message, long amount, TimeUnit unit) {
-        log(message, amount, unit, logger -> logger.error(message));
+    public void error(String message, long duration, TimeUnit unit) {
+        log(message, duration, unit, logger -> logger.error(message));
     }
 
-    public void debug(String message, Integer maxValue) {
-        log(message, maxValue, logger -> logger.debug(message));
+    public void debug(String message, int limit) {
+        log(message, limit, logger -> logger.debug(message));
     }
 
-    public void debug(String message, long amount, TimeUnit unit) {
-        log(message, amount, unit, logger -> logger.debug(message));
+    public void debug(String message, long duration, TimeUnit unit) {
+        log(message, duration, unit, logger -> logger.debug(message));
     }
 
-    public void warn(String message, Integer maxValue) {
-        log(message, maxValue, logger -> logger.warn(message));
+    public void warn(String message, int limit) {
+        log(message, limit, logger -> logger.warn(message));
     }
 
-    public void warn(String message, long amount, TimeUnit unit) {
-        log(message, amount, unit, logger -> logger.warn(message));
+    public void warn(String message, long duration, TimeUnit unit) {
+        log(message, duration, unit, logger -> logger.warn(message));
     }
 
-    private void log(String key, Integer maxValue, Consumer<Logger> consumer) {
-        final AtomicInteger value = messageToCount.computeIfAbsent(key, ignored -> new AtomicInteger());
-        if (value.incrementAndGet() >= maxValue) {
-            value.set(0);
+    /**
+     * Calls {@link Consumer} if the given limit for specified key is not exceeded.
+     */
+    private void log(String key, int limit, Consumer<Logger> consumer) {
+        final AtomicInteger count = messageToCount.computeIfAbsent(key, ignored -> new AtomicInteger());
+        if (count.incrementAndGet() >= limit) {
+            count.set(0);
             consumer.accept(logger);
         }
     }
 
-    private void log(String key, long amount, TimeUnit unit, Consumer<Logger> consumer) {
+    /**
+     * Calls {@link Consumer} if the given time for specified key is not exceeded.
+     */
+    private void log(String key, long duration, TimeUnit unit, Consumer<Logger> consumer) {
         final long currentTime = Instant.now().toEpochMilli();
-        final Long value = messageToWait.computeIfAbsent(key, ignored -> recalculateDate(amount, unit));
+        final long endTime = messageToWait.computeIfAbsent(key, ignored -> calculateEndTime(duration, unit));
 
-        if (currentTime >= value) {
-            messageToWait.replace(key, value, recalculateDate(amount, unit));
+        if (currentTime >= endTime) {
+            messageToWait.replace(key, endTime, calculateEndTime(duration, unit));
             consumer.accept(logger);
         }
     }
 
-    private static long recalculateDate(long amount, TimeUnit unit) {
-        final long amountInMillis = unit.toMillis(amount);
-        final Instant resultInstant = Instant.now().plusMillis(amountInMillis);
-        return resultInstant.toEpochMilli();
+    /**
+     * Returns time in millis as current time incremented by specified duration.
+     */
+    private static long calculateEndTime(long duration, TimeUnit unit) {
+        final long durationInMillis = unit.toMillis(duration);
+        return Instant.now().plusMillis(durationInMillis).toEpochMilli();
     }
-
 }

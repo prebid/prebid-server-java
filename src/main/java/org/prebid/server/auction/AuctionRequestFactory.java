@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -161,7 +162,7 @@ public class AuctionRequestFactory {
                                             long startTime, TimeoutResolver timeoutResolver) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
-        return accountFrom(bidRequest, timeout)
+        return accountFrom(bidRequest, timeout, routingContext)
                 .map(account -> AuctionContext.builder()
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
@@ -646,7 +647,7 @@ public class AuctionRequestFactory {
     /**
      * Returns {@link Account} fetched by {@link ApplicationSettings}.
      */
-    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
+    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout, RoutingContext routingContext) {
         final String accountId = accountIdFrom(bidRequest);
         final boolean blankAccountId = StringUtils.isBlank(accountId);
 
@@ -659,7 +660,7 @@ public class AuctionRequestFactory {
         return blankAccountId
                 ? responseToMissingAccount(accountId)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));
+                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId), routingContext));
     }
 
     /**
@@ -718,9 +719,11 @@ public class AuctionRequestFactory {
     /**
      * Log any not {@link PreBidException} errors. Returns response provided in method parameters.
      */
-    private static Future<Account> accountFallback(Throwable exception, Future<Account> response) {
+    private static Future<Account> accountFallback(Throwable exception, Future<Account> response,
+                                                   RoutingContext routingContext) {
         if (!(exception instanceof PreBidException)) {
-            logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
+            logger.warn("Error occurred while fetching account: {0}, Referer: {1}", exception.getMessage(),
+                    routingContext.request().headers().get(HttpUtil.REFERER_HEADER));
             logger.debug("Error occurred while fetching account", exception);
         }
         return response;

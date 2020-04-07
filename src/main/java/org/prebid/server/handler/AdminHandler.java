@@ -14,8 +14,8 @@ import java.util.function.BiConsumer;
 
 public class AdminHandler implements Handler<RoutingContext> {
 
-    private static final String RECORDS_PARAM = "records";
     private static final String LOGGING_PARAM = "logging";
+    private static final String RECORDS_PARAM = "records";
 
     private final AdminManager adminManager;
 
@@ -26,14 +26,16 @@ public class AdminHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext context) {
         final HttpServerRequest request = context.request();
+
         final BiConsumer<Logger, String> loggingLevelModifier;
-        final String loggingParam = request.getParam(LOGGING_PARAM);
-        final String recordsParam = request.getParam(RECORDS_PARAM);
         final int records;
 
+        final String loggingLevel = request.getParam(LOGGING_PARAM);
+        final String recordsAsString = request.getParam(RECORDS_PARAM);
+
         try {
-            loggingLevelModifier = loggingLevel(loggingParam);
-            records = records(recordsParam);
+            loggingLevelModifier = loggingLevel(loggingLevel);
+            records = records(recordsAsString);
         } catch (IllegalArgumentException e) {
             context.response()
                     .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
@@ -41,17 +43,16 @@ public class AdminHandler implements Handler<RoutingContext> {
             return;
         }
 
-        adminManager.setupByCounter(AdminManager.ADMIN_COUNTER_KEY, records, loggingLevelModifier,
-                (BiConsumer<Logger, String>) (logger, text) -> defaultLogModifier(logger).accept(logger, text));
+        adminManager.setupByCounter(AdminManager.COUNTER_KEY, records, loggingLevelModifier, onFinish());
+
         context.response()
-                .end(String.format("Logging level was changed to %s, for %s requests", loggingParam, recordsParam));
+                .end(String.format("Logging level was changed to %s, for %s requests", loggingLevel, recordsAsString));
     }
 
-    private BiConsumer<Logger, String> loggingLevel(String level) {
-        if (StringUtils.isBlank(level)) {
-            throw new IllegalArgumentException(String.format("Invalid LoggingLevel: %s", level));
+    private static BiConsumer<Logger, String> loggingLevel(String level) {
+        if (StringUtils.isEmpty(level)) {
+            throw new IllegalArgumentException("Logging level cannot be empty");
         }
-
         switch (level) {
             case "info":
                 return Logger::info;
@@ -66,8 +67,12 @@ public class AdminHandler implements Handler<RoutingContext> {
             case "debug":
                 return Logger::debug;
             default:
-                throw new IllegalArgumentException(String.format("Invalid LoggingLevel: %s", level));
+                throw new IllegalArgumentException(String.format("Invalid logging level: %s", level));
         }
+    }
+
+    private BiConsumer<Logger, String> onFinish() {
+        return (logger, message) -> defaultLogModifier(logger).accept(logger, message);
     }
 
     private static BiConsumer<Logger, String> defaultLogModifier(Logger defaultLogger) {
@@ -83,7 +88,7 @@ public class AdminHandler implements Handler<RoutingContext> {
         return Logger::error;
     }
 
-    private int records(String records) {
+    private static int records(String records) {
         if (!StringUtils.isNumeric(records)) {
             throw new IllegalArgumentException(String.format("Invalid records parameter: %s", records));
         }
@@ -91,9 +96,8 @@ public class AdminHandler implements Handler<RoutingContext> {
         final int numberOfRecords = NumberUtils.toInt(records);
         if (numberOfRecords < 0 || numberOfRecords >= 100_000) {
             throw new IllegalArgumentException(String.format("Invalid records parameter: %s, must be between"
-                    + " 0 and 100_000", records));
+                    + " 0 and 100 000", records));
         }
         return numberOfRecords;
     }
 }
-

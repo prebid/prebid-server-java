@@ -12,8 +12,8 @@ import java.util.function.BiConsumer;
  */
 public class AdminManager {
 
-    public static final String ADMIN_COUNTER_KEY = "admin_counter";
-    public static final String ADMIN_TIME_KEY = "admin_time";
+    public static final String COUNTER_KEY = "admin_counter";
+    public static final String TIME_KEY = "admin_time";
 
     private ConcurrentHashMap<String, Rule<?, ?>> actionMap;
 
@@ -22,9 +22,9 @@ public class AdminManager {
     }
 
     /**
-     * @param key use AdminManager constants
-     * @param amount counter max amount
-     * @param action do while counter is less then max value
+     * @param key      key of the given action
+     * @param amount   max count of action executions
+     * @param action   do while counter is less then max value
      * @param onFinish do when counter is over then max value
      */
     public void setupByCounter(String key, Integer amount, BiConsumer<?, ?> action, BiConsumer<?, ?> onFinish) {
@@ -32,17 +32,17 @@ public class AdminManager {
     }
 
     /**
-     * @param key use AdminManager constants
+     * @param key        key of the given action
      * @param timeMillis duration in millis
-     * @param action do while time is not over
-     * @param onFinish do when time is over
+     * @param action     do while time is not over
+     * @param onFinish   do when time is over
      */
     public void setupByTime(String key, long timeMillis, BiConsumer<?, ?> action, BiConsumer<?, ?> onFinish) {
         actionMap.put(key, new TimeRule(action, onFinish, timeMillis));
     }
 
     /**
-     * run the BiConsumer by key
+     * Runs the BiConsumer by key.
      */
     @SuppressWarnings("unchecked")
     public <T, U> void accept(String key, T t, U u) {
@@ -53,20 +53,17 @@ public class AdminManager {
     }
 
     /**
-     * returns true if Rule is contains by key
+     * Returns true if Rule is contains by key.
      */
     public boolean contains(String key) {
         return actionMap.containsKey(key);
     }
 
     /**
-     * returns state of BiConsumer by key
+     * Returns state of BiConsumer by key.
      */
     public boolean isRunning(String key) {
-        if (!contains(key)) {
-            return false;
-        }
-        return !actionMap.get(key).isFinished;
+        return contains(key) && !actionMap.get(key).isFinished;
     }
 
     @AllArgsConstructor
@@ -120,5 +117,4 @@ public class AdminManager {
             return onFinish;
         }
     }
-
 }

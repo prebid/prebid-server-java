@@ -440,7 +440,7 @@ public class WebConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
-        @Autowired(required = false)
+        @Autowired
         private AdminHandler adminHandler;
 
         @Autowired

@@ -53,7 +53,7 @@ public class AdminHandlerTest extends VertxTest {
         adminHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(eq("Invalid LoggingLevel: null"));
+        verify(httpResponse).end(eq("Logging level cannot be empty"));
         verify(httpResponse).setStatusCode(eq(400));
         verifyZeroInteractions(adminManager);
     }
@@ -61,13 +61,13 @@ public class AdminHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorWhenLoggingIsInvalid() {
         // given
-        given(httpRequest.getParam(eq("logging"))).willReturn("spam");
+        given(httpRequest.getParam(eq("logging"))).willReturn("invalid");
 
         // when
         adminHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(eq("Invalid LoggingLevel: spam"));
+        verify(httpResponse).end(eq("Invalid logging level: invalid"));
         verify(httpResponse).setStatusCode(eq(400));
         verifyZeroInteractions(adminManager);
     }
@@ -128,6 +128,6 @@ public class AdminHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(eq("Logging level was changed to error, for 123 requests"));
-        verify(adminManager).setupByCounter(eq(AdminManager.ADMIN_COUNTER_KEY), eq(123), any(), any());
+        verify(adminManager).setupByCounter(eq(AdminManager.COUNTER_KEY), eq(123), any(), any());
     }
 }
