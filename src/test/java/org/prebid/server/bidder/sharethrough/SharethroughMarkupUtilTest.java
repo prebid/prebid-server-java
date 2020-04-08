@@ -30,11 +30,12 @@ public class SharethroughMarkupUtilTest extends VertxTest {
         final String result = SharethroughMarkupUtil.getAdMarkup(strResponse, impResponse, uriParameters, TEST_TIME);
 
         // then
-        final String expected = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid" +
-                "&adReceivedAt=1604455678999\" />\n" +
-                "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n" +
+        final String expected = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid"
+                + "&adReceivedAt=1604455678999\" />\n"
+                + "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n"
                 // Encoded {"adserverRequestId":"arid","bidId":"bid"}
-                "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCJ9\"</script>";
+                + "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCJ9"
+                + "\"</script>";
 
         assertThat(result.contains(expected)).isTrue();
     }
@@ -76,7 +77,8 @@ public class SharethroughMarkupUtilTest extends VertxTest {
         final String result = SharethroughMarkupUtil.getAdMarkup("", impResponse, uriParameters, new Date());
 
         // then
-        final String expectedContains = "<script src=\"//native.sharethrough.com/assets/sfp-set-targeting.js\"></script>";
+        final String expectedContains = "<script src=\"//native.sharethrough.com/assets/sfp-set-targeting"
+                + ".js\"></script>";
         assertThat(result.contains(expectedContains)).isTrue();
     }
 }

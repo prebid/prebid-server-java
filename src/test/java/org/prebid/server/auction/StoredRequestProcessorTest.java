@@ -165,9 +165,9 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void shouldReturnAmpRequest() throws IOException {
         // given
         given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
-                .willReturn((Future.succeededFuture(StoredDataResult.of(
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
                         singletonMap("123", mapper.writeValueAsString(
-                                BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList()))));
+                                BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(ACCOUNT_ID, "123");
@@ -188,8 +188,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 .storedrequest(ExtStoredRequest.of("123")).build()))));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", "{{}");
-        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any())).willReturn((Future
-                .succeededFuture(StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList()))));
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any())).willReturn(Future
+                .succeededFuture(StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -211,8 +211,8 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", mapper.writeValueAsString(
                 mapper.createObjectNode().put("tmax", "stringValue")));
-        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any())).willReturn((Future
-                .succeededFuture(StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList()))));
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any())).willReturn(Future
+                .succeededFuture(StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -281,8 +281,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .build());
 
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
-                .willReturn((Future.succeededFuture(
-                        StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList()))));
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -326,8 +326,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
-                .willReturn((Future.succeededFuture(
-                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("No config found for id: 123")))));
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("No config found for id: 123"))));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -372,8 +372,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .format(singletonList(Format.builder().w(300).h(250).build())).build()).build());
 
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
-                .willReturn((Future.succeededFuture(
-                        StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList()))));
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -442,7 +442,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
-                .willReturn((Future.failedFuture(new Exception("Error during file fetching"))));
+                .willReturn(Future.failedFuture(new Exception("Error during file fetching")));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -465,8 +465,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
-                .willReturn((Future.succeededFuture(
-                        StoredDataResult.of(emptyMap(), singletonMap("123", "{{}"), emptyList()))));
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), singletonMap("123", "{{}"), emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
@@ -490,8 +490,8 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         final Map<String, String> storedImpFetchResult = singletonMap("123", mapper.writeValueAsString(
                 mapper.createObjectNode().put("secure", "stringValue")));
-        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any())).willReturn((Future
-                .succeededFuture(StoredDataResult.of(emptyMap(), storedImpFetchResult, emptyList()))));
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedImpFetchResult, emptyList())));
 
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,

@@ -16,7 +16,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 
@@ -86,7 +85,7 @@ public class MgidBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtAccIdIsBlank() {
         // given
         final String currency = "GRP";
-        final BigDecimal bidFloor = new BigDecimal(10.3);
+        final BigDecimal bidFloor = new BigDecimal("10.3");
         final String placementId = "placID";
         final String accId = "";
         final BidRequest bidRequest = BidRequest.builder()
@@ -158,10 +157,12 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor() throws JsonProcessingException {
+    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurAndBidfloor()
+            throws JsonProcessingException {
+
         // given
         final String currency = "GRP";
-        final BigDecimal bidFloor = new BigDecimal(10.3);
+        final BigDecimal bidFloor = new BigDecimal("10.3");
         final String placementId = "placID";
         final String accId = "accId";
         final BidRequest bidRequest = BidRequest.builder()
@@ -196,10 +197,11 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToIncomingRequestWhenImpExtHasNotBlankCurencyAndBidFloor() throws JsonProcessingException {
+    public void makeHttpRequestsShouldSetBidFloorCurAndBidFloorToRequestWhenImpExtHasNotBlankCurrencyAndBidFloor()
+            throws JsonProcessingException {
         // given
         final String currency = "GRP";
-        final BigDecimal bidFloor = new BigDecimal(10.3);
+        final BigDecimal bidFloor = new BigDecimal("10.3");
         final String placementId = "placID";
         final String accId = "accId";
         final BidRequest bidRequest = BidRequest.builder()
@@ -234,7 +236,8 @@ public class MgidBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequestWhenImpExtNotContainsParamters() throws JsonProcessingException {
+    public void makeHttpRequestsShouldNotModifyIncomingRequestWhenImpExtNotContainsParameters()
+            throws JsonProcessingException {
         // given
         final String placementId = "placID";
         final String impId = "impId";
@@ -269,7 +272,6 @@ public class MgidBidderTest extends VertxTest {
                 .extracting(HttpRequest::getBody)
                 .containsOnly(mapper.writeValueAsString(expected));
     }
-
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {

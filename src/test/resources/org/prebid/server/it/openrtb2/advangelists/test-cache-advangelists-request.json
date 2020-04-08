@@ -8,7 +8,9 @@
         "price": 0.01,
         "id": "testid",
         "impid": "testimpid",
-        "cid": "8048"
+        "cid": "8048",
+        "wurl": "http://localhost:8000/event?t=win&b=testid&a=publisherId&ts=1000&bidder=advangelists&f=i"
+
       }
     }
   ]

@@ -14,7 +14,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,9 +37,9 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -99,7 +98,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private LogModifier logModifier;
+    private AdminManager adminManager;
 
     private AmpHandler ampHandler;
     @Mock
@@ -129,8 +128,6 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
-        given(logModifier.get()).willReturn(Logger::info);
-
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
@@ -143,7 +140,7 @@ public class AmpHandlerTest extends VertxTest {
                 bidderCatalog,
                 singleton("bidder1"),
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
-                logModifier, jacksonMapper
+                adminManager, jacksonMapper
         );
     }
 
@@ -208,7 +205,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(logModifier).get();
+        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -348,8 +345,8 @@ public class AmpHandlerTest extends VertxTest {
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
         given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponse(
-                        mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, targeting, null, null, null, null), null))));
+                .willReturn(givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(
+                        null, targeting, null, null, null, null), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -403,8 +400,8 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("Content-Type", "application/json"));
-        verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\"," +
-                "\"hb_cache_id_bidder1\":\"value2\"}}"));
+        verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
+                + "\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
 
     @Test
@@ -417,15 +414,15 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null))));
+                                null, 1000L))));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq(
-                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1," +
-                        "\"tmax\":1000}}}"));
+                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,"
+                        + "\"tmax\":5000}}}"));
     }
 
     @Test
@@ -440,14 +437,14 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
                         ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                                null))));
+                                null, 1000L))));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
         verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":1000,"
+                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000,"
                         + "\"ext\":{\"prebid\":{\"debug\":1}}}}}"));
     }
 
@@ -497,8 +494,8 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        httpRequest.headers().add(HttpUtil.USER_AGENT_HEADER, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
-                "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
+        httpRequest.headers().add(HttpUtil.USER_AGENT_HEADER, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) "
+                + "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
 
         // when
         ampHandler.handle(routingContext);
@@ -761,7 +758,7 @@ public class AmpHandlerTest extends VertxTest {
     private AuctionContext givenAuctionContext(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(BidRequest.builder()
-                .imp(emptyList()).tmax(1000L)).build();
+                .imp(emptyList()).tmax(5000L)).build();
 
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)

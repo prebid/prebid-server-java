@@ -101,7 +101,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .analyticsSamplingFactor(row.getInteger(6))
                         .build()),
                 timeout)
-                .compose(JdbcApplicationSettings::failedIfNull);
+                .compose(result -> failedIfNull(result, accountId, "Account"));
     }
 
     /**
@@ -114,7 +114,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 Collections.singletonList(adUnitConfigId),
                 result -> mapToModelOrError(result, row -> row.getString(0)),
                 timeout)
-                .compose(JdbcApplicationSettings::failedIfNull);
+                .compose(result -> failedIfNull(result, adUnitConfigId, "AdUnitConfig"));
     }
 
     /**
@@ -133,10 +133,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * Returns succeeded {@link Future} if given value is not equal to NULL,
      * otherwise failed {@link Future} with {@link PreBidException}.
      */
-    private static <T> Future<T> failedIfNull(T value) {
+    private static <T> Future<T> failedIfNull(T value, String id, String errorPrefix) {
         return value != null
                 ? Future.succeededFuture(value)
-                : Future.failedFuture(new PreBidException("Not found"));
+                : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
     }
 
     /**

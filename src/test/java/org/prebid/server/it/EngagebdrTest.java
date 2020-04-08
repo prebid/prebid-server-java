@@ -26,7 +26,7 @@ public class EngagebdrTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromEngagebdr() throws IOException, JSONException {
         // given
         // engagebdr bid response for imp 021
-        wireMockRule.stubFor(post(urlPathEqualTo("/engagebdr-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/engagebdr-exchange"))
                 .withQueryParam("zoneid", equalTo("99999"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/engagebdr/test-engagebdr-bid-request-1.json")))
@@ -34,7 +34,7 @@ public class EngagebdrTest extends IntegrationTest {
                         jsonFrom("openrtb2/engagebdr/test-engagebdr-bid-response-1.json"))));
 
         // engagebdr bid response for imp 022
-        wireMockRule.stubFor(post(urlPathEqualTo("/engagebdr-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/engagebdr-exchange"))
                 .withQueryParam("zoneid", equalTo("88888"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/engagebdr/test-engagebdr-bid-request-2.json")))
@@ -42,14 +42,13 @@ public class EngagebdrTest extends IntegrationTest {
                         jsonFrom("openrtb2/engagebdr/test-engagebdr-bid-response-2.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/engagebdr/test-cache-engagebdr-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/engagebdr/test-cache-engagebdr-response.json"))));
 
-
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

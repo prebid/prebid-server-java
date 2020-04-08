@@ -49,8 +49,8 @@ public class AdformHttpUtilTest extends VertxTest {
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
                         tuple(HttpUtil.COOKIE_HEADER.toString(),
                                 // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLC" +
-                                        "Jwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
+                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLC"
+                                        + "Jwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
     }
 
     @Test
@@ -141,8 +141,8 @@ public class AdformHttpUtilTest extends VertxTest {
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url).isEqualTo(
                 "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
-                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA" +
-                        "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
+                        + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
 
     @Test

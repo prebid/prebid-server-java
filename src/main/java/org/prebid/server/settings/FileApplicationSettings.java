@@ -67,12 +67,12 @@ public class FileApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return mapValueToFuture(accounts, accountId);
+        return mapValueToFuture(accounts, accountId, "Account");
     }
 
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return mapValueToFuture(configs, adUnitConfigId);
+        return mapValueToFuture(configs, adUnitConfigId, "AdUnitConfig");
     }
 
     /**
@@ -148,11 +148,11 @@ public class FileApplicationSettings implements ApplicationSettings {
                         filename -> fileSystem.readFileBlocking(filename).toString()));
     }
 
-    private static <T> Future<T> mapValueToFuture(Map<String, T> map, String key) {
-        final T value = map.get(key);
+    private static <T> Future<T> mapValueToFuture(Map<String, T> map, String id, String errorPrefix) {
+        final T value = map.get(id);
         return value != null
                 ? Future.succeededFuture(value)
-                : Future.failedFuture(new PreBidException("Not found"));
+                : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
     }
 
     /**

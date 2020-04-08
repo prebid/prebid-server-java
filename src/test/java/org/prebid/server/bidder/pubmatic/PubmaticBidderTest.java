@@ -170,8 +170,8 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to create keywords with error: " +
-                "Unexpected character");
+        assertThat(result.getErrors().get(0).getMessage())
+                .startsWith("Failed to create keywords with error: Unexpected character");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -567,7 +567,9 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpPubmatic.ExtImpPubmaticBuilder, ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
+                                Function<ExtImpPubmatic.ExtImpPubmaticBuilder,
+                                        ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
+
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
