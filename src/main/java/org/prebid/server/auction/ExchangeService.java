@@ -220,9 +220,12 @@ public class ExchangeService {
      * Extracts events object from {@link ExtBidRequest} model and check if events are enabled.
      */
     private static boolean eventsEnabled(Account account, ExtBidRequest requestExt) {
+        if (!account.getEventsEnabled()) {
+            return false;
+        }
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ObjectNode events = prebid != null ? prebid.getEvents() : null;
-        return events != null && account.getEventsEnabled();
+        return events != null;
     }
 
     /**
