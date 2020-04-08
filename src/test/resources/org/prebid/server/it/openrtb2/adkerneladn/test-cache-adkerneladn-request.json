@@ -15,8 +15,7 @@
         "crid": "crid022",
         "cat": [
           "IAB2"
-        ],
-        "wurl": "http://localhost:8000/event?t=win&b=bid02&a=publisherId&ts=1000&bidder=adkernelAdn&f=i"
+        ]
       }
     },
     {
@@ -36,8 +35,7 @@
           "IAB2"
         ],
         "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=wehM-93KGr0_0_0&a=publisherId&ts=1000&bidder=adkernelAdn&f=i"
+        "h": 250
       }
     },
     {

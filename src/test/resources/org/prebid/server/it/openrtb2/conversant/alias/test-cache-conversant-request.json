@@ -9,8 +9,7 @@
         "adm": "adm4",
         "crid": "crid4",
         "w": 300,
-        "h": 600,
-        "wurl": "http://localhost:8000/event?t=win&b=671800140&a=publisherId&ts=1000&bidder=conversantAlias&f=i"
+        "h": 600
       }
     }
   ]

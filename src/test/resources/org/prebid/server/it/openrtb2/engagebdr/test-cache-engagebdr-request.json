@@ -15,8 +15,7 @@
         "cid": "campaign1",
         "crid": "abcde-12345",
         "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=test-imp-id&a=publisherId&ts=1000&bidder=engagebdr&f=i"
+        "h": 250
       }
     },
     {
@@ -34,8 +33,7 @@
         "cid": "campaign1",
         "crid": "abcde-12345",
         "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=test-imp-id&a=publisherId&ts=1000&bidder=engagebdr&f=i"
+        "h": 250
       }
     },
     {
