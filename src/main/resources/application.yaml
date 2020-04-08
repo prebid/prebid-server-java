@@ -127,9 +127,8 @@ gdpr:
       enforce: true
     sf2:
       enforce: true
-
 ccpa:
-  enforce: false
+  enforce: true
 geolocation:
   enabled: true
   type: maxmind
