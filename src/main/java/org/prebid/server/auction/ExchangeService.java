@@ -170,7 +170,8 @@ public class ExchangeService {
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
                         bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account,
-                                eventsEnabled(requestExt), timeout, auctionTimestamp(requestExt), debugEnabled))
+                                eventsEnabled(account, requestExt), timeout, auctionTimestamp(requestExt),
+                                debugEnabled))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
                                 account));
@@ -218,10 +219,10 @@ public class ExchangeService {
     /**
      * Extracts events object from {@link ExtBidRequest} model and check if events are enabled.
      */
-    private static boolean eventsEnabled(ExtBidRequest requestExt) {
+    private static boolean eventsEnabled(Account account, ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ObjectNode events = prebid != null ? prebid.getEvents() : null;
-        return events != null;
+        return events != null && account.getEventsEnabled();
     }
 
     /**

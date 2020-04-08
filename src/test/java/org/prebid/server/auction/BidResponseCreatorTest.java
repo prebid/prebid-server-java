@@ -259,7 +259,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed(eq("bidder1"))).willReturn(true);
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, account, false, timeout, 0L, false);
+        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, account, true, timeout, 0L, false);
 
         // then
         Map<String, List<String>> biddersToCacheBidIds = new HashMap();
@@ -789,7 +789,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
-                targeting, CACHE_INFO, account, true, timeout, 0L, false).result();
+                targeting, CACHE_INFO, account, false, timeout, 0L, false).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)

@@ -677,7 +677,7 @@ public class ExchangeServiceTest extends VertxTest {
                 eq(bidRequest),
                 eq(targeting),
                 eq(expectedCacheInfo),
-                eq(Account.builder().id("accountId").eventsEnabled(false).build()),
+                eq(Account.builder().id("accountId").eventsEnabled(true).build()),
                 eq(true),
                 eq(timeout),
                 eq(1000L),
@@ -1726,7 +1726,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidResponsePostProcessor).postProcess(any(), same(uidsCookie), same(bidRequest), any(),
-                eq(Account.builder().id("accountId").eventsEnabled(false).build()));
+                eq(Account.builder().id("accountId").eventsEnabled(true).build()));
     }
 
     @Test
@@ -1781,7 +1781,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
-        return givenRequestContext(bidRequest, Account.builder().id("accountId").eventsEnabled(false).build());
+        return givenRequestContext(bidRequest, Account.builder().id("accountId").eventsEnabled(true).build());
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
