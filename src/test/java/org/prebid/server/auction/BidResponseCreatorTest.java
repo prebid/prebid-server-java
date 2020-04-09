@@ -53,6 +53,7 @@ import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
@@ -316,7 +317,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .id("123")
                 .cur("USD")
                 .ext(mapper.valueToTree(
-                        ExtBidResponse.of(null, null, singletonMap("bidder1", 100), 1000L, null, 1000L)))
+                        ExtBidResponse.of(null, null, singletonMap("bidder1", 100), 1000L, null,
+                                ExtBidResponsePrebid.of(1000L))))
                 .build();
 
         assertThat(bidResponse)
@@ -1084,7 +1086,8 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(result.result().getExt()).isEqualTo(
                 mapper.valueToTree(ExtBidResponse.of(null, singletonMap(
                         "prebid", singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                                "Bad timeout"))), singletonMap("bidder1", 100), 1000L, null, 0L)));
+                                "Bad timeout"))), singletonMap("bidder1", 100), 1000L, null,
+                        ExtBidResponsePrebid.of(0L))));
     }
 
     @Test
@@ -1111,7 +1114,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 mapper.valueToTree(ExtBidResponse.of(null, singletonMap(
                         invalidBidderName, singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
                                 "invalid has been deprecated and is no longer available. Use valid instead."))),
-                        singletonMap("bidder1", 100), 1000L, null, 0L)));
+                        singletonMap("bidder1", 100), 1000L, null, ExtBidResponsePrebid.of(0L))));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }

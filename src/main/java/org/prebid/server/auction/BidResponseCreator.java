@@ -51,6 +51,7 @@ import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
@@ -172,7 +173,7 @@ public class BidResponseCreator {
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponses, cacheResult);
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null,
-                auctionTimestamp);
+                ExtBidResponsePrebid.of(auctionTimestamp));
     }
 
     /**
@@ -725,7 +726,7 @@ public class BidResponseCreator {
         return pricegranularity == null || pricegranularity.isNull()
                 ? null
                 : TargetingKeywordsCreator.create(parsePriceGranularity(pricegranularity),
-                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp);
+                        targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp);
     }
 
     /**

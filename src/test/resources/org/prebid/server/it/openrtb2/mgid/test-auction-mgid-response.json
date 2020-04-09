@@ -52,7 +52,9 @@
       "cache": "{{ cache.response_time_ms }}",
       "mgid": "{{ mgid.response_time_ms }}"
     },
-    "auctiontimestamp": 1000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
     "tmaxrequest": 5000
   }
 }

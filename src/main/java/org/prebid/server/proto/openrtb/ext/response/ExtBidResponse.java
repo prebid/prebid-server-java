@@ -38,7 +38,7 @@ public class ExtBidResponse {
     Map<String, ExtResponseSyncData> usersync;
 
     /**
-     * Defines the contract for bidresponse.ext.auctiontimestamp
+     * Defines the contract for bidresponse.ext.prebid
      */
-    Long auctiontimestamp;
+    ExtBidResponsePrebid prebid;
 }

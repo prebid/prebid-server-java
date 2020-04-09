@@ -171,7 +171,9 @@
       "cache": "{{ cache.response_time_ms }}",
       "emx_digital": "{{ emx_digital.response_time_ms }}"
     },
-    "auctiontimestamp": 1000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
     "tmaxrequest": 5000
   }
 }
