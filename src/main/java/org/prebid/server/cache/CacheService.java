@@ -401,7 +401,7 @@ public class CacheService {
         final String bidId = bid.getId();
 
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
-        final Boolean eventsEnabled = account.getEventsEnabled() != null;
+        final boolean eventsEnabled = account.getEventsEnabled() != null;
         if (eventsEnabled && eventsAllowedByRequest) {
             biddersToCacheBidIds.entrySet().stream()
                     .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
