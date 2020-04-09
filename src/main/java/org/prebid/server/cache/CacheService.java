@@ -206,8 +206,7 @@ public class CacheService {
      * Makes cache for OpenRTB {@link com.iab.openrtb.response.Bid}s.
      */
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, List<Imp> imps,
-                                                       CacheContext cacheContext, Account account,
-                                                       boolean eventsAllowedByRequest, Timeout timeout,
+                                                       CacheContext cacheContext, Account account, Timeout timeout,
                                                        Long timestamp) {
         final Future<CacheServiceResult> result;
 
@@ -233,7 +232,7 @@ public class CacheService {
                     impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
 
             result = doCacheOpenrtb(cacheBids, videoCacheBids, cacheContext.getBidderToVideoBidIdsToModify(),
-                    cacheContext.getBidderToBidIds(), account, eventsAllowedByRequest, timeout, timestamp);
+                    cacheContext.getBidderToBidIds(), account, timeout, timestamp);
         }
 
         return result;
@@ -309,11 +308,10 @@ public class CacheService {
     private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
                                                       Map<String, List<String>> bidderToVideoBidIdsToModify,
                                                       Map<String, List<String>> biddersToCacheBidIds,
-                                                      Account account, boolean eventsAllowedByRequest,
-                                                      Timeout timeout, Long timestamp) {
+                                                      Account account, Timeout timeout, Long timestamp) {
         final List<PutObject> putObjects = Stream.concat(
                 bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, biddersToCacheBidIds, account,
-                        eventsAllowedByRequest, timestamp)),
+                        timestamp)),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidderToVideoBidIdsToModify,
                         account.getId(), timestamp)))
                 .collect(Collectors.toList());
@@ -396,13 +394,13 @@ public class CacheService {
      * Used for OpenRTB auction request. Also, adds win url to result object if events are enabled.
      */
     private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid, Map<String, List<String>> biddersToCacheBidIds,
-                                                 Account account, boolean eventsAllowedByRequest, Long timestamp) {
+                                                 Account account, Long timestamp) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
         final String bidId = bid.getId();
 
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
-        final boolean eventsEnabled = account.getEventsEnabled() != null;
-        if (eventsEnabled && eventsAllowedByRequest) {
+        final boolean eventsEnabled = account.getEventsEnabled() != null && account.getEventsEnabled();
+        if (eventsEnabled) {
             biddersToCacheBidIds.entrySet().stream()
                     .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
                     .findFirst()
