@@ -2,16 +2,10 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.CachingApplicationSettings;
-import org.prebid.server.settings.proto.request.InvalidateSettingsCacheRequest;
-import org.prebid.server.settings.proto.request.UpdateSettingsCacheRequest;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
