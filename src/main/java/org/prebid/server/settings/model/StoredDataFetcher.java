@@ -9,8 +9,7 @@ package org.prebid.server.settings.model;
  * @param <T>    processing timeout
  * @param <R>    result of fetching stored data
  */
-// FIXME: rename (or remove???) after AMP account ID will be added
 @FunctionalInterface
-public interface TriFunction<ACC, REQS, IMPS, T, R> {
+public interface StoredDataFetcher<ACC, REQS, IMPS, T, R> {
     R apply(ACC account, REQS reqIds, IMPS impIds, T timeout);
 }

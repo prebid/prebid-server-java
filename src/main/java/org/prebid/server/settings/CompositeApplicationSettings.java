@@ -3,9 +3,9 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.StoredDataFetcher;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -172,8 +172,8 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
         private static Future<StoredDataResult> getStoredRequests(
                 String accountId, Set<String> requestIds, Set<String> impIds, Timeout timeout,
-                TriFunction<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever,
-                TriFunction<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> nextRetriever) {
+                StoredDataFetcher<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever,
+                StoredDataFetcher<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> nextRetriever) {
 
             return retriever.apply(accountId, requestIds, impIds, timeout)
                     .compose(retrieverResult ->
@@ -187,7 +187,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         private static Future<StoredDataResult> getRemainingStoredRequests(
                 String accountId, Set<String> requestIds, Set<String> impIds, Timeout timeout,
                 Map<String, String> storedIdToRequest, Map<String, String> storedIdToImp,
-                TriFunction<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
+                StoredDataFetcher<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
 
             return retriever.apply(accountId, subtractSets(requestIds, storedIdToRequest.keySet()),
                     subtractSets(impIds, storedIdToImp.keySet()), timeout)

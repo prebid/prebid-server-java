@@ -4,9 +4,9 @@ import io.vertx.core.Future;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.StoredDataFetcher;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -123,7 +123,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     private static Future<StoredDataResult> getFromCacheOrDelegate(
             SettingsCache cache, String accountId, Set<String> requestIds, Set<String> impIds, Timeout timeout,
-            TriFunction<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
+            StoredDataFetcher<String, Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
 
         final Map<String, String> requestCache = cache.getRequestCache();
         final Map<String, String> impCache = cache.getImpCache();

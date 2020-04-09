@@ -178,7 +178,7 @@ Prebid Server does allow Stored BidRequests and Stored Imps in the same HTTP Req
 The Stored BidRequest will be applied first, and then the Stored Imps after.
 
 **Beware**: Stored Request data will not be applied recursively.
-If a Stored BidRequest includes Imps with their own Stored Request IDs, then the data for those Stored Imps not be resolved.
+If a Stored BidRequest includes Imps with their own Stored Request IDs, then the data for those Stored Imps will not be resolved.
 
 ## Alternate backends
 
