@@ -9,10 +9,6 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,6 +20,11 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.admixer.ExtImpAdmixer;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -105,7 +106,7 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall( "false");
+        final HttpCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, null);
@@ -119,7 +120,8 @@ public class AdmixerBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorsWhenSeatBidIsEmpty()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
+        final HttpCall<BidRequest> httpCall =
+                givenHttpCall(mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
