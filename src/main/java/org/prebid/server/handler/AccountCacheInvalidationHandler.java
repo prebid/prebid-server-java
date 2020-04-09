@@ -17,7 +17,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Objects;
 
 /**
- * Handles HTTP requests for updating/invalidating settings cache.
+ * Handles HTTP requests for invalidating account settings cache.
  */
 public class AccountCacheInvalidationHandler implements Handler<RoutingContext> {
 
