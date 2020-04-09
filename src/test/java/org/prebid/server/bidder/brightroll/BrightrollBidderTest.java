@@ -49,6 +49,7 @@ public class BrightrollBidderTest extends VertxTest {
     private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
     private static final List<String> BLOCKED_CATEGORIES = Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30");
     private static final List<String> BLOCKED_ADVERTISERS = Arrays.asList("adv1", "adv2", "adv3");
+    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("testPublisher", "publisher");
 
     private BrightrollBidder brightrollBidder;
 
@@ -56,7 +57,7 @@ public class BrightrollBidderTest extends VertxTest {
     public void setUp() {
         final Map<String, PublisherOverride> publisherIdToOverride = singletonMap("testPublisher",
                 PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
-        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, publisherIdToOverride);
+        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, SUPPORTED_VENDORS, publisherIdToOverride);
     }
 
     @Test
@@ -207,11 +208,11 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build(),
                         Imp.builder()
                                 .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                 .build();
 
@@ -235,7 +236,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                         .build()))
                 .build();
 
