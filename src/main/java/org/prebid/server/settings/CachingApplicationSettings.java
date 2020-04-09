@@ -9,7 +9,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.model.TriFunction;
-import org.prebid.server.vertx.CircuitBreaker;
 
 import java.util.Collections;
 import java.util.HashMap;
