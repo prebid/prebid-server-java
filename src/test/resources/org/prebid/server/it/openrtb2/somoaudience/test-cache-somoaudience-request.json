@@ -10,7 +10,7 @@
         "crid": "crid16",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=bidId01&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bidId01&a=publisherId&ts=1000&bidder=somoaudience&f=i"
       }
     },
     {
@@ -23,7 +23,7 @@
         "crid": "crid17",
         "w": 360,
         "h": 240,
-        "wurl": "http://localhost:8000/event?t=win&b=bidId02&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bidId02&a=publisherId&ts=1000&bidder=somoaudience&f=i"
       }
     },
     {
@@ -36,7 +36,7 @@
         "crid": "crid18",
         "w": 1024,
         "h": 576,
-        "wurl": "http://localhost:8000/event?t=win&b=bidId03&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bidId03&a=publisherId&ts=1000&bidder=somoaudience&f=i"
       }
     },
     {
@@ -56,7 +56,7 @@
         "cat": [
           "IAB3-1"
         ],
-        "wurl": "http://localhost:8000/event?t=win&b=bidId04&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bidId04&a=publisherId&ts=1000&bidder=somoaudience&f=i"
       }
     },
     {

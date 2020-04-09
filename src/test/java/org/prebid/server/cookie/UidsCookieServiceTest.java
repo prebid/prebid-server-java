@@ -270,7 +270,6 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(uidsCookie.uidFrom("audienceNetwork")).isNull();
     }
 
-
     @Test
     public void toCookieShouldEnforceMaxCookieSizeAndRemoveAUidWithCloserExpirationDate() throws IOException {
         // given
@@ -352,8 +351,8 @@ public class UidsCookieServiceTest extends VertxTest {
         // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"},"tempUIDs":{}},"bday":"2017-08-15T19:47:59.523908376Z"}
         given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie(
                 "uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA" +
-                        "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ==")));
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA"
+                        + "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ==")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);

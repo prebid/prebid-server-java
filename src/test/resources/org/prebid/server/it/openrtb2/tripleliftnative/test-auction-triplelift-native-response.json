@@ -55,7 +55,7 @@
         "cache": [
           {
             "uri": "{{ cache.endpoint }}",
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"triplelift.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250,\"wurl\":\"http://localhost:8000/event?t=win&b=7706636740145184841&a=test&f=i\"}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adm\":\"some-test-ad\",\"adid\":\"29681110\",\"adomain\":[\"triplelift.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"w\":300,\"h\":250,\"wurl\":\"http://localhost:8000/event?t=win&b=7706636740145184841&a=test&ts=1000&bidder=triplelift_native&f=i\"}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"029e95ca-1a14-4e45-9669-8ad8d667de50\"}]}",
             "status": 200
           }
@@ -63,7 +63,7 @@
         "triplelift_native": [
           {
             "uri": "{{ triplelift_native.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"native\":{\"request\":\"{\\\"ver\\\":\\\"1.1\\\",\\\"context\\\":1,\\\"contextsubtype\\\":11,\\\"plcmttype\\\":4,\\\"plcmtcnt\\\":1,\\\"assets\\\":[{\\\"id\\\":0,\\\"required\\\":1,\\\"title\\\":{\\\"len\\\":500}}]}\"},\"tagid\":\"foo\",\"ext\":{\"bidder\":{\"inventoryCode\":\"foo\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"test\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"T\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":3000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"native\":{\"request\":\"{\\\"ver\\\":\\\"1.1\\\",\\\"context\\\":1,\\\"contextsubtype\\\":11,\\\"plcmttype\\\":4,\\\"plcmtcnt\\\":1,\\\"assets\\\":[{\\\"id\\\":0,\\\"required\\\":1,\\\"title\\\":{\\\"len\\\":500}}]}\"},\"tagid\":\"foo\",\"ext\":{\"bidder\":{\"inventoryCode\":\"foo\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"test\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"193.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"T\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":5000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"debug\":1,\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}},\"auctiontimestamp\":1000}}}",
             "responsebody": "{\"id\":\"test-request-id\",\"seatbid\":[{\"seat\":\"958\",\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"test-imp-id\",\"price\":0.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"triplelift.com\"],\"iurl\":\"http://nym1-ib.adnxs.com/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
             "status": 200
           }
@@ -113,7 +113,7 @@
           }
         },
         "at": 1,
-        "tmax": 3000,
+        "tmax": 5000,
         "cur": [
           "USD"
         ],
@@ -129,6 +129,16 @@
         "ext": {
           "prebid": {
             "debug": 1,
+            "currency": {
+              "rates": {
+                "EUR": {
+                  "USD": 1.2406
+                },
+                "USD": {
+                  "EUR": 0.811
+                }
+              }
+            },
             "aliases": {
               "appnexusAlias": "appnexus",
               "conversantAlias": "conversant"
@@ -143,16 +153,6 @@
                   }
                 ]
               },
-              "currency": {
-                "rates": {
-                  "EUR": {
-                    "USD": 1.2406
-                  },
-                  "USD": {
-                    "EUR": 0.811
-                  }
-                }
-              },
               "includewinners": true,
               "includebidderkeys": true
             },
@@ -161,7 +161,8 @@
               "vastxml": {
                 "ttlseconds": 120
               }
-            }
+            },
+            "auctiontimestamp": 1000
           }
         }
       }
@@ -170,6 +171,7 @@
       "triplelift_native": "{{ triplelift_native.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
     },
-    "tmaxrequest": 3000
+    "auctiontimestamp": 1000,
+    "tmaxrequest": 5000
   }
 }

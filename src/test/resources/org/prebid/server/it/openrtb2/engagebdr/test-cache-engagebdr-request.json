@@ -16,7 +16,7 @@
         "crid": "abcde-12345",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=test-imp-id&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=test-imp-id&a=publisherId&ts=1000&bidder=engagebdr&f=i"
       }
     },
     {
@@ -35,7 +35,7 @@
         "crid": "abcde-12345",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=test-imp-id&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=test-imp-id&a=publisherId&ts=1000&bidder=engagebdr&f=i"
       }
     },
     {

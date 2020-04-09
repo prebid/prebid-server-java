@@ -77,6 +77,7 @@
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
-    "tmaxrequest": 1900
+    "auctiontimestamp": 1000,
+    "tmaxrequest": 5000
   }
 }

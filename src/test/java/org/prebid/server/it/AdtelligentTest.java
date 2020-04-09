@@ -25,20 +25,20 @@ public class AdtelligentTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdtelligent() throws IOException, JSONException {
         // given
         // adtelligent bid response for imp 14
-        wireMockRule.stubFor(post(urlPathEqualTo("/adtelligent-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtelligent-exchange"))
                 .withQueryParam("aid", equalTo("1000"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-cache-adtelligent-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adtelligent/test-cache-adtelligent-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

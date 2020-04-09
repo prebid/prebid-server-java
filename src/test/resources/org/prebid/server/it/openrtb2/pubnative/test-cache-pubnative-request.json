@@ -12,7 +12,7 @@
         "crid": "crid001",
         "w": 300,
         "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&ts=1000&bidder=pubnative&f=i"
       }
     },
     {
@@ -27,7 +27,7 @@
         "crid": "crid002",
         "w": 640,
         "h": 480,
-        "wurl": "http://localhost:8000/event?t=win&b=bid002&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid002&a=publisherId&ts=1000&bidder=pubnative&f=i"
       }
     },
     {
@@ -40,7 +40,7 @@
         "adid": "adid003",
         "cid": "cid003",
         "crid": "crid003",
-        "wurl": "http://localhost:8000/event?t=win&b=bid003&a=publisherId&f=i"
+        "wurl": "http://localhost:8000/event?t=win&b=bid003&a=publisherId&ts=1000&bidder=pubnative&f=i"
       }
     },
     {

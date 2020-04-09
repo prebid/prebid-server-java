@@ -6,7 +6,6 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -34,16 +33,27 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.Tcf2Service;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeOneStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
+import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.GdprConfig;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.Purposes;
+import org.prebid.server.settings.model.SpecialFeature;
+import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -167,7 +177,8 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            AdminManager adminManager) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
@@ -375,11 +386,78 @@ public class ServiceConfiguration {
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             @Value("${gdpr.default-value}") String defaultValue,
             @Autowired(required = false) GeoLocationService geoLocationService,
+            BidderCatalog bidderCatalog,
             Metrics metrics,
             VendorListService vendorListService) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, vendorListService);
+        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, bidderCatalog,
+                vendorListService);
+    }
+
+    @Bean
+    Tcf2Service tcf2Service(
+            GdprConfig gdprConfig,
+            BidderCatalog bidderCatalog,
+            List<PurposeStrategy> purposeStrategies) {
+
+        return new Tcf2Service(gdprConfig, bidderCatalog, purposeStrategies);
+    }
+
+    @Bean
+    PurposeOneStrategy purposeOneStrategy(BasicTypeStrategy basicTypeStrategy, NoTypeStrategy noTypeStrategy) {
+        return new PurposeOneStrategy(basicTypeStrategy, noTypeStrategy);
+    }
+
+    @Bean
+    BasicTypeStrategy basicTypeStrategy() {
+        return new BasicTypeStrategy();
+    }
+
+    @Bean
+    NoTypeStrategy noTypeStrategy() {
+        return new NoTypeStrategy();
+    }
+
+    @Bean
+    TcfDefinerService tcfDefinerService(
+            GdprConfig gdprConfig,
+            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
+            GdprService gdprService,
+            Tcf2Service tcf2Service,
+            @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics) {
+
+        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
+        return new TcfDefinerService(gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, metrics);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr")
+    GdprConfig gdprConfig() {
+        return new GdprConfig();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.purposes")
+    Purposes purposes() {
+        return new Purposes();
+    }
+
+    @Bean
+    Purpose purpose() {
+        return new Purpose();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.special-features")
+    SpecialFeatures specialFeatures() {
+        return new SpecialFeatures();
+    }
+
+    @Bean
+    SpecialFeature specialFeature() {
+        return new SpecialFeature();
     }
 
     @Bean
@@ -527,11 +605,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    LogModifier logModifier() {
-        return new LogModifier(LoggerFactory.getLogger(ServiceConfiguration.class));
-    }
-
-    @Bean
     BidResponsePostProcessor bidResponsePostProcessor() {
         return BidResponsePostProcessor.noOp();
     }
@@ -559,5 +632,10 @@ public class ServiceConfiguration {
 
         return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
                 mapper);
+    }
+
+    @Bean
+    AdminManager adminManager() {
+        return new AdminManager();
     }
 }
