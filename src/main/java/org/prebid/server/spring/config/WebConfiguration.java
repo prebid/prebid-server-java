@@ -28,6 +28,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.handler.AccountCacheInvalidationHandler;
 import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
@@ -57,6 +58,7 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
@@ -447,6 +449,9 @@ public class WebConfiguration {
         private CurrencyRatesHandler currencyRatesHandler;
 
         @Autowired(required = false)
+        private AccountCacheInvalidationHandler accountCacheInvalidationHandler;
+
+        @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
 
         @Autowired(required = false)
@@ -456,10 +461,11 @@ public class WebConfiguration {
         private int adminPort;
 
         @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "account-invalidation-enabled",
                 havingValue = "true")
-        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
-            return new SettingsCacheNotificationHandler(settingsCache, mapper);
+        AccountCacheInvalidationHandler accountCacheInvalidationHandler(
+                CachingApplicationSettings cachingApplicationSettings) {
+            return new AccountCacheInvalidationHandler(cachingApplicationSettings);
         }
 
         @Bean
@@ -469,6 +475,13 @@ public class WebConfiguration {
                 SettingsCache ampSettingsCache, JacksonMapper mapper) {
 
             return new SettingsCacheNotificationHandler(ampSettingsCache, mapper);
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
+            return new SettingsCacheNotificationHandler(settingsCache, mapper);
         }
 
         @Bean
@@ -507,6 +520,9 @@ public class WebConfiguration {
             }
             if (ampCacheNotificationHandler != null) {
                 router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            }
+            if (accountCacheInvalidationHandler != null) {
+                router.route("/cache/invalidate").handler(accountCacheInvalidationHandler);
             }
 
             contextRunner.<HttpServer>runOnServiceContext(promise ->
