@@ -232,7 +232,7 @@ public class CacheService {
                     impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
 
             result = doCacheOpenrtb(cacheBids, videoCacheBids, cacheContext.getBidderToVideoBidIdsToModify(),
-                    cacheContext.getBidderToBidIds(), account.getId(), timeout, timestamp);
+                    cacheContext.getBidderToBidIds(), account, timeout, timestamp);
         }
 
         return result;
@@ -308,12 +308,12 @@ public class CacheService {
     private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
                                                       Map<String, List<String>> bidderToVideoBidIdsToModify,
                                                       Map<String, List<String>> biddersToCacheBidIds,
-                                                      String accountId, Timeout timeout, Long timestamp) {
+                                                      Account account, Timeout timeout, Long timestamp) {
         final List<PutObject> putObjects = Stream.concat(
-                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, biddersToCacheBidIds, accountId,
+                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, biddersToCacheBidIds, account,
                         timestamp)),
                 videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidderToVideoBidIdsToModify,
-                        accountId, timestamp)))
+                        account.getId(), timestamp)))
                 .collect(Collectors.toList());
 
         if (putObjects.isEmpty()) {
@@ -391,19 +391,23 @@ public class CacheService {
 
     /**
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}.
-     * Used for OpenRTB auction request. Also, adds win url to result object.
+     * Used for OpenRTB auction request. Also, adds win url to result object if events are enabled.
      */
     private PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid, Map<String, List<String>> biddersToCacheBidIds,
-                                                 String accountId, Long timestamp) {
+                                                 Account account, Long timestamp) {
         final com.iab.openrtb.response.Bid bid = cacheBid.getBid();
         final String bidId = bid.getId();
+
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
-        biddersToCacheBidIds.entrySet().stream()
-                .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
-                .findFirst()
-                .map(Map.Entry::getKey)
-                .ifPresent(bidder -> bidObjectNode.put("wurl", eventsService.winUrl(bidId, bidder, accountId,
-                        timestamp)));
+        final boolean eventsEnabled = account.getEventsEnabled() != null && account.getEventsEnabled();
+        if (eventsEnabled) {
+            biddersToCacheBidIds.entrySet().stream()
+                    .filter(biddersAndBidIds -> biddersAndBidIds.getValue().contains(bidId))
+                    .findFirst()
+                    .map(Map.Entry::getKey)
+                    .ifPresent(bidder -> bidObjectNode.put("wurl", eventsService.winUrl(bidId, bidder, account.getId(),
+                            timestamp)));
+        }
 
         return PutObject.builder()
                 .type("json")

@@ -9,8 +9,7 @@
         "adm": "adm71",
         "crid": "crid71",
         "w": 300,
-        "h": 600,
-        "wurl": "http://localhost:8000/event?t=win&b=791858127&a=publisherId&ts=1000&bidder=lifestreet&f=i"
+        "h": 600
       }
     },
     {
@@ -22,8 +21,7 @@
         "adm": "adm7",
         "crid": "crid7",
         "w": 300,
-        "h": 600,
-        "wurl": "http://localhost:8000/event?t=win&b=847761866&a=publisherId&ts=1000&bidder=lifestreet&f=i"
+        "h": 600
       }
     },
     {

@@ -14,8 +14,7 @@
         "cid": "958",
         "crid": "29681110",
         "h": 250,
-        "w": 300,
-        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=publisherId&ts=1000&bidder=gamma&f=i"
+        "w": 300
       }
     }
   ]

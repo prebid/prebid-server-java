@@ -129,6 +129,7 @@
       "aliases": {
         "appnexusAlias": "appnexus"
       },
+      "events": {},
       "targeting": {
         "pricegranularity": {
           "precision": 2,
