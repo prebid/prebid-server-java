@@ -45,6 +45,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final String IMG_FORMAT_PARAM = "img";
     private static final String PIXEL_FILE_PATH = "static/tracking-pixel.png";
     private static final String ACCOUNT_PARAM = "account";
+    private static final String RUBICON_BIDDER = "rubicon";
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
@@ -107,14 +108,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
-        accountById(requestAccount, timeout)
+        accountById(requestAccount, cookieName, timeout)
                 .compose(account -> tcfDefinerService
                         .resultFor(vendorIds, Collections.emptySet(), gdpr, gdprConsent, ip, account, timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
-    private Future<Account> accountById(String accountId, Timeout timeout) {
-        return StringUtils.isBlank(accountId)
+    private Future<Account> accountById(String accountId, String bidderName, Timeout timeout) {
+        return StringUtils.isAnyBlank(accountId, bidderName) || !bidderName.equals(RUBICON_BIDDER)
                 ? Future.succeededFuture(null)
                 : applicationSettings.getAccountById(accountId, timeout)
                         .otherwise((Account) null);

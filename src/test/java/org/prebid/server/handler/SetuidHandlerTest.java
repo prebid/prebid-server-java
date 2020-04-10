@@ -54,6 +54,7 @@ import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class SetuidHandlerTest extends VertxTest {
 
@@ -272,6 +273,21 @@ public class SetuidHandlerTest extends VertxTest {
         // then
         verify(tcfDefinerService).resultFor(anySet(), anySet(), any(), any(), any(), eq(account), any());
         verify(applicationSettings).getAccountById(eq("23"), any());
+    }
+
+    @Test
+    public void shouldNotRequireAccountFromApplicationSettingForNonRubiconBidder() {
+        // given
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(ADNXS, UidWithExpiry.live("12345"))).build(), jacksonMapper));
+
+        given(httpRequest.getParam("bidder")).willReturn(ADNXS);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(applicationSettings);
     }
 
     @Test
