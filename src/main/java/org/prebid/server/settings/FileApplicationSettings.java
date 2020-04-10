@@ -58,7 +58,7 @@ public class FileApplicationSettings implements ApplicationSettings {
 
         configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
-                config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
+                config -> ObjectUtils.defaultIfNull(config.getConfig(), StringUtils.EMPTY));
 
         this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
         this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
