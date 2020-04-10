@@ -33,11 +33,9 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -54,16 +52,13 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
     private final Map<String, PublisherOverride> publisherIdToOverride;
-    private final Set<String> supportedVendors;
 
     public BrightrollBidder(String endpointUrl,
                             JacksonMapper mapper,
-                            List<String> supportedVendors,
                             Map<String, PublisherOverride> publisherIdToOverride) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-        this.supportedVendors = new HashSet<>(supportedVendors);
         this.publisherIdToOverride = Objects.requireNonNull(publisherIdToOverride);
     }
 
@@ -126,7 +121,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             throw new PreBidException("publisher is empty");
         }
 
-        if (!supportedVendors.contains(publisher)) {
+        if (!publisherIdToOverride.containsKey(publisher)) {
             throw new PreBidException("publisher is not valid");
         }
 

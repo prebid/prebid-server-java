@@ -33,6 +33,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,15 +50,19 @@ public class BrightrollBidderTest extends VertxTest {
     private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
     private static final List<String> BLOCKED_CATEGORIES = Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30");
     private static final List<String> BLOCKED_ADVERTISERS = Arrays.asList("adv1", "adv2", "adv3");
-    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("testPublisher", "publisher");
 
     private BrightrollBidder brightrollBidder;
 
     @Before
     public void setUp() {
-        final Map<String, PublisherOverride> publisherIdToOverride = singletonMap("testPublisher",
+        Map<String, PublisherOverride> testPublisher = singletonMap("testPublisher",
                 PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
-        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, SUPPORTED_VENDORS, publisherIdToOverride);
+        Map<String, PublisherOverride> publisher = singletonMap("publisher",
+                PublisherOverride.of(null, null, null));
+        Map<String, PublisherOverride> publisherIdToOverride = new HashMap<>();
+        publisherIdToOverride.putAll(testPublisher);
+        publisherIdToOverride.putAll(publisher);
+        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, publisherIdToOverride);
     }
 
     @Test
