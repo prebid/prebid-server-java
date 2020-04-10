@@ -2,6 +2,7 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.logging.Logger;
@@ -22,6 +23,8 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
@@ -41,9 +44,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final String FORMAT_PARAM = "format";
     private static final String IMG_FORMAT_PARAM = "img";
     private static final String PIXEL_FILE_PATH = "static/tracking-pixel.png";
+    private static final String ACCOUNT_PARAM = "account";
 
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
+    private final ApplicationSettings applicationSettings;
     private final TcfDefinerService tcfDefinerService;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
@@ -52,11 +57,13 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final TimeoutFactory timeoutFactory;
     private final Set<String> activeCookieFamilyNames;
 
-    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, BidderCatalog bidderCatalog,
+    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService,
+                         ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
                          TcfDefinerService tcfDefinerService, Integer gdprHostVendorId, boolean useGeoLocation,
                          AnalyticsReporter analyticsReporter, Metrics metrics, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
@@ -94,13 +101,23 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
+        final String requestAccount = context.request().getParam(ACCOUNT_PARAM);
         final String gdpr = context.request().getParam(GDPR_PARAM);
         final String gdprConsent = context.request().getParam(GDPR_CONSENT_PARAM);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
-        tcfDefinerService.resultFor(vendorIds, Collections.emptySet(), gdpr, gdprConsent, ip, timeout)
+        accountById(requestAccount, timeout)
+                .compose(account -> tcfDefinerService
+                        .resultFor(vendorIds, Collections.emptySet(), gdpr, gdprConsent, ip, account, timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
+    }
+
+    private Future<Account> accountById(String accountId, Timeout timeout) {
+        return StringUtils.isBlank(accountId)
+                ? Future.succeededFuture(null)
+                : applicationSettings.getAccountById(accountId, timeout)
+                        .otherwise((Account) null);
     }
 
     private void handleResult(AsyncResult<TcfResponse> asyncResult, RoutingContext context,

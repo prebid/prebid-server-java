@@ -13,6 +13,8 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
@@ -98,7 +100,49 @@ public class TcfDefinerServiceTest {
                 geoLocationService, metrics);
 
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, null, null, null);
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, null, null, null, null);
+
+        // then
+        final TcfResponse expectedTcfResponse = TcfResponse.of(false,
+                singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null);
+        assertThat(result.result()).isEqualTo(expectedTcfResponse);
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+        verifyZeroInteractions(metrics);
+    }
+
+    @Test
+    public void resultForShouldAllowAllWhenAccountEnforceGdprIsFalse() {
+        // given
+        final Account account = Account.builder()
+                .enforceGdpr(false)
+                .build();
+
+        // when
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, null, null, account, null);
+
+        // then
+        final TcfResponse expectedTcfResponse = TcfResponse.of(false,
+                singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null);
+        assertThat(result.result()).isEqualTo(expectedTcfResponse);
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+        verifyZeroInteractions(metrics);
+    }
+
+    @Test
+    public void resultForShouldAllowAllWhenAccountGdprConfigGdprIsFalse() {
+        // given
+        final Account account = Account.builder()
+                .gdpr(AccountGdprConfig.builder().enabled(false).build())
+                .build();
+
+        // when
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, null, null, account, null);
 
         // then
         final TcfResponse expectedTcfResponse = TcfResponse.of(false,
@@ -114,7 +158,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
         // when
-        target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null);
+        target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null, null);
 
         // then
         verify(geoLocationService).lookup(eq("ip"), any());
@@ -124,7 +168,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForShouldReturnRestrictAllWhenConsentIsNotValid() {
         // when
-        target.resultFor(singleton(1), emptySet(), "1", "consent", "ip", null);
+        target.resultFor(singleton(1), emptySet(), "1", "consent", "ip", null, null);
 
         // then
         verify(tcf2Service).permissionsFor(
@@ -135,7 +179,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForShouldReturnAllowAllWhenGdprIsZero() {
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), "0", "consent", "ip", null);
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), "0", "consent", "ip", null, null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -153,7 +197,8 @@ public class TcfDefinerServiceTest {
                 .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("aa").country("aa").build()));
 
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null);
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null,
+                null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -174,7 +219,8 @@ public class TcfDefinerServiceTest {
         given(geoLocationService.lookup(anyString(), any())).willReturn(Future.failedFuture("Bad ip"));
 
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null);
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null,
+                null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -193,7 +239,8 @@ public class TcfDefinerServiceTest {
                 geoLocationService, metrics);
 
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, "consent", null, null);
+        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, "consent", null, null,
+                null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -215,7 +262,7 @@ public class TcfDefinerServiceTest {
         // when
         final Set<String> bidderNames = new HashSet<>(Arrays.asList("b1", "b2"));
         final Future<TcfResponse> result = target.resultFor(singleton(1), bidderNames, "1",
-                "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
+                "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null, null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -241,7 +288,7 @@ public class TcfDefinerServiceTest {
         // when
         final Set<String> bidderNames = new HashSet<>(Arrays.asList("b1", "b2"));
         final Future<TcfResponse> result = target.resultFor(singleton(1), bidderNames, "1",
-                "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null);
+                "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null, null);
 
         // then
         assertThat(result.succeeded()).isTrue();

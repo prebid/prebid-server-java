@@ -310,6 +310,7 @@ public class WebConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
             TcfDefinerService tcfDefinerService,
@@ -321,15 +322,16 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
-                coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
+        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation,
+                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
     @Bean
     SetuidHandler setuidHandler(
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -338,8 +340,8 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, tcfDefinerService, hostVendorId,
-                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, applicationSettings, bidderCatalog,
+                tcfDefinerService, hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean

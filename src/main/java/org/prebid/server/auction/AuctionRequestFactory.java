@@ -737,13 +737,6 @@ public class AuctionRequestFactory {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Unauthorised account id %s", accountId), accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
-    }
-
-    /**
-     * Creates {@link Account} instance with filled out ID field only.
-     */
-    private static Account emptyAccount(String accountId) {
-        return Account.builder().id(accountId).build();
+                : Future.succeededFuture(Account.empty(accountId));
     }
 }
