@@ -1,7 +1,7 @@
 adapters:
   ix:
     enabled: false
-    endpoint: http://appnexus-us-east.lb.indexww.com/transbidder?p=184932
+    endpoint: https://ny3-dsr.lb.indexww.com/transbidder?p=189517
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names: indexExchange
@@ -14,7 +14,7 @@ adapters:
       supported-vendors:
       vendor-id: 10
     usersync:
-      url: https://ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=
+      url: https://ssum.casalemedia.com/usermatchredir?s=189517&cb=
       redirect-url: /setuid?bidder=ix&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: ix
       type: redirect
