@@ -320,7 +320,7 @@ public class SettingsConfiguration {
         ApplicationSettings applicationSettings(
                 @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
                 @Autowired(required = false) CompositeApplicationSettings compositeApplicationSettings) {
-            return ObjectUtils.firstNonNull(cachingApplicationSettings, compositeApplicationSettings);
+            return ObjectUtils.defaultIfNull(cachingApplicationSettings, compositeApplicationSettings);
         }
     }
 

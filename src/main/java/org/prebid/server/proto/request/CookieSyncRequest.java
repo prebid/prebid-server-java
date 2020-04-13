@@ -22,5 +22,7 @@ public class CookieSyncRequest {
     Boolean coopSync;
 
     Integer limit;
+
+    String account;
 }
 

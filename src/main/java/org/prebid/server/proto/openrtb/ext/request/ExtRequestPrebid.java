@@ -31,6 +31,11 @@ public class ExtRequestPrebid {
     Map<String, BigDecimal> bidadjustmentfactors;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.currency
+     */
+    ExtRequestCurrency currency;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.targeting
      */
     ExtRequestTargeting targeting;
@@ -51,9 +56,19 @@ public class ExtRequestPrebid {
     ExtRequestPrebidData data;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.events
+     */
+    ObjectNode events;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.schains
      */
     List<ExtRequestPrebidSchain> schains;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.auctiontimestamp
+     */
+    Long auctiontimestamp;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.bidders

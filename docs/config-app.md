@@ -201,6 +201,8 @@ For caching available next options:
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
+- `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
+available: `/cache/invalidate?account={accountId}` which remove account from the cache.
 - `settings.in-memory-cache.http-update.endpoint` - the url to fetch stored request updates.
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.

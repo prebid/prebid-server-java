@@ -48,22 +48,23 @@
   ],
   "ext": {
     "prebid": {
-      "targeting": {
-        "pricegranularity": "dense",
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
           }
         }
       },
+      "targeting": {
+        "pricegranularity": "dense"
+      },
       "cache": {
         "bids": {}
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "regs": {

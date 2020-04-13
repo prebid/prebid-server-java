@@ -184,6 +184,16 @@ MediaType PriceGranularity - when a single OpenRTB request contains multiple imp
 ```
             "ext": {
                 "prebid": {
+                    "currency": {
+                        "rates": {
+                            "EUR": {
+                            "USD": 1.2406
+                        },
+                            "USD": {
+                            "EUR": 0.8110
+                        }
+                    }
+                },
                     "targeting": {
                         "mediatypepricegranularity": {
                             "banner": { "ranges": [
