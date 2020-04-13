@@ -350,7 +350,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         for (final Bid bid : adapterResponse.getBids()) {
             final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
             metrics.updateAdapterBidMetrics(bidder, accountId, cpm, bid.getAdm() != null,
-                    ObjectUtils.firstNonNull(bid.getMediaType(), MediaType.banner).toString()); // default to banner
+                    ObjectUtils.defaultIfNull(bid.getMediaType(), MediaType.banner).toString()); // default to banner
         }
 
         if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {

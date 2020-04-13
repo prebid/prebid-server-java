@@ -75,6 +75,7 @@ settings:
     cache-size: 10000
     ttl-seconds: 360
     notification-endpoints-enabled: false
+    account-invalidation-enabled: true
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:

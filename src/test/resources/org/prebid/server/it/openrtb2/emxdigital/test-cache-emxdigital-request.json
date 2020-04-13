@@ -10,8 +10,7 @@
         "price": 2.942808,
         "crid": "94395500",
         "adid": "94395500",
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=uuid&a=publisherId&ts=1000&bidder=emx_digital&f=i"
+        "h": 250
       }
     }
   ]

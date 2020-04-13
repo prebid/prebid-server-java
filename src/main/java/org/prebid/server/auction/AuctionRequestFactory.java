@@ -676,7 +676,7 @@ public class AuctionRequestFactory {
         final Site site = bidRequest.getSite();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
+        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
@@ -737,13 +737,6 @@ public class AuctionRequestFactory {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Unauthorised account id %s", accountId), accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
-    }
-
-    /**
-     * Creates {@link Account} instance with filled out ID field only.
-     */
-    private static Account emptyAccount(String accountId) {
-        return Account.builder().id(accountId).build();
+                : Future.succeededFuture(Account.empty(accountId));
     }
 }
