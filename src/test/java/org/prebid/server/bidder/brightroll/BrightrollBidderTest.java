@@ -208,7 +208,7 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotUpdateEachImpIfExtPublisherIsNotInBidderAccounts() {
+    public void makeHttpRequestsShouldOverrideBadvAndBcatWhenPublisherIsInBidderAccounts() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(Imp.builder()
@@ -233,6 +233,10 @@ public class BrightrollBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(Banner.builder().build(), null),
                         tuple(null, Video.builder().build()));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getBcat, BidRequest::getBadv)
+                .containsOnly(tuple(null, null));
     }
 
     @Test
