@@ -20,8 +20,7 @@
               "duration": 121
             }
           }
-        },
-        "wurl": "http://localhost:8000/event?t=win&b=bid001&a=publisherId&f=i"
+        }
       }
     }
   ]

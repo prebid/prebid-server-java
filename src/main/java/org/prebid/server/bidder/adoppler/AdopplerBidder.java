@@ -39,6 +39,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Adoppler {@link Bidder} implementation.
+ */
 public class AdopplerBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
@@ -162,8 +165,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
         }
         getExtBidPrebidVideo(bid, impTypes);
-        final BidderBid bidderBid = BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
-        return bidderBid;
+        return BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
     }
 
     private ExtBidPrebidVideo getExtBidPrebidVideo(Bid bid, Map<String, BidType> impTypes) {

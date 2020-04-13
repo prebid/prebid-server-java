@@ -51,6 +51,7 @@ public class AdopplerTest extends IntegrationTest {
                 "openrtb2/adoppler/test-auction-adoppler-response.json",
                 response, singletonList("adoppler"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        String actualStr = response.asString();
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }
