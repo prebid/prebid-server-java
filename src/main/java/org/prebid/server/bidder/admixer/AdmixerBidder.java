@@ -33,6 +33,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * AdmixerBidder {@link Bidder} implementation.
+ */
 public class AdmixerBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdmixer>> ADMIXER_EXT_TYPE_REFERENCE =
