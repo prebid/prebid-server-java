@@ -127,8 +127,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .keyWords(getKeyWords(adformParams))
                         .priceTypes(getPriceTypes(adformParams))
                         .endpointUrl(endpointUrl)
-                        .tid(ObjectUtils.firstNonNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
-                        .ip(ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""))
+                        .tid(ObjectUtils.defaultIfNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
+                        .ip(ObjectUtils.defaultIfNull(preBidRequestContext.getIp(), ""))
                         .advertisingId(device != null ? device.getIfa() : "")
                         .secure(secure != null && secure == 1)
                         .gdprApplies(requestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest().getRegs()))
@@ -171,8 +171,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     private MultiMap headers(PreBidRequestContext preBidRequestContext, AdformDigitrust adformDigitrust) {
         return httpUtil.buildAdformHeaders(
                 VERSION,
-                ObjectUtils.firstNonNull(preBidRequestContext.getUa(), ""),
-                ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
+                ObjectUtils.defaultIfNull(preBidRequestContext.getUa(), ""),
+                ObjectUtils.defaultIfNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
                 preBidRequestContext.getUidsCookie().uidFrom(cookieFamilyName),
                 adformDigitrust);

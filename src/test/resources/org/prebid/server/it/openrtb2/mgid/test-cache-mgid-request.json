@@ -13,8 +13,7 @@
         "h": 250,
         "ext": {
           "crtype": "banner"
-        },
-        "wurl": "http://localhost:8000/event?t=win&b=test-bid-id&a=publisherId&ts=1000&bidder=mgid&f=i"
+        }
       }
     }
   ]

@@ -10,8 +10,7 @@
         "adid": "adid12345",
         "crid": "abcdef123456789",
         "w": 600,
-        "h": 300,
-        "wurl": "http://localhost:8000/event?t=win&b=123456789abcdef&a=publisherId&ts=1000&bidder=eplanning&f=i"
+        "h": 300
       }
     }
   ]
