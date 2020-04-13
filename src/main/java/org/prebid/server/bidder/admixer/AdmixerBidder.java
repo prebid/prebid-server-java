@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.admixer;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -8,6 +9,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -47,29 +49,12 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                } else if (imp.getAudio() != null) {
-                    return BidType.audio;
-                }
-            }
-        }
-        return BidType.banner;
-    }
-
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
 
-        if (request.getImp().size() == 0) {
+        if (CollectionUtils.sizeIsEmpty(request.getImp())) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
             return Result.of(Collections.emptyList(), errors);
         }
@@ -110,16 +95,17 @@ public class AdmixerBidder implements Bidder<BidRequest> {
             throw new PreBidException("ZoneId must be UUID/GUID");
         }
 
-        final Imp impUpdate = imp.toBuilder()
+        return imp.toBuilder()
                 .tagid(extImpAdmixer.getZone())
                 .bidfloor(BigDecimal.valueOf(extImpAdmixer.getCustomFloor()))
-                .ext(null)
+                .ext(makeImpExt(extImpAdmixer.getCustomParams()))
                 .build();
+    }
 
-        if (extImpAdmixer.getCustomParams() != null) {
-            impUpdate.toBuilder().ext(mapper.mapper().valueToTree(extImpAdmixer)).build();
-        }
-        return impUpdate;
+    private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {
+        return customParams != null
+                ? mapper.mapper().valueToTree(ExtImpAdmixer.of(null, null, customParams))
+                : null;
     }
 
     @Override
@@ -141,7 +127,8 @@ public class AdmixerBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        if ((bidResponse.getSeatbid().size() == 0) || (bidResponse.getSeatbid().get(0).getBid().size() == 0)) {
+        if (CollectionUtils.sizeIsEmpty(bidResponse.getSeatbid())
+                || CollectionUtils.sizeIsEmpty(bidResponse.getSeatbid().get(0).getBid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
@@ -159,6 +146,23 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
+                }
+            }
+        }
+        return BidType.banner;
     }
 
     @Override

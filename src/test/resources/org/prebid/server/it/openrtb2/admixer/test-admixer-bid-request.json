@@ -12,7 +12,12 @@
         ]
       },
       "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
-      "bidfloor": 0.1
+      "bidfloor": 0.1,
+      "ext": {
+        "customParams": {
+          "foo": "bar"
+        }
+      }
     },
     {
       "id": "impId002",
@@ -30,7 +35,12 @@
         "skipafter": 0
       },
       "tagid": "2eb6bd58-865c-47ce-af7f-a918108c3fd2",
-      "bidfloor": 0.1
+      "bidfloor": 0.1,
+      "ext": {
+        "customParams": {
+          "foo": "bar"
+        }
+      }
     }
   ],
   "site": {
