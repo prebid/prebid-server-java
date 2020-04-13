@@ -227,7 +227,7 @@ The winning bid for each `request.imp[i]` will also contain `hb_bidder`, `hb_siz
 #### Cookie syncs
 
 Each Bidder should receive their own ID in the `request.user.buyeruid` property.
-Prebid Server has three ways to popualte this field. In order of priority:
+Prebid Server has three ways to populate this field. In order of priority:
 
 1. If the request payload contains `request.user.buyeruid`, then that value will be sent to all Bidders.
 In most cases, this is probably a bad idea.
