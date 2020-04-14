@@ -24,6 +24,7 @@ import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -208,7 +209,7 @@ public class CacheService {
      */
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, List<Imp> imps,
                                                        CacheContext cacheContext, Account account,
-                                                       Long auctionTimestamp, Timeout timeout) {
+                                                       EventsContext eventsContext, Timeout timeout) {
         final Future<CacheServiceResult> result;
 
         if (CollectionUtils.isEmpty(bids)) {
@@ -229,11 +230,12 @@ public class CacheService {
 
             final List<CacheBid> cacheBids = getCacheBids(cacheContext.isShouldCacheBids(), bids, impIdToTtl,
                     impWithNoExpExists, cacheContext.getCacheBidsTtl(), account);
+
             final List<CacheBid> videoCacheBids = getVideoCacheBids(shouldCacheVideoBids, bids,
                     impIdToTtl, videoImpIds, impWithNoExpExists, cacheContext.getCacheVideoBidsTtl(), account);
 
             result = doCacheOpenrtb(cacheBids, videoCacheBids, cacheContext.getBidderToVideoBidIdsToModify(),
-                    cacheContext.getBidderToBidIds(), account, auctionTimestamp, timeout);
+                    cacheContext.getBidderToBidIds(), account, eventsContext.getAuctionTimestamp(), timeout);
         }
 
         return result;

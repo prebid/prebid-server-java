@@ -37,6 +37,7 @@ import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
+import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -143,7 +144,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of(null, null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 0L, false, timeout);
+        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 1000L, false, timeout);
 
         // then
         verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), same(timeout));
@@ -183,7 +184,8 @@ public class BidResponseCreatorTest extends VertxTest {
         biddersToCacheBidIds.put("bidder1", Arrays.asList("bidId1", "bidId2"));
         biddersToCacheBidIds.put("bidder2", Arrays.asList("bidId3", "bidId4"));
         verify(cacheService).cacheBidsOpenrtb(
-                argThat(t -> t.containsAll(asList(bid1, bid4, bid3, bid2))), eq(emptyList()),
+                argThat(t -> t.containsAll(asList(bid1, bid4, bid3, bid2))),
+                eq(emptyList()),
                 eq(CacheContext.builder()
                         .shouldCacheBids(true)
                         .shouldCacheVideoBids(true)
@@ -192,7 +194,9 @@ public class BidResponseCreatorTest extends VertxTest {
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
-                eq(Account.builder().id("accountId").build()), eq(1000L), eq(timeout));
+                eq(Account.builder().id("accountId").build()),
+                eq(EventsContext.builder().auctionTimestamp(1000L).build()),
+                eq(timeout));
     }
 
     @Test
@@ -226,12 +230,15 @@ public class BidResponseCreatorTest extends VertxTest {
         biddersToCacheBidIds.put("bidder1", Arrays.asList("bidId1", "bidId2"));
         biddersToCacheBidIds.put("bidder2", Arrays.asList("bidId3", "bidId4"));
         verify(cacheService).cacheBidsOpenrtb(
-                argThat(t -> t.containsAll(asList(bid1, bid2)) && t.size() == 2), eq(emptyList()),
+                argThat(t -> t.containsAll(asList(bid1, bid2)) && t.size() == 2),
+                eq(emptyList()),
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
-                eq(Account.builder().id("accountId").build()), eq(1000L), eq(timeout));
+                eq(Account.builder().id("accountId").build()),
+                eq(EventsContext.builder().auctionTimestamp(1000L).build()),
+                eq(timeout));
     }
 
     @Test
@@ -259,20 +266,23 @@ public class BidResponseCreatorTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed(eq("bidder1"))).willReturn(true);
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, account, true, 0L, false, timeout);
+        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, account, true, 1000L, false, timeout);
 
         // then
         Map<String, List<String>> biddersToCacheBidIds = new HashMap<>();
         biddersToCacheBidIds.put("bidder1", Collections.singletonList("bidId1"));
         biddersToCacheBidIds.put("bidder2", Collections.singletonList("bidId2"));
         verify(cacheService).cacheBidsOpenrtb(
-                argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
+                argThat(t -> t.containsAll(asList(bid1, bid2))),
+                eq(asList(imp1, imp2)),
                 eq(CacheContext.builder()
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder1", singletonList("bidId1")))
                         .bidderToBidIds(biddersToCacheBidIds)
                         .build()),
-                same(account), eq(0L), eq(timeout));
+                same(account),
+                eq(EventsContext.builder().auctionTimestamp(1000L).build()),
+                eq(timeout));
     }
 
     @Test
@@ -289,16 +299,19 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid1, CacheIdInfo.of(null, null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 0L, false, timeout);
+        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 1000L, false, timeout);
 
         // then
         verify(cacheService).cacheBidsOpenrtb(
-                argThat(bids -> bids.contains(bid1)), eq(emptyList()),
+                argThat(bids -> bids.contains(bid1)),
+                eq(emptyList()),
                 eq(CacheContext.builder()
                         .bidderToVideoBidIdsToModify(emptyMap())
                         .bidderToBidIds(singletonMap("bidder1", Collections.singletonList("bidId1")))
                         .build()),
-                eq(Account.builder().id("accountId").build()), eq(0L), eq(timeout));
+                eq(Account.builder().id("accountId").build()),
+                eq(EventsContext.builder().auctionTimestamp(1000L).build()),
+                eq(timeout));
     }
 
     @Test
@@ -810,8 +823,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
-        final Events events = Events.of("http://event-type-win", "http://event-type-view");
-        given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong())).willReturn(events);
         given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong())).willReturn("http://win-url");
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
 
@@ -1199,7 +1210,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         assertThat(responseExt.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), anyLong(), any());
+        verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
 
     private void givenCacheServiceResult(Map<Bid, CacheIdInfo> cacheBids) {

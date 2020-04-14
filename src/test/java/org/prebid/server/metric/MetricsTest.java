@@ -855,7 +855,6 @@ public class MetricsTest {
 
         for (CounterType counterType : CounterType.values()) {
             // given
-
             metricRegistry = new MetricRegistry();
 
             // when
