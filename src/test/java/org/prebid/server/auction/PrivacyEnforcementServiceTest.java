@@ -86,9 +86,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
-                false, false
-        );
+        privacyEnforcementService = new PrivacyEnforcementService(
+                gdprService, bidderCatalog, metrics, jacksonMapper, false, false);
     }
 
     @Test
@@ -539,35 +538,52 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsFalse() {
+    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsFalseInConfigurationAndNullInAccount() {
         // given
         final Ccpa ccpa = Ccpa.of("1YYY");
+        final Account account = Account.builder().build();
 
         // when and then
-        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa, account)).isFalse();
+    }
+
+    @Test
+    public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrueInConfigurationAndFalseInAccount() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(
+                gdprService, bidderCatalog, metrics, jacksonMapper, false, true);
+
+        final Ccpa ccpa = Ccpa.of("1YYY");
+        final Account account = Account.builder().enforceCcpa(false).build();
+
+        // when and then
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa, account)).isFalse();
     }
 
     @Test
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
         // given
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
-                false, true);
+        privacyEnforcementService = new PrivacyEnforcementService(
+                gdprService, bidderCatalog, metrics, jacksonMapper, false, true);
+
         final Ccpa ccpa = Ccpa.of("1YNY");
+        final Account account = Account.builder().build();
 
         // when and then
-        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isFalse();
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa, account)).isFalse();
     }
 
     @Test
     public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
         // given
-        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
-                false, true
-        );
+        privacyEnforcementService = new PrivacyEnforcementService(
+                gdprService, bidderCatalog, metrics, jacksonMapper, false, true);
+
         final Ccpa ccpa = Ccpa.of("1YYY");
+        final Account account = Account.builder().build();
 
         // when and then
-        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa)).isTrue();
+        assertThat(privacyEnforcementService.isCcpaEnforced(ccpa, account)).isTrue();
     }
 
     @Test

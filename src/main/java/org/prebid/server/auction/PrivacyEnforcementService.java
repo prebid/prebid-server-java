@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
@@ -96,7 +97,7 @@ public class PrivacyEnforcementService {
         }
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);
-        if (isCcpaEnforced(privacy.getCcpa())) {
+        if (isCcpaEnforced(privacy.getCcpa(), account)) {
             return maskCcpa(bidderToUser, device, user);
         }
 
@@ -131,8 +132,10 @@ public class PrivacyEnforcementService {
                                         ip -> maskIpv6(ip, 1))))));
     }
 
-    public boolean isCcpaEnforced(Ccpa ccpa) {
-        return ccpaEnforce && ccpa.isCCPAEnforced();
+    public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
+        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
+
+        return shouldEnforceCcpa && ccpa.isCCPAEnforced();
     }
 
     /**

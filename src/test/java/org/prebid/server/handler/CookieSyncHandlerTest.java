@@ -1111,7 +1111,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(BidderInfo.create(true, null, null,
                 null, null, 2, true, false));
 
-        given(privacyEnforcementService.isCcpaEnforced(any())).willReturn(true);
+        given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
 
         // when
         cookieSyncHandler.handle(routingContext);

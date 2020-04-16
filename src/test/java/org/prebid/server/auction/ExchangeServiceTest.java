@@ -165,7 +165,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any(), any()))
                 .willAnswer(inv ->
-                        Future.succeededFuture(((Map<String, User>) inv.getArgument(0)).entrySet().stream()
+                        Future.succeededFuture(((Map<String, User>) inv.getArgument(1)).entrySet().stream()
                                 .collect(HashMap::new, (map, bidderToUserEntry) -> map.put(bidderToUserEntry.getKey(),
                                         PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null)),
                                         HashMap::putAll)));
