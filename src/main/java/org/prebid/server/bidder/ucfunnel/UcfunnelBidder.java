@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -25,12 +26,10 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Ucfunnel {@link Bidder} implementation.
@@ -53,9 +52,8 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
 
-        if (CollectionUtils.sizeIsEmpty(request.getImp())) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+        if (CollectionUtils.isEmpty(request.getImp())) {
+            return Result.emptyWithError(BidderError.badInput("No valid impressions in the bid request"));
         }
 
         String partnerId = null;
@@ -72,7 +70,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         }
 
         final String body = mapper.encode(request);
-        final String requestUrl = endpointUrl + "/" + HttpUtil.encodeUrl(partnerId) + "/request";
+        final String requestUrl = String.format("%s/%s/request", endpointUrl, HttpUtil.encodeUrl(partnerId));
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -105,20 +103,24 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
                     statusCode)));
         }
 
+        final BidResponse bidResponse;
         try {
-            final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
-            final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
-                    .filter(Objects::nonNull)
-                    .map(SeatBid::getBid)
-                    .filter(Objects::nonNull)
-                    .flatMap(Collection::stream)
-                    .map(bid -> BidderBid.of(bid, validateBidType(bid.getImpid(), bidRequest.getImp()),
-                            DEFAULT_BID_CURRENCY))
-                    .collect(Collectors.toList());
-            return Result.of(bidderBids, Collections.emptyList());
+            bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }
+
+        final List<BidderBid> bidderBids = new ArrayList<>();
+        for (SeatBid seatBid : bidResponse.getSeatbid()) {
+            for (Bid bid : seatBid.getBid()) {
+                final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+                if (bidType == BidType.banner || bidType == BidType.video) {
+                    final BidderBid bidderBid = BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY);
+                    bidderBids.add(bidderBid);
+                }
+            }
+        }
+        return Result.of(bidderBids, Collections.emptyList());
     }
 
     private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
@@ -127,14 +129,6 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         } catch (DecodeException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    private static BidType validateBidType(String impId, List<Imp> imps) {
-        final BidType bidType = getBidType(impId, imps);
-        if (bidType == BidType.banner || bidType == BidType.video) {
-            return bidType;
-        }
-        return null;
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
