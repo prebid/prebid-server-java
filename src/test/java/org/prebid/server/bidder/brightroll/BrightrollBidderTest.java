@@ -33,6 +33,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,8 +55,13 @@ public class BrightrollBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final Map<String, PublisherOverride> publisherIdToOverride = singletonMap("testPublisher",
+        Map<String, PublisherOverride> testPublisher = singletonMap("testPublisher",
                 PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES));
+        Map<String, PublisherOverride> publisher = singletonMap("publisher",
+                PublisherOverride.of(null, null, null));
+        Map<String, PublisherOverride> publisherIdToOverride = new HashMap<>();
+        publisherIdToOverride.putAll(testPublisher);
+        publisherIdToOverride.putAll(publisher);
         brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, publisherIdToOverride);
     }
 
@@ -202,16 +208,16 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotUpdateEachImpIfExtPublisherIsNotInBidderAccounts() {
+    public void makeHttpRequestsShouldOverrideBadvAndBcatWhenPublisherIsInBidderAccounts() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build(),
                         Imp.builder()
                                 .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                                 .build()))
                 .build();
 
@@ -227,6 +233,10 @@ public class BrightrollBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(Banner.builder().build(), null),
                         tuple(null, Video.builder().build()));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getBcat, BidRequest::getBadv)
+                .containsOnly(tuple(null, null));
     }
 
     @Test
@@ -235,7 +245,7 @@ public class BrightrollBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("adthrive"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))
                         .build()))
                 .build();
 
