@@ -16,6 +16,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncInfoAssembler;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -366,8 +367,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
                 result = bidderStatusBuilder(bidder)
                         .noCookie(true)
-                        .usersync(ObjectUtils.defaultIfNull(hostBidderUsersyncInfo,
-                                UsersyncInfo.from(usersyncer).withPrivacy(privacy).assemble()))
+                        .usersync(ObjectUtils.defaultIfNull(
+                                hostBidderUsersyncInfo,
+                                UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble()))
                         .build();
             } else {
                 result = null;
@@ -410,7 +412,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     final String url = String.format("%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                     + "&us_privacy={{us_privacy}}&uid=%s", externalUrl, cookieFamilyName,
                             HttpUtil.encodeUrl(hostCookieUid));
-                    return UsersyncInfo.from(usersyncer).withUrl(url)
+                    return UsersyncInfoAssembler.from(usersyncer)
+                            .withUrl(url)
                             .withPrivacy(privacy)
                             .assemble();
                 }
@@ -423,6 +426,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture(null)
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .otherwise((Account) null);
+                .otherwise((Account) null);
     }
 }

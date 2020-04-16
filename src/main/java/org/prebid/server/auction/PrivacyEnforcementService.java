@@ -58,8 +58,10 @@ public class PrivacyEnforcementService {
     public PrivacyEnforcementService(GdprService gdprService,
                                      BidderCatalog bidderCatalog,
                                      Metrics metrics,
-                                     JacksonMapper mapper, boolean useGeoLocation,
+                                     JacksonMapper mapper,
+                                     boolean useGeoLocation,
                                      boolean ccpaEnforce) {
+
         this.gdprService = Objects.requireNonNull(gdprService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.metrics = Objects.requireNonNull(metrics);
