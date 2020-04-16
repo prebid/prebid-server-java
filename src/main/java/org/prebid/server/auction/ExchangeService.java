@@ -145,7 +145,6 @@ public class ExchangeService {
         final List<SeatBid> storedResponse = new ArrayList<>();
         final Map<String, String> aliases = aliases(requestExt);
         final String publisherId = account.getId();
-        final Boolean isGdprEnforced = account.getEnforceGdpr();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
@@ -153,7 +152,7 @@ public class ExchangeService {
         return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest ->
-                        extractBidderRequests(context, impsRequiredRequest, requestExt, aliases, isGdprEnforced))
+                        extractBidderRequests(context, impsRequiredRequest, requestExt, aliases))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, requestTypeMetric))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
@@ -324,8 +323,7 @@ public class ExchangeService {
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from bidRequest.ext.prebid.aliases.
      */
     private Future<List<BidderRequest>> extractBidderRequests(AuctionContext context, List<Imp> requestedImps,
-                                                              ExtBidRequest requestExt, Map<String, String> aliases,
-                                                              Boolean isGdprEnforced) {
+                                                              ExtBidRequest requestExt, Map<String, String> aliases) {
         // sanity check: discard imps without extension
         final List<Imp> imps = requestedImps.stream()
                 .filter(imp -> imp.getExt() != null)
@@ -339,7 +337,7 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return makeBidderRequests(bidders, context, aliases, requestExt, imps, isGdprEnforced);
+        return makeBidderRequests(bidders, context, aliases, requestExt, imps);
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -371,7 +369,7 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> makeBidderRequests(
             List<String> bidders, AuctionContext context, Map<String, String> aliases,
-            ExtBidRequest requestExt, List<Imp> imps, Boolean isGdprEnforced) {
+            ExtBidRequest requestExt, List<Imp> imps) {
 
         final BidRequest bidRequest = context.getBidRequest();
         final ExtUser extUser = extUser(bidRequest.getUser());
@@ -386,7 +384,7 @@ public class ExchangeService {
         }
 
         return privacyEnforcementService
-                .mask(bidderToUser, extUser, bidders, aliases, bidRequest, isGdprEnforced, context.getTimeout())
+                .mask(context, bidderToUser, extUser, bidders, aliases)
                 .map(bidderToPrivacyEnforcementResult -> getBidderRequests(bidderToPrivacyEnforcementResult,
                         bidRequest, requestExt, imps, firstPartyDataBidders));
     }

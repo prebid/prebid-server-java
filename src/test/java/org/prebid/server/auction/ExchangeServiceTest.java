@@ -163,14 +163,14 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
-        given(privacyEnforcementService.mask(argThat(MapUtils::isNotEmpty), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any(), any()))
                 .willAnswer(inv ->
                         Future.succeededFuture(((Map<String, User>) inv.getArgument(0)).entrySet().stream()
                                 .collect(HashMap::new, (map, bidderToUserEntry) -> map.put(bidderToUserEntry.getKey(),
                                         PrivacyEnforcementResult.of(bidderToUserEntry.getValue(), null)),
                                         HashMap::putAll)));
 
-        given(privacyEnforcementService.mask(argThat(MapUtils::isEmpty), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyMap()));
 
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
@@ -486,7 +486,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
-        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("Error when retrieving allowed purpose ids"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
@@ -507,7 +507,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
-        given(privacyEnforcementService.mask(any(), any(), any(), any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any(), any(), any()))
                 .willThrow(new PreBidException("Error decoding bidRequest.regs.ext:invalid"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),

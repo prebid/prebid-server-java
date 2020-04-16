@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
@@ -23,6 +24,7 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.model.Account;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -76,9 +78,14 @@ public class PrivacyEnforcementService {
      * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link PrivacyEnforcementResult }&gt;&gt;}, where
      * bidders name mapped to masked {@link PrivacyEnforcementResult}.
      */
-    Future<Map<String, PrivacyEnforcementResult>> mask(
-            Map<String, User> bidderToUser, ExtUser extUser, List<String> bidders, Map<String, String> aliases,
-            BidRequest bidRequest, Boolean isGdprEnforcedByAccount, Timeout timeout) {
+    Future<Map<String, PrivacyEnforcementResult>> mask(AuctionContext context,
+                                                       Map<String, User> bidderToUser,
+                                                       ExtUser extUser,
+                                                       List<String> bidders,
+                                                       Map<String, String> aliases) {
+
+        final BidRequest bidRequest = context.getBidRequest();
+        final Account account = context.getAccount();
 
         final Regs regs = bidRequest.getRegs();
         final Device device = bidRequest.getDevice();
@@ -93,9 +100,11 @@ public class PrivacyEnforcementService {
             return maskCcpa(bidderToUser, device, user);
         }
 
+        final Boolean isGdprEnforcedByAccount = account.getEnforceGdpr();
+        final Timeout timeout = context.getTimeout();
         return getVendorsToGdprPermission(device, bidders, aliases, extUser, regs, isGdprEnforcedByAccount, timeout)
-                .map(vendorToGdprPermission -> getBidderToPrivacyEnforcementResult(bidderToUser, device, aliases,
-                        vendorToGdprPermission));
+                .map(vendorToGdprPermission ->
+                        getBidderToPrivacyEnforcementResult(bidderToUser, device, aliases, vendorToGdprPermission));
     }
 
     private Future<Map<String, PrivacyEnforcementResult>> maskCoppa(Map<String, User> bidderToUser, Device device,

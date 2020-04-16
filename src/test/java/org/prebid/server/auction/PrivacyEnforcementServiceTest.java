@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.PrivacyEnforcementResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.InvalidRequestException;
@@ -27,6 +28,7 @@ import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -91,15 +93,18 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     @Test
     public void shouldTolerateEmptyBidderToUserMap() {
-        // given and when
+        // given
         final BidRequest bidRequest = givenBidRequest(emptyList(),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(null)
                         .device(null)
                         .regs(null));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
+        // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(emptyMap(), null, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .mask(context, emptyMap(), null, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -129,9 +134,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -159,9 +166,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .user(user)
                         .device(device));
 
+        final AuctionContext context = auctionContext(bidRequest, account(false));
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, null, singletonList(BIDDER_NAME), emptyMap(), bidRequest, false, timeout)
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -190,9 +199,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest, account(false));
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, null, singletonList(BIDDER_NAME), emptyMap(), bidRequest, false, timeout)
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -221,9 +232,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest, account(false));
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, null, singletonList(BIDDER_NAME), emptyMap(), bidRequest, false, timeout)
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -252,9 +265,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, null, singletonList(BIDDER_NAME), aliases, bidRequest, true, timeout)
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -286,9 +301,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(null));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -321,9 +338,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest, account(false));
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, false, timeout)
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -356,9 +375,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest, account(false));
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, false, timeout)
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -389,9 +410,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .user(user)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, null, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -420,9 +443,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Future<Map<String, PrivacyEnforcementResult>> firstFuture = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout);
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap());
 
         // then
         verify(gdprService).isGdprEnforced(isNull(), eq(true), eq(singleton(15)));
@@ -442,10 +467,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder
                         .regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> privacyEnforcementService.mask(emptyMap(), null, singletonList(BIDDER_NAME),
-                        emptyMap(), bidRequest, true, timeout))
+                .isThrownBy(() -> privacyEnforcementService.mask(
+                        context, emptyMap(), null, singletonList(BIDDER_NAME), emptyMap()))
                 .withMessageStartingWith("Error decoding bidRequest.regs.ext:");
     }
 
@@ -465,9 +492,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -495,9 +524,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap(), bidRequest, true, timeout)
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), emptyMap())
                 .result();
 
         // then
@@ -573,9 +604,11 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .device(device)
                         .regs(regs));
 
+        final AuctionContext context = auctionContext(bidRequest);
+
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(bidderToUser, extUser, bidders, emptyMap(), bidRequest, true, timeout)
+                .mask(context, bidderToUser, extUser, bidders, emptyMap())
                 .result();
 
         // then
@@ -595,6 +628,29 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         entry(bidder1Name, expectedMasked),
                         entry(bidder2Name, expectedMasked),
                         entry(bidder3Name, expectedNotMasked));
+    }
+
+    private AuctionContext auctionContext(BidRequest bidRequest) {
+        return auctionContext(bidRequest, account(true));
+    }
+
+    private AuctionContext auctionContext(BidRequest bidRequest, Account account) {
+        return AuctionContext.builder()
+                .account(account)
+                .bidRequest(bidRequest)
+                .timeout(timeout)
+                .build();
+    }
+
+    private Account account(Boolean enforceGdpr) {
+        return account(enforceGdpr, null);
+    }
+
+    private Account account(Boolean enforceGdpr, Boolean enforceCcpa) {
+        return Account.builder()
+                .enforceGdpr(enforceGdpr)
+                .enforceCcpa(enforceCcpa)
+                .build();
     }
 
     private static Device notMaskedDevice() {

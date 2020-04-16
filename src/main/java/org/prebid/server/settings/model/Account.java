@@ -19,6 +19,8 @@ public class Account {
 
     Boolean enforceGdpr;
 
+    Boolean enforceCcpa;
+
     AccountGdprConfig gdpr;
 
     Integer analyticsSamplingFactor;
@@ -29,4 +31,3 @@ public class Account {
                 .build();
     }
 }
-
