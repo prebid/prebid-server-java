@@ -21,6 +21,7 @@ import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
 import org.prebid.server.settings.model.Purposes;
 
 import java.util.Arrays;
@@ -35,9 +36,11 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -91,6 +94,7 @@ public class Tcf2ServiceTest extends VertxTest {
                 .defaultValue("1")
                 .enabled(true)
                 .purposes(purposes)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ignore)
                 .build();
     }
 
@@ -98,7 +102,13 @@ public class Tcf2ServiceTest extends VertxTest {
     public void permissionsForShouldReturnByGdprPurpose() {
         // given
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
-        target = new Tcf2Service(GdprConfig.builder().purposes(purposes).build(), vendorListService, bidderCatalog,
+        target = new Tcf2Service(
+                GdprConfig.builder()
+                        .purposes(purposes)
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ignore)
+                        .build(),
+                vendorListService,
+                bidderCatalog,
                 singletonList(purposeStrategy));
 
         // when
@@ -145,14 +155,15 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
 
         verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1,
-                singletonList(expectedVendorPermissionWitGvl));
+        verify(purposeStrategy).processTypePurposeStrategy(
+                tcString, purpose1, singletonList(expectedVendorPermissionWitGvl));
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
+        verify(tcString).getPurposeOneTreatment();
         verify(vendorListService).forVersion(10);
 
-        verifyZeroInteractions(tcString);
-        verifyZeroInteractions(purposeStrategy);
+        verifyNoMoreInteractions(tcString);
+        verifyNoMoreInteractions(purposeStrategy);
     }
 
     @Test
@@ -190,7 +201,13 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldMergeBidderNamesAndVendorIds() {
         // given
-        target = new Tcf2Service(GdprConfig.builder().purposes(purposes).build(), vendorListService, bidderCatalog,
+        target = new Tcf2Service(
+                GdprConfig.builder()
+                        .purposes(purposes)
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ignore)
+                        .build(),
+                vendorListService,
+                bidderCatalog,
                 singletonList(purposeStrategy));
 
         final String bidderNameWithVendor = "b1";
@@ -224,6 +241,85 @@ public class Tcf2ServiceTest extends VertxTest {
 
         verifyNoMoreInteractions(tcString);
         verifyZeroInteractions(purposeStrategy);
+    }
+
+    @Test
+    public void permissionsForShouldReturnAllDeniedWhenP1TIIsNoAccessAllowed() {
+        // given
+        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+
+        given(tcString.getPurposeOneTreatment()).willReturn(true);
+
+        target = new Tcf2Service(
+                GdprConfig.builder()
+                        .purposes(purposes)
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.noAccessAllowed)
+                        .build(),
+                vendorListService,
+                bidderCatalog,
+                singletonList(purposeStrategy));
+
+        // when
+        final Set<GdprPurpose> firstGdprPurpose = singleton(GdprPurpose.informationStorageAndAccess);
+        final Future<Collection<VendorPermission>> result = target.permissionsFor(
+                tcString, singleton(1), emptySet(), firstGdprPurpose, null);
+
+        // then
+        final VendorPermission expectedVendorPermission =
+                VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll());
+        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
+
+        verify(purposeStrategy, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+    }
+
+    @Test
+    public void permissionsForShouldAllowAllWhenP1TIIsAccessAllowed() {
+        // given
+        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+
+        given(tcString.getPurposeOneTreatment()).willReturn(true);
+
+        target = new Tcf2Service(
+                GdprConfig.builder()
+                        .purposes(purposes)
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                        .build(),
+                vendorListService,
+                bidderCatalog,
+                singletonList(purposeStrategy));
+
+        // when
+        final Set<GdprPurpose> firstGdprPurpose = singleton(GdprPurpose.informationStorageAndAccess);
+        target.permissionsFor(tcString, singleton(1), emptySet(), firstGdprPurpose, null);
+
+        // then
+        verify(purposeStrategy).allow(any());
+        verify(purposeStrategy, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+    }
+
+    @Test
+    public void permissionsForShouldNotAllowAllWhenP1TIsFalseAndP1TIIsAccessAllowed() {
+        // given
+        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+
+        given(tcString.getPurposeOneTreatment()).willReturn(false);
+
+        target = new Tcf2Service(
+                GdprConfig.builder()
+                        .purposes(purposes)
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                        .build(),
+                vendorListService,
+                bidderCatalog,
+                singletonList(purposeStrategy));
+
+        // when
+        final Set<GdprPurpose> firstGdprPurpose = singleton(GdprPurpose.informationStorageAndAccess);
+        target.permissionsFor(tcString, singleton(1), emptySet(), firstGdprPurpose, null);
+
+        // then
+        verify(purposeStrategy, never()).allow(any());
+        verify(purposeStrategy).processTypePurposeStrategy(any(), any(), anyCollection());
     }
 }
 

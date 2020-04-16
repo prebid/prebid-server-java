@@ -129,7 +129,7 @@ gdpr:
       enforce: true
     sf2:
       enforce: true
-
+  purpose-one-treatment-interpretation: ignore
 ccpa:
   enforce: false
 geolocation:

@@ -15,6 +15,7 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeatures;
 
@@ -37,15 +38,18 @@ public class Tcf2Service {
     private final VendorListServiceV2 vendorListServiceV2;
     private final List<PurposeStrategy> purposeStrategies;
     private final BidderCatalog bidderCatalog;
+    private PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
 
     public Tcf2Service(GdprConfig gdprConfig,
                        VendorListServiceV2 vendorListServiceV2,
                        BidderCatalog bidderCatalog,
                        List<PurposeStrategy> purposeStrategies) {
+
         this.defaultPurposes = gdprConfig.getPurposes() == null ? Purposes.builder().build() : gdprConfig.getPurposes();
         this.defaultSpecialFeatures = gdprConfig.getSpecialFeatures() == null
                 ? SpecialFeatures.builder().build()
                 : gdprConfig.getSpecialFeatures();
+        this.purposeOneTreatmentInterpretation = gdprConfig.getPurposeOneTreatmentInterpretation();
         this.vendorListServiceV2 = Objects.requireNonNull(vendorListServiceV2);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.purposeStrategies = Objects.requireNonNull(purposeStrategies);
@@ -57,7 +61,10 @@ public class Tcf2Service {
                                                                Set<String> bidderNames,
                                                                Set<GdprPurpose> purposes,
                                                                AccountGdprConfig accountGdprConfig) {
+
         final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
+        final PurposeOneTreatmentInterpretation mergedPurposeOneTreatmentInterpretation =
+                mergePurposeOneTreatmentInterpretation(accountGdprConfig);
         final Map<Integer, Purpose> purposeIdToPurpose = purposes.stream()
                 .collect(Collectors.toMap(GdprPurpose::getId,
                         gdprPurpose -> findPurposeById(gdprPurpose.getId(), mergedPurposes)));
@@ -66,8 +73,11 @@ public class Tcf2Service {
                 // We can't skip TCF check for all bidders if we can't load GVL list
                 .otherwise(Collections.emptyMap())
                 .map(vendorGvlPermissions -> vendorPermissionWithGvls(bidderNames, vendorIds, vendorGvlPermissions))
-                .map(vendorPermissionWithGvls -> processEachPurposeStrategies(gdprConsent, vendorPermissionWithGvls,
-                        purposeIdToPurpose));
+                .map(vendorPermissionWithGvls -> processEachPurposeStrategies(
+                        gdprConsent,
+                        vendorPermissionWithGvls,
+                        purposeIdToPurpose,
+                        mergedPurposeOneTreatmentInterpretation));
     }
 
     private Collection<VendorPermissionWithGvl> vendorPermissionWithGvls(Set<String> bidderNames,
@@ -108,15 +118,26 @@ public class Tcf2Service {
     }
 
     private Collection<VendorPermission> processEachPurposeStrategies(
-            TCString gdprConsent, Collection<VendorPermissionWithGvl> vendorPermissions,
-            Map<Integer, Purpose> purposeIdToPurpose) {
+            TCString gdprConsent,
+            Collection<VendorPermissionWithGvl> vendorPermissions,
+            Map<Integer, Purpose> purposeIdToPurpose,
+            PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation) {
 
         for (Map.Entry<Integer, Purpose> integerPurposeEntry : purposeIdToPurpose.entrySet()) {
             final Purpose purpose = integerPurposeEntry.getValue();
             final Integer purposeId = integerPurposeEntry.getKey();
 
             final PurposeStrategy purposeStrategyById = findPurposeStrategyById(purposeId);
-            purposeStrategyById.processTypePurposeStrategy(gdprConsent, purpose, vendorPermissions);
+
+            if (purposeId != 1
+                    || purposeOneTreatmentInterpretation == PurposeOneTreatmentInterpretation.ignore
+                    || !gdprConsent.getPurposeOneTreatment()) {
+                purposeStrategyById.processTypePurposeStrategy(gdprConsent, purpose, vendorPermissions);
+            } else if (purposeOneTreatmentInterpretation == PurposeOneTreatmentInterpretation.accessAllowed) {
+                vendorPermissions.forEach(vendorPermission -> purposeStrategyById.allow(
+                        vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
+            }
+            // no need for special processing of no-access-allowed since everything is disallowed from the beginning
         }
 
         return vendorPermissions.stream()
@@ -176,6 +197,16 @@ public class Tcf2Service {
                 .p9(mergeItem(accountPurposes.getP9(), defaultPurposes.getP9()))
                 .p9(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
                 .build();
+    }
+
+    private PurposeOneTreatmentInterpretation mergePurposeOneTreatmentInterpretation(
+            AccountGdprConfig accountGdprConfig) {
+
+        if (accountGdprConfig == null || accountGdprConfig.getPurposeOneTreatmentInterpretation() == null) {
+            return purposeOneTreatmentInterpretation;
+        }
+
+        return mergeItem(accountGdprConfig.getPurposeOneTreatmentInterpretation(), purposeOneTreatmentInterpretation);
     }
 
     private SpecialFeatures mergeAccountSpecialFeatures(SpecialFeatures accountSpecialFeatures) {

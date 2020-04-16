@@ -12,6 +12,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
@@ -88,7 +89,7 @@ public class FileApplicationSettingsTest {
                         + "sf1: {enforce: true,vendor-exceptions: [rubicon, appnexus]},"
                         + "sf2: {enforce: false,vendor-exceptions: [openx]}"
                         + "},"
-                        + "purpose-one-treatment-interpretation: false"
+                        + "purpose-one-treatment-interpretation: access-allowed"
                         + "},"
                         + "analyticsSamplingFactor : '1'"
                         + "}"
@@ -119,7 +120,7 @@ public class FileApplicationSettingsTest {
                                 .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
                                 .sf2(SpecialFeature.of(false, singletonList("openx")))
                                 .build())
-                        .purposeOneTreatmentInterpretation(false)
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
                 .build());
