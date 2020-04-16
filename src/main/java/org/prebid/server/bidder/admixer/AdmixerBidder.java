@@ -57,7 +57,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
 
-        if (CollectionUtils.sizeIsEmpty(request.getImp())) {
+        if (CollectionUtils.isEmpty(request.getImp())) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
             return Result.of(Collections.emptyList(), errors);
         }
@@ -130,8 +130,8 @@ public class AdmixerBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        if (CollectionUtils.sizeIsEmpty(bidResponse.getSeatbid())
-                || CollectionUtils.sizeIsEmpty(bidResponse.getSeatbid().get(0).getBid())) {
+        if (CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                || CollectionUtils.isEmpty(bidResponse.getSeatbid().get(0).getBid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
