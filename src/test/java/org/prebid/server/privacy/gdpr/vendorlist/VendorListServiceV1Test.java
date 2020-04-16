@@ -28,7 +28,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class VendorListServiceV1Test extends VertxTest {
 
@@ -267,12 +268,10 @@ public class VendorListServiceV1Test extends VertxTest {
         givenHttpClientProducesException(new RuntimeException());
 
         // when
-        final Future<?> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .hasMessage("Vendor list for version 1 not fetched yet, try again later.");
+        assertThat(future).isFailed().hasMessage("Vendor list for version 1 not fetched yet, try again later.");
     }
 
     @Test
@@ -288,8 +287,7 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> result = vendorListService.forVersion(1);
 
         // then
-        assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).hasSize(1).containsEntry(52, VendorV1.of(52, singleton(1), singleton(2)));
+        assertThat(result).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 
     @Test
@@ -307,8 +305,7 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1).containsEntry(52, VendorV1.of(52, singleton(1), singleton(2)));
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 
     private static VendorListV1 givenVendorList() {

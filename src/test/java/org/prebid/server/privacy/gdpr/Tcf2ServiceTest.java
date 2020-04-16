@@ -24,17 +24,16 @@ import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
 import org.prebid.server.settings.model.Purposes;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -45,6 +44,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class Tcf2ServiceTest extends VertxTest {
 
@@ -117,15 +117,16 @@ public class Tcf2ServiceTest extends VertxTest {
                 firstGdprPurpose, null);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon",
-                PrivacyEnforcementAction.restrictAll());
-        final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
-                expectedVendorPermission, VendorV2.empty(1));
-        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
+        final VendorPermission expectedVendorPermission =
+                VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll());
+
+        assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1,
-                singletonList(expectedVendorPermissionWitGvl));
+        verify(purposeStrategy).processTypePurposeStrategy(
+                tcString,
+                purpose1,
+                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(1))));
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
         verify(vendorListService).forVersion(10);
@@ -144,19 +145,20 @@ public class Tcf2ServiceTest extends VertxTest {
 
         // when
         final Set<GdprPurpose> firstGdprPurpose = singleton(GdprPurpose.informationStorageAndAccess);
-        final Future<Collection<VendorPermission>> result = target.permissionsFor(tcString, singleton(1), emptySet(),
-                firstGdprPurpose, null);
+        final Future<Collection<VendorPermission>> result = target.permissionsFor(
+                tcString, singleton(1), emptySet(), firstGdprPurpose, null);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon",
-                PrivacyEnforcementAction.restrictAll());
-        final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
-                expectedVendorPermission, VendorV2.empty(1));
-        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
+        final VendorPermission expectedVendorPermission =
+                VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll());
+
+        assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         verify(purposeStrategy).getPurposeId();
         verify(purposeStrategy).processTypePurposeStrategy(
-                tcString, purpose1, singletonList(expectedVendorPermissionWitGvl));
+                tcString,
+                purpose1,
+                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(1))));
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
         verify(tcString).getPurposeOneTreatment();
@@ -178,19 +180,20 @@ public class Tcf2ServiceTest extends VertxTest {
 
         // when and then
         final Set<GdprPurpose> firstGdprPurpose = singleton(GdprPurpose.informationStorageAndAccess);
-        final Future<Collection<VendorPermission>> result = target.permissionsFor(tcString, singleton(1), emptySet(),
-                firstGdprPurpose, accountGdprConfig);
+        final Future<Collection<VendorPermission>> result = target.permissionsFor(
+                tcString, singleton(1), emptySet(), firstGdprPurpose, accountGdprConfig);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, null,
-                PrivacyEnforcementAction.restrictAll());
-        final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
-                expectedVendorPermission, VendorV2.empty(1));
-        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
+        final VendorPermission expectedVendorPermission =
+                VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+
+        assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(tcString, accountPurposeOne,
-                singletonList(expectedVendorPermissionWitGvl));
+        verify(purposeStrategy).processTypePurposeStrategy(
+                tcString,
+                accountPurposeOne,
+                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(1))));
         verify(tcString).getVendorListVersion();
         verify(vendorListService).forVersion(10);
 
@@ -212,29 +215,29 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final String bidderNameWithVendor = "b1";
         final Set<Integer> vendorIds = singleton(1);
-        final Set<String> bidderNames = new HashSet<>(Arrays.asList(bidderNameWithVendor, "b2"));
+        final Set<String> bidderNames = new HashSet<>(asList(bidderNameWithVendor, "b2"));
         given(bidderCatalog.vendorIdByName(bidderNameWithVendor)).willReturn(1);
 
         // when
         final Set<GdprPurpose> firstGdprPurpose = singleton(GdprPurpose.informationStorageAndAccess);
-        final Future<Collection<VendorPermission>> result = target.permissionsFor(tcString, vendorIds, bidderNames,
-                firstGdprPurpose, null);
+        final Future<Collection<VendorPermission>> result = target.permissionsFor(
+                tcString, vendorIds, bidderNames, firstGdprPurpose, null);
 
         // then
-        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, bidderNameWithVendor,
-                PrivacyEnforcementAction.restrictAll());
-        final VendorPermission expectedVendorPermission2 = VendorPermission.of(null, "b2",
-                PrivacyEnforcementAction.restrictAll());
-        final VendorPermissionWithGvl expectedVendorPermissionWitGvl1 = VendorPermissionWithGvl.of(
-                expectedVendorPermission1, VendorV2.empty(1));
-        final VendorPermissionWithGvl expectedVendorPermissionWitGvl2 = VendorPermissionWithGvl.of(
-                expectedVendorPermission2, VendorV2.empty(null));
-        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission1,
-                expectedVendorPermission2);
+        final VendorPermission expectedVendorPermission1 =
+                VendorPermission.of(1, bidderNameWithVendor, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission expectedVendorPermission2 =
+                VendorPermission.of(null, "b2", PrivacyEnforcementAction.restrictAll());
+
+        assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
 
         verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1,
-                Arrays.asList(expectedVendorPermissionWitGvl2, expectedVendorPermissionWitGvl1));
+        verify(purposeStrategy).processTypePurposeStrategy(
+                tcString,
+                purpose1,
+                asList(
+                        VendorPermissionWithGvl.of(expectedVendorPermission2, VendorV2.empty(null)),
+                        VendorPermissionWithGvl.of(expectedVendorPermission1, VendorV2.empty(1))));
         verify(bidderCatalog, times(2)).isActive(anyString());
         verify(bidderCatalog, times(2)).vendorIdByName(anyString());
         verify(tcString).getVendorListVersion();
@@ -267,7 +270,7 @@ public class Tcf2ServiceTest extends VertxTest {
         // then
         final VendorPermission expectedVendorPermission =
                 VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll());
-        assertThat(result.result()).usingFieldByFieldElementComparator().containsOnly(expectedVendorPermission);
+        assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         verify(purposeStrategy, never()).processTypePurposeStrategy(any(), any(), anyCollection());
     }

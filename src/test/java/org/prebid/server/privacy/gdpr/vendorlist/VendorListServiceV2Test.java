@@ -30,9 +30,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class VendorListServiceV2Test extends VertxTest {
     private static final String CACHE_DIR = "/cache/dir";
@@ -260,12 +259,10 @@ public class VendorListServiceV2Test extends VertxTest {
         givenHttpClientProducesException(new RuntimeException());
 
         // when
-        final Future<?> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .hasMessage("Vendor list for version 1 not fetched yet, try again later.");
+        assertThat(future).isFailed().hasMessage("Vendor list for version 1 not fetched yet, try again later.");
     }
 
     @Test
@@ -281,17 +278,16 @@ public class VendorListServiceV2Test extends VertxTest {
         final Future<Map<Integer, VendorV2>> result = vendorListService.forVersion(1);
 
         // then
-        assertThat(result.succeeded()).isTrue();
-        final VendorV2 expectedVendor = VendorV2.builder()
-                .id(52)
-                .purposes(singleton(1))
-                .legIntPurposes(singleton(2))
-                .flexiblePurposes(emptySet())
-                .specialPurposes(emptySet())
-                .features(emptySet())
-                .specialFeatures(emptySet())
-                .build();
-        assertThat(result.result()).hasSize(1).containsEntry(52, expectedVendor);
+        assertThat(result).succeededWith(singletonMap(
+                52, VendorV2.builder()
+                        .id(52)
+                        .purposes(singleton(1))
+                        .legIntPurposes(singleton(2))
+                        .flexiblePurposes(emptySet())
+                        .specialPurposes(emptySet())
+                        .features(emptySet())
+                        .specialFeatures(emptySet())
+                        .build()));
     }
 
     @Test
@@ -330,8 +326,7 @@ public class VendorListServiceV2Test extends VertxTest {
         final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).containsOnly(entry(52, firstExternalV2), entry(42, secondExternalV2));
+        assertThat(future).succeededWith(idToVendor);
     }
 
     private static VendorListV2 givenVendorList() {
@@ -365,5 +360,4 @@ public class VendorListServiceV2Test extends VertxTest {
             return inv.getMock();
         };
     }
-
 }

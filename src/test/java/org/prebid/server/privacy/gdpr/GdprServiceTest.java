@@ -16,10 +16,11 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class GdprServiceTest extends VertxTest {
 
@@ -37,33 +38,15 @@ public class GdprServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAllAllowedWhenNotInGdprScope() {
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, allowAll()));
+    public void shouldReturnAllDeniedWhenNoConsentParam() {
+        assertThat(gdprService.resultFor(singleton(1), null))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
-    public void shouldReturnAllDeniedWhenInGdprScopeAndNoConsentParam() {
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, denyAll()));
-    }
-
-    @Test
-    public void shouldReturnAllDeniedWhenInGdprScopeAndConsentParamIsInvalid() {
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "invalid-consent");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, denyAll()));
+    public void shouldReturnAllDeniedWhenConsentParamIsInvalid() {
+        assertThat(gdprService.resultFor(singleton(1), "invalid-consent"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
@@ -71,12 +54,9 @@ public class GdprServiceTest extends VertxTest {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(9), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(9, null, denyAll()));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(9), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(9, null, denyAll())));
     }
 
     @Test
@@ -84,12 +64,9 @@ public class GdprServiceTest extends VertxTest {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, denyAll()));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
@@ -98,12 +75,9 @@ public class GdprServiceTest extends VertxTest {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, VendorV1.of(1, singleton(4), singleton(5)))));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(VendorPermission.of(1, null, denyAll()));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
@@ -112,13 +86,9 @@ public class GdprServiceTest extends VertxTest {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, VendorV1.of(1, singleton(2), singleton(3)))));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(
-                VendorPermission.of(1, null, action(true, false)));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(true, false))));
     }
 
     @Test
@@ -127,13 +97,9 @@ public class GdprServiceTest extends VertxTest {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, VendorV1.of(1, singleton(1), singleton(2)))));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(
-                VendorPermission.of(1, null, action(true, true)));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(true, true))));
     }
 
     @Test
@@ -142,13 +108,9 @@ public class GdprServiceTest extends VertxTest {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, VendorV1.of(1, singleton(1), singleton(4)))));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(
-                VendorPermission.of(1, null, action(false, true)));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(false, true))));
     }
 
     @Test
@@ -157,13 +119,9 @@ public class GdprServiceTest extends VertxTest {
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, VendorV1.of(1, singleton(2), singleton(3)))));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).asList().containsOnly(
-                VendorPermission.of(1, null, action(true, false)));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(true, false))));
     }
 
     @Test
@@ -171,13 +129,10 @@ public class GdprServiceTest extends VertxTest {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BONciguONcjGKADACHENAOLS1r");
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage())
-                .isEqualTo("Error when retrieving allowed purpose ids in a reason of invalid consent string");
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BONciguONcjGKADACHENAOLS1r"))
+                .isFailed()
+                .hasMessage("Error when retrieving allowed purpose ids in a reason of invalid consent string");
     }
 
     @Test
@@ -185,17 +140,10 @@ public class GdprServiceTest extends VertxTest {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
-        // when
-        final Future<?> future = gdprService.resultFor(singleton(1), "BOSbaBZOSbaBoABABBENBcoAAAAgSABgBAA");
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage())
-                .isEqualTo("Error when checking if vendor is allowed in a reason of invalid consent string");
-    }
-
-    private static PrivacyEnforcementAction allowAll() {
-        return action(true, true);
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOSbaBZOSbaBoABABBENBcoAAAAgSABgBAA"))
+                .isFailed()
+                .hasMessage("Error when checking if vendor is allowed in a reason of invalid consent string");
     }
 
     private static PrivacyEnforcementAction denyAll() {
