@@ -3,66 +3,59 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies;
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
+import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 public abstract class EnforcePurposeStrategy {
 
     public abstract Collection<VendorPermission> allowedByTypeStrategy(
-            int purposeId,
-            TCString vendorConsent,
-            Collection<VendorPermission> vendorsForPurpose,
-            boolean isEnforceVendors);
+            int purposeId, TCString vendorConsent, Collection<VendorPermissionWithGvl> vendorsForPurpose,
+            Collection<VendorPermissionWithGvl> excludedVendors, boolean isEnforceVendors);
 
-    protected Collection<VendorPermission> allowedByVendor(TCString vendorConsent,
-                                                           Collection<VendorPermission> vendorForCheck) {
-        final Collection<VendorPermission> allowedByVendorAllowed = new ArrayList<>();
+    protected boolean isAllowedBySimpleConsentOrLegitimateInterest(int purposeId,
+                                                                   Integer vendorId,
+                                                                   boolean isEnforceVendor,
+                                                                   TCString tcString) {
+        return isAllowedBySimpleConsent(purposeId, vendorId, isEnforceVendor, tcString)
+                || isAllowedByLegitimateInterest(purposeId, vendorId, isEnforceVendor, tcString);
 
-        final IntIterable allowedVendors = vendorConsent.getVendorConsent();
-        final IntIterable allowedVendorsLI = vendorConsent.getVendorLegitimateInterest();
-        for (VendorPermission vendorPermission : vendorForCheck) {
-            final Integer vendorId = vendorPermission.getVendorId();
-            if (vendorId != null && (allowedVendors.contains(vendorId) || allowedVendorsLI.contains(vendorId))) {
-                allowedByVendorAllowed.add(vendorPermission);
-            }
-        }
-        return allowedByVendorAllowed;
     }
 
-    protected Collection<VendorPermission> allowedByPurpose(int purposeId,
-                                                            TCString vendorConsent,
-                                                            Collection<VendorPermission> vendorForCheck) {
-        final Collection<VendorPermission> allowedByPurposeAndVendorAllowed = new ArrayList<>();
-
-        final IntIterable purposesConsent = vendorConsent.getPurposesConsent();
-        final IntIterable purposesLITransparency = vendorConsent.getPurposesLITransparency();
-        for (VendorPermission vendorPermission : vendorForCheck) {
-            final Integer vendorId = vendorPermission.getVendorId();
-            if (vendorId != null && (purposesConsent.contains(purposeId)
-                    || purposesLITransparency.contains(purposeId))) {
-                allowedByPurposeAndVendorAllowed.add(vendorPermission);
-            }
-        }
-        return allowedByPurposeAndVendorAllowed;
+    protected boolean isAllowedBySimpleConsent(int purposeId,
+                                               Integer vendorId,
+                                               boolean isEnforceVendor,
+                                               TCString tcString) {
+        final IntIterable purposesConsent = tcString.getPurposesConsent();
+        final IntIterable vendorConsent = tcString.getVendorConsent();
+        return isAllowedByConsents(purposeId, vendorId, isEnforceVendor, purposesConsent, vendorConsent);
     }
 
-    protected Collection<VendorPermission> allowedByPurposeAndVendor(int purposeId,
-                                                                     TCString vendorConsent,
-                                                                     Collection<VendorPermission> vendorForCheck) {
-        final Collection<VendorPermission> allowedByPurposeAndVendorAllowed = new ArrayList<>();
+    protected boolean isAllowedByLegitimateInterest(int purposeId,
+                                                    Integer vendorId,
+                                                    boolean isEnforceVendor,
+                                                    TCString tcString) {
+        final IntIterable purposesConsent = tcString.getPurposesLITransparency();
+        final IntIterable vendorConsent = tcString.getVendorLegitimateInterest();
+        return isAllowedByConsents(purposeId, vendorId, isEnforceVendor, purposesConsent, vendorConsent);
+    }
 
-        final IntIterable purposesConsent = vendorConsent.getPurposesConsent();
-        final IntIterable purposesLITransparency = vendorConsent.getPurposesLITransparency();
+    private boolean isAllowedByConsents(int purposeId,
+                                        Integer vendorId,
+                                        boolean isEnforceVendors,
+                                        IntIterable purposesConsent,
+                                        IntIterable vendorConsent) {
+        final boolean isPurposeAllowed = purposesConsent.contains(purposeId);
+        final boolean isVendorAllowed = !isEnforceVendors || vendorConsent.contains(vendorId);
+        return isPurposeAllowed && isVendorAllowed;
+    }
 
-        final Collection<VendorPermission> allowedByVendor = allowedByVendor(vendorConsent, vendorForCheck);
-        for (VendorPermission vendorPermission : allowedByVendor) {
-            final Integer vendorId = vendorPermission.getVendorId();
-            if (vendorId != null && (purposesConsent.contains(purposeId)
-                    || purposesLITransparency.contains(purposeId))) {
-                allowedByPurposeAndVendorAllowed.add(vendorPermission);
-            }
-        }
-        return allowedByPurposeAndVendorAllowed;
+    protected static Collection<VendorPermission> toVendorPermissions(
+            Collection<VendorPermissionWithGvl> vendorPermissionWithGvls) {
+
+        return vendorPermissionWithGvls.stream()
+                .map(VendorPermissionWithGvl::getVendorPermission)
+                .collect(Collectors.toList());
     }
 }

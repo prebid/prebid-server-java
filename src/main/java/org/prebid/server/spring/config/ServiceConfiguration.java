@@ -50,6 +50,7 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeSevenStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeTwoStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.FullEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
@@ -410,37 +411,53 @@ public class ServiceConfiguration {
 
     @Bean
     PurposeOneStrategy purposeOneStrategy(
+            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
             BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
             NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
-        return new PurposeOneStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+        return new PurposeOneStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+                noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeTwoStrategy purposeTwoStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                          NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeTwoStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    PurposeTwoStrategy purposeTwoStrategy(
+            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        return new PurposeTwoStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+                noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeFourStrategy purposeFourStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeFourStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    PurposeFourStrategy purposeFourStrategy(
+            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        return new PurposeFourStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+                noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeSevenStrategy purposeSevenStrategy(BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeSevenStrategy(basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+    PurposeSevenStrategy purposeSevenStrategy(
+            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+        return new PurposeSevenStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+                noEnforcePurposeStrategy);
     }
 
     @Bean
-    BasicEnforcePurposeStrategy basicTypeStrategy() {
+    FullEnforcePurposeStrategy fullEnforcePurposeStrategy() {
+        return new FullEnforcePurposeStrategy();
+    }
+
+    @Bean
+    BasicEnforcePurposeStrategy basicEnforcePurposeStrategy() {
         return new BasicEnforcePurposeStrategy();
     }
 
     @Bean
-    NoEnforcePurposeStrategy noTypeStrategy() {
+    NoEnforcePurposeStrategy noEnforcePurposeStrategy() {
         return new NoEnforcePurposeStrategy();
     }
 

@@ -12,6 +12,7 @@ import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TCStringEmpty;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.AccountGdprConfig;
@@ -149,8 +150,8 @@ public class TcfDefinerServiceTest {
         target.resultFor(singleton(1), emptySet(), "1", "consent", "ip", null, null);
 
         // then
-        verify(tcf2Service).permissionsFor(argThat(arg -> arg.getClass() == TcfDefinerService.TCStringEmpty.class),
-                any(), any(), any(), any());
+        verify(tcf2Service).permissionsFor(argThat(arg -> arg.getClass() == TCStringEmpty.class), any(), any(), any(),
+                any());
         verifyZeroInteractions(gdprService);
     }
 

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Collections;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -36,12 +37,12 @@ public class VendorV2 {
     public static VendorV2 empty(Integer id) {
         return VendorV2.builder()
                 .id(id)
-                .purposes(null)
-                .legIntPurposes(null)
-                .flexiblePurposes(null)
-                .specialPurposes(null)
-                .features(null)
-                .specialFeatures(null)
+                .purposes(Collections.emptySet())
+                .legIntPurposes(Collections.emptySet())
+                .flexiblePurposes(Collections.emptySet())
+                .specialPurposes(Collections.emptySet())
+                .features(Collections.emptySet())
+                .specialFeatures(Collections.emptySet())
                 .build();
     }
 }
