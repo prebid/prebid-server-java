@@ -25,12 +25,14 @@ import org.prebid.server.settings.model.Purposes;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -55,7 +57,13 @@ public class Tcf2ServiceTest extends VertxTest {
     @Mock
     private VendorListServiceV2 vendorListService;
     @Mock
-    private PurposeStrategy purposeStrategy;
+    private PurposeStrategy purposeStrategyOne;
+    @Mock
+    private PurposeStrategy purposeStrategyTwo;
+    @Mock
+    private PurposeStrategy purposeStrategyFour;
+    @Mock
+    private PurposeStrategy purposeStrategySeven;
     @Mock
     private TCString tcString;
 
@@ -64,25 +72,40 @@ public class Tcf2ServiceTest extends VertxTest {
     private Purposes purposes;
 
     private Purpose purpose1;
+    private Purpose purpose2;
+    private Purpose purpose4;
+    private Purpose purpose7;
 
     private GdprConfig gdprConfig;
+
+    private List<PurposeStrategy> purposeStrategies;
 
     @Before
     public void setUp() {
         given(tcString.getVendorListVersion()).willReturn(10);
-        given(purposeStrategy.getPurposeId()).willReturn(1);
+        given(purposeStrategyOne.getPurposeId()).willReturn(1);
+        given(purposeStrategyTwo.getPurposeId()).willReturn(2);
+        given(purposeStrategyFour.getPurposeId()).willReturn(4);
+        given(purposeStrategySeven.getPurposeId()).willReturn(7);
+        purposeStrategies = asList(purposeStrategyOne, purposeStrategyTwo, purposeStrategyFour, purposeStrategySeven);
+
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
         initPurposes();
         initGdpr();
-
-        target = new Tcf2Service(gdprConfig, vendorListService, bidderCatalog, singletonList(purposeStrategy));
+        target = new Tcf2Service(gdprConfig, vendorListService, bidderCatalog, purposeStrategies);
     }
 
     private void initPurposes() {
         purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList());
+        purpose2 = Purpose.of(EnforcePurpose.no, true, emptyList());
+        purpose4 = Purpose.of(EnforcePurpose.no, false, emptyList());
+        purpose7 = Purpose.of(EnforcePurpose.full, false, emptyList());
         purposes = Purposes.builder()
                 .p1(purpose1)
+                .p2(purpose2)
+                .p4(purpose4)
+                .p7(purpose7)
                 .build();
     }
 
@@ -96,17 +119,16 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     @Test
+    public void creationShouldThrowAnExceptionWhenNoSupportedStrategyFound() {
+        // when and then
+        assertThatThrownBy(() -> new Tcf2Service(gdprConfig, vendorListService, bidderCatalog, emptyList()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     public void permissionsForShouldReturnByGdprPurpose() {
         // given
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
-        target = new Tcf2Service(
-                GdprConfig.builder()
-                        .purposes(purposes)
-                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ignore)
-                        .build(),
-                vendorListService,
-                bidderCatalog,
-                singletonList(purposeStrategy));
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
@@ -117,17 +139,15 @@ public class Tcf2ServiceTest extends VertxTest {
 
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
-        verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(
-                tcString,
-                purpose1,
-                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(1))));
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
+                expectedVendorPermission, VendorV2.empty(1));
+        verifyEachPurposeStrategyReceive(singletonList(expectedVendorPermissionWitGvl));
+
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
         verify(vendorListService).forVersion(10);
 
         verifyZeroInteractions(tcString);
-        verifyZeroInteractions(purposeStrategy);
     }
 
     @Test
@@ -135,30 +155,24 @@ public class Tcf2ServiceTest extends VertxTest {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("Bad version"));
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
-        target = new Tcf2Service(GdprConfig.builder().purposes(purposes).build(), vendorListService, bidderCatalog,
-                singletonList(purposeStrategy));
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
 
         // then
-        final VendorPermission expectedVendorPermission =
-                VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll());
-
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon",
+                PrivacyEnforcementAction.restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
-        verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(
-                tcString,
-                purpose1,
-                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(1))));
+        final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
+                expectedVendorPermission, VendorV2.empty(1));
+        verifyEachPurposeStrategyReceive(singletonList(expectedVendorPermissionWitGvl));
+
         verify(bidderCatalog).nameByVendorId(1);
         verify(tcString).getVendorListVersion();
-        verify(tcString).getPurposeOneTreatment();
         verify(vendorListService).forVersion(10);
 
-        verifyNoMoreInteractions(tcString);
-        verifyNoMoreInteractions(purposeStrategy);
+        verifyZeroInteractions(tcString);
     }
 
     @Test
@@ -183,8 +197,7 @@ public class Tcf2ServiceTest extends VertxTest {
                 VendorPermission.of(null, "b1", PrivacyEnforcementAction.restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
-        verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(
+        verify(purposeStrategyOne).processTypePurposeStrategy(
                 tcString,
                 accountPurposeOne,
                 singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(null))));
@@ -192,7 +205,6 @@ public class Tcf2ServiceTest extends VertxTest {
         verify(vendorListService).forVersion(10);
 
         verifyNoMoreInteractions(tcString);
-        verifyZeroInteractions(purposeStrategy);
     }
 
     @Test
@@ -217,16 +229,12 @@ public class Tcf2ServiceTest extends VertxTest {
                 VendorPermissionWithGvl.of(expectedVendorPermission2, VendorV2.empty(null));
         assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
 
-        verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(
-                tcString,
-                purpose1,
-                asList(expectedVendorPermissionWitGvl2, expectedVendorPermissionWitGvl1));
+        verifyEachPurposeStrategyReceive(asList(expectedVendorPermissionWitGvl2, expectedVendorPermissionWitGvl1));
+
         verify(vendorIdResolver, times(2)).resolve(anyString());
         verify(tcString).getVendorListVersion();
 
         verifyNoMoreInteractions(tcString);
-        verifyZeroInteractions(purposeStrategy);
     }
 
     @Test
@@ -248,14 +256,11 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl2 = VendorPermissionWithGvl.of(
                 expectedVendorPermission2, VendorV2.empty(2));
         assertThat(result).succeededWith(asList(expectedVendorPermission1, expectedVendorPermission2));
+        verifyEachPurposeStrategyReceive(asList(expectedVendorPermissionWitGvl1, expectedVendorPermissionWitGvl2));
 
-        verify(purposeStrategy).getPurposeId();
-        verify(purposeStrategy).processTypePurposeStrategy(tcString, purpose1,
-                asList(expectedVendorPermissionWitGvl1, expectedVendorPermissionWitGvl2));
         verify(bidderCatalog, times(2)).nameByVendorId(anyInt());
         verify(tcString).getVendorListVersion();
 
-        verifyZeroInteractions(purposeStrategy);
         verifyNoMoreInteractions(bidderCatalog);
         verifyNoMoreInteractions(tcString);
     }
@@ -274,7 +279,7 @@ public class Tcf2ServiceTest extends VertxTest {
                         .build(),
                 vendorListService,
                 bidderCatalog,
-                singletonList(purposeStrategy));
+                purposeStrategies);
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
@@ -283,7 +288,10 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(
                 singletonList(VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll())));
 
-        verify(purposeStrategy, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection());
     }
 
     @Test
@@ -300,14 +308,17 @@ public class Tcf2ServiceTest extends VertxTest {
                         .build(),
                 vendorListService,
                 bidderCatalog,
-                singletonList(purposeStrategy));
+                purposeStrategies);
 
         // when
         target.permissionsFor(singleton(1), tcString);
 
         // then
-        verify(purposeStrategy).allow(any());
-        verify(purposeStrategy, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne).allow(any());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection());
     }
 
     @Test
@@ -324,13 +335,23 @@ public class Tcf2ServiceTest extends VertxTest {
                         .build(),
                 vendorListService,
                 bidderCatalog,
-                singletonList(purposeStrategy));
+                purposeStrategies);
 
         // when
         target.permissionsFor(singleton(1), tcString);
 
         // then
-        verify(purposeStrategy, never()).allow(any());
-        verify(purposeStrategy).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne, never()).allow(any());
+        verify(purposeStrategyOne).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection());
+    }
+
+    public void verifyEachPurposeStrategyReceive(List<VendorPermissionWithGvl> vendorPermissionWithGvls) {
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, vendorPermissionWithGvls);
     }
 }

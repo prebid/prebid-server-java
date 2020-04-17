@@ -8,7 +8,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.privacy.gdpr.model.GdprPurpose;
+import org.prebid.server.privacy.gdpr.model.TcfPurpose;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
@@ -137,7 +137,7 @@ public class GdprService {
     }
 
     private static boolean isPurposeOneClaimedAndAllowed(Set<Integer> claimedPurposes, Set<Integer> allowedPurposeIds) {
-        final int purposeOneId = GdprPurpose.informationStorageAndAccess.getId();
+        final int purposeOneId = TcfPurpose.informationStorageAndAccess.getId();
         return claimedPurposes.contains(purposeOneId) && allowedPurposeIds.contains(purposeOneId);
     }
 
