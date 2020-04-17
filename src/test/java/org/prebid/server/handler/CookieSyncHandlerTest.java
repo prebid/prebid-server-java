@@ -60,7 +60,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
@@ -909,7 +908,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .containsOnly("http://adnxsexample.com/sync?gdpr=&gdpr_consent=");
 
         verify(applicationSettings).getAccountById(eq(accountId), any());
-        verify(tcfDefinerService).resultFor(any(), any(), any(), any(), any(), isNull(), any());
+        verify(tcfDefinerService).resultFor(any(), any(), any(), any(), any(), eq(Account.empty("23")), any());
     }
 
     @Test
