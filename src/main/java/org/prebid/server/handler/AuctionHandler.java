@@ -248,14 +248,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
         final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
 
-        return tcfDefinerService.resultFor(
+        return tcfDefinerService.resultForVendorIds(
                 vendorIds,
-                Collections.emptySet(),
                 privacy.getGdpr(),
                 privacy.getConsent(),
                 ip,
                 preBidRequestContext.getTimeout())
-                .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getVendorIdToActionMap(), hostVendorIdIsMissing));
+                .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getActions(), hostVendorIdIsMissing));
     }
 
     private Map<Integer, Boolean> toVendorsToGdpr(

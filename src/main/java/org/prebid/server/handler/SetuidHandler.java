@@ -99,21 +99,21 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
-        tcfDefinerService.resultFor(vendorIds, Collections.emptySet(), gdpr, gdprConsent, ip, timeout)
+        tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip, timeout)
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
-    private void handleResult(AsyncResult<TcfResponse> asyncResult, RoutingContext context,
+    private void handleResult(AsyncResult<TcfResponse<Integer>> asyncResult, RoutingContext context,
                               UidsCookie uidsCookie, String bidder) {
         if (asyncResult.failed()) {
             respondWithError(context, bidder, asyncResult.cause());
         } else {
             // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
-            final TcfResponse tcfResponse = asyncResult.result();
+            final TcfResponse<Integer> tcfResponse = asyncResult.result();
 
             final boolean notInGdprScope = BooleanUtils.isFalse(tcfResponse.getUserInGdprScope());
 
-            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getVendorIdToActionMap();
+            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
             final PrivacyEnforcementAction privacyEnforcementAction = vendorIdToAction != null
                     ? vendorIdToAction.get(gdprHostVendorId)
                     : null;

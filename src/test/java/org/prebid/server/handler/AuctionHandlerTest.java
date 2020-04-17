@@ -74,6 +74,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
@@ -152,8 +153,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), emptyMap(), null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
 
         privacyExtractor = new PrivacyExtractor(jacksonMapper);
 
@@ -758,12 +759,9 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
-        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(
-                        true,
-                        singletonMap(1, actionWithUserSync(true)),
-                        emptyMap(),
-                        null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(1, actionWithUserSync(true)), null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -792,12 +790,8 @@ public class AuctionHandlerTest extends VertxTest {
         vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
         vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
         vendorToAction.put(20, actionWithUserSync(true)); // Appnexus bidder
-        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(
-                        true,
-                        vendorToAction,
-                        emptyMap(),
-                        null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorToAction, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -825,12 +819,8 @@ public class AuctionHandlerTest extends VertxTest {
         final Map<Integer, PrivacyEnforcementAction> vendorToAction = new HashMap<>();
         vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
         vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
-        given(tcfDefinerService.resultFor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(
-                        true,
-                        vendorToAction,
-                        emptyMap(),
-                        null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorToAction, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(

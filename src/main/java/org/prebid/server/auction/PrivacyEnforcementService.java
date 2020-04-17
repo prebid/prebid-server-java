@@ -11,6 +11,7 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
@@ -19,6 +20,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.VendorIdResolver;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
@@ -28,14 +30,12 @@ import org.prebid.server.settings.model.AccountGdprConfig;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -50,6 +50,7 @@ public class PrivacyEnforcementService {
     private static final User EMPTY_USER = User.builder().build();
 
     private final boolean useGeoLocation;
+    private final BidderCatalog bidderCatalog;
     private final TcfDefinerService tcfDefinerService;
     private final Metrics metrics;
     private final JacksonMapper mapper;
@@ -57,11 +58,14 @@ public class PrivacyEnforcementService {
 
     private final PrivacyExtractor privacyExtractor;
 
-    public PrivacyEnforcementService(TcfDefinerService tcfDefinerService,
+    public PrivacyEnforcementService(BidderCatalog bidderCatalog,
+                                     TcfDefinerService tcfDefinerService,
                                      Metrics metrics,
                                      JacksonMapper mapper,
                                      boolean useGeoLocation,
                                      boolean ccpaEnforce) {
+
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
@@ -209,15 +213,18 @@ public class PrivacyEnforcementService {
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
-        final Map<String, Integer> bidderToVendorIdAlias = requestBidderToVendorIdAlias(bidders, aliases);
-        final Map<String, String> bidderToBidderName = requestBidderToBidderName(bidders, aliases,
-                bidderToVendorIdAlias.keySet());
 
-        final Set<Integer> vendorIds = new HashSet<>(bidderToVendorIdAlias.values());
-        final Set<String> bidderNames = new HashSet<>(bidderToBidderName.values());
-        return tcfDefinerService.resultFor(vendorIds, bidderNames, gdprAsString, gdprConsent, ipAddress,
-                accountConfig, timeout)
-                .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidderToVendorIdAlias, bidderToBidderName));
+        final VendorIdResolver vendorIdResolver = VendorIdResolver.of(bidderCatalog, aliases);
+
+        return tcfDefinerService.resultForBidderNames(
+                new HashSet<>(bidders),
+                vendorIdResolver,
+                gdprAsString,
+                gdprConsent,
+                ipAddress,
+                accountConfig,
+                timeout)
+                .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
     /**
@@ -235,58 +242,11 @@ public class PrivacyEnforcementService {
         return null;
     }
 
-    /**
-     * Returns the name associated with vendor id alias.
-     */
-    private Map<String, Integer> requestBidderToVendorIdAlias(Collection<String> requestBidders,
-                                                              BidderAliases aliases) {
-        final Map<String, Integer> bidderToVendorId = new HashMap<>();
-        for (String requestBidder : requestBidders) {
-            final Integer aliasVendorId = aliases.resolveAliasVendorId(requestBidder);
-            if (aliasVendorId != null) {
-                bidderToVendorId.put(requestBidder, aliasVendorId);
-            }
-        }
-        return bidderToVendorId;
-    }
+    private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(
+            TcfResponse<String> tcfResponse, List<String> bidders) {
 
-    /**
-     * Returns the name associated with bidder name.
-     */
-    private Map<String, String> requestBidderToBidderName(Collection<String> requestBidders,
-                                                          BidderAliases aliases,
-                                                          Set<String> alreadyMappedBidders) {
-        final Map<String, String> bidderToBidderNameAlias = new HashMap<>();
-        for (String requestBidder : requestBidders) {
-            if (!alreadyMappedBidders.contains(requestBidder)) {
-                final String bidderNameAlias = aliases.resolveBidder(requestBidder);
-                final String bidderName = StringUtils.isNotBlank(bidderNameAlias) ? bidderNameAlias : requestBidder;
-                bidderToBidderNameAlias.put(requestBidder, bidderName);
-            }
-        }
-        return bidderToBidderNameAlias;
-    }
-
-    private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(TcfResponse tcfResponse,
-                                                                             Map<String, Integer> bidderToVendorIdAlias,
-                                                                             Map<String, String> bidderToBidderName) {
-        final Map<String, PrivacyEnforcementAction> bidderNameToEnforcementResult = new HashMap<>();
-
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToEnforcements = tcfResponse.getVendorIdToActionMap();
-        for (Map.Entry<String, Integer> bidderAndVendorId : bidderToVendorIdAlias.entrySet()) {
-            final Integer vendorId = bidderAndVendorId.getValue();
-            final PrivacyEnforcementAction privacyEnforcementAction = vendorIdToEnforcements.get(vendorId);
-            bidderNameToEnforcementResult.put(bidderAndVendorId.getKey(), privacyEnforcementAction);
-        }
-
-        final Map<String, PrivacyEnforcementAction> bidderNameToEnforcement = tcfResponse.getBidderNameToActionMap();
-        for (Map.Entry<String, String> bidderAndBidderName : bidderToBidderName.entrySet()) {
-            final String bidderName = bidderAndBidderName.getValue();
-            final PrivacyEnforcementAction privacyEnforcementAction = bidderNameToEnforcement.get(bidderName);
-            bidderNameToEnforcementResult.put(bidderAndBidderName.getKey(), privacyEnforcementAction);
-        }
-
-        return bidderNameToEnforcementResult;
+        final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
+        return bidders.stream().collect(Collectors.toMap(Function.identity(), bidderNameToAction::get));
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(

@@ -3,6 +3,7 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
@@ -168,9 +169,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
-        tcfDefinerService.resultFor(vendorIds, biddersToSync, gdprAsString, gdprConsent, ip, timeout)
+        tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip, timeout)
+                .compose(this::handleVendorIdResult)
+                .compose(ignored ->
+                        tcfDefinerService.resultForBidderNames(biddersToSync, gdprAsString, gdprConsent, ip, timeout))
                 .setHandler(asyncResult ->
-                        handleResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
+                        handleBidderNamesResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
     }
 
     /**
@@ -238,34 +242,43 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
     }
 
+    private Future<Void> handleVendorIdResult(TcfResponse<Integer> tcfResponse) {
+
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
+        final PrivacyEnforcementAction hostActions = vendorIdToAction != null
+                ? vendorIdToAction.get(gdprHostVendorId)
+                : null;
+
+        if (hostActions == null || hostActions.isBlockPixelSync()) {
+            return Future.failedFuture("host vendor should be allowed by TCF verification");
+        }
+
+        return Future.succeededFuture();
+    }
+
     /**
      * Handles TCF verification result.
      */
-    private void handleResult(AsyncResult<TcfResponse> asyncResult, RoutingContext context, UidsCookie uidsCookie,
-                              Collection<String> biddersToSync, Privacy privacy, Integer limit) {
+    private void handleBidderNamesResult(AsyncResult<TcfResponse<String>> asyncResult,
+                                         RoutingContext context,
+                                         UidsCookie uidsCookie,
+                                         Collection<String> biddersToSync,
+                                         Privacy privacy,
+                                         Integer limit) {
         if (asyncResult.failed()) {
             respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_TCF);
         } else {
-            final TcfResponse tcfResponse = asyncResult.result();
+            final TcfResponse<String> tcfResponse = asyncResult.result();
 
-            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getVendorIdToActionMap();
-            final PrivacyEnforcementAction hostActions = vendorIdToAction != null
-                    ? vendorIdToAction.get(gdprHostVendorId)
-                    : null;
-            if (hostActions == null || hostActions.isBlockPixelSync()) {
-                // host vendor should be allowed by TCF verification
-                respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_TCF);
-            } else {
-                final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getBidderNameToActionMap();
+            final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
 
-                final Set<String> biddersRejectedByTcf = biddersToSync.stream()
-                        .filter(bidder ->
-                                !bidderNameToAction.containsKey(bidder)
-                                        || bidderNameToAction.get(bidder).isBlockPixelSync())
-                        .collect(Collectors.toSet());
+            final Set<String> biddersRejectedByTcf = biddersToSync.stream()
+                    .filter(bidder ->
+                            !bidderNameToAction.containsKey(bidder)
+                                    || bidderNameToAction.get(bidder).isBlockPixelSync())
+                    .collect(Collectors.toSet());
 
-                respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, limit, REJECTED_BY_TCF);
-            }
+            respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, limit, REJECTED_BY_TCF);
         }
     }
 

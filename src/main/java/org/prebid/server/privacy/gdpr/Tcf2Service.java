@@ -19,14 +19,13 @@ import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeatures;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Tcf2Service {
@@ -55,24 +54,43 @@ public class Tcf2Service {
         this.purposeStrategies = Objects.requireNonNull(purposeStrategies);
     }
 
-    // TODO remove Purposes from parameters
-    public Future<Collection<VendorPermission>> permissionsFor(TCString gdprConsent,
-                                                               Set<Integer> vendorIds,
-                                                               Set<String> bidderNames,
-                                                               Set<GdprPurpose> purposes,
-                                                               AccountGdprConfig accountGdprConfig) {
+    public Future<Collection<VendorPermission>> permissionsFor(
+            Set<Integer> vendorIds,
+            TCString gdprConsent) {
 
-        final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
+        return permissionsForInternal(
+                vendorGvlPermissions -> vendorPermissionWithGvls(vendorIds, vendorGvlPermissions),
+                gdprConsent,
+                null);
+    }
+
+    public Future<Collection<VendorPermission>> permissionsFor(
+            Set<String> bidderNames,
+            VendorIdResolver vendorIdResolver,
+            TCString gdprConsent,
+            AccountGdprConfig accountGdprConfig) {
+
+        return permissionsForInternal(
+                vendorGvlPermissions -> vendorPermissionWithGvls(bidderNames, vendorIdResolver, vendorGvlPermissions),
+                gdprConsent,
+                accountGdprConfig);
+    }
+
+    private Future<Collection<VendorPermission>> permissionsForInternal(
+            Function<Map<Integer, VendorV2>, Collection<VendorPermissionWithGvl>> vendorPermissionsCreator,
+            TCString gdprConsent,
+            AccountGdprConfig accountGdprConfig) {
+
+        final Map<Integer, Purpose> purposeIdToPurpose = purposeIdToPurpose(
+                Collections.singleton(GdprPurpose.informationStorageAndAccess), // TODO Add for another purposes
+                accountGdprConfig);
         final PurposeOneTreatmentInterpretation mergedPurposeOneTreatmentInterpretation =
                 mergePurposeOneTreatmentInterpretation(accountGdprConfig);
-        final Map<Integer, Purpose> purposeIdToPurpose = purposes.stream()
-                .collect(Collectors.toMap(GdprPurpose::getId,
-                        gdprPurpose -> findPurposeById(gdprPurpose.getId(), mergedPurposes)));
 
         return vendorListServiceV2.forVersion(gdprConsent.getVendorListVersion())
                 // We can't skip TCF check for all bidders if we can't load GVL list
                 .otherwise(Collections.emptyMap())
-                .map(vendorGvlPermissions -> vendorPermissionWithGvls(bidderNames, vendorIds, vendorGvlPermissions))
+                .map(vendorPermissionsCreator)
                 .map(vendorPermissionWithGvls -> processEachPurposeStrategies(
                         gdprConsent,
                         vendorPermissionWithGvls,
@@ -80,28 +98,27 @@ public class Tcf2Service {
                         mergedPurposeOneTreatmentInterpretation));
     }
 
-    private Collection<VendorPermissionWithGvl> vendorPermissionWithGvls(Set<String> bidderNames,
-                                                                         Set<Integer> vendorIds,
-                                                                         Map<Integer, VendorV2> vendorGvlPermissions) {
-        final Collection<Integer> foundVendorIds = new HashSet<>();
-        final Collection<VendorPermissionWithGvl> vendorPermissionsWithGvl = new ArrayList<>();
-        for (String bidderName : bidderNames) {
-            final Integer vendorId = bidderCatalog.isActive(bidderName)
-                    ? bidderCatalog.vendorIdByName(bidderName)
-                    : null;
-            foundVendorIds.add(vendorId);
-            vendorPermissionsWithGvl.add(createVendorPermission(vendorId, bidderName, vendorGvlPermissions));
-        }
+    private Collection<VendorPermissionWithGvl> vendorPermissionWithGvls(
+            Set<Integer> vendorIds,
+            Map<Integer, VendorV2> vendorGvlPermissions) {
 
-        vendorIds.stream()
+        return vendorIds.stream()
                 // this check only for illegal arguments...
                 .filter(Objects::nonNull)
-                .filter(vendorId -> !foundVendorIds.contains(vendorId))
-                .map(vendorId -> createVendorPermission(vendorId, bidderCatalog.nameByVendorId(vendorId),
-                        vendorGvlPermissions))
-                .forEach(vendorPermissionsWithGvl::add);
+                .map(vendorId -> createVendorPermission(
+                        vendorId, bidderCatalog.nameByVendorId(vendorId), vendorGvlPermissions))
+                .collect(Collectors.toList());
+    }
 
-        return vendorPermissionsWithGvl;
+    private Collection<VendorPermissionWithGvl> vendorPermissionWithGvls(
+            Set<String> bidderNames,
+            VendorIdResolver vendorIdResolver,
+            Map<Integer, VendorV2> vendorGvlPermissions) {
+
+        return bidderNames.stream()
+                .map(bidderName -> createVendorPermission(
+                        vendorIdResolver.resolve(bidderName), bidderName, vendorGvlPermissions))
+                .collect(Collectors.toList());
     }
 
     private static VendorPermissionWithGvl createVendorPermission(Integer vendorId,
@@ -111,10 +128,9 @@ public class Tcf2Service {
                 ? vendorGvlPermissions.getOrDefault(vendorId, VendorV2.empty(vendorId))
                 : VendorV2.empty(vendorId);
 
-        final VendorPermission vendorPermission = VendorPermission.of(vendorId, bidderName,
-                PrivacyEnforcementAction.restrictAll());
-        return VendorPermissionWithGvl.of(vendorPermission, vendorGvlByVendorId);
-
+        return VendorPermissionWithGvl.of(
+                VendorPermission.of(vendorId, bidderName, PrivacyEnforcementAction.restrictAll()),
+                vendorGvlByVendorId);
     }
 
     private Collection<VendorPermission> processEachPurposeStrategies(
@@ -149,8 +165,35 @@ public class Tcf2Service {
         return purposeStrategies.stream()
                 .filter(purposeStrategy -> Objects.equals(purposeStrategy.getPurposeId(), purposeId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("There no purpose strategy for purpose"
-                        + " id = %s", purposeId)));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("There no purpose strategy for purpose id = %s", purposeId)));
+    }
+
+    private Map<Integer, Purpose> purposeIdToPurpose(Set<GdprPurpose> purposes, AccountGdprConfig accountGdprConfig) {
+        final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
+        return purposes.stream()
+                .collect(Collectors.toMap(
+                        GdprPurpose::getId,
+                        gdprPurpose -> findPurposeById(gdprPurpose.getId(), mergedPurposes)));
+    }
+
+    private Purposes mergeAccountPurposes(AccountGdprConfig accountGdprConfig) {
+        if (accountGdprConfig == null || accountGdprConfig.getPurposes() == null) {
+            return defaultPurposes;
+        }
+        final Purposes accountPurposes = accountGdprConfig.getPurposes();
+        return Purposes.builder()
+                .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
+                .p2(mergeItem(accountPurposes.getP2(), defaultPurposes.getP2()))
+                .p3(mergeItem(accountPurposes.getP3(), defaultPurposes.getP3()))
+                .p4(mergeItem(accountPurposes.getP4(), defaultPurposes.getP4()))
+                .p5(mergeItem(accountPurposes.getP5(), defaultPurposes.getP5()))
+                .p6(mergeItem(accountPurposes.getP6(), defaultPurposes.getP6()))
+                .p7(mergeItem(accountPurposes.getP7(), defaultPurposes.getP7()))
+                .p8(mergeItem(accountPurposes.getP8(), defaultPurposes.getP8()))
+                .p9(mergeItem(accountPurposes.getP9(), defaultPurposes.getP9()))
+                .p9(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
+                .build();
     }
 
     private Purpose findPurposeById(int gdprPurposeId, Purposes purposes) {
@@ -180,25 +223,6 @@ public class Tcf2Service {
         }
     }
 
-    private Purposes mergeAccountPurposes(AccountGdprConfig accountGdprConfig) {
-        if (accountGdprConfig == null || accountGdprConfig.getPurposes() == null) {
-            return defaultPurposes;
-        }
-        final Purposes accountPurposes = accountGdprConfig.getPurposes();
-        return Purposes.builder()
-                .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
-                .p2(mergeItem(accountPurposes.getP2(), defaultPurposes.getP2()))
-                .p3(mergeItem(accountPurposes.getP3(), defaultPurposes.getP3()))
-                .p4(mergeItem(accountPurposes.getP4(), defaultPurposes.getP4()))
-                .p5(mergeItem(accountPurposes.getP5(), defaultPurposes.getP5()))
-                .p6(mergeItem(accountPurposes.getP6(), defaultPurposes.getP6()))
-                .p7(mergeItem(accountPurposes.getP7(), defaultPurposes.getP7()))
-                .p8(mergeItem(accountPurposes.getP8(), defaultPurposes.getP8()))
-                .p9(mergeItem(accountPurposes.getP9(), defaultPurposes.getP9()))
-                .p9(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
-                .build();
-    }
-
     private PurposeOneTreatmentInterpretation mergePurposeOneTreatmentInterpretation(
             AccountGdprConfig accountGdprConfig) {
 
@@ -220,4 +244,3 @@ public class Tcf2Service {
         return prioritisedItem == null ? item : prioritisedItem;
     }
 }
-

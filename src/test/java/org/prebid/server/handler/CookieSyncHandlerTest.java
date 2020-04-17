@@ -194,7 +194,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(
                 givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null)));
 
-        givenTcfServiceReturningResult(emptySet(), emptySet());
+        givenTcfServiceReturningVendorIdResult(emptySet());
 
         given(routingContext.response().closed()).willReturn(true);
 
@@ -211,7 +211,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(
                 givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null)));
 
-        givenTcfServiceReturningResult(emptySet(), emptySet());
+        givenTcfServiceReturningVendorIdResult(emptySet());
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -238,7 +238,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -274,7 +275,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -310,7 +312,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -345,7 +348,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -380,7 +384,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -413,7 +418,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -440,7 +446,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isValidName("unsupported")).willReturn(false);
 
-        givenTcfServiceReturningResult(singleton(RUBICON), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -473,7 +480,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive("disabled")).willReturn(false);
 
-        givenTcfServiceReturningResult(singleton(RUBICON), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -511,7 +519,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(BidderInfo.create(true, null, null,
                         null, null, 2, true, false));
 
-        givenTcfServiceReturningResult(singleton(RUBICON), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -542,7 +551,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(BidderInfo.create(true, null, null,
                         null, null, 2, true, false));
 
-        givenTcfServiceReturningResult(singleton(RUBICON), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -570,7 +580,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -601,7 +612,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -632,7 +644,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -660,7 +673,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -682,7 +696,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(RUBICON), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
         given(uidsCookieService.parseHostCookie(any())).willReturn("host/cookie/value");
@@ -713,7 +728,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
 
@@ -740,7 +756,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(RUBICON), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
         given(uidsCookieService.parseHostCookie(any())).willReturn(null);
@@ -767,7 +784,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
         given(uidsCookieService.parseHostCookie(any())).willReturn("cookie-value");
@@ -797,7 +815,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "http://rubiconexample.com", null, null, "redirect", false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(emptySet(), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(emptySet());
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -823,7 +842,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -850,7 +870,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -880,7 +901,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -905,7 +927,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                 false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(singleton(APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -921,7 +944,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(
                 givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null)));
 
-        givenTcfServiceReturningResult(emptySet(), emptySet());
+        givenTcfServiceReturningVendorIdResult(emptySet());
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -995,7 +1018,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
         givenUsersyncersReturningFamilyName();
 
-        givenTcfServiceReturningResult(set(RUBICON, APPNEXUS), singleton(1));
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -1047,18 +1071,21 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .containsOnly(tuple(APPNEXUS, "Rejected by CCPA"), tuple(RUBICON, "Rejected by CCPA"));
     }
 
-    private void givenTcfServiceReturningResult(Set<String> bidderNames, Set<Integer> vendorIds) {
-        final Map<String, PrivacyEnforcementAction> bidderNameToAction = bidderNames.stream()
-                .collect(Collectors.toMap(
-                        identity(),
-                        bidder -> PrivacyEnforcementAction.builder().blockPixelSync(false).build()));
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = vendorIds.stream()
+    private void givenTcfServiceReturningVendorIdResult(Set<Integer> vendorIds) {
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds), null)));
+    }
+
+    private void givenTcfServiceReturningBidderNamesResult(Set<String> bidderNames) {
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(bidderNames), null)));
+    }
+
+    private static <T> Map<T, PrivacyEnforcementAction> actions(Set<T> keys) {
+        return keys.stream()
                 .collect(Collectors.toMap(
                         identity(),
                         vendorId -> PrivacyEnforcementAction.builder().blockPixelSync(false).build()));
-
-        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToAction, bidderNameToAction, null)));
     }
 
     private static Buffer givenRequestBody(CookieSyncRequest request) {

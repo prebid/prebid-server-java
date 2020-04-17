@@ -23,17 +23,15 @@ import org.prebid.server.settings.model.Purposes;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -64,8 +62,6 @@ public class TcfDefinerServiceTest {
 
     private Purposes purposes;
 
-    private Purpose purpose1;
-
     private GdprConfig gdprConfig;
 
     @Before
@@ -81,7 +77,7 @@ public class TcfDefinerServiceTest {
     }
 
     private void initPurposes() {
-        purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList());
+        final Purpose purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList());
         purposes = Purposes.builder()
                 .p1(purpose1)
                 .build();
@@ -96,18 +92,18 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resultForShouldAllowAllWhenGdprIsDisabled() {
+    public void resultForVendorIdsShouldAllowAllWhenGdprIsDisabled() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder().enabled(false).build();
         target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
                 geoLocationService, bidderCatalog, metrics);
 
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), null, null, null, null, null);
+        final Future<TcfResponse<Integer>> result = target.resultForVendorIds(singleton(1), null, null, null, null);
 
         // then
         assertThat(result).succeededWith(
-                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null));
+                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), null));
 
         verifyZeroInteractions(gdprService);
         verifyZeroInteractions(tcf2Service);
@@ -116,17 +112,17 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resultForShouldAllowAllWhenGdprIsDisabledByAccount() {
+    public void resultForBidderNamesShouldAllowAllWhenGdprIsDisabledByAccount() {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder().enabled(false).build();
 
         // when
-        final Future<TcfResponse> result = target.resultFor(
-                singleton(1), emptySet(), null, null, null, accountGdprConfig, null);
+        final Future<TcfResponse<String>> result = target.resultForBidderNames(
+                singleton("b"), null, null, null, null, accountGdprConfig, null);
 
         // then
         assertThat(result).succeededWith(
-                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null));
+                TcfResponse.of(false, singletonMap("b", PrivacyEnforcementAction.allowAll()), null));
 
         verifyZeroInteractions(gdprService);
         verifyZeroInteractions(tcf2Service);
@@ -135,9 +131,9 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resultForShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
+    public void resultForVendorIdsShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
         // when
-        target.resultFor(singleton(1), emptySet(), null, "consent", "ip", null, null);
+        target.resultForVendorIds(singleton(1), null, "consent", "ip", null);
 
         // then
         verify(geoLocationService).lookup(eq("ip"), any());
@@ -145,49 +141,64 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resultForShouldReturnRestrictAllWhenConsentIsNotValid() {
+    public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsNotValid() {
         // when
-        target.resultFor(singleton(1), emptySet(), "1", "consent", "ip", null, null);
+        target.resultForVendorIds(singleton(1), "1", "consent", "ip", null);
 
         // then
-        verify(tcf2Service).permissionsFor(argThat(arg -> arg.getClass() == TCStringEmpty.class), any(), any(), any(),
-                any());
+        verify(tcf2Service).permissionsFor(
+                any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
         verifyZeroInteractions(gdprService);
     }
 
     @Test
-    public void resultForShouldReturnAllowAllWhenGdprIsZero() {
+    public void resultForVendorIdsShouldReturnAllowAllWhenGdprIsZero() {
         // when
-        final Future<TcfResponse> result = target.resultFor(singleton(1), emptySet(), "0", "consent", "ip", null, null);
+        final Future<TcfResponse<Integer>> result =
+                target.resultForVendorIds(singleton(1), "0", "consent", "ip", null);
 
         // then
         assertThat(result).succeededWith(
-                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null));
+                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), null));
 
         verifyZeroInteractions(tcf2Service);
         verifyZeroInteractions(gdprService);
     }
 
     @Test
-    public void resultForShouldReturnAllowAllWhenGdprByGeoLookupIsZero() {
+    public void resultForBidderNamesShouldReturnAllowAllWhenGdprIsZero() {
+        // when
+        final Future<TcfResponse<String>> result =
+                target.resultForBidderNames(singleton("b1"), "0", "consent", "ip", null);
+
+        // then
+        assertThat(result).succeededWith(
+                TcfResponse.of(false, singletonMap("b1", PrivacyEnforcementAction.allowAll()), null));
+
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(gdprService);
+    }
+
+    @Test
+    public void resultForVendorIdsShouldReturnAllowAllWhenGdprByGeoLookupIsZero() {
         // given
         given(geoLocationService.lookup(anyString(), any()))
                 .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("aa").country("aa").build()));
 
         // when
-        final Future<TcfResponse> result = target.resultFor(
-                singleton(1), emptySet(), null, "consent", "ip", null, null);
+        final Future<TcfResponse<Integer>> result =
+                target.resultForVendorIds(singleton(1), null, "consent", "ip", null);
 
         // then
         assertThat(result).succeededWith(
-                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), "aa"));
+                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), "aa"));
 
         verifyZeroInteractions(tcf2Service);
         verifyZeroInteractions(gdprService);
     }
 
     @Test
-    public void resultForShouldReturnAllowAllWhenGdprByGeoLookupIsFailedAndByDefaultIsZero() {
+    public void resultForVendorIdsShouldReturnAllowAllWhenGdprByGeoLookupIsFailedAndByDefaultIsZero() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder().enabled(true).defaultValue("0").build();
         target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
@@ -196,43 +207,68 @@ public class TcfDefinerServiceTest {
         given(geoLocationService.lookup(anyString(), any())).willReturn(Future.failedFuture("Bad ip"));
 
         // when
-        final Future<TcfResponse> result = target.resultFor(
-                singleton(1), emptySet(), null, "consent", "ip", null, null);
+        final Future<TcfResponse<Integer>> result =
+                target.resultForVendorIds(singleton(1), null, "consent", "ip", null);
 
         // then
         assertThat(result).succeededWith(
-                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null));
+                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), null));
 
         verifyZeroInteractions(tcf2Service);
         verifyZeroInteractions(gdprService);
     }
 
     @Test
-    public void resultForShouldReturnAllowAllWhenIpIsNullAndByDefaultIsZero() {
+    public void resultForVendorIdsShouldReturnAllowAllWhenIpIsNullAndByDefaultIsZero() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder().enabled(true).defaultValue("0").build();
         target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
                 geoLocationService, bidderCatalog, metrics);
 
         // when
-        final Future<TcfResponse> result = target.resultFor(
-                singleton(1), emptySet(), null, "consent", null, null, null);
+        final Future<TcfResponse<Integer>> result =
+                target.resultForVendorIds(singleton(1), null, "consent", null, null);
 
         // then
         assertThat(result).succeededWith(
-                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), emptyMap(), null));
+                TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), null));
 
         verifyZeroInteractions(tcf2Service);
         verifyZeroInteractions(gdprService);
     }
 
     @Test
-    public void resultForShouldReturnTcfResponseFromGdprServiceWhenConsentStringIsFirstVersion() {
+    public void resultForVendorIdsShouldReturnTcfResponseFromGdprServiceWhenConsentStringIsFirstVersion() {
         // given
-        given(gdprService.resultFor(any(), anyString()))
+        given(gdprService.resultFor(anySet(), anyString()))
                 .willReturn(Future.succeededFuture(asList(
                         VendorPermission.of(1, null, PrivacyEnforcementAction.allowAll()),
-                        VendorPermission.of(2, "b2", PrivacyEnforcementAction.allowAll()))));
+                        VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll()))));
+
+        // when
+        final Future<TcfResponse<Integer>> result = target.resultForVendorIds(
+                new HashSet<>(asList(1, 2)),
+                "1",
+                "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
+                null,
+                null);
+
+        // then
+        final HashMap<Integer, PrivacyEnforcementAction> expectedVendorIdToPrivacyMap = new HashMap<>();
+        expectedVendorIdToPrivacyMap.put(1, PrivacyEnforcementAction.allowAll());
+        expectedVendorIdToPrivacyMap.put(2, PrivacyEnforcementAction.restrictAll());
+        assertThat(result).succeededWith(TcfResponse.of(true, expectedVendorIdToPrivacyMap, null));
+
+        verifyZeroInteractions(tcf2Service);
+    }
+
+    @Test
+    public void resultForBidderNamesShouldReturnTcfResponseFromGdprServiceWhenConsentStringIsFirstVersion() {
+        // given
+        given(gdprService.resultFor(anySet(), anyString()))
+                .willReturn(Future.succeededFuture(asList(
+                        VendorPermission.of(1, null, PrivacyEnforcementAction.allowAll()),
+                        VendorPermission.of(2, null, PrivacyEnforcementAction.allowAll()))));
 
         given(bidderCatalog.isActive(eq("b1"))).willReturn(true);
         given(bidderCatalog.isActive(eq("b2"))).willReturn(true);
@@ -241,12 +277,10 @@ public class TcfDefinerServiceTest {
         given(bidderCatalog.vendorIdByName(eq("b2"))).willReturn(2);
 
         // when
-        final Future<TcfResponse> result = target.resultFor(
-                singleton(1),
+        final Future<TcfResponse<String>> result = target.resultForBidderNames(
                 new HashSet<>(asList("b1", "b2", "b3")),
                 "1",
                 "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
-                null,
                 null,
                 null);
 
@@ -263,58 +297,48 @@ public class TcfDefinerServiceTest {
                 .blockBidderRequest(false)
                 .blockPixelSync(true)
                 .build());
-        assertThat(result).succeededWith(TcfResponse.of(
-                true,
-                singletonMap(1, PrivacyEnforcementAction.allowAll()),
-                expectedBidderNameToPrivacyMap,
-                null));
+        assertThat(result).succeededWith(TcfResponse.of(true, expectedBidderNameToPrivacyMap, null));
 
         verifyZeroInteractions(tcf2Service);
     }
 
     @Test
-    public void resultForShouldReturnTcfResponseFromGdprServiceWhenConsentStringIsNull() {
+    public void resultForVendorIdsShouldReturnTcfResponseFromTcf2ServiceWhenConsentStringIsNull() {
         // given
-        final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.allowAll());
-        final VendorPermission vendorPermission2 = VendorPermission.of(null, "b2", PrivacyEnforcementAction.allowAll());
-        final List<VendorPermission> vendorPermissions = asList(vendorPermission1, vendorPermission2);
-        given(tcf2Service.permissionsFor(any(), any(), any(), any(), any())).willReturn(
-                Future.succeededFuture(vendorPermissions));
+        given(tcf2Service.permissionsFor(anySet(), any())).willReturn(Future.succeededFuture(asList(
+                VendorPermission.of(1, null, PrivacyEnforcementAction.allowAll()),
+                VendorPermission.of(2, null, PrivacyEnforcementAction.allowAll()))));
 
         // when
-        final Set<String> bidderNames = new HashSet<>(asList("b1", "b2"));
-        final Future<TcfResponse> result = target.resultFor(singleton(1), bidderNames, "1", null, null, null, null);
+        final Future<TcfResponse<Integer>> result =
+                target.resultForVendorIds(new HashSet<>(asList(1, 2)), "1", null, null, null);
 
         // then
-        final HashMap<String, PrivacyEnforcementAction> expectedBidderNameToPrivacyMap = new HashMap<>();
-        expectedBidderNameToPrivacyMap.put("b1", PrivacyEnforcementAction.allowAll());
-        expectedBidderNameToPrivacyMap.put("b2", PrivacyEnforcementAction.allowAll());
-        assertThat(result).succeededWith(TcfResponse.of(
-                true, singletonMap(1, PrivacyEnforcementAction.allowAll()), expectedBidderNameToPrivacyMap, null));
+        final HashMap<Integer, PrivacyEnforcementAction> expectedVendorIdToPrivacyMap = new HashMap<>();
+        expectedVendorIdToPrivacyMap.put(1, PrivacyEnforcementAction.allowAll());
+        expectedVendorIdToPrivacyMap.put(2, PrivacyEnforcementAction.allowAll());
+        assertThat(result).succeededWith(TcfResponse.of(true, expectedVendorIdToPrivacyMap, null));
 
         verifyZeroInteractions(gdprService);
     }
 
     @Test
-    public void resultForShouldReturnTcfResponseFromTcf2ServiceWhenConsentStringIsSecondVersion() {
+    public void resultForBidderNamesShouldReturnTcfResponseFromTcf2ServiceWhenConsentStringIsSecondVersion() {
         // given
-        final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.allowAll());
-        final VendorPermission vendorPermission2 = VendorPermission.of(null, "b2", PrivacyEnforcementAction.allowAll());
-        final List<VendorPermission> vendorPermissions = asList(vendorPermission1, vendorPermission2);
-        given(tcf2Service.permissionsFor(any(), any(), any(), any(), any())).willReturn(
-                Future.succeededFuture(vendorPermissions));
+        given(tcf2Service.permissionsFor(anySet(), any(), any(), any())).willReturn(Future.succeededFuture(asList(
+                VendorPermission.of(1, "b1", PrivacyEnforcementAction.allowAll()),
+                VendorPermission.of(null, "b2", PrivacyEnforcementAction.allowAll()))));
 
         // when
         final Set<String> bidderNames = new HashSet<>(asList("b1", "b2"));
-        final Future<TcfResponse> result = target.resultFor(
-                singleton(1), bidderNames, "1", "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null, null);
+        final Future<TcfResponse<String>> result = target.resultForBidderNames(
+                bidderNames, "1", "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null);
 
         // then
         final HashMap<String, PrivacyEnforcementAction> expectedBidderNameToPrivacyMap = new HashMap<>();
         expectedBidderNameToPrivacyMap.put("b1", PrivacyEnforcementAction.allowAll());
         expectedBidderNameToPrivacyMap.put("b2", PrivacyEnforcementAction.allowAll());
-        assertThat(result).succeededWith(TcfResponse.of(
-                true, singletonMap(1, PrivacyEnforcementAction.allowAll()), expectedBidderNameToPrivacyMap, null));
+        assertThat(result).succeededWith(TcfResponse.of(true, expectedBidderNameToPrivacyMap, null));
 
         verifyZeroInteractions(gdprService);
     }
