@@ -22,4 +22,3 @@ public class AccountGdprConfig {
     @JsonProperty("purpose-one-treatment-interpretation")
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
 }
-

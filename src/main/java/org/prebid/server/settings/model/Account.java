@@ -22,5 +22,11 @@ public class Account {
     AccountGdprConfig gdpr;
 
     Integer analyticsSamplingFactor;
+
+    public static Account empty(String id) {
+        return Account.builder()
+                .id(id)
+                .build();
+    }
 }
 

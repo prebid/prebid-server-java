@@ -54,24 +54,12 @@ public class TcfDefinerService {
 
         this.gdprEnabled = gdprConfig != null && BooleanUtils.isNotFalse(gdprConfig.getEnabled());
         this.gdprDefaultValue = gdprConfig != null ? gdprConfig.getDefaultValue() : null;
-        this.gdprService = gdprService;
-        this.tcf2Service = tcf2Service;
-        this.eeaCountries = eeaCountries;
+        this.gdprService = Objects.requireNonNull(gdprService);
+        this.tcf2Service = Objects.requireNonNull(tcf2Service);
+        this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.geoLocationService = geoLocationService;
         this.bidderCatalog = bidderCatalog;
-        this.metrics = metrics;
-
-        checkForRequiredServices();
-    }
-
-    private void checkForRequiredServices() {
-        if (gdprEnabled) {
-            Objects.requireNonNull(gdprDefaultValue);
-            Objects.requireNonNull(gdprService);
-            Objects.requireNonNull(tcf2Service);
-            Objects.requireNonNull(eeaCountries);
-            Objects.requireNonNull(metrics);
-        }
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     // vendorIds and BidderNames can't contain null elements

@@ -29,6 +29,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
+import org.prebid.server.settings.ApplicationSettings;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -63,6 +64,8 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private ApplicationSettings applicationSettings;
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
@@ -100,8 +103,8 @@ public class SetuidHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
-                null, false, analyticsReporter, metrics, timeoutFactory);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, null, false, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
@@ -222,12 +225,12 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassIpAddressToGdprServiceIfGeoLocationEnabled() {
+    public void shouldPassIpAddressToTcfDefinerServiceIfGeoLocationEnabled() {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
-                null, true, analyticsReporter, metrics, timeoutFactory);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, null, true, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -294,8 +297,8 @@ public class SetuidHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
-                null, false, analyticsReporter, metrics, timeoutFactory);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, null, false, analyticsReporter, metrics, timeoutFactory);
 
         // when
         setuidHandler.handle(routingContext);
@@ -533,8 +536,8 @@ public class SetuidHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, bidderCatalog, tcfDefinerService,
-                null, false, analyticsReporter, metrics, timeoutFactory);
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, null, false, analyticsReporter, metrics, timeoutFactory);
 
         // when
         setuidHandler.handle(routingContext);

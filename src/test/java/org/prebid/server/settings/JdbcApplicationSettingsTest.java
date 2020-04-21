@@ -186,7 +186,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(PreBidException.class).hasMessage("Not found");
+            assertThat(exception).isInstanceOf(PreBidException.class)
+                    .hasMessage("Account not found: non-existing");
             async.complete();
         }));
     }
@@ -212,7 +213,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(PreBidException.class).hasMessage("Not found");
+            assertThat(exception).isInstanceOf(PreBidException.class)
+                    .hasMessage("AdUnitConfig not found: non-existing");
             async.complete();
         }));
     }
