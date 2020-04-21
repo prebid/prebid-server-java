@@ -25,7 +25,9 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.model.GdprResponse;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.model.Account;
@@ -33,12 +35,12 @@ import org.prebid.server.settings.model.Account;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
@@ -48,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,7 +81,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, true));
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, true, true));
 
         given(gdprService.isGdprEnforced(any(), any(), any())).willReturn(true);
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
@@ -268,7 +271,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), aliases)
+                .mask(context, bidderToUser, null, singletonList(alias), aliases)
                 .result();
 
         // then
@@ -506,22 +509,83 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForCcpaAndDoesNotCallGdprServicesWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
+    public void shouldMaskForCcpaAndGdprWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
                 false, true);
+
+        final String bidder1Name = "bidder1Name";
+        final String bidder2Name = "bidder2Name";
+        final String bidder3Name = "bidder3Name";
+
+        given(bidderCatalog.bidderInfoByName(bidder1Name)).willReturn(givenBidderInfo(1, true, true));
+        given(bidderCatalog.bidderInfoByName(bidder2Name)).willReturn(givenBidderInfo(2, true, true));
+        given(bidderCatalog.bidderInfoByName(bidder3Name)).willReturn(givenBidderInfo(3, true, false));
+
+        final Map<Integer, Boolean> vendorIdToGdprEnforce = new HashMap<>();
+        vendorIdToGdprEnforce.put(2, false);
+        vendorIdToGdprEnforce.put(3, false);
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorIdToGdprEnforce, null)));
+
         final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
-        final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
+        final Device device = notMaskedDevice();
         final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1YYY")));
-        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final Map<String, User> bidderToUser = new HashMap<>();
+        bidderToUser.put(bidder1Name, notMaskedUser());
+        bidderToUser.put(bidder2Name, notMaskedUser());
+        bidderToUser.put(bidder3Name, notMaskedUser());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
                 singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device)
-                        .regs(regs));
+                        .regs(regs)
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .nosale(singletonList(bidder2Name))
+                                .build()))));
+
+        final AuctionContext context = auctionContext(bidRequest);
+
+        // when
+        final Map<String, PrivacyEnforcementResult> result = privacyEnforcementService
+                .mask(context, bidderToUser, extUser, asList(bidder1Name, bidder2Name, bidder3Name), emptyMap())
+                .result();
+
+        // then
+        assertThat(result).containsOnly(
+                entry(bidder1Name, PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked())),
+                entry(bidder2Name, PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked())),
+                entry(bidder3Name, PrivacyEnforcementResult.of(userGdprMasked(), deviceGdprMasked())));
+    }
+
+    @Test
+    public void shouldNotMaskForCcpaWhenCatchAllWildcardIsPresentInNosaleList() {
+        // given
+        privacyEnforcementService = new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, jacksonMapper,
+                false, true);
+
+        given(gdprService.isGdprEnforced(anyString(), anyBoolean(), anySet())).willReturn(false);
+
+        final ExtUser extUser = ExtUser.builder().build();
+        final User user = notMaskedUser();
+        final Device device = notMaskedDevice();
+        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1YYY")));
+
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, notMaskedUser());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(device)
+                        .regs(regs)
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .nosale(singletonList("*"))
+                                .build()))));
 
         final AuctionContext context = auctionContext(bidRequest);
 
@@ -531,10 +595,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .result();
 
         // then
-        verifyZeroInteractions(gdprService);
-        final Device expectedDevice = givenGdprMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
-        final PrivacyEnforcementResult expected = PrivacyEnforcementResult.of(userGdprMasked(), expectedDevice);
-        assertThat(result).hasSize(1).containsOnly(entry(BIDDER_NAME, expected));
+        assertThat(result).containsOnly(
+                entry(BIDDER_NAME, PrivacyEnforcementResult.of(notMaskedUser(), notMaskedDevice())));
     }
 
     @Test
@@ -592,9 +654,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final String bidder1Name = "bidder1";
         final String bidder2Name = "bidder2";
         final String bidder3Name = "bidder3";
-        given(bidderCatalog.bidderInfoByName(bidder1Name)).willReturn(givenBidderInfo(1, true));
-        given(bidderCatalog.bidderInfoByName(bidder2Name)).willReturn(givenBidderInfo(2, true));
-        given(bidderCatalog.bidderInfoByName(bidder3Name)).willReturn(givenBidderInfo(3, false));
+        given(bidderCatalog.bidderInfoByName(bidder1Name)).willReturn(givenBidderInfo(1, true, true));
+        given(bidderCatalog.bidderInfoByName(bidder2Name)).willReturn(givenBidderInfo(2, true, true));
+        given(bidderCatalog.bidderInfoByName(bidder3Name)).willReturn(givenBidderInfo(3, false, true));
 
         final HashMap<Integer, Boolean> vendorIdToGdprEnforce = new HashMap<>();
         vendorIdToGdprEnforce.put(1, false);
@@ -611,7 +673,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         bidderToUser.put(bidder1Name, notMaskedUser());
         bidderToUser.put(bidder2Name, notMaskedUser());
         bidderToUser.put(bidder3Name, notMaskedUser());
-        final List<String> bidders = Arrays.asList(bidder1Name, bidder2Name, bidder3Name);
+        final List<String> bidders = asList(bidder1Name, bidder2Name, bidder3Name);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
                 singletonMap(BIDDER_NAME, 1)),
@@ -754,8 +816,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return impBuilderCustomizer.apply(Imp.builder().ext(mapper.valueToTree(ext))).build();
     }
 
-    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
+    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr, boolean enforceCcpa) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), false);
+                new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), enforceCcpa, false);
     }
 }

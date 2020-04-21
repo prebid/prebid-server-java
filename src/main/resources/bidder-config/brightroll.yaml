@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://east-bid.ybp.yahoo.com/bid/rubiconpbs
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:

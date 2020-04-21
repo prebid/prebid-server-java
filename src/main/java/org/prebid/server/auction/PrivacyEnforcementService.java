@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -22,7 +23,9 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.model.GdprResponse;
 import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.model.Account;
@@ -30,11 +33,14 @@ import org.prebid.server.settings.model.Account;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -44,6 +50,7 @@ import java.util.stream.IntStream;
  */
 public class PrivacyEnforcementService {
 
+    private static final String CATCH_ALL_BIDDERS = "*";
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
@@ -97,15 +104,21 @@ public class PrivacyEnforcementService {
         }
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);
-        if (isCcpaEnforced(privacy.getCcpa(), account)) {
-            return maskCcpa(bidderToUser, device, user);
-        }
+
+        final Map<String, PrivacyEnforcementResult> ccpaResult =
+                ccpaResult(bidRequest, account, bidders, aliases, device, user, privacy);
+
+        final Set<String> biddersToApplyGdpr = new HashSet<>(bidders);
+        biddersToApplyGdpr.removeAll(ccpaResult.keySet());
 
         final Boolean isGdprEnforcedByAccount = account.getEnforceGdpr();
         final Timeout timeout = context.getTimeout();
-        return getVendorsToGdprPermission(device, bidders, aliases, extUser, regs, isGdprEnforcedByAccount, timeout)
+        return getVendorsToGdprPermission(
+                device, biddersToApplyGdpr, aliases, extUser, regs, isGdprEnforcedByAccount, timeout)
                 .map(vendorToGdprPermission ->
-                        getBidderToPrivacyEnforcementResult(bidderToUser, device, aliases, vendorToGdprPermission));
+                        getBidderToPrivacyEnforcementResult(
+                                biddersToApplyGdpr, bidderToUser, device, aliases, vendorToGdprPermission))
+                .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
     private Future<Map<String, PrivacyEnforcementResult>> maskCoppa(Map<String, User> bidderToUser, Device device,
@@ -121,21 +134,35 @@ public class PrivacyEnforcementService {
                                         ip -> maskIpv6(ip, 2))))));
     }
 
-    private Future<Map<String, PrivacyEnforcementResult>> maskCcpa(Map<String, User> bidderToUser, Device device,
-                                                                   User user) {
-        return Future.succeededFuture(bidderToUser.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        bidderUserEntry -> PrivacyEnforcementResult.of(
-                                maskUser(user, PrivacyEnforcementService::maskGeoDefault,
-                                        UnaryOperator.identity()),
-                                maskDevice(device, PrivacyEnforcementService::maskGeoDefault,
-                                        ip -> maskIpv6(ip, 1))))));
+    private Map<String, PrivacyEnforcementResult> ccpaResult(BidRequest bidRequest,
+                                                             Account account,
+                                                             List<String> bidders,
+                                                             Map<String, String> aliases,
+                                                             Device device,
+                                                             User user,
+                                                             Privacy privacy) {
+
+        if (isCcpaEnforced(privacy.getCcpa(), account)) {
+            return maskCcpa(extractCcpaEnforcedBidders(bidders, bidRequest, aliases), device, user);
+        }
+
+        return Collections.emptyMap();
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
         final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
 
         return shouldEnforceCcpa && ccpa.isCCPAEnforced();
+    }
+
+    private Map<String, PrivacyEnforcementResult> maskCcpa(Set<String> biddersToMask, Device device, User user) {
+        return biddersToMask.stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        bidderUserEntry -> PrivacyEnforcementResult.of(
+                                maskUser(user, PrivacyEnforcementService::maskGeoDefault,
+                                        UnaryOperator.identity()),
+                                maskDevice(device, PrivacyEnforcementService::maskGeoDefault,
+                                        ip -> maskIpv6(ip, 1)))));
     }
 
     /**
@@ -151,7 +178,7 @@ public class PrivacyEnforcementService {
      * it means that pbs not enforced particular bidder to follow pbs GDPR procedure.
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(
-            Device device, List<String> bidders, Map<String, String> aliases, ExtUser extUser, Regs regs,
+            Device device, Set<String> bidders, Map<String, String> aliases, ExtUser extUser, Regs regs,
             Boolean isGdprEnforcedByAccount, Timeout timeout) {
 
         final ExtRegs extRegs = extRegs(regs);
@@ -182,10 +209,33 @@ public class PrivacyEnforcementService {
         return null;
     }
 
+    private Set<String> extractCcpaEnforcedBidders(
+            List<String> bidders, BidRequest bidRequest, Map<String, String> aliases) {
+
+        final Set<String> ccpaEnforcedBidders = new HashSet<>(bidders);
+
+        final ExtBidRequest extBidRequest = requestExt(bidRequest);
+        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        final List<String> nosaleBidders = extRequestPrebid != null
+                ? ListUtils.emptyIfNull(extRequestPrebid.getNosale())
+                : Collections.emptyList();
+
+        if (nosaleBidders.size() == 1 && nosaleBidders.contains(CATCH_ALL_BIDDERS)) {
+            ccpaEnforcedBidders.clear();
+        } else {
+            ccpaEnforcedBidders.removeAll(nosaleBidders);
+        }
+
+        ccpaEnforcedBidders.removeIf(bidder ->
+                !bidderCatalog.bidderInfoByName(resolveBidder(bidder, aliases)).isCcpaEnforced());
+
+        return ccpaEnforcedBidders;
+    }
+
     /**
      * Extracts GDPR enforced vendor IDs.
      */
-    private Set<Integer> extractGdprEnforcedVendors(List<String> bidders, Map<String, String> aliases) {
+    private Set<Integer> extractGdprEnforcedVendors(Set<String> bidders, Map<String, String> aliases) {
         return bidders.stream()
                 .map(bidder -> bidderCatalog.bidderInfoByName(resolveBidder(bidder, aliases)).getGdpr())
                 .filter(BidderInfo.GdprInfo::isEnforced)
@@ -206,11 +256,12 @@ public class PrivacyEnforcementService {
      * {@link PrivacyEnforcementResult}. Masking depends on GDPR and COPPA.
      */
     private Map<String, PrivacyEnforcementResult> getBidderToPrivacyEnforcementResult(
-            Map<String, User> bidderToUser, Device device, Map<String, String> aliases,
+            Set<String> bidders, Map<String, User> bidderToUser, Device device, Map<String, String> aliases,
             Map<Integer, Boolean> vendorToGdprPermission) {
 
         final Integer deviceLmt = device != null ? device.getLmt() : null;
         return bidderToUser.entrySet().stream()
+                .filter(entry -> bidders.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         bidderUserEntry -> createPrivacyEnforcementResult(bidderUserEntry.getValue(), device,
                                 bidderUserEntry.getKey(), aliases, deviceLmt, vendorToGdprPermission)));
@@ -356,5 +407,23 @@ public class PrivacyEnforcementService {
         return String.format("%s%s", maskedIp,
                 IntStream.range(0, groups).mapToObj(ignored -> "0")
                         .collect(Collectors.joining(delimiter, delimiter, "")));
+    }
+
+    private static Map<String, PrivacyEnforcementResult> merge(
+            Map<String, PrivacyEnforcementResult> ccpaResult, Map<String, PrivacyEnforcementResult> gdprResult) {
+
+        final Map<String, PrivacyEnforcementResult> result = new HashMap<>(ccpaResult);
+        result.putAll(gdprResult);
+        return result;
+    }
+
+    private ExtBidRequest requestExt(BidRequest bidRequest) {
+        try {
+            return bidRequest.getExt() != null
+                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class)
+                    : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
+        }
     }
 }
