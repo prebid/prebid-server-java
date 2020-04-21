@@ -42,7 +42,7 @@ public class YieldoneTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids", "eyJ1aWRzIjp7ImdhbW9zaGkiOiJHTS1VSUQifX0=")
+                .cookie("uids", "eyJ1aWRzIjp7InlpZWxkb25lIjoiWUQtVUlEIn19")
                 .body(jsonFrom("openrtb2/yieldone/test-auction-yieldone-request.json"))
                 .post("/openrtb2/auction");
 

@@ -39,6 +39,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid": "YD-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {

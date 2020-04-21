@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -55,11 +56,10 @@ public class YieldoneBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final Imp validImp = validateImp(imp);
-                final ExtImpYieldone extImp = parseImpExt(imp);
+                final Imp updatedImp = modifyImp(imp);
+                validateImpExt(updatedImp);
 
-                validImps.add(validImp);
-
+                validImps.add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -79,10 +79,10 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private Imp validateImp(Imp imp) {
+    private Imp modifyImp(Imp imp) {
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            if (banner.getH() == null && banner.getW() == null && banner.getFormat().size() > 0) {
+            if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format firstFormat = banner.getFormat().get(0);
                 final Banner modifiedBanner = banner.toBuilder()
                         .h(firstFormat.getH())
@@ -94,9 +94,10 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    private ExtImpYieldone parseImpExt(Imp imp) {
+    private void validateImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), YIELDONE_EXT_TYPE_REFERENCE).getBidder();
+            final ExtImpYieldone extImpYieldone = mapper.mapper().convertValue(imp.getExt(),
+                    YIELDONE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
