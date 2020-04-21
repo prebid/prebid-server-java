@@ -42,7 +42,7 @@ public class AdmixerTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids", "eyJ1aWRzIjp7ImdhbW9zaGkiOiJHTS1VSUQifX0=")
+                .cookie("uids", "eyJ1aWRzIjp7ImFkbWl4ZXIiOiJBRC1VSUQifX0=")
                 .body(jsonFrom("openrtb2/admixer/test-auction-admixer-request.json"))
                 .post("/openrtb2/auction");
 
