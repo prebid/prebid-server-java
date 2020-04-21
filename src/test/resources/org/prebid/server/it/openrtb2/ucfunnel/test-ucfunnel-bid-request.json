@@ -38,6 +38,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid": "UF-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {
