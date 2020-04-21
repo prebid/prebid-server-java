@@ -33,6 +33,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid": "AP-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {

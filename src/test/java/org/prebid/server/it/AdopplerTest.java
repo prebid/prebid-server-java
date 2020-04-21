@@ -42,7 +42,7 @@ public class AdopplerTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids", "eyJ1aWRzIjp7ImdhbW9zaGkiOiJHTS1VSUQifX0=")
+                .cookie("uids", "eyJ1aWRzIjp7ImFkb3BwbGVyIjoiQVAtVUlEIn19")
                 .body(jsonFrom("openrtb2/adoppler/test-auction-adoppler-request.json"))
                 .post("/openrtb2/auction");
 
