@@ -7,7 +7,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: smithaa@verizonmedia.com
+      maintainer-email: x2@verizonmedia.com
       app-media-types:
         - banner
         - video
@@ -134,7 +134,7 @@ adapters:
           - IAB26-4
         imp_battr: [1, 3, 8, 9, 10, 13, 14, 17]
     usersync:
-      url: https://pr-bh.ybp.yahoo.com/sync/rubiconpbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+      url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
       redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: brightroll
       type: redirect
