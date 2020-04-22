@@ -1,4 +1,4 @@
-package org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies;
+package org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
@@ -10,25 +10,28 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
+import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-public class NoTypeStrategyTest {
-
+public class NoEnforcePurposeStrategyTest {
     private static final int PURPOSE_ID = 1;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private NoTypeStrategy target;
+    private NoEnforcePurposeStrategy target;
+
     @Mock
     private TCString tcString;
     @Mock
@@ -44,18 +47,20 @@ public class NoTypeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(false);
         given(allowedVendorsLI.contains(anyInt())).willReturn(false);
 
-        target = new NoTypeStrategy();
+        target = new NoEnforcePurposeStrategy();
     }
 
     @Test
     public void allowedByTypeStrategyShouldReturnExpectedListWhenVendorIsNotAllowedAndVendorIsNotEnforced() {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = singletonList(vendorPermission);
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
         final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
-                vendorPermissions, false);
+                vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -64,12 +69,14 @@ public class NoTypeStrategyTest {
     @Test
     public void allowedByTypeStrategyShouldReturnEmptyListWhenVendorIsNotAllowedAndVendorEnforced() {
         // given
-        final List<VendorPermission> vendorPurpose = singletonList(
-                VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).isEmpty();
@@ -79,13 +86,15 @@ public class NoTypeStrategyTest {
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowedAndVendorEnforced() {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPermissionWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -95,13 +104,15 @@ public class NoTypeStrategyTest {
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorIsAllowedAndVendorIsNotEnforced() {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPermissionWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -111,13 +122,15 @@ public class NoTypeStrategyTest {
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorLIIsAllowedAndVendorEnforced() {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPurposeWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -127,13 +140,15 @@ public class NoTypeStrategyTest {
     public void allowedByTypeStrategyShouldReturnExpectedValueWhenVendorLIIsAllowedAndVendorIsNotEnforced() {
         // given
         final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = singletonList(vendorPermission);
+        final VendorPermissionWithGvl vendorPermissionWitGvl = VendorPermissionWithGvl.of(vendorPermission,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPurposeWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
@@ -144,14 +159,19 @@ public class NoTypeStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
+        final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
+                VendorV2.empty(1));
+        final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2);
 
         given(allowedVendors.contains(eq(1))).willReturn(true);
         given(allowedVendors.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPurposeWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
@@ -162,14 +182,18 @@ public class NoTypeStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
-
+        final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
+                VendorV2.empty(1));
+        final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2);
         given(allowedVendors.contains(eq(1))).willReturn(true);
         given(allowedVendors.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPurposeWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
@@ -180,14 +204,19 @@ public class NoTypeStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
+        final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
+                VendorV2.empty(1));
+        final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2);
 
         given(allowedVendorsLI.contains(eq(1))).willReturn(true);
         given(allowedVendorsLI.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                false);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPurposeWithGvls, emptyList(), false);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
@@ -198,16 +227,40 @@ public class NoTypeStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPurpose = Arrays.asList(vendorPermission1, vendorPermission2);
+        final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
+                VendorV2.empty(1));
+        final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
+                VendorV2.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = Arrays.asList(vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2);
 
         given(allowedVendorsLI.contains(eq(1))).willReturn(true);
         given(allowedVendorsLI.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString, vendorPurpose,
-                true);
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                vendorPurposeWithGvls, emptyList(), true);
 
         // then
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
     }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExcludedVendors() {
+        // given
+        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl1 = VendorPermissionWithGvl.of(vendorPermission1,
+                VendorV2.empty(1));
+        final VendorPermissionWithGvl vendorPermissionWitGvl2 = VendorPermissionWithGvl.of(vendorPermission2,
+                VendorV2.empty(1));
+
+        // when
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_ID, tcString,
+                singletonList(vendorPermissionWitGvl1), singletonList(vendorPermissionWitGvl2), true);
+
+        // then
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+    }
 }
+

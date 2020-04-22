@@ -17,11 +17,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -47,7 +49,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(VertxUnitRunner.class)
-public class JdbcApplicationSettingsTest {
+public class JdbcApplicationSettingsTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -62,8 +64,8 @@ public class JdbcApplicationSettingsTest {
     private static final String SELECT_UNION_QUERY =
             "SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
-                    + "SELECT reqid, requestData, 'request' as dataType FROM stored_requests2 WHERE reqid IN "
-                    + "(%REQUEST_ID_LIST%) "
+                    + "SELECT reqid, requestData, 'request' as dataType FROM stored_requests2 "
+                    + "WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
                     + "SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%) "
                     + "UNION ALL "
@@ -94,9 +96,10 @@ public class JdbcApplicationSettingsTest {
     @BeforeClass
     public static void beforeClass() throws SQLException {
         connection = DriverManager.getConnection(JDBC_URL);
-        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, uuid varchar(40) "
-                + "NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), banner_cache_ttl INT, "
-                + "video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, analytics_sampling_factor INT);");
+        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
+                + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
+                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, "
+                + "tcf_config varchar(512), analytics_sampling_factor INT);");
         connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
                 + "NOT NULL, config varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
@@ -107,15 +110,15 @@ public class JdbcApplicationSettingsTest {
                 + "NOT NULL, impData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, impid varchar(40) "
                 + "NOT NULL, impData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId "
-                + "varchar(40) "
-                + "NOT NULL, responseData varchar(512));");
+        connection.createStatement().execute(
+                "CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) NOT NULL,"
+                        + " responseData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_gdpr, "
-                + "analytics_sampling_factor)"
-                + " values ('accountId','med', 100, 100, TRUE, TRUE, 1);");
+                + "tcf_config, analytics_sampling_factor)"
+                + " values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1);");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
@@ -125,10 +128,10 @@ public class JdbcApplicationSettingsTest {
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('4','value4');");
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('5','value5');");
         connection.createStatement().execute("insert into stored_imps2 (impid, impData) values ('6','value6');");
-        connection.createStatement().execute("insert into stored_responses (responseId, responseData) values ('1',"
-                + "'response1');");
-        connection.createStatement().execute("insert into stored_responses (responseId, responseData) values ('2',"
-                + "'response2');");
+        connection.createStatement().execute("insert into stored_responses (responseId, responseData) "
+                + "values ('1','response1');");
+        connection.createStatement().execute("insert into stored_responses (responseId, responseData) "
+                + "values ('2','response2');");
         connection.createStatement().execute("insert into one_column_table (reqid) values ('3');");
     }
 
@@ -142,7 +145,7 @@ public class JdbcApplicationSettingsTest {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_QUERY, SELECT_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
                 SELECT_RESPONSE_QUERY);
     }
 
@@ -167,6 +170,9 @@ public class JdbcApplicationSettingsTest {
                     .analyticsSamplingFactor(1)
                     .eventsEnabled(true)
                     .enforceGdpr(true)
+                    .gdpr(AccountGdprConfig.builder()
+                            .enabled(true)
+                            .build())
                     .build());
             async.complete();
         }));
@@ -276,8 +282,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getVideoStoredDataShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_UNION_QUERY, SELECT_UNION_QUERY,
-                SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -304,8 +310,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_UNION_QUERY, SELECT_UNION_QUERY,
-                SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -332,8 +338,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_UNION_QUERY, SELECT_UNION_QUERY,
-                SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -401,8 +407,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
-                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -420,7 +426,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
@@ -519,7 +526,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredResponseShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_QUERY, SELECT_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
                 SELECT_ONE_COLUMN_RESPONSE_QUERY);
 
         // when

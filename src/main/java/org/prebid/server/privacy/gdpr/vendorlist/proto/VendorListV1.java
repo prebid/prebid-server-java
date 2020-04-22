@@ -9,7 +9,7 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class VendorList {
+public class VendorListV1 {
 
     @JsonProperty("vendorListVersion")
     Integer vendorListVersion;
@@ -17,5 +17,5 @@ public class VendorList {
     @JsonProperty("lastUpdated")
     Date lastUpdated;
 
-    List<Vendor> vendors;
+    List<VendorV1> vendors;
 }

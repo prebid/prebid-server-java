@@ -9,6 +9,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnforcePurpose;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
+import org.prebid.server.settings.model.Purposes;
+import org.prebid.server.settings.model.SpecialFeature;
+import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -63,10 +70,30 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnPresentAccount() {
         // given
-        given(fileSystem.readFileBlocking(anyString()))
-                .willReturn(Buffer.buffer("accounts: [ { id: '123', priceGranularity: 'low', bannerCacheTtl: '100',"
-                        + " videoCacheTtl : '100', eventsEnabled: 'true', enforceGdpr: 'true',"
-                        + " analyticsSamplingFactor : '1'} ]"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
+                "accounts: ["
+                        + "{"
+                        + "id: '123',"
+                        + "priceGranularity: 'low',"
+                        + "bannerCacheTtl: '100',"
+                        + "videoCacheTtl : '100',"
+                        + "eventsEnabled: 'true',"
+                        + "enforceGdpr: 'true',"
+                        + "gdpr: {"
+                        + "enabled: true,"
+                        + "purposes: {"
+                        + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
+                        + "p2: {enforce-purpose: full,enforce-vendors: true,vendor-exceptions: [openx]}"
+                        + "},"
+                        + "special-features: {"
+                        + "sf1: {enforce: true,vendor-exceptions: [rubicon, appnexus]},"
+                        + "sf2: {enforce: false,vendor-exceptions: [openx]}"
+                        + "},"
+                        + "purpose-one-treatment-interpretation: access-allowed"
+                        + "},"
+                        + "analyticsSamplingFactor : '1'"
+                        + "}"
+                        + "]"));
 
         final FileApplicationSettings applicationSettings =
                 new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
@@ -83,8 +110,21 @@ public class FileApplicationSettingsTest {
                 .videoCacheTtl(100)
                 .eventsEnabled(true)
                 .enforceGdpr(true)
+                .gdpr(AccountGdprConfig.builder()
+                        .enabled(true)
+                        .purposes(Purposes.builder()
+                                .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
+                                .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
+                                .build())
+                        .specialFeatures(SpecialFeatures.builder()
+                                .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
+                                .sf2(SpecialFeature.of(false, singletonList("openx")))
+                                .build())
+                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                        .build())
                 .analyticsSamplingFactor(1)
                 .build());
+
     }
 
     @Test

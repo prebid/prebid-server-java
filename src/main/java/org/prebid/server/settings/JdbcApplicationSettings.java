@@ -7,9 +7,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.mapper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
@@ -38,6 +41,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
 
     private final JdbcClient jdbcClient;
+    private final JacksonMapper mapper;
 
     /**
      * Query to select stored requests and imps by ids, for example:
@@ -73,9 +77,14 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     private final String selectResponseQuery;
 
-    public JdbcApplicationSettings(JdbcClient jdbcClient, String selectQuery, String selectAmpQuery,
+    public JdbcApplicationSettings(JdbcClient jdbcClient,
+                                   JacksonMapper mapper,
+                                   String selectQuery,
+                                   String selectAmpQuery,
                                    String selectResponseQuery) {
+
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.mapper = Objects.requireNonNull(mapper);
         this.selectQuery = Objects.requireNonNull(selectQuery);
         this.selectAmpQuery = Objects.requireNonNull(selectAmpQuery);
         this.selectResponseQuery = Objects.requireNonNull(selectResponseQuery);
@@ -88,7 +97,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
-                        + " events_enabled, enforce_gdpr, analytics_sampling_factor FROM accounts_account"
+                        + " events_enabled, enforce_gdpr, tcf_config, analytics_sampling_factor FROM accounts_account"
                         + " where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.builder()
@@ -98,7 +107,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .videoCacheTtl(row.getInteger(3))
                         .eventsEnabled(row.getBoolean(4))
                         .enforceGdpr(row.getBoolean(5))
-                        .analyticsSamplingFactor(row.getInteger(6))
+                        .gdpr(toAccountTcfConfig(row.getString(6)))
+                        .analyticsSamplingFactor(row.getInteger(7))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
@@ -226,5 +236,13 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return paramsSize == 0
                 ? "NULL"
                 : IntStream.range(0, paramsSize).mapToObj(i -> "?").collect(Collectors.joining(","));
+    }
+
+    private AccountGdprConfig toAccountTcfConfig(String tcfConfig) {
+        try {
+            return tcfConfig != null ? mapper.decodeValue(tcfConfig, AccountGdprConfig.class) : null;
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 }

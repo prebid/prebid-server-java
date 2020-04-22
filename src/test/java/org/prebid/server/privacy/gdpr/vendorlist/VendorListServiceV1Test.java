@@ -15,24 +15,20 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -41,8 +37,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
-public class VendorListServiceTest extends VertxTest {
+public class VendorListServiceV1Test extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
 
@@ -56,26 +53,16 @@ public class VendorListServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
 
-    private VendorListService vendorListService;
+    private VendorListService<VendorListV1, VendorV1> vendorListService;
 
     @Before
     public void setUp() {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 
-        given(bidderCatalog.names()).willReturn(singleton(null));
-        given(bidderCatalog.bidderInfoByName(any()))
-                .willReturn(new BidderInfo(true, null, null, null,
-                        new BidderInfo.GdprInfo(52, true), false));
+        given(bidderCatalog.knownVendorIds()).willReturn(singleton(52));
 
-        vendorListService = VendorListService.create(
-                CACHE_DIR,
-                "http://vendorlist/{VERSION}",
-                0,
-                null,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                jacksonMapper);
+        vendorListService = new VendorListServiceV1(CACHE_DIR, "http://vendorlist/{VERSION}", 0, null, bidderCatalog,
+                fileSystem, httpClient, jacksonMapper);
     }
 
     // Creation related tests
@@ -86,15 +73,9 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.mkdirsBlocking(anyString())).willThrow(new RuntimeException("dir creation error"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(
-                CACHE_DIR,
-                "http://vendorlist/%s",
-                0,
-                null,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                jacksonMapper))
+        assertThatThrownBy(
+                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
+                        httpClient, jacksonMapper))
                 .hasMessage("dir creation error");
     }
 
@@ -104,15 +85,9 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString())).willThrow(new RuntimeException("read error"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(
-                CACHE_DIR,
-                "http://vendorlist/%s",
-                0,
-                null,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                jacksonMapper))
+        assertThatThrownBy(
+                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
+                        httpClient, jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -124,15 +99,9 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString())).willThrow(new RuntimeException("read error"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(
-                CACHE_DIR,
-                "http://vendorlist/%s",
-                0,
-                null,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                jacksonMapper))
+        assertThatThrownBy(
+                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
+                        httpClient, jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -144,15 +113,9 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("invalid"));
 
         // then
-        assertThatThrownBy(() -> VendorListService.create(
-                CACHE_DIR,
-                "http://vendorlist/%s",
-                0,
-                null,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                jacksonMapper))
+        assertThatThrownBy(
+                () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
+                        httpClient, jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }
@@ -213,7 +176,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidVendorListVersion() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(null, null, null);
+        final VendorListV1 vendorList = VendorListV1.of(null, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -227,7 +190,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidLastUpdated() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, null, null);
+        final VendorListV1 vendorList = VendorListV1.of(1, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -241,7 +204,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasNoVendors() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, new Date(), null);
+        final VendorListV1 vendorList = VendorListV1.of(1, new Date(), null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -255,7 +218,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasEmptyVendors() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, new Date(), emptyList());
+        final VendorListV1 vendorList = VendorListV1.of(1, new Date(), emptyList());
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -269,7 +232,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, new Date(), singletonList(Vendor.of(null, null, null)));
+        final VendorListV1 vendorList = VendorListV1.of(1, new Date(), singletonList(VendorV1.of(null, null, null)));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -305,12 +268,10 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException());
 
         // when
-        final Future<?> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .hasMessage("Vendor list for version 1 not fetched yet, try again later.");
+        assertThat(future).isFailed().hasMessage("Vendor list for version 1 not fetched yet, try again later.");
     }
 
     @Test
@@ -323,19 +284,17 @@ public class VendorListServiceTest extends VertxTest {
 
         // when
         vendorListService.forVersion(1); // populate cache
-        final Future<Map<Integer, Set<Integer>>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, VendorV1>> result = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(52, new HashSet<>(Arrays.asList(1, 2)));
+        assertThat(result).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 
     @Test
     public void shouldKeepPurposesOnlyForKnownVendors() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, new Date(),
-                asList(Vendor.of(52, singleton(1), singleton(2)), Vendor.of(42, singleton(1), singleton(2))));
+        final VendorListV1 vendorList = VendorListV1.of(1, new Date(),
+                asList(VendorV1.of(52, singleton(1), singleton(2)), VendorV1.of(42, singleton(1), singleton(2))));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
@@ -343,17 +302,15 @@ public class VendorListServiceTest extends VertxTest {
 
         // when
         vendorListService.forVersion(1); // populate cache
-        final Future<Map<Integer, Set<Integer>>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(52, new HashSet<>(asList(1, 2)));
+        assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
     }
 
-    private static VendorList givenVendorList() {
-        final Vendor vendor = Vendor.of(52, singleton(1), singleton(2));
-        return VendorList.of(1, new Date(), singletonList(vendor));
+    private static VendorListV1 givenVendorList() {
+        final VendorV1 vendor = VendorV1.of(52, singleton(1), singleton(2));
+        return VendorListV1.of(1, new Date(), singletonList(vendor));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

@@ -107,22 +107,22 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameAdapterRequestTypeMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAdapter(RUBICON).requestType())
-                .isSameAs(metrics.forAdapter(RUBICON).requestType());
+        assertThat(metrics.forAdapter(RUBICON).requestType(MetricName.amp))
+                .isSameAs(metrics.forAdapter(RUBICON).requestType(MetricName.amp));
     }
 
     @Test
     public void shouldReturnAdapterRequestTypeMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAdapter(RUBICON)
-                .requestType()
-                .incCounter(MetricName.openrtb2app));
+                .requestType(MetricName.openrtb2app)
+                .incCounter(MetricName.requests));
     }
 
     @Test
     public void shouldReturnAdapterRequestTypeMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).requestType().incCounter(MetricName.openrtb2web);
+        metrics.forAdapter(RUBICON).requestType(MetricName.openrtb2web).incCounter(MetricName.requests);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-web").getCount()).isEqualTo(1);
@@ -200,22 +200,22 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameAccountRequestTypeMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAccount(ACCOUNT_ID).requestType())
-                .isSameAs(metrics.forAccount(ACCOUNT_ID).requestType());
+        assertThat(metrics.forAccount(ACCOUNT_ID).requestType(MetricName.amp))
+                .isSameAs(metrics.forAccount(ACCOUNT_ID).requestType(MetricName.amp));
     }
 
     @Test
     public void shouldReturnAccountRequestTypeMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount(ACCOUNT_ID)
-                .requestType()
-                .incCounter(MetricName.openrtb2app));
+                .requestType(MetricName.openrtb2app)
+                .incCounter(MetricName.requests));
     }
 
     @Test
     public void shouldReturnAccountRequestTypeMetricsConfiguredWithAccount() {
         // when
-        metrics.forAccount(ACCOUNT_ID).requestType().incCounter(MetricName.openrtb2web);
+        metrics.forAccount(ACCOUNT_ID).requestType(MetricName.openrtb2web).incCounter(MetricName.requests);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isEqualTo(1);
@@ -591,28 +591,28 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateUserSyncGdprPreventMetricShouldIncrementMetric() {
+    public void updateUserSyncTcfBlockedMetricShouldIncrementMetric() {
         // when
-        metrics.updateUserSyncGdprPreventMetric(RUBICON);
+        metrics.updateUserSyncTcfBlockedMetric(RUBICON);
 
         // then
-        assertThat(metricRegistry.counter("usersync.rubicon.gdpr_prevent").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("usersync.rubicon.tcf.blocked").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void updateCookieSyncGdprPreventMetricShouldIncrementMetric() {
+    public void updateCookieSyncTcfBlockedMetricShouldIncrementMetric() {
         // given
         given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
         given(bidderCatalog.nameByAlias(INVALID_BIDDER)).willReturn(RUBICON, null);
 
         // when
-        metrics.updateCookieSyncGdprPreventMetric(RUBICON);
-        metrics.updateCookieSyncGdprPreventMetric(INVALID_BIDDER);
-        metrics.updateCookieSyncGdprPreventMetric(INVALID_BIDDER);
+        metrics.updateCookieSyncTcfBlockedMetric(RUBICON);
+        metrics.updateCookieSyncTcfBlockedMetric(INVALID_BIDDER);
+        metrics.updateCookieSyncTcfBlockedMetric(INVALID_BIDDER);
 
         // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.gdpr_prevent").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter("cookie_sync.UNKNOWN.gdpr_prevent").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.tcf.blocked").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("cookie_sync.UNKNOWN.tcf.blocked").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -634,12 +634,16 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateGdprMaskedMetricShouldIncrementMetric() {
+    public void updateAuctionTcfMetricShouldIncrementMetrics() {
         // when
-        metrics.updateGdprMaskedMetric(RUBICON);
+        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.gdpr_masked").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userid_removed").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.geo_masked").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.request_blocked").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.analytics_blocked").getCount())
+                .isEqualTo(1);
     }
 
     @Test
