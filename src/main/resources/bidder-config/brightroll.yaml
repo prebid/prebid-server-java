@@ -1,6 +1,6 @@
 adapters:
   brightroll:
-    enabled: false
+    enabled: true
     endpoint: http://east-bid.ybp.yahoo.com/bid/rubiconpbs
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
