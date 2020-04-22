@@ -1,9 +1,9 @@
-package org.prebid.server.privacy.gdpr.tcfstrategies;
+package org.prebid.server.privacy.gdpr.tcfstrategies.purpose;
 
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.FullEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
 
 public class PurposeSevenStrategy extends PurposeStrategy {
 

@@ -1,4 +1,4 @@
-package org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies;
+package org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
