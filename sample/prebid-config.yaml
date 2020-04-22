@@ -18,5 +18,8 @@ settings:
     stored-responses-dir: /var/tmp
 gdpr:
   vendorlist:
-    filesystem-cache-dir: /var/tmp
+    v1:
+      cache-dir: /var/tmp/vendor1
+    v2:
+      cache-dir: /var/tmp/vendor2
 status-response: "ok"
