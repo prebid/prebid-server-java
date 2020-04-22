@@ -159,7 +159,7 @@ public class Metrics extends UpdatableMetrics {
 
             accountMetrics.incCounter(MetricName.requests);
             if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-                accountMetrics.requestType().incCounter(requestType);
+                accountMetrics.requestType(requestType).incCounter(MetricName.requests);
             }
         }
     }
@@ -172,7 +172,7 @@ public class Metrics extends UpdatableMetrics {
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
         final AdapterMetrics adapterMetrics = forAdapter(resolveMetricsBidderName(bidder));
 
-        adapterMetrics.requestType().incCounter(requestType);
+        adapterMetrics.requestType(requestType).incCounter(MetricName.requests);
 
         if (noCookie) {
             adapterMetrics.incCounter(MetricName.no_cookie_requests);
@@ -245,8 +245,8 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(bidder).incCounter(MetricName.sets);
     }
 
-    public void updateUserSyncGdprPreventMetric(String bidder) {
-        userSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+    public void updateUserSyncTcfBlockedMetric(String bidder) {
+        userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
     public void updateCookieSyncRequestMetric() {
@@ -261,12 +261,31 @@ public class Metrics extends UpdatableMetrics {
         cookieSync().forBidder(bidder).incCounter(MetricName.matches);
     }
 
-    public void updateCookieSyncGdprPreventMetric(String bidder) {
-        cookieSync().forBidder(resolveMetricsBidderName(bidder)).incCounter(MetricName.gdpr_prevent);
+    public void updateCookieSyncTcfBlockedMetric(String bidder) {
+        cookieSync().forBidder(resolveMetricsBidderName(bidder)).tcf().incCounter(MetricName.blocked);
     }
 
-    public void updateGdprMaskedMetric(String bidder) {
-        forAdapter(bidder).incCounter(MetricName.gdpr_masked);
+    public void updateAuctionTcfMetrics(String bidder,
+                                        MetricName requestType,
+                                        boolean useridRemoved,
+                                        boolean geoMasked,
+                                        boolean requestBlocked,
+                                        boolean analyticsBlocked) {
+
+        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
+
+        if (useridRemoved) {
+            tcf.incCounter(MetricName.userid_removed);
+        }
+        if (geoMasked) {
+            tcf.incCounter(MetricName.geo_masked);
+        }
+        if (requestBlocked) {
+            tcf.incCounter(MetricName.request_blocked);
+        }
+        if (analyticsBlocked) {
+            tcf.incCounter(MetricName.analytics_blocked);
+        }
     }
 
     public void updateConnectionAcceptErrors() {

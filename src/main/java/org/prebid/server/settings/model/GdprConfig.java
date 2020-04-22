@@ -26,6 +26,6 @@ public class GdprConfig {
     SpecialFeatures specialFeatures;
 
     @JsonProperty("purpose-one-treatment-interpretation")
-    Boolean purposeOneTreatmentInterpretation;
+    PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
 }
 

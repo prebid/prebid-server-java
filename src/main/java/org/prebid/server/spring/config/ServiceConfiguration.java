@@ -43,11 +43,8 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeOneStrategy;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.PurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.BasicTypeStrategy;
-import org.prebid.server.privacy.gdpr.tcf2stratgies.typeStrategies.NoTypeStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
@@ -360,63 +357,46 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VendorListService vendorListService(
-            @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.http-default-timeout-ms}") int defaultTimeoutMs,
+    VendorListServiceV1 vendorListServiceV1(
+            @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v1.http-default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             BidderCatalog bidderCatalog,
             FileSystem fileSystem,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return VendorListService.create(
-                cacheDir,
-                endpointTemplate,
-                defaultTimeoutMs,
-                hostVendorId,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                mapper);
+        return new VendorListServiceV1(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
+                fileSystem, httpClient, mapper);
     }
 
     @Bean
-    GdprService gdprService(
-            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            @Value("${gdpr.default-value}") String defaultValue,
-            @Autowired(required = false) GeoLocationService geoLocationService,
+    VendorListServiceV2 vendorListServiceV2(
+            @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v2.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             BidderCatalog bidderCatalog,
-            Metrics metrics,
-            VendorListService vendorListService) {
+            FileSystem fileSystem,
+            HttpClient httpClient,
+            JacksonMapper mapper) {
 
-        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, bidderCatalog,
-                vendorListService);
+        return new VendorListServiceV2(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
+                fileSystem, httpClient, mapper);
     }
 
     @Bean
-    Tcf2Service tcf2Service(
-            GdprConfig gdprConfig,
-            BidderCatalog bidderCatalog,
-            List<PurposeStrategy> purposeStrategies) {
-
-        return new Tcf2Service(gdprConfig, bidderCatalog, purposeStrategies);
+    GdprService gdprService(VendorListServiceV1 vendorListServiceV1) {
+        return new GdprService(vendorListServiceV1);
     }
 
     @Bean
-    PurposeOneStrategy purposeOneStrategy(BasicTypeStrategy basicTypeStrategy, NoTypeStrategy noTypeStrategy) {
-        return new PurposeOneStrategy(basicTypeStrategy, noTypeStrategy);
-    }
+    Tcf2Service tcf2Service(GdprConfig gdprConfig,
+                            VendorListServiceV2 vendorListServiceV2,
+                            BidderCatalog bidderCatalog) {
 
-    @Bean
-    BasicTypeStrategy basicTypeStrategy() {
-        return new BasicTypeStrategy();
-    }
-
-    @Bean
-    NoTypeStrategy noTypeStrategy() {
-        return new NoTypeStrategy();
+        return new Tcf2Service(gdprConfig, vendorListServiceV2, bidderCatalog);
     }
 
     @Bean
@@ -426,10 +406,13 @@ public class ServiceConfiguration {
             GdprService gdprService,
             Tcf2Service tcf2Service,
             @Autowired(required = false) GeoLocationService geoLocationService,
+            BidderCatalog bidderCatalog,
             Metrics metrics) {
 
         final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new TcfDefinerService(gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, metrics);
+
+        return new TcfDefinerService(
+                gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
     }
 
     @Bean
@@ -540,13 +523,14 @@ public class ServiceConfiguration {
 
     @Bean
     PrivacyEnforcementService privacyEnforcementService(
-            GdprService gdprService,
             BidderCatalog bidderCatalog,
+            TcfDefinerService tcfDefinerService,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             JacksonMapper mapper) {
-        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, mapper, useGeoLocation, ccpaEnforce);
+        return new PrivacyEnforcementService(
+                bidderCatalog, tcfDefinerService, metrics, mapper, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
