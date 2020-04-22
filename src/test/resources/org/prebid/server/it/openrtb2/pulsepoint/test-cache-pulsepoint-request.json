@@ -9,8 +9,7 @@
         "adm": "adm8",
         "crid": "crid8",
         "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=bidId01&a=publisherId&ts=1000&bidder=pulsepoint&f=i"
+        "h": 250
       }
     },
     {
@@ -22,8 +21,7 @@
         "adm": "adm81",
         "crid": "crid81",
         "w": 120,
-        "h": 180,
-        "wurl": "http://localhost:8000/event?t=win&b=bidId02&a=publisherId&ts=1000&bidder=pulsepoint&f=i"
+        "h": 180
       }
     }
   ]

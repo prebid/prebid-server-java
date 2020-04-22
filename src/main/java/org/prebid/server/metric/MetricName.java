@@ -65,8 +65,13 @@ public enum MetricName {
     sets,
     gen,
     matches,
-    gdpr_prevent,
-    gdpr_masked,
+    blocked,
+
+    // tcf
+    userid_removed,
+    geo_masked,
+    request_blocked,
+    analytics_blocked,
 
     // stored data
     stored_requests_found,

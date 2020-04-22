@@ -20,8 +20,7 @@
           "triplelift_pb": {
             "format": 2
           }
-        },
-        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=publisherId&ts=1000&bidder=triplelift&f=i"
+        }
       }
     }
   ]

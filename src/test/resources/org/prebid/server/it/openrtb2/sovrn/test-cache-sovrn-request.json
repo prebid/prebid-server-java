@@ -9,8 +9,7 @@
         "adm": "adm 13",
         "crid": "crid13",
         "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=600527793&a=publisherId&ts=1000&bidder=sovrn&f=i"
+        "h": 250
       }
     }
   ]

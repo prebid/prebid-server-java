@@ -12,8 +12,7 @@
           "tag-example.com"
         ],
         "cid": "1001",
-        "crid": "2002",
-        "wurl": "http://localhost:8000/event?t=win&b=bid02&a=publisherId&ts=1000&bidder=adkernel&f=i"
+        "crid": "2002"
       }
     },
     {

@@ -67,7 +67,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
       "digitrust": {
         "id": "id",
         "keyv": 123,
@@ -123,14 +123,25 @@
   "regs": {
     "ext": {
       "us_privacy": "1YNN"
-  }
+    }
   },
   "ext": {
     "prebid": {
       "debug": 1,
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
       "aliases": {
         "appnexusAlias": "appnexus"
       },
+      "events": {},
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -140,16 +151,6 @@
               "increment": 0.1
             }
           ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
-          }
         },
         "includewinners": true,
         "includebidderkeys": true

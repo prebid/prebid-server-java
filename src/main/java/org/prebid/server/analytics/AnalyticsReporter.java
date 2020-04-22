@@ -3,6 +3,7 @@ package org.prebid.server.analytics;
 /**
  * Type of component that does transactional logging.
  */
+@FunctionalInterface
 public interface AnalyticsReporter {
 
     /**
