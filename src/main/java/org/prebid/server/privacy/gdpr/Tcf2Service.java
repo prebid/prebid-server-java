@@ -85,7 +85,7 @@ public class Tcf2Service {
     }
 
     public Future<Collection<VendorPermission>> permissionsFor(Set<Integer> vendorIds, TCString tcfConsent) {
-        final Collection<VendorPermission> vendorPermissions = vendorPermission(vendorIds);
+        final Collection<VendorPermission> vendorPermissions = vendorPermissions(vendorIds);
         return permissionsForInternal(vendorPermissions, tcfConsent, null);
     }
 
@@ -93,11 +93,11 @@ public class Tcf2Service {
                                                                VendorIdResolver vendorIdResolver,
                                                                TCString tcfConsent,
                                                                AccountGdprConfig accountGdprConfig) {
-        final Collection<VendorPermission> vendorPermissions = vendorPermission(bidderNames, vendorIdResolver);
+        final Collection<VendorPermission> vendorPermissions = vendorPermissions(bidderNames, vendorIdResolver);
         return permissionsForInternal(vendorPermissions, tcfConsent, accountGdprConfig);
     }
 
-    private Collection<VendorPermission> vendorPermission(Set<Integer> vendorIds) {
+    private Collection<VendorPermission> vendorPermissions(Set<Integer> vendorIds) {
         return vendorIds.stream()
                 // this check only for illegal arguments...
                 .filter(Objects::nonNull)
@@ -106,8 +106,8 @@ public class Tcf2Service {
                 .collect(Collectors.toList());
     }
 
-    private Collection<VendorPermission> vendorPermission(Set<String> bidderNames,
-                                                          VendorIdResolver vendorIdResolver) {
+    private Collection<VendorPermission> vendorPermissions(Set<String> bidderNames,
+                                                           VendorIdResolver vendorIdResolver) {
 
         return bidderNames.stream()
                 // this check only for illegal arguments...
