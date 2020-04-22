@@ -1,4 +1,4 @@
-package org.prebid.server.privacy.gdpr.tcfstrategies;
+package org.prebid.server.privacy.gdpr.tcfstrategies.purpose;
 
 import com.iabtcf.decoder.TCString;
 import org.junit.Before;
@@ -10,9 +10,9 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.FullEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -30,9 +30,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-public class PurposeSevenStrategyTest {
+public class PurposeFourStrategyTest {
 
-    private static final int PURPOSE_ID = 7;
+    private static final int PURPOSE_ID = 4;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -41,19 +41,20 @@ public class PurposeSevenStrategyTest {
     private FullEnforcePurposeStrategy fullEnforcePurposeStrategy;
 
     @Mock
-    private BasicEnforcePurposeStrategy basicTypeStrategy;
+    private BasicEnforcePurposeStrategy basicEnforcePurposeStrategy;
 
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeSevenStrategy target;
+    private PurposeFourStrategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeSevenStrategy(fullEnforcePurposeStrategy, basicTypeStrategy, noEnforcePurposeStrategy);
+        target = new PurposeFourStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+                noEnforcePurposeStrategy);
     }
 
     @Test
@@ -66,7 +67,7 @@ public class PurposeSevenStrategyTest {
 
         // then
         final PrivacyEnforcementAction expectedAction = PrivacyEnforcementAction.restrictAll();
-        expectedAction.setBlockAnalyticsReport(false);
+        expectedAction.setRemoveUserBuyerUid(false);
         assertThat(privacyEnforcementAction).isEqualTo(expectedAction);
     }
 
@@ -130,7 +131,7 @@ public class PurposeSevenStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
                 .willReturn(Arrays.asList(vendorPermission1, vendorPermission2));
 
         // when
@@ -145,9 +146,9 @@ public class PurposeSevenStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString,
-                Arrays.asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3), singletonList(vendorPermissionWitGvl2),
-                false);
+        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString,
+                Arrays.asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3),
+                singletonList(vendorPermissionWitGvl2), false);
     }
 
     @Test
@@ -169,7 +170,7 @@ public class PurposeSevenStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
 
-        given(basicTypeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
+        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
                 .willReturn(vendorPermissions);
 
         // when
@@ -183,13 +184,13 @@ public class PurposeSevenStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
-        verify(basicTypeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(), vendorPermissionsWithGvl,
-                true);
+        verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_ID, tcString, emptyList(),
+                vendorPermissionsWithGvl, true);
     }
 
     private static PrivacyEnforcementAction allowPurpose() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setBlockAnalyticsReport(false);
+        privacyEnforcementAction.setRemoveUserBuyerUid(false);
         return privacyEnforcementAction;
     }
 }
