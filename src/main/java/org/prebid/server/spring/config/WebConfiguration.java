@@ -224,7 +224,8 @@ public class WebConfiguration {
             PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${geolocation.enabled}") boolean useGeoLocation) {
+            @Value("${geolocation.enabled}") boolean useGeoLocation,
+            @Value("${settings.targeting.truncate-attr-chars}") Integer truncateAttrChars) {
 
         return new AuctionHandler(
                 applicationSettings,
@@ -238,7 +239,8 @@ public class WebConfiguration {
                 privacyExtractor,
                 mapper,
                 hostVendorId,
-                useGeoLocation);
+                useGeoLocation,
+                truncateAttrChars);
     }
 
     @Bean

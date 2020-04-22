@@ -529,9 +529,11 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            @Value("${settings.targeting.truncate-attr-chars}") Integer truncateAttrChars,
             JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, mapper);
+        return new BidResponseCreator(cacheService, bidderCatalog, truncateAttrChars,
+                eventsService, storedRequestProcessor, mapper);
     }
 
     @Bean

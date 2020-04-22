@@ -23,6 +23,8 @@ public class Account {
 
     Integer analyticsSamplingFactor;
 
+    Integer truncateTargetAttr;
+
     public static Account empty(String id) {
         return Account.builder()
                 .id(id)

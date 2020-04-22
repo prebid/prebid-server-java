@@ -75,6 +75,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final JacksonMapper mapper;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
+    private final Integer truncateAttrChars;
+
 
     public AuctionHandler(ApplicationSettings applicationSettings,
                           BidderCatalog bidderCatalog,
@@ -86,7 +88,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           TcfDefinerService tcfDefinerService,
                           PrivacyExtractor privacyExtractor, JacksonMapper mapper,
                           Integer gdprHostVendorId,
-                          boolean useGeoLocation) {
+                          boolean useGeoLocation,
+                          Integer truncateAttrChars) {
 
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -100,6 +103,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.mapper = Objects.requireNonNull(mapper);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
+        if (truncateAttrChars != null && (truncateAttrChars < 0 || truncateAttrChars > 255)) {
+            throw new IllegalArgumentException(
+                    "application.yaml settings.targeting.truncate-attr-chars value must be from 0 to 225 or null");
+        }
+        this.truncateAttrChars = truncateAttrChars;
     }
 
     /**
@@ -402,12 +410,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
      * The bids are sorted by cpm to find the highest bid.
      * The ad server targeting keywords are added to all bids, with specific keywords for the highest bid.
      */
-    private static PreBidResponse addTargetingKeywords(PreBidRequest preBidRequest, Account account,
+    private PreBidResponse addTargetingKeywords(PreBidRequest preBidRequest, Account account,
                                                        PreBidResponse preBidResponse) {
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
+            final Integer truncateAttrChars = ObjectUtils.firstNonNull(account.getTruncateTargetAttr(),
+                    preBidRequest.getMaxKeyLength(), this.truncateAttrChars);
+
             final TargetingKeywordsCreator keywordsCreator =
-                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, true, false);
+                    TargetingKeywordsCreator.create(account.getPriceGranularity(),
+                            true, true, false, truncateAttrChars);
 
             final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
                     .collect(Collectors.groupingBy(Bid::getCode));
