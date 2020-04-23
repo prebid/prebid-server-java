@@ -124,8 +124,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
-        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
-                jacksonMapper);
+        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, 0,
+                eventsService, storedRequestProcessor, jacksonMapper);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }

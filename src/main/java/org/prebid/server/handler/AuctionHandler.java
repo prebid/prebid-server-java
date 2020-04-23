@@ -77,7 +77,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final boolean useGeoLocation;
     private final Integer truncateTargetingAttrMaxChars;
 
-
     public AuctionHandler(ApplicationSettings applicationSettings,
                           BidderCatalog bidderCatalog,
                           PreBidRequestContextFactory preBidRequestContextFactory,
