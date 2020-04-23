@@ -366,4 +366,38 @@ public class TargetingKeywordsCreatorTest {
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
     }
+
+    @Test
+    public void shouldTruncateTargetingAttributeIfTruncateAttrCharsIsNotNullOrNotZero() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
+        final int givenTruncateAttrChars = 20;
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                (String) null, false, true, false, givenTruncateAttrChars)
+                .makeFor(bid, "someVeryLongBidderName",
+                        true, null, null, null, null, null);
+
+        // then
+        assertThat(keywords).containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
+        keywords.keySet().forEach(
+                key -> assertThat(key.length()).isEqualTo(givenTruncateAttrChars)
+        );
+    }
+
+    @Test
+    public void shouldNotTruncateTargetingAttributeIfTruncateAttrCharsIsNot() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                (String) null, false, true, false, null)
+                .makeFor(bid, "someVeryLongBidderName",
+                        true, null, null, null, null, null);
+
+        // then
+        assertThat(keywords).containsKeys("hb_bidder_someVeryLongBidderName", "hb_pb_someVeryLongBidderName");
+    }
 }
