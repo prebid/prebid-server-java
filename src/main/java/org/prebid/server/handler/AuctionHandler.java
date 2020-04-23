@@ -75,7 +75,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final JacksonMapper mapper;
     private final Integer gdprHostVendorId;
     private final boolean useGeoLocation;
-    private final Integer truncateAttrChars;
+    private final Integer truncateTargetingAttrMaxChars;
 
 
     public AuctionHandler(ApplicationSettings applicationSettings,
@@ -89,7 +89,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           PrivacyExtractor privacyExtractor, JacksonMapper mapper,
                           Integer gdprHostVendorId,
                           boolean useGeoLocation,
-                          Integer truncateAttrChars) {
+                          Integer truncateTargetingAttrMaxChars) {
 
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -103,11 +103,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.mapper = Objects.requireNonNull(mapper);
         this.gdprHostVendorId = gdprHostVendorId;
         this.useGeoLocation = useGeoLocation;
-        if (truncateAttrChars != null && (truncateAttrChars < 0 || truncateAttrChars > 255)) {
-            throw new IllegalArgumentException(
-                    "application.yaml settings.targeting.truncate-attr-chars value must be from 0 to 225 or null");
-        }
-        this.truncateAttrChars = truncateAttrChars;
+        this.truncateTargetingAttrMaxChars = truncateTargetingAttrMaxChars;
     }
 
     /**
@@ -415,7 +411,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
             final Integer truncateAttrChars = ObjectUtils.firstNonNull(account.getTruncateTargetAttr(),
-                    preBidRequest.getMaxKeyLength(), this.truncateAttrChars);
+                    preBidRequest.getMaxKeyLength(), this.truncateTargetingAttrMaxChars);
 
             final TargetingKeywordsCreator keywordsCreator =
                     TargetingKeywordsCreator.create(account.getPriceGranularity(),

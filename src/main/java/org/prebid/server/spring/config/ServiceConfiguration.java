@@ -529,10 +529,15 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            @Value("${settings.targeting.truncate-attr-chars}") Integer truncateAttrChars,
+            @Value("${settings.targeting.truncate-attr-chars}") Integer truncateTargetingAttrMaxChars,
             JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, truncateAttrChars,
+        if (truncateTargetingAttrMaxChars != null
+                && (truncateTargetingAttrMaxChars < 0 || truncateTargetingAttrMaxChars > 255)) {
+            throw new IllegalArgumentException(
+                    "application.yaml settings.targeting.truncate-attr-chars value must be from 0 to 225 or null");
+        }
+        return new BidResponseCreator(cacheService, bidderCatalog, truncateTargetingAttrMaxChars,
                 eventsService, storedRequestProcessor, mapper);
     }
 
