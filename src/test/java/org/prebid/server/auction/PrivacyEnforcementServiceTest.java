@@ -690,7 +690,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(tcfDefinerService)
                 .resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), isNull(), any(), any(), any(), eq(timeout));
         verifyNoMoreInteractions(tcfDefinerService);
-        verifyZeroInteractions(metrics);
     }
 
     @Test

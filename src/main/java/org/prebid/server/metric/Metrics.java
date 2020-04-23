@@ -22,7 +22,7 @@ public class Metrics extends UpdatableMetrics {
 
     private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
 
-    private AccountMetricsVerbosity accountMetricsVerbosity;
+    private final AccountMetricsVerbosity accountMetricsVerbosity;
     private final BidderCatalog bidderCatalog;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
@@ -36,6 +36,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
+    private final PrivacyMetrics privacyMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -52,6 +53,7 @@ public class Metrics extends UpdatableMetrics {
         adapterMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
+        privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -72,6 +74,10 @@ public class Metrics extends UpdatableMetrics {
 
     CookieSyncMetrics cookieSync() {
         return cookieSyncMetrics;
+    }
+
+    PrivacyMetrics privacy() {
+        return privacyMetrics;
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -285,6 +291,23 @@ public class Metrics extends UpdatableMetrics {
         }
         if (analyticsBlocked) {
             tcf.incCounter(MetricName.analytics_blocked);
+        }
+    }
+
+    public void updatePrivacyCoppaMetric() {
+        privacy().incCounter(MetricName.coppa);
+    }
+
+    public void updatePrivacyLmtMetric() {
+        privacy().incCounter(MetricName.lmt);
+    }
+
+    public void updatePrivacyCcpaMetrics(boolean isSpecified, boolean isEnforced) {
+        if (isSpecified) {
+            privacy().usp().incCounter(MetricName.specified);
+        }
+        if (isEnforced) {
+            privacy().usp().incCounter(MetricName.opt_out);
         }
     }
 

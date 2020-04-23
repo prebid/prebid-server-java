@@ -73,6 +73,12 @@ public enum MetricName {
     request_blocked,
     analytics_blocked,
 
+    // privacy
+    coppa,
+    lmt,
+    specified,
+    opt_out("opt-out"),
+
     // stored data
     stored_requests_found,
     stored_requests_missing,

@@ -647,6 +647,34 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyCoppaMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyCoppaMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.coppa").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyLmtMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyLmtMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.lmt").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyCcpaMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updatePrivacyCcpaMetrics(true, true);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.usp.specified").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("privacy.usp.opt-out").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
         given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
