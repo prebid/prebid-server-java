@@ -67,7 +67,8 @@ public class PurposeFourStrategyTest {
 
         // then
         final PrivacyEnforcementAction expectedAction = PrivacyEnforcementAction.restrictAll();
-        expectedAction.setRemoveUserBuyerUid(false);
+        privacyEnforcementAction.setRemoveUserBuyerUid(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
         assertThat(privacyEnforcementAction).isEqualTo(expectedAction);
     }
 
