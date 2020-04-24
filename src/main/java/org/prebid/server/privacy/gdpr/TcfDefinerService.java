@@ -301,7 +301,7 @@ public class TcfDefinerService {
 
     private static PrivacyEnforcementAction restrictAllButAnalyticsAndAuction() {
         return PrivacyEnforcementAction.builder()
-                .removeUserBuyerUid(true)
+                .removeUserIds(true)
                 .maskGeo(true)
                 .maskDeviceIp(true)
                 .maskDeviceInfo(true)

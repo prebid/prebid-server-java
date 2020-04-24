@@ -289,7 +289,7 @@ public class TcfDefinerServiceTest {
         expectedBidderNameToPrivacyMap.put("b1", PrivacyEnforcementAction.allowAll());
         expectedBidderNameToPrivacyMap.put("b2", PrivacyEnforcementAction.allowAll());
         expectedBidderNameToPrivacyMap.put("b3", PrivacyEnforcementAction.builder()
-                .removeUserBuyerUid(true)
+                .removeUserIds(true)
                 .maskGeo(true)
                 .maskDeviceIp(true)
                 .maskDeviceInfo(true)

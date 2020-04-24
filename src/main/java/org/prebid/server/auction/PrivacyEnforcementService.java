@@ -48,6 +48,7 @@ public class PrivacyEnforcementService {
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private static final User EMPTY_USER = User.builder().build();
+    private static final ExtUser EMPTY_USER_EXT = ExtUser.builder().build();
 
     private final boolean useGeoLocation;
     private final BidderCatalog bidderCatalog;
@@ -259,7 +260,7 @@ public class PrivacyEnforcementService {
             metrics.updateAuctionTcfMetrics(
                     bidder,
                     requestType,
-                    enforcement.isRemoveUserBuyerUid(),
+                    enforcement.isRemoveUserIds(),
                     enforcement.isMaskGeo(),
                     enforcement.isBlockBidderRequest(),
                     enforcement.isBlockAnalyticsReport());
@@ -302,8 +303,8 @@ public class PrivacyEnforcementService {
         final boolean isLmtEnabled = Objects.equals(deviceLmt, 1);
 
         final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled;
-        final boolean maskBuyerUid = privacyEnforcementAction.isRemoveUserBuyerUid() || isLmtEnabled;
-        final User maskedUser = maskTcfUser(user, maskBuyerUid, maskGeo);
+        final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled;
+        final User maskedUser = maskTcfUser(user, maskUserIds, maskGeo);
 
         final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled;
         final boolean maskInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled;
@@ -320,12 +321,22 @@ public class PrivacyEnforcementService {
     /**
      * Returns masked {@link User}.
      */
-    private static User maskTcfUser(User user, boolean maskBuyerUid, boolean maskGeo) {
+    private User maskTcfUser(User user, boolean maskUserIds, boolean maskGeo) {
         if (user != null) {
-            return nullIfEmpty(user.toBuilder()
-                    .buyeruid(maskBuyerUid ? null : user.getBuyeruid())
-                    .geo(maskGeo ? maskGeoDefault(user.getGeo()) : user.getGeo())
-                    .build());
+            final User.UserBuilder userBuilder = user.toBuilder();
+
+            if (maskGeo) {
+                userBuilder.geo(maskGeoDefault(user.getGeo()));
+            }
+
+            if (maskUserIds) {
+                userBuilder
+                        .id(null)
+                        .buyeruid(null)
+                        .ext(maskUserExt(user.getExt()));
+            }
+
+            return nullIfEmpty(userBuilder.build());
         }
         return null;
     }
@@ -375,6 +386,28 @@ public class PrivacyEnforcementService {
      */
     private static Float maskGeoCoordinate(Float coordinate) {
         return coordinate != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(coordinate)) : null;
+    }
+
+    /**
+     * Returns masked digitrust and eids of user ext.
+     */
+    private ObjectNode maskUserExt(ObjectNode userExt) {
+        try {
+            final ExtUser extUser = userExt != null ? mapper.mapper().treeToValue(userExt, ExtUser.class) : null;
+            final ExtUser maskedExtUser = extUser != null
+                    ? nullIfEmpty(extUser.toBuilder().eids(null).digitrust(null).build())
+                    : null;
+            return maskedExtUser != null ? mapper.mapper().valueToTree(maskedExtUser) : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Returns null if {@link ExtUser} has no data in case of masking was applied.
+     */
+    private static ExtUser nullIfEmpty(ExtUser userExt) {
+        return Objects.equals(userExt, EMPTY_USER_EXT) ? null : userExt;
     }
 
     /**
