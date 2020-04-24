@@ -12,7 +12,9 @@
         ]
       },
       "ext": {
-        "siteId": "123"
+        "bidder": {
+          "siteId": "123"
+        }
       }
     },
     {
@@ -29,7 +31,9 @@
         "h": 576
       },
       "ext": {
-        "siteId": "123"
+        "bidder": {
+          "siteId": "123"
+        }
       }
     }
   ],
@@ -84,7 +88,7 @@
             "USD": 1.2406
           },
           "USD": {
-            "EUR": 0.8110
+            "EUR": 0.811
           }
         }
       },
@@ -101,12 +105,10 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache":{
-        "bids":{
-
-        },
-        "vastxml":{
-          "ttlseconds":120
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
         }
       },
       "auctiontimestamp": 1000

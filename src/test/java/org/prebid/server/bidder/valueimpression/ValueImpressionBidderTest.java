@@ -180,7 +180,7 @@ public class ValueImpressionBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()

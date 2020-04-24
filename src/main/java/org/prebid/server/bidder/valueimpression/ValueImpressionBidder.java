@@ -72,17 +72,19 @@ public class ValueImpressionBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
             throw new PreBidException("No valid impressions in the bid request");
         }
-        final List<Imp> validImpList = new ArrayList<>();
-        for (final Imp imp : bidRequest.getImp()) {
-            ExtImpValueImpression extImpValueImpression = parseImp(imp);
-            validImpList.add(imp.toBuilder().ext(mapper.mapper().valueToTree(extImpValueImpression)).build());
-        }
+
+        final List<Imp> validImpList = bidRequest.getImp().stream()
+                .filter(this::isParsedImp)
+                .collect(Collectors.toList());
+
         return bidRequest.toBuilder().imp(validImpList).build();
     }
 
-    private ExtImpValueImpression parseImp(Imp imp) {
+    private boolean isParsedImp(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), VALUE_IMPRESSION_TYPE_REFERENCE).getBidder();
+            final ExtImpValueImpression extImpValueImpression =
+                    mapper.mapper().convertValue(imp.getExt(), VALUE_IMPRESSION_TYPE_REFERENCE).getBidder();
+            return extImpValueImpression != null;
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
