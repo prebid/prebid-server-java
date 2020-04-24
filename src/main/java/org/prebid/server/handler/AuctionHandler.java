@@ -410,7 +410,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
             final Integer truncateAttrChars = ObjectUtils.firstNonNull(account.getTruncateTargetAttr(),
-                    preBidRequest.getMaxKeyLength(), this.truncateTargetingAttrMaxChars);
+                    preBidRequest.getMaxKeyLength(), truncateTargetingAttrMaxChars);
 
             final TargetingKeywordsCreator keywordsCreator =
                     TargetingKeywordsCreator.create(account.getPriceGranularity(),

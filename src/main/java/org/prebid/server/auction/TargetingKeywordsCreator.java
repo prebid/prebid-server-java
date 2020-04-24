@@ -257,19 +257,21 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                final String targetKey = String.format("%s_%s", prefix, bidder);
-                if (truncateAttrChars != null && !truncateAttrChars.equals(0)
-                        && targetKey.length() >= truncateAttrChars) {
-                    keys.add(targetKey.substring(0, truncateAttrChars));
-                } else {
-                    keys.add(targetKey);
-                }
+                keys.add(performKeyTruncate(String.format("%s_%s", prefix, bidder)));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {
                 keys.add(prefix);
             }
             return keys;
+        }
+
+        private String performKeyTruncate(String targetKey) {
+            if (truncateAttrChars != null && !truncateAttrChars.equals(0) && targetKey.length() >= truncateAttrChars) {
+                return targetKey.substring(0, truncateAttrChars);
+            } else {
+                return targetKey;
+            }
         }
 
         private Map<String, String> asMap() {
