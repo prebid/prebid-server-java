@@ -66,9 +66,7 @@ public class PurposeOneStrategyTest {
         target.allow(privacyEnforcementAction);
 
         // then
-        final PrivacyEnforcementAction expectedAction = PrivacyEnforcementAction.restrictAll();
-        expectedAction.setBlockPixelSync(false);
-        assertThat(privacyEnforcementAction).isEqualTo(expectedAction);
+        assertThat(privacyEnforcementAction).isEqualTo(allowPurpose());
     }
 
     @Test
