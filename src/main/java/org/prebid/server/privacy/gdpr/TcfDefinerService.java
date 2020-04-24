@@ -20,7 +20,6 @@ import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -39,13 +38,13 @@ public class TcfDefinerService {
     private final String gdprDefaultValue;
     private final GdprService gdprService;
     private final Tcf2Service tcf2Service;
-    private final List<String> eeaCountries;
+    private final Set<String> eeaCountries;
     private final GeoLocationService geoLocationService;
     private final BidderCatalog bidderCatalog;
     private final Metrics metrics;
 
     public TcfDefinerService(GdprConfig gdprConfig,
-                             List<String> eeaCountries,
+                             Set<String> eeaCountries,
                              GdprService gdprService,
                              Tcf2Service tcf2Service,
                              GeoLocationService geoLocationService,
@@ -152,7 +151,7 @@ public class TcfDefinerService {
         // from request param
         final boolean isValidGdpr = gdpr != null && (gdpr.equals(GDPR_ZERO) || gdpr.equals(GDPR_ONE));
         if (isValidGdpr) {
-            return Future.succeededFuture(GdprInfoWithCountry.of(gdpr, gdprConsent, null));
+            return Future.succeededFuture(GdprInfoWithCountry.of(gdpr, gdprConsent));
         }
 
         // from geo location
@@ -169,10 +168,12 @@ public class TcfDefinerService {
 
     private GdprInfoWithCountry<String> createGdprInfoWithCountry(String gdprConsent, String country) {
         metrics.updateGeoLocationMetric(true);
-        final String gdpr = country == null
+
+        final Boolean inEea = country != null ? eeaCountries.contains(country) : null;
+        final String gdpr = inEea == null
                 ? gdprDefaultValue
-                : eeaCountries.contains(country) ? GDPR_ONE : GDPR_ZERO;
-        return GdprInfoWithCountry.of(gdpr, gdprConsent, country);
+                : inEea ? GDPR_ONE : GDPR_ZERO;
+        return GdprInfoWithCountry.of(gdpr, gdprConsent, country, inEea);
     }
 
     private GdprInfoWithCountry<String> updateMetricsAndReturnDefault(Throwable exception, String gdprConsent) {
@@ -182,7 +183,7 @@ public class TcfDefinerService {
     }
 
     private GdprInfoWithCountry<String> defaultGdprInfoWithCountry(String gdprConsent) {
-        return GdprInfoWithCountry.of(gdprDefaultValue, gdprConsent, null);
+        return GdprInfoWithCountry.of(gdprDefaultValue, gdprConsent);
     }
 
     private <T> Future<TcfResponse<T>> dispatchToService(
@@ -191,18 +192,33 @@ public class TcfDefinerService {
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
             BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
 
+        TCString tcString = decodeTcString(gdprInfoWithCountry);
+
+        updatePrivacyTcfMetrics(gdprInfoWithCountry, tcString);
+
         final String country = gdprInfoWithCountry.getCountry();
         if (!inScope(gdprInfoWithCountry)) {
             return allowAllTcfResponseCreator.apply(country);
         }
 
         // parsing TC string should not fail the entire request, assume the user does not consent
-        final TCString tcString = decodeTcString(gdprInfoWithCountry);
+        if (tcString == null) {
+            tcString = new TCStringEmpty(2);
+        }
+
         if (tcString.getVersion() == 2) {
             return tcf2Strategy.apply(tcString, country);
         }
 
         return gdprStrategy.apply(gdprInfoWithCountry.getConsent(), country);
+    }
+
+    private void updatePrivacyTcfMetrics(GdprInfoWithCountry<String> gdprInfoWithCountry, TCString tcString) {
+        if (tcString == null) {
+            metrics.updatePrivacyTcfInvalidMetric();
+        } else {
+            metrics.updatePrivacyTcfGeoMetric(tcString.getVersion(), gdprInfoWithCountry.getInEea());
+        }
     }
 
     private <T> Future<TcfResponse<T>> createAllowAllTcfResponse(Set<T> keys, String country) {
@@ -295,7 +311,7 @@ public class TcfDefinerService {
             return TCString.decode(gdprInfo.getConsent());
         } catch (Throwable e) {
             logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
-            return new TCStringEmpty(2);
+            return null;
         }
     }
 

@@ -11,15 +11,21 @@ import java.util.function.Function;
 class PrivacyMetrics extends UpdatableMetrics {
 
     private final USPrivacyMetrics usPrivacyMetrics;
+    private final TcfMetrics tcfMetrics;
 
     PrivacyMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 metricName -> String.format("privacy.%s", metricName.toString()));
         usPrivacyMetrics = new USPrivacyMetrics(metricRegistry, counterType, "privacy");
+        tcfMetrics = new TcfMetrics(metricRegistry, counterType, "privacy");
     }
 
     USPrivacyMetrics usp() {
         return usPrivacyMetrics;
+    }
+
+    TcfMetrics tcf() {
+        return tcfMetrics;
     }
 
     static class USPrivacyMetrics extends UpdatableMetrics {

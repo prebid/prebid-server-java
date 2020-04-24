@@ -311,6 +311,24 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updatePrivacyTcfInvalidMetric() {
+        privacy().tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
+        final UpdatableMetrics versionMetrics;
+        if (version == 2) {
+            versionMetrics = privacy().tcf().v2();
+        } else {
+            versionMetrics = privacy().tcf().v1();
+        }
+
+        final MetricName metricName = inEea == null
+                ? MetricName.unknown_geo
+                : inEea ? MetricName.in_geo : MetricName.out_geo;
+        versionMetrics.incCounter(metricName);
+    }
+
     public void updateConnectionAcceptErrors() {
         incCounter(MetricName.connection_accept_errors);
     }
