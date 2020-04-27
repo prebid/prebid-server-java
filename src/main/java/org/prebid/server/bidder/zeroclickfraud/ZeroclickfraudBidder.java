@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +42,8 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpZeroclickfraud>>() {
             };
 
+    private static final String HOST = "{{Host}}";
+    private static final String SOURCE_ID = "{{SourceId}}";
     private final String endpointTemplate;
     private final JacksonMapper mapper;
 
@@ -62,7 +65,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = extToImps.entrySet().stream()
-                .map(entry -> makeHttpRequest(entry, bidRequest))
+                .map(entry -> makeHttpRequest(entry.getKey(), entry.getValue(), bidRequest))
                 .collect(Collectors.toList());
 
         return Result.of(httpRequests, Collections.emptyList());
@@ -88,14 +91,13 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
         return extImpZeroclickfraud;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(Map.Entry<ExtImpZeroclickfraud, List<Imp>> extToImps,
+    private HttpRequest<BidRequest> makeHttpRequest(ExtImpZeroclickfraud extImpZeroclickfraud, List<Imp> imps,
                                                     BidRequest bidRequest) {
-        final ExtImpZeroclickfraud extImpZeroclickfraud = extToImps.getKey();
         final String uri = endpointTemplate
-                .replace("{{Host}}", extImpZeroclickfraud.getHost())
-                .replace("{{SourceId}}", extImpZeroclickfraud.getSourceId().toString());
+                .replace(HOST, extImpZeroclickfraud.getHost())
+                .replace(SOURCE_ID, extImpZeroclickfraud.getSourceId().toString());
 
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
         final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
@@ -109,6 +111,16 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final int statusCode = httpCall.getResponse().getStatusCode();
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
+            return Result.emptyWithError(BidderError.badInput("bad request"));
+        } else if (statusCode != HttpResponseStatus.OK.code()) {
+            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
+                    statusCode)));
+        }
+
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload()), Collections.emptyList());

@@ -11,7 +11,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.datablocks.DatablocksBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -19,7 +18,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
+import org.prebid.server.proto.openrtb.ext.request.zeroclickfraud.ExtImpZeroclickfraud;
 
 import java.util.List;
 import java.util.function.Function;
@@ -28,25 +27,19 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ZeroclickfraudBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_TEMPLATE = "https://{{Host}}/{{SourceId}}";
+    private static final String ENDPOINT_TEMPLATE = "http://{{Host}}/openrtb2?sid={{SourceId}}";
 
     private ZeroclickfraudBidder zeroclickfraudBidder;
 
     @Before
     public void setUp() {
         zeroclickfraudBidder = new ZeroclickfraudBidder(ENDPOINT_TEMPLATE, jacksonMapper);
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new DatablocksBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -66,7 +59,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenSourceIdIsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(null, "host"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(null, "host"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
@@ -80,7 +73,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenSourceIdIsLessThanOne() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(0, "host"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(0, "host"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
@@ -94,7 +87,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenHostIsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2, null));
+        final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(2, null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
@@ -108,7 +101,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenHostIsBlank() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2, "  "));
+        final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(2, "  "));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
@@ -122,7 +115,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequestAndSetExpectedHttpRequestUri() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2, "host"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(2, "host"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
@@ -134,18 +127,18 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                 .containsOnly(bidRequest);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://host/2");
+                .containsOnly("http://host/openrtb2?sid=2");
     }
 
     @Test
     public void makeHttpRequestsShouldMakeOneHttpRequestPerEachImpExtWithReplacedImps() {
         // given
         final Imp firstImp = Imp.builder().id("imp1")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZeroclickfraud.of(2, "host")))).build();
         final Imp secondImp = Imp.builder().id("imp2")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(3, "host1")))).build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZeroclickfraud.of(3, "host1")))).build();
         final Imp thirdImp = Imp.builder().id("imp3")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZeroclickfraud.of(2, "host")))).build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(firstImp, secondImp, thirdImp))
@@ -163,7 +156,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                         BidRequest.builder().imp(singletonList(secondImp)).build());
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://host/2", "https://host1/3");
+                .containsOnly("http://host/openrtb2?sid=2", "http://host1/openrtb2?sid=3");
     }
 
     @Test
