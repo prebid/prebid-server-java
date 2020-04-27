@@ -28,7 +28,6 @@ import java.util.Set;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -72,7 +71,7 @@ public class TcfDefinerServiceTest {
         initPurposes();
         initGdpr();
 
-        target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
                 geoLocationService, bidderCatalog, metrics);
     }
 
@@ -95,7 +94,7 @@ public class TcfDefinerServiceTest {
     public void resultForVendorIdsShouldAllowAllWhenGdprIsDisabled() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder().enabled(false).build();
-        target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
                 geoLocationService, bidderCatalog, metrics);
 
         // when
@@ -149,6 +148,7 @@ public class TcfDefinerServiceTest {
         verify(tcf2Service).permissionsFor(
                 any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
         verifyZeroInteractions(gdprService);
+        verify(metrics).updatePrivacyTcfInvalidMetric();
     }
 
     @Test
@@ -201,7 +201,7 @@ public class TcfDefinerServiceTest {
     public void resultForVendorIdsShouldReturnAllowAllWhenGdprByGeoLookupIsFailedAndByDefaultIsZero() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder().enabled(true).defaultValue("0").build();
-        target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
                 geoLocationService, bidderCatalog, metrics);
 
         given(geoLocationService.lookup(anyString(), any())).willReturn(Future.failedFuture("Bad ip"));
@@ -222,7 +222,7 @@ public class TcfDefinerServiceTest {
     public void resultForVendorIdsShouldReturnAllowAllWhenIpIsNullAndByDefaultIsZero() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder().enabled(true).defaultValue("0").build();
-        target = new TcfDefinerService(gdprConfig, singletonList(EEA_COUNTRY), gdprService, tcf2Service,
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
                 geoLocationService, bidderCatalog, metrics);
 
         // when
@@ -260,6 +260,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(TcfResponse.of(true, expectedVendorIdToPrivacyMap, null));
 
         verifyZeroInteractions(tcf2Service);
+        verify(metrics).updatePrivacyTcfGeoMetric(1, null);
     }
 
     @Test
@@ -300,6 +301,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(TcfResponse.of(true, expectedBidderNameToPrivacyMap, null));
 
         verifyZeroInteractions(tcf2Service);
+        verify(metrics).updatePrivacyTcfGeoMetric(1, null);
     }
 
     @Test
@@ -341,5 +343,6 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(TcfResponse.of(true, expectedBidderNameToPrivacyMap, null));
 
         verifyZeroInteractions(gdprService);
+        verify(metrics).updatePrivacyTcfGeoMetric(2, null);
     }
 }

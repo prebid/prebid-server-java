@@ -647,6 +647,56 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyCoppaMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyCoppaMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.coppa").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyLmtMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyLmtMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.lmt").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyCcpaMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updatePrivacyCcpaMetrics(true, true);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.usp.specified").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("privacy.usp.opt-out").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyTcfInvalidMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfInvalidMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.invalid").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyTcfGeoMetricShouldIncrementMetrics() {
+        // when
+        metrics.updatePrivacyTcfGeoMetric(1, null);
+        metrics.updatePrivacyTcfGeoMetric(2, true);
+        metrics.updatePrivacyTcfGeoMetric(2, false);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.v1.unknown-geo").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("privacy.tcf.v2.in-geo").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("privacy.tcf.v2.out-geo").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
         given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
