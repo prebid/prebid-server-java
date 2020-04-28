@@ -32,11 +32,11 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -232,8 +232,8 @@ public class AuctionRequestFactory {
         final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
         final boolean updateAt = at == null || at == 0;
-        final ObjectNode ext = bidRequest.getExt();
-        final ObjectNode populatedExt = ext != null
+        final ExtRequest ext = bidRequest.getExt();
+        final ExtRequest populatedExt = ext != null
                 ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
                 : null;
         final boolean updateCurrency = CollectionUtils.isEmpty(bidRequest.getCur()) && adServerCurrency != null;
@@ -397,11 +397,10 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns updated {@link ExtBidRequest} if required or null otherwise.
+     * Returns updated {@link ExtRequest} if required or null otherwise.
      */
-    private ObjectNode populateBidRequestExtension(ObjectNode extNode, List<Imp> imps) {
-        final ExtBidRequest extBidRequest = extBidRequest(extNode);
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+    private ExtRequest populateBidRequestExtension(ExtRequest extRequest, List<Imp> imps) {
+        final ExtRequestPrebid prebid = extRequest.getPrebid();
 
         final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
@@ -409,35 +408,24 @@ public class AuctionRequestFactory {
         final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
 
-        final ObjectNode result;
+        final ExtRequest result;
         if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
 
-            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
+            result = ExtRequest.of(prebidBuilder
                     .aliases(ObjectUtils.defaultIfNull(updatedAliases,
                             getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                             getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                     .cache(ObjectUtils.defaultIfNull(updatedCache,
                             getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                    .build()));
+                    .build());
         } else {
             result = null;
         }
         return result;
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
-     */
-    private ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
-        try {
-            return mapper.mapper().treeToValue(extBidRequestNode, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
-        }
     }
 
     /**

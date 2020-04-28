@@ -20,10 +20,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -138,8 +138,7 @@ public class AmpRequestFactory {
         final Integer secure = imp.getSecure();
         final boolean setSecure = secure == null || secure != 1;
 
-        final ExtBidRequest extBidRequest = extBidRequest(bidRequest.getExt());
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+        final ExtRequestPrebid prebid = bidRequest.getExt().getPrebid();
 
         // AMP won't function unless ext.prebid.targeting and ext.prebid.cache.bids are defined.
         // If the user didn't include them, default those here.
@@ -176,23 +175,12 @@ public class AmpRequestFactory {
             result = bidRequest.toBuilder()
                     .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
                     .test(ObjectUtils.defaultIfNull(updatedTest, test))
-                    .ext(extBidRequestNode(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
+                    .ext(extRequest(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
                     .build();
         } else {
             result = bidRequest;
         }
         return result;
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
-     */
-    private ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
-        try {
-            return mapper.mapper().treeToValue(extBidRequestNode, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
-        }
     }
 
     /**
@@ -467,10 +455,10 @@ public class AmpRequestFactory {
     /**
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                         boolean setDefaultTargeting, boolean setDefaultCache,
-                                         Integer updatedDebug) {
-        final ObjectNode result;
+    private ExtRequest extRequest(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                  boolean setDefaultTargeting, boolean setDefaultCache,
+                                  Integer updatedDebug) {
+        final ExtRequest result;
         if (setDefaultTargeting || setDefaultCache || updatedDebug != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
@@ -487,7 +475,7 @@ public class AmpRequestFactory {
                 prebidBuilder.debug(updatedDebug);
             }
 
-            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder.build()));
+            result = ExtRequest.of(prebidBuilder.build());
         } else {
             result = bidRequest.getExt();
         }

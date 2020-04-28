@@ -27,6 +27,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -192,7 +193,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .map(ExtImpPubmatic::getWrapper)
                 .filter(Objects::nonNull)
                 .findFirst()
-                .ifPresent(wrapExt -> requestBuilder.ext(mapper.mapper().valueToTree(PubmaticRequestExt.of(wrapExt))));
+                .ifPresent(wrapExt -> requestBuilder.ext(
+                        mapper.fillExtension(ExtRequest.empty(), PubmaticRequestExt.of(wrapExt))));
 
         final String pubId = extImpPubmatics.stream()
                 .map(ExtImpPubmatic::getPublisherId)

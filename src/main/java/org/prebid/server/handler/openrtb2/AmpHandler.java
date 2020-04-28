@@ -1,6 +1,5 @@
 package org.prebid.server.handler.openrtb2;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -42,7 +41,7 @@ import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -245,22 +244,9 @@ public class AmpHandler implements Handler<RoutingContext> {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
-        final ExtBidRequest extBidRequest = extBidRequestFrom(bidRequest);
-        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from {@link BidRequest}.
-     */
-    private ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
-        try {
-            return bidRequest.getExt() != null
-                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class)
-                    : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
-        }
     }
 
     private ExtBidResponse extResponseFrom(BidResponse bidResponse) {

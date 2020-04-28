@@ -40,7 +40,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -48,6 +47,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -118,9 +118,9 @@ public class RequestValidator {
 
             validateCur(bidRequest.getCur());
 
-            final ExtBidRequest extBidRequest = parseAndValidateExtBidRequest(bidRequest);
+            final ExtRequest extRequest = bidRequest.getExt();
 
-            final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+            final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
 
             Map<String, String> aliases = Collections.emptyMap();
 
@@ -314,18 +314,6 @@ public class RequestValidator {
         if (range.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
         }
-    }
-
-    private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
-        ExtBidRequest extBidRequest = null;
-        if (bidRequest.getExt() != null) {
-            try {
-                extBidRequest = mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class);
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.ext is invalid: %s", e.getMessage());
-            }
-        }
-        return extBidRequest;
     }
 
     /**

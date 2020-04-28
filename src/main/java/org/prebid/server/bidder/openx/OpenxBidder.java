@@ -23,6 +23,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -146,7 +147,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
 
         return CollectionUtils.isNotEmpty(processedImps)
-                ? bidRequest.toBuilder().imp(processedImps).ext(makeReqExt(imps)).build()
+                ? bidRequest.toBuilder().imp(processedImps).ext(makeRequestExt(imps)).build()
                 : null;
     }
 
@@ -159,8 +160,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ObjectNode makeReqExt(List<Imp> imps) {
-        return mapper.mapper().valueToTree(OpenxRequestExt.of(parseOpenxExt(imps.get(0)).getDelDomain(), OPENX_CONFIG));
+    private ExtRequest makeRequestExt(List<Imp> imps) {
+        return mapper.fillExtension(
+                ExtRequest.empty(), OpenxRequestExt.of(parseOpenxExt(imps.get(0)).getDelDomain(), OPENX_CONFIG));
     }
 
     private ExtImpOpenx parseOpenxExt(Imp imp) {

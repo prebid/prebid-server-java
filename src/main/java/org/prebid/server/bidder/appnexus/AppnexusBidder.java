@@ -33,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
@@ -153,16 +154,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             url = endpointUrl;
         }
 
-        final BidRequest outgoingRequest;
-        try {
-            final ObjectNode updatedRequestExt = updatedBidRequestExt(bidRequest);
-            outgoingRequest = updatedRequestExt != null
-                    ? bidRequest.toBuilder().ext(updatedRequestExt).build()
-                    : bidRequest;
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.of(Collections.emptyList(), errors);
-        }
+        final ExtRequest updatedRequestExt = updatedRequestExt(bidRequest);
+        final BidRequest outgoingRequest = updatedRequestExt != null
+                ? bidRequest.toBuilder().ext(updatedRequestExt).build()
+                : bidRequest;
 
         return Result.of(splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST), errors);
     }
@@ -199,29 +194,18 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ObjectNode updatedBidRequestExt(BidRequest bidRequest) {
-        final ObjectNode requestExt = bidRequest.getExt();
-        if (requestExt != null && !requestExt.isNull()) {
-            final AppnexusReqExt appnexusReqExt = parseRequestExt(requestExt);
-            if (isIncludeBrandCategory(appnexusReqExt)) {
-                final AppnexusReqExt updateAppnexusReqExt =
-                        AppnexusReqExt.of(AppnexusReqExtAppnexus.of(true, true), appnexusReqExt.getPrebid());
-                return mapper.mapper().valueToTree(updateAppnexusReqExt);
-            }
+    private ExtRequest updatedRequestExt(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        if (isIncludeBrandCategory(requestExt)) {
+            return mapper.fillExtension(
+                    ExtRequest.of(requestExt.getPrebid()),
+                    AppnexusReqExt.of(AppnexusReqExtAppnexus.of(true, true)));
         }
         return null;
     }
 
-    private AppnexusReqExt parseRequestExt(ObjectNode requestExt) {
-        try {
-            return mapper.mapper().convertValue(requestExt, AppnexusReqExt.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private static boolean isIncludeBrandCategory(AppnexusReqExt appnexusReqExt) {
-        final ExtRequestPrebid prebid = appnexusReqExt.getPrebid();
+    private static boolean isIncludeBrandCategory(ExtRequest extRequest) {
+        final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
         final ExtIncludeBrandCategory includebrandcategory = targeting != null
                 ? targeting.getIncludebrandcategory()

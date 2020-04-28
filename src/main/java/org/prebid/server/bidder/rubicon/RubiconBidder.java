@@ -65,9 +65,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -220,10 +220,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
      * This mainly related to global fields like request.site.keywords, etc.
      */
     private boolean useFirstPartyData(BidRequest bidRequest) {
-        final ExtBidRequest extBidRequest = bidRequest.getExt() != null
-                ? mapper.mapper().convertValue(bidRequest.getExt(), ExtBidRequest.class)
+        final ExtRequest extRequest = bidRequest.getExt() != null
+                ? mapper.mapper().convertValue(bidRequest.getExt(), ExtRequest.class)
                 : null;
-        final ExtRequestPrebid prebid = extBidRequest == null ? null : extBidRequest.getPrebid();
+        final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
         final List<String> bidders = data == null ? null : data.getBidders();
         return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
