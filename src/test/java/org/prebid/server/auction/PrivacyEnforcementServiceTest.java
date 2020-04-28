@@ -7,6 +7,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -74,6 +78,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private TcfDefinerService tcfDefinerService;
     @Mock
     private Metrics metrics;
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpServerRequest;
+    @Mock
+    private MultiMap headers;
 
     private PrivacyEnforcementService privacyEnforcementService;
 
@@ -81,6 +91,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(routingContext.request()).willReturn(httpServerRequest);
+        given(httpServerRequest.headers()).willReturn(headers);
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, restrictDeviceAndUser()), null)));
@@ -126,10 +138,15 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskForCoppaWhenDeviceDntIsOneAndRegsCoppaIsOneAndDoesNotCallTcfServices() {
+    public void shouldMaskForTcfWhenTcfServiceAllowAllAndDeviceDntIsOne() {
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, PrivacyEnforcementAction.allowAll()), null)));
+
+        final ExtUser extUser = ExtUser.builder().build();
         final User user = notMaskedUser();
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.dnt(1));
-        final Regs regs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1, null)));
+        final Regs regs = Regs.of(0, null);
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
@@ -143,19 +160,58 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, ExtUser.builder().build(), singletonList(BIDDER_NAME),
-                        BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
                 .result();
 
         // then
-        final BidderPrivacyResult expected = BidderPrivacyResult.builder()
+        final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
+                .user(userTcfMasked())
+                .device(givenTcfMaskedDevice(deviceBuilder -> deviceBuilder.dnt(1)))
                 .requestBidder(BIDDER_NAME)
-                .user(userCoppaMasked())
-                .device(givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.dnt(1)))
                 .build();
-        assertThat(result).isEqualTo(singletonList(expected));
+        assertThat(result).containsOnly(expectedBidderPrivacy);
 
-        verifyZeroInteractions(tcfDefinerService);
+        verify(tcfDefinerService)
+                .resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), isNull(), any(), any(), any(), eq(timeout));
+    }
+
+    @Test
+    public void shouldMaskForTcfWhenTcfServiceAllowAllAndDntHeaderIsOne() {
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, PrivacyEnforcementAction.allowAll()), null)));
+
+        final ExtUser extUser = ExtUser.builder().build();
+        final User user = notMaskedUser();
+        final Device device = notMaskedDevice();
+        final Regs regs = Regs.of(0, null);
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(device)
+                        .regs(regs));
+
+        given(headers.get(HttpUtil.DNT_HEADER)).willReturn("1");
+        final AuctionContext context = auctionContext(bidRequest);
+
+        // when
+        final List<BidderPrivacyResult> result = privacyEnforcementService
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .result();
+
+        // then
+        final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
+                .user(userTcfMasked())
+                .device(deviceTcfMasked())
+                .requestBidder(BIDDER_NAME)
+                .build();
+        assertThat(result).containsOnly(expectedBidderPrivacy);
+
+        verify(tcfDefinerService)
+                .resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), isNull(), any(), any(), any(), eq(timeout));
     }
 
     @Test
@@ -891,6 +947,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private AuctionContext auctionContext(BidRequest bidRequest) {
         return AuctionContext.builder()
+                .routingContext(routingContext)
                 .account(Account.builder().build())
                 .bidRequest(bidRequest)
                 .timeout(timeout)

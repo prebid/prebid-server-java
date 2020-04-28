@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -27,6 +28,7 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.util.HttpUtil;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -101,9 +103,11 @@ public class PrivacyEnforcementService {
         final AccountGdprConfig accountConfig = auctionContext.getAccount().getGdpr();
         final Timeout timeout = auctionContext.getTimeout();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
+        final MultiMap headers = auctionContext.getRoutingContext().request().headers();
         return getBidderToEnforcementAction(device, bidders, aliases, extUser, regs, accountConfig, timeout)
-                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, device))
-                .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToUser, device, bidderToEnforcement));
+                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, device, headers))
+                .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToUser, device,
+                        bidderToEnforcement, headers));
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa) {
@@ -259,7 +263,8 @@ public class PrivacyEnforcementService {
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
-            Map<String, PrivacyEnforcementAction> bidderToEnforcement, MetricName requestType, Device device) {
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement, MetricName requestType,
+            Device device, MultiMap headers) {
 
         for (final Map.Entry<String, PrivacyEnforcementAction> bidderEnforcement : bidderToEnforcement.entrySet()) {
             final String bidder = bidderEnforcement.getKey();
@@ -278,7 +283,7 @@ public class PrivacyEnforcementService {
             metrics.updatePrivacyLmtMetric();
         }
 
-        if (isDntEnabled(device)) {
+        if (isDntEnabled(device, headers.get(HttpUtil.DNT_HEADER))) {
             metrics.updatePrivacyDntMetric();
         }
 
@@ -290,11 +295,12 @@ public class PrivacyEnforcementService {
      * {@link BidderPrivacyResult}. Masking depends on GDPR and COPPA.
      */
     private List<BidderPrivacyResult> getBidderToPrivacyResult(
-            Map<String, User> bidderToUser, Device device, Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
-
+            Map<String, User> bidderToUser, Device device, Map<String, PrivacyEnforcementAction> bidderToEnforcement,
+            MultiMap headers) {
+        final String dntHeader = headers.get(HttpUtil.DNT_HEADER);
         return bidderToUser.entrySet().stream()
                 .map(bidderUserEntry -> createBidderPrivacyResult(bidderUserEntry.getValue(), device,
-                        bidderUserEntry.getKey(), bidderToEnforcement))
+                        bidderUserEntry.getKey(), bidderToEnforcement, dntHeader))
                 .collect(Collectors.toList());
     }
 
@@ -302,7 +308,8 @@ public class PrivacyEnforcementService {
      * Returns {@link BidderPrivacyResult} with GDPR masking.
      */
     private BidderPrivacyResult createBidderPrivacyResult(User user, Device device, String bidder,
-                                                          Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
+                                                          Map<String, PrivacyEnforcementAction> bidderToEnforcement,
+                                                          String dntHeader) {
 
         final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
         final boolean blockBidderRequest = privacyEnforcementAction.isBlockBidderRequest();
@@ -315,7 +322,7 @@ public class PrivacyEnforcementService {
                     .build();
         }
         final boolean isLmtEnabled = isLmtEnabled(device);
-        final boolean isDntEnabled = isDntEnabled(device);
+        final boolean isDntEnabled = isDntEnabled(device, dntHeader);
 
         final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled || isDntEnabled;
         final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled || isDntEnabled;
@@ -466,8 +473,10 @@ public class PrivacyEnforcementService {
         return device != null && Objects.equals(device.getLmt(), 1);
     }
 
-    private boolean isDntEnabled(Device device) {
-        return device != null && Objects.equals(device.getDnt(), 1);
+    private boolean isDntEnabled(Device device, String dntHeader) {
+        boolean deviceDntEnabled = device != null && Objects.equals(device.getDnt(), 1);
+        boolean headerDntEnabled = dntHeader != null && Objects.equals(dntHeader, "1");
+        return deviceDntEnabled || headerDntEnabled;
     }
 
 }
