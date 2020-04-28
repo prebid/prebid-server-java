@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -80,6 +81,15 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
+        final MultiMap requestHeaders = context.request().headers();
+        if (requestHeaders != null && requestHeaders.contains(HttpUtil.DNT_HEADER)
+                && Objects.equals(requestHeaders.get(HttpUtil.DNT_HEADER), "1")) {
+            int status = HttpResponseStatus.NO_CONTENT.code();
+            respondWith(context, status, "Do-Not-Track is enabled");
+            analyticsReporter.processEvent(SetuidEvent.error(status));
+            return;
+        }
+
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();

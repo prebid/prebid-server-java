@@ -6,6 +6,7 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.impl.headers.VertxHttpHeaders;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,6 +31,7 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -468,6 +470,21 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateUserSyncSetsMetric(eq(RUBICON));
+    }
+
+    @Test
+    public void shouldPassNoContentIfDNTHeaderIsPresented() {
+        // given
+        final VertxHttpHeaders headers = new VertxHttpHeaders();
+        headers.add(HttpUtil.DNT_HEADER, "1");
+        given(httpRequest.headers()).willReturn(headers);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        final SetuidEvent setuidEvent = captureSetuidEvent();
+        assertThat(setuidEvent).isEqualTo(SetuidEvent.builder().status(204).build());
     }
 
     @Test

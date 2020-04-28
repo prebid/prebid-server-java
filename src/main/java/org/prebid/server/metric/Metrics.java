@@ -302,6 +302,10 @@ public class Metrics extends UpdatableMetrics {
         privacy().incCounter(MetricName.lmt);
     }
 
+    public void updatePrivacyDntMetric() {
+        privacy().incCounter(MetricName.dnt);
+    }
+
     public void updatePrivacyCcpaMetrics(boolean isSpecified, boolean isEnforced) {
         if (isSpecified) {
             privacy().usp().incCounter(MetricName.specified);

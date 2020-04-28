@@ -126,6 +126,39 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldMaskForCoppaWhenDeviceDntIsOneAndRegsCoppaIsOneAndDoesNotCallTcfServices() {
+        final User user = notMaskedUser();
+        final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.dnt(1));
+        final Regs regs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1, null)));
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(device)
+                        .regs(regs));
+
+        final AuctionContext context = auctionContext(bidRequest);
+
+        // when
+        final List<BidderPrivacyResult> result = privacyEnforcementService
+                .mask(context, bidderToUser, ExtUser.builder().build(), singletonList(BIDDER_NAME),
+                        BidderAliases.of(null, null))
+                .result();
+
+        // then
+        final BidderPrivacyResult expected = BidderPrivacyResult.builder()
+                .requestBidder(BIDDER_NAME)
+                .user(userCoppaMasked())
+                .device(givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.dnt(1)))
+                .build();
+        assertThat(result).isEqualTo(singletonList(expected));
+
+        verifyZeroInteractions(tcfDefinerService);
+    }
+
+    @Test
     public void shouldMaskForCcpaWhenUsPolicyIsValidAndCoppaIsZeroAndDoesNotCallTcfServices() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(bidderCatalog, tcfDefinerService, metrics,

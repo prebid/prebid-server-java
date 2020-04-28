@@ -5,6 +5,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -116,6 +117,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext context) {
         metrics.updateCookieSyncRequestMetric();
+
+        final MultiMap requestHeaders = context.request().headers();
+        if (requestHeaders != null && requestHeaders.contains(HttpUtil.DNT_HEADER)
+                && Objects.equals(requestHeaders.get(HttpUtil.DNT_HEADER), "1")) {
+            final int status = HttpResponseStatus.NO_CONTENT.code();
+            final String message = "Do-Not-Track is enabled";
+            context.response().setStatusCode(status).setStatusMessage(message).end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, message));
+            return;
+        }
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {

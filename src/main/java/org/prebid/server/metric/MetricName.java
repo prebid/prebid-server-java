@@ -76,6 +76,7 @@ public enum MetricName {
     // privacy
     coppa,
     lmt,
+    dnt,
     specified,
     opt_out("opt-out"),
     invalid,

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.impl.headers.VertxHttpHeaders;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,6 +36,7 @@ import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -100,6 +103,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private HttpServerRequest httpRequest;
 
     private Usersyncer rubiconUsersyncer;
 
@@ -111,6 +116,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(routingContext.response()).willReturn(httpResponse);
+        given(routingContext.request()).willReturn(httpRequest);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
                 bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, false, emptyList(),
@@ -151,6 +157,26 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).setStatusMessage(eq("Request has no body"));
+        verify(httpResponse).end();
+        verifyNoMoreInteractions(httpResponse, tcfDefinerService);
+    }
+
+    @Test
+    public void shouldPassNoContentIfDNTHeaderIsPresented() {
+        // given
+        final VertxHttpHeaders headers = new VertxHttpHeaders();
+        headers.add(HttpUtil.DNT_HEADER, "1");
+        given(httpRequest.headers()).willReturn(headers);
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusMessage(eq("Do-Not-Track is enabled"));
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse, tcfDefinerService);
     }

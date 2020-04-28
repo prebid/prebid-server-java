@@ -278,6 +278,10 @@ public class PrivacyEnforcementService {
             metrics.updatePrivacyLmtMetric();
         }
 
+        if (isDntEnabled(device)) {
+            metrics.updatePrivacyDntMetric();
+        }
+
         return bidderToEnforcement;
     }
 
@@ -288,20 +292,16 @@ public class PrivacyEnforcementService {
     private List<BidderPrivacyResult> getBidderToPrivacyResult(
             Map<String, User> bidderToUser, Device device, Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
 
-        final boolean isLmtEnabled = isLmtEnabled(device);
         return bidderToUser.entrySet().stream()
                 .map(bidderUserEntry -> createBidderPrivacyResult(bidderUserEntry.getValue(), device,
-                        bidderUserEntry.getKey(), isLmtEnabled, bidderToEnforcement))
+                        bidderUserEntry.getKey(), bidderToEnforcement))
                 .collect(Collectors.toList());
     }
 
     /**
      * Returns {@link BidderPrivacyResult} with GDPR masking.
      */
-    private BidderPrivacyResult createBidderPrivacyResult(User user,
-                                                          Device device,
-                                                          String bidder,
-                                                          boolean isLmtEnabled,
+    private BidderPrivacyResult createBidderPrivacyResult(User user, Device device, String bidder,
                                                           Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
 
         final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
@@ -314,13 +314,15 @@ public class PrivacyEnforcementService {
                     .blockedAnalyticsByTcf(blockAnalyticsReport)
                     .build();
         }
+        final boolean isLmtEnabled = isLmtEnabled(device);
+        final boolean isDntEnabled = isDntEnabled(device);
 
-        final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled;
-        final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled;
+        final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled || isDntEnabled;
+        final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled || isDntEnabled;
         final User maskedUser = maskTcfUser(user, maskUserIds, maskGeo);
 
-        final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled;
-        final boolean maskInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled;
+        final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled || isDntEnabled;
+        final boolean maskInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled || isDntEnabled;
         final Device maskedDevice = maskTcfDevice(device, maskIp, maskGeo, maskInfo);
 
         return BidderPrivacyResult.builder()
@@ -463,4 +465,9 @@ public class PrivacyEnforcementService {
     private static boolean isLmtEnabled(Device device) {
         return device != null && Objects.equals(device.getLmt(), 1);
     }
+
+    private boolean isDntEnabled(Device device) {
+        return device != null && Objects.equals(device.getDnt(), 1);
+    }
+
 }
