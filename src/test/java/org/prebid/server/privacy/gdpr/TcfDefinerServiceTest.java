@@ -162,7 +162,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsNotValid() {
         // when
-        target.resultForVendorIds(singleton(1), "1", "consent", "ip",null, null);
+        target.resultForVendorIds(singleton(1), "1", "consent", "ip", null, null);
 
         // then
         verify(tcf2Service).permissionsFor(
@@ -175,7 +175,7 @@ public class TcfDefinerServiceTest {
     public void resultForVendorIdsShouldReturnAllowAllWhenGdprIsZero() {
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), "0", "consent", "ip",null, null);
+                target.resultForVendorIds(singleton(1), "0", "consent", "ip", null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -189,7 +189,7 @@ public class TcfDefinerServiceTest {
     public void resultForBidderNamesShouldReturnAllowAllWhenGdprIsZero() {
         // when
         final Future<TcfResponse<String>> result =
-                target.resultForBidderNames(singleton("b1"), "0", "consent", "ip",null, null);
+                target.resultForBidderNames(singleton("b1"), "0", "consent", "ip", null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -207,7 +207,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), null, "consent", "ip",null, null);
+                target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -228,7 +228,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), null, "consent", "ip", null,null);
+                target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -247,7 +247,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), null, "consent", null, null,null);
+                target.resultForVendorIds(singleton(1), null, "consent", null, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -335,7 +335,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(new HashSet<>(asList(1, 2)), "1", null, null, null,null);
+                target.resultForVendorIds(new HashSet<>(asList(1, 2)), "1", null, null, null, null);
 
         // then
         final HashMap<Integer, PrivacyEnforcementAction> expectedVendorIdToPrivacyMap = new HashMap<>();
