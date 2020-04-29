@@ -26,7 +26,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
@@ -167,7 +167,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .badv(singletonList("badv"))
                 .cur(singletonList("USD"))
                 .tmax(0L)
-                .ext(mapper.valueToTree(ExtBidRequest.of(ext)))
+                .ext(ExtRequest.of(ext))
                 .build();
 
         assertThat(result.result()).isEqualTo(WithPodErrors.of(expectedMergedRequest, emptyList()));

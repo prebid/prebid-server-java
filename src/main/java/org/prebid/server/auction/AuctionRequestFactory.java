@@ -468,8 +468,10 @@ public class AuctionRequestFactory {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
-        final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity().isNull();
-        final boolean isPriceGranularityTextual = isTargetingNotNull && targeting.getPricegranularity().isTextual();
+        final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity() == null;
+        final boolean isPriceGranularityTextual = isTargetingNotNull
+                && !isPriceGranularityNull
+                && targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 

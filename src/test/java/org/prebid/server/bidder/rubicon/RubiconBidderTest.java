@@ -54,10 +54,10 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -139,10 +139,11 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReplaceDefaultParametersWithExtPrebidBiddersBidder() {
         // given
-        final ObjectNode prebidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
-                .set("bidders", mapper.createObjectNode()
+        final ExtRequest prebidExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
-                                .put("integration", "test"))));
+                                .put("integration", "test")))
+                .build());
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.ext(prebidExt),
                 builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
@@ -1017,7 +1018,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSuppressExtIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().build()))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder().build())),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -1819,15 +1820,15 @@ public class RubiconBidderTest extends VertxTest {
                 .build());
     }
 
-    private static ObjectNode givenExtBidRequestWithRubiconFirstPartyData() {
-        return mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+    private static ExtRequest givenExtBidRequestWithRubiconFirstPartyData() {
+        return ExtRequest.of(ExtRequestPrebid.builder()
                 .data(ExtRequestPrebidData.of(singletonList("rubicon")))
-                .build()));
+                .build());
     }
 
     @AllArgsConstructor(staticName = "of")
     @Value
-    private static final class Inventory {
+    private static class Inventory {
 
         List<String> rating;
 
@@ -1836,7 +1837,7 @@ public class RubiconBidderTest extends VertxTest {
 
     @AllArgsConstructor(staticName = "of")
     @Value
-    private static final class Visitor {
+    private static class Visitor {
 
         List<String> ucat;
 

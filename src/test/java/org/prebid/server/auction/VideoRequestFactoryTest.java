@@ -24,7 +24,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
@@ -191,7 +191,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .badv(singletonList("badv"))
                 .cur(singletonList("USD"))
                 .tmax(0L)
-                .ext(mapper.valueToTree(ExtBidRequest.of(ext)))
+                .ext(ExtRequest.of(ext))
                 .build();
 
         final WithPodErrors<BidRequest> mergedBidRequest = WithPodErrors.of(

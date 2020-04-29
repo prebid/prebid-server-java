@@ -25,6 +25,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -280,7 +281,8 @@ public class OpenxBidderTest extends VertxTest {
                                                                         givenCustomParams("foo2", "bar2"))
                                                                 .build()))
                                                 .build()))
-                                .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                         .build())
@@ -303,7 +305,8 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
 
-                                .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                         .build())
@@ -324,7 +327,8 @@ public class OpenxBidderTest extends VertxTest {
                                                                         givenCustomParams("foo4", "bar4"))
                                                                 .build()))
                                                 .build()))
-                                .ext(mapper.valueToTree(OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
                                         .build())
