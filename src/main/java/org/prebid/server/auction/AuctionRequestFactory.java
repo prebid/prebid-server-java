@@ -665,18 +665,7 @@ public class AuctionRequestFactory {
     /**
      * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
      */
-    private String parentAccountIdFromExtPublisher(ObjectNode extPublisherNode) {
-        if (extPublisherNode == null) {
-            return null;
-        }
-
-        final ExtPublisher extPublisher;
-        try {
-            extPublisher = mapper.mapper().convertValue(extPublisherNode, ExtPublisher.class);
-        } catch (IllegalArgumentException e) {
-            return null; // not critical
-        }
-
+    private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
         final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }

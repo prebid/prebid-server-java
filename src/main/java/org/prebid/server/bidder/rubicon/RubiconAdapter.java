@@ -53,6 +53,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
@@ -307,12 +308,14 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private Publisher makePublisher(RubiconParams rubiconParams) {
         return Publisher.builder()
-                .ext(mapper.mapper().valueToTree(makePublisherExt(rubiconParams)))
+                .ext(makePublisherExt(rubiconParams))
                 .build();
     }
 
-    private static RubiconPubExt makePublisherExt(RubiconParams rubiconParams) {
-        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconParams.getAccountId()));
+    private ExtPublisher makePublisherExt(RubiconParams rubiconParams) {
+        return mapper.fillExtension(
+                ExtPublisher.empty(),
+                RubiconPubExt.of(RubiconPubExtRp.of(rubiconParams.getAccountId())));
     }
 
     private Device makeDevice(PreBidRequestContext preBidRequestContext) {
@@ -325,7 +328,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final Device device = preBidRequestContext.getPreBidRequest().getDevice();
         final BigDecimal pixelratio = device != null ? device.getPxratio() : null;
 
-        return mapper.fillExtension(ExtDevice.of(null), RubiconDeviceExt.of(RubiconDeviceExtRp.of(pixelratio)));
+        return mapper.fillExtension(ExtDevice.empty(), RubiconDeviceExt.of(RubiconDeviceExtRp.of(pixelratio)));
     }
 
     private User makeUser(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {

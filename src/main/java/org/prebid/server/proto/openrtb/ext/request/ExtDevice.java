@@ -14,4 +14,8 @@ import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 public class ExtDevice extends FlexibleExtension {
 
     ExtDevicePrebid prebid;
+
+    public static ExtDevice empty() {
+        return of(null);
+    }
 }

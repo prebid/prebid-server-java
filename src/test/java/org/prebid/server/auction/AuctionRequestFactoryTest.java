@@ -1148,7 +1148,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount"))))
+                                .ext(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount")))
                                 .build())
                         .build())
                 .build());
@@ -1194,7 +1194,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of(null))).build())
+                                .ext(ExtPublisher.empty())
+                                .build())
                         .build())
                 .build());
 
@@ -1217,7 +1218,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("")))).build())
+                                .ext(ExtPublisher.of(ExtPublisherPrebid.of("")))
+                                .build())
                         .build())
                 .build());
 
@@ -1240,7 +1242,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("accountId")
-                                .ext(mapper.valueToTree(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount"))))
+                                .ext(ExtPublisher.of(ExtPublisherPrebid.of("parentAccount")))
                                 .build())
                         .build())
                 .build());

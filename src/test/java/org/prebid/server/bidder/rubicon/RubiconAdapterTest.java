@@ -52,6 +52,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -323,7 +324,9 @@ public class RubiconAdapterTest extends VertxTest {
                                 .domain("example.com")
                                 .page("http://www.example.com")
                                 .publisher(Publisher.builder()
-                                        .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
+                                        .ext(jacksonMapper.fillExtension(
+                                                ExtPublisher.empty(),
+                                                RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                         .build())
                                 .ext(jacksonMapper.fillExtension(
                                         ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
@@ -333,7 +336,7 @@ public class RubiconAdapterTest extends VertxTest {
                                 .ip("192.168.144.1")
                                 .pxratio(new BigDecimal("4.2"))
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtDevice.of(null),
+                                        ExtDevice.empty(),
                                         RubiconDeviceExt.of(RubiconDeviceExtRp.of(new BigDecimal("4.2")))))
                                 .build())
                         .user(User.builder()
@@ -407,7 +410,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .extracting(r -> r.getPayload().getDevice()).isNotNull()
                 .extracting(Device::getExt).isNotNull()
                 .containsOnly(jacksonMapper.fillExtension(
-                        ExtDevice.of(null),
+                        ExtDevice.empty(),
                         RubiconDeviceExt.of(RubiconDeviceExtRp.of(new BigDecimal("4.2")))));
 
         assertThat(httpRequests)
@@ -434,7 +437,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .extracting(r -> r.getPayload().getDevice()).isNotNull()
                 .extracting(Device::getExt).isNotNull()
                 .containsOnly(jacksonMapper.fillExtension(
-                        ExtDevice.of(null),
+                        ExtDevice.empty(),
                         RubiconDeviceExt.of(RubiconDeviceExtRp.of(null))));
 
         assertThat(httpRequests)

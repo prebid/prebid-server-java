@@ -68,6 +68,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -654,7 +655,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private Device makeDevice(Device device) {
         return device == null ? null : device.toBuilder()
                 .ext(mapper.fillExtension(
-                        ExtDevice.of(null),
+                        ExtDevice.empty(),
                         RubiconDeviceExt.of(RubiconDeviceExtRp.of(device.getPxratio()))))
                 .build();
     }
@@ -688,12 +689,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
         return Publisher.builder()
-                .ext(mapper.mapper().valueToTree(makePublisherExt(rubiconImpExt)))
+                .ext(makePublisherExt(rubiconImpExt))
                 .build();
     }
 
-    private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
+    private ExtPublisher makePublisherExt(ExtImpRubicon rubiconImpExt) {
+        return mapper.fillExtension(
+                ExtPublisher.empty(),
+                RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId())));
     }
 
     private ExtSite makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {

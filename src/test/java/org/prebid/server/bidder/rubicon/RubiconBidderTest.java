@@ -56,6 +56,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -945,7 +946,9 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
                         .publisher(Publisher.builder()
-                                .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtPublisher.empty(),
+                                        RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
                         .ext(jacksonMapper.fillExtension(
                                 ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
@@ -970,7 +973,9 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
                         .publisher(Publisher.builder()
-                                .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtPublisher.empty(),
+                                        RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
                         .ext(jacksonMapper.fillExtension(
                                 ExtSite.of(1, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
@@ -995,7 +1000,9 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getApp).doesNotContainNull()
                 .containsOnly(App.builder()
                         .publisher(Publisher.builder()
-                                .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtPublisher.empty(),
+                                        RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
                         .ext(jacksonMapper.fillExtension(
                                 ExtApp.of(null, null),
