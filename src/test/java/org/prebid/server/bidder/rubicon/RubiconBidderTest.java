@@ -907,7 +907,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillDeviceExtIfDevicePresent() {
+    public void makeHttpRequestsShouldFillDeviceExtIfDevicePresent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.device(Device.builder().pxratio(BigDecimal.valueOf(4.2)).build()),
@@ -918,20 +918,13 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-
-        // created manually, because mapper creates Double ObjectNode instead of BigDecimal
-        // for floating point numbers (affects testing only)
-        final ObjectNode rp = mapper.createObjectNode();
-        rp.set("rp", mapper.createObjectNode().put("pixelratio", Double.valueOf("4.2")));
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getDevice).doesNotContainNull()
-                .containsOnly(Device.builder()
-                        .pxratio(BigDecimal.valueOf(4.2))
-                        .ext(rp)
-                        .build());
+                .extracting(httpRequest -> mapper.readTree(httpRequest.getBody()))
+                .extracting(request -> request.at("/device/ext/rp/pixelratio"))
+                // created manually, because mapper creates Double ObjectNode instead of BigDecimal
+                // for floating point numbers (affects testing only)
+                .containsOnly(mapper.readTree("4.2"));
     }
 
     @Test

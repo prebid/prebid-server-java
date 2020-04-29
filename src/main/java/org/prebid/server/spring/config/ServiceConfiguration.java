@@ -192,7 +192,7 @@ public class ServiceConfiguration {
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
-                new InterstitialProcessor(mapper),
+                new InterstitialProcessor(),
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,

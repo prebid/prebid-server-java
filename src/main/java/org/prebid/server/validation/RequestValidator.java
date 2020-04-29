@@ -350,9 +350,8 @@ public class RequestValidator {
     }
 
     private void validateDevice(Device device) throws ValidationException {
-        final ObjectNode extDeviceNode = device != null ? device.getExt() : null;
-        if (extDeviceNode != null && extDeviceNode.size() > 0) {
-            final ExtDevice extDevice = parseExtDevice(extDeviceNode);
+        final ExtDevice extDevice = device != null ? device.getExt() : null;
+        if (extDevice != null) {
             final ExtDevicePrebid extDevicePrebid = extDevice.getPrebid();
             final ExtDeviceInt interstitial = extDevicePrebid != null ? extDevicePrebid.getInterstitial() : null;
             if (interstitial != null) {
@@ -371,14 +370,6 @@ public class RequestValidator {
         if (minHeightPerc == null || minHeightPerc < 0 || minHeightPerc > 100) {
             throw new ValidationException(
                     "request.device.ext.prebid.interstitial.minheightperc must be a number between 0 and 100");
-        }
-    }
-
-    private ExtDevice parseExtDevice(ObjectNode extDevice) throws ValidationException {
-        try {
-            return mapper.mapper().treeToValue(extDevice, ExtDevice.class);
-        } catch (JsonProcessingException e) {
-            throw new ValidationException("request.device.ext is not valid", e.getMessage());
         }
     }
 

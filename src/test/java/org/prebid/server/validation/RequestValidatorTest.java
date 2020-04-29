@@ -1038,7 +1038,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))
+                        .build())
                 .build();
 
         // when
@@ -1054,7 +1055,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))
+                        .build())
                 .build();
 
         // when
@@ -1070,7 +1072,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))
+                        .build())
                 .build();
 
         // when
@@ -1086,7 +1089,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))
+                        .build())
                 .build();
 
         // when
@@ -1103,7 +1107,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))
+                        .build())
                 .build();
 
         // when
@@ -1120,7 +1125,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))
+                        .build())
                 .build();
 
         // when

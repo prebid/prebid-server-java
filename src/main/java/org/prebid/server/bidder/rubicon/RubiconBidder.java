@@ -65,6 +65,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -652,7 +653,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Device makeDevice(Device device) {
         return device == null ? null : device.toBuilder()
-                .ext(mapper.mapper().valueToTree(RubiconDeviceExt.of(RubiconDeviceExtRp.of(device.getPxratio()))))
+                .ext(mapper.fillExtension(
+                        ExtDevice.of(null),
+                        RubiconDeviceExt.of(RubiconDeviceExtRp.of(device.getPxratio()))))
                 .build();
     }
 
