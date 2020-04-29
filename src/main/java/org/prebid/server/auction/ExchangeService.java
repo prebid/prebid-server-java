@@ -640,11 +640,11 @@ public class ExchangeService {
             return receivedSource;
         }
 
-        final ObjectNode extSourceNode = mapper.mapper().valueToTree(ExtSource.of(bidderSchain));
+        final ExtSource extSource = ExtSource.of(bidderSchain);
 
         return receivedSource == null
-                ? Source.builder().ext(extSourceNode).build()
-                : receivedSource.toBuilder().ext(extSourceNode).build();
+                ? Source.builder().ext(extSource).build()
+                : receivedSource.toBuilder().ext(extSource).build();
     }
 
     /**
