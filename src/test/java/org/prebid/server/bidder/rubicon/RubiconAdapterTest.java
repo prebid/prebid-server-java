@@ -49,7 +49,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -522,7 +521,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
-                .extracting(user -> user.getExt().at("/rp/target")).containsOnly(visitor);
+                .extracting(user -> user.getExt().getProperty("rp").at("/target")).containsOnly(visitor);
     }
 
     @Test
@@ -530,7 +529,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build()));
 
         // when
@@ -541,8 +540,7 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
                 .extracting(User::getExt).isNotNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
-                .extracting(RubiconUserExt::getConsent)
+                .extracting(ExtUser::getConsent)
                 .containsOnly("consent");
     }
 
@@ -551,7 +549,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build()));
 
         // when
@@ -562,23 +560,8 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
                 .extracting(User::getExt).isNotNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
-                .extracting(RubiconUserExt::getRp)
+                .extracting(ext -> ext.getProperty("rp"))
                 .containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtIsNotValidJson() {
-        // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder.user(User.builder()
-                        .ext(mapper.createObjectNode()
-                                .set("consent", mapper.createObjectNode())).build()));
-
-        // when
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessageStartingWith("Cannot deserialize instance of `java.lang.String`");
     }
 
     @Test

@@ -227,7 +227,7 @@ public class AppnexusAdapterTest extends VertxTest {
                 builder -> builder
                         .tid("tid1")
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .timeoutMillis(1500L)
@@ -276,7 +276,7 @@ public class AppnexusAdapterTest extends VertxTest {
                         .user(User.builder()
                                 .buyeruid("buyerUid")
                                 .id("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .source(Source.builder()

@@ -482,9 +482,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .digitrust(ExtUserDigiTrust.of("id", 123, null))
-                                .build()))
+                                .build())
                         .build())
                 .build());
 
@@ -493,9 +493,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(request.getUser().getExt())
-                .isEqualTo(mapper.valueToTree(ExtUser.builder()
+                .isEqualTo(ExtUser.builder()
                         .digitrust(ExtUserDigiTrust.of("id", 123, 0))
-                        .build()));
+                        .build());
     }
 
     @Test

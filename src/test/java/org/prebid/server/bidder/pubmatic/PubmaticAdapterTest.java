@@ -237,7 +237,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .timeoutMillis(1500L)
                         .tid("tid")
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))));
 
@@ -277,7 +277,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .source(Source.builder()

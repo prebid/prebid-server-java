@@ -582,7 +582,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1--")));
         final User user = User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent$1").build()))
+                .ext(ExtUser.builder().consent("consent$1").build())
                 .build();
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.regs(regs).user(user));
 

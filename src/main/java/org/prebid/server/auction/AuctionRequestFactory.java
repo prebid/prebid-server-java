@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -340,7 +339,7 @@ public class AuctionRequestFactory {
      * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
     private User populateUser(User user) {
-        final ObjectNode ext = userExtOrNull(user);
+        final ExtUser ext = userExtOrNull(user);
 
         if (ext != null) {
             final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
@@ -352,31 +351,14 @@ public class AuctionRequestFactory {
     /**
      * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
      */
-    private ObjectNode userExtOrNull(User user) {
-        final ExtUser extUser = extUser(user);
+    private ExtUser userExtOrNull(User user) {
+        final ExtUser extUser = user != null ? user.getExt() : null;
 
-        // set request.user.ext.digitrust.perf if not defined
         final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
         if (digitrust != null && digitrust.getPref() == null) {
-            final ExtUser updatedExtUser = extUser.toBuilder()
+            return extUser.toBuilder()
                     .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
                     .build();
-            return mapper.mapper().valueToTree(updatedExtUser);
-        }
-        return null;
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
-    private ExtUser extUser(User user) {
-        final ObjectNode userExt = user != null ? user.getExt() : null;
-        if (userExt != null) {
-            try {
-                return mapper.mapper().treeToValue(userExt, ExtUser.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-            }
         }
         return null;
     }

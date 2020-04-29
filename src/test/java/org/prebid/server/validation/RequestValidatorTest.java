@@ -1208,7 +1208,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().build()))
+                        .ext(ExtUser.builder().build())
                         .build())
                 .build();
 
@@ -1238,10 +1238,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(emptyMap()))
                                 .digitrust(ExtUserDigiTrust.of(null, null, 0))
-                                .build()))
+                                .build())
                         .build())
                 .build();
 
@@ -1499,9 +1499,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("unknown-bidder", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
+                                .build())
                         .build())
                 .build();
 
@@ -1522,9 +1523,10 @@ public class RequestValidatorTest extends VertxTest {
                         .aliases(singletonMap("unknown-bidder", "rubicon"))
                         .build()))
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("unknown-bidder", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
+                                .build())
                         .build())
                 .build();
 
@@ -1540,9 +1542,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("rubicon", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
+                                .build())
                         .build())
                 .build();
 
@@ -1558,8 +1561,9 @@ public class RequestValidatorTest extends VertxTest {
         // given;
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .digitrust(ExtUserDigiTrust.of(null, null, 1)).build()))
+                        .ext(ExtUser.builder()
+                                .digitrust(ExtUserDigiTrust.of(null, null, 1))
+                                .build())
                         .build())
                 .build();
 
@@ -1572,29 +1576,13 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenUserExtFailedToBeParsed() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.put("digitrust", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder().ext(ext).build())
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.user.ext object is not valid:");
-    }
-
-    @Test
     public void validateShouldReturnValidationMessageWhenEidsIsEmpty() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(emptyList()).build()))
+                        .ext(ExtUser.builder()
+                                .eids(emptyList())
+                                .build())
                         .build())
                 .build();
 
@@ -1611,8 +1599,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of(null, null, null, null))).build()))
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(null, null, null, null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1629,8 +1618,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, null, null))).build()))
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of("source", null, null, null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1647,8 +1637,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, emptyList(), null))).build()))
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of("source", null, emptyList(), null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1665,9 +1656,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("source", null,
-                                        singletonList(ExtUserEidUid.of(null, null)), null))).build()))
+                                        singletonList(ExtUserEidUid.of(null, null)), null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1684,13 +1676,13 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .eids(asList(
                                         ExtUserEid.of("source", null,
                                                 singletonList(ExtUserEidUid.of("id1", null)), null),
                                         ExtUserEid.of("source", null,
                                                 singletonList(ExtUserEidUid.of("id2", null)), null)))
-                                .build()))
+                                .build())
                         .build())
                 .build();
 

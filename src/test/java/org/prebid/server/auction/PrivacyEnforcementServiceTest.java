@@ -836,7 +836,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return User.builder()
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                .ext(ExtUser.builder().consent("consent").build())
                 .build();
     }
 
@@ -851,7 +851,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static User userCoppaMasked() {
         return User.builder()
                 .geo(Geo.builder().country("US").build())
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                .ext(ExtUser.builder().consent("consent").build())
                 .build();
     }
 
@@ -866,7 +866,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static User userTcfMasked() {
         return User.builder()
                 .buyeruid(null)
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                .ext(ExtUser.builder().consent("consent").build())
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).country("US").build())
                 .build();
     }

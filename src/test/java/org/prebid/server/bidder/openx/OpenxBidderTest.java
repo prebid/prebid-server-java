@@ -239,7 +239,7 @@ public class OpenxBidderTest extends VertxTest {
                                                         .unit("unitId").build()))).build(),
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                 .build();
 
@@ -284,7 +284,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
                                 .user(User.builder()
-                                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                        .ext(ExtUser.builder().consent("consent").build())
                                         .build())
                                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build(),
@@ -308,7 +308,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
                                 .user(User.builder()
-                                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                        .ext(ExtUser.builder().consent("consent").build())
                                         .build())
                                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build(),
@@ -330,7 +330,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
                                 .user(User.builder()
-                                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                        .ext(ExtUser.builder().consent("consent").build())
                                         .build())
                                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build());

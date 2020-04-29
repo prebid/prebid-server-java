@@ -1053,9 +1053,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder()
                         .buyeruid("buyeridFromRequest")
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("someBidder", "uidval")))
-                                .build()))
+                                .build())
                         .build()));
 
         // when
@@ -1065,7 +1065,7 @@ public class ExchangeServiceTest extends VertxTest {
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
                 .buyeruid("buyeridFromRequest")
-                .ext(mapper.valueToTree(ExtUser.builder().build()))
+                .ext(ExtUser.builder().build())
                 .build());
     }
 
@@ -1099,9 +1099,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("someBidder", "uidval")))
-                                .build()))
+                                .build())
                         .build()));
 
         // when
@@ -1111,7 +1111,7 @@ public class ExchangeServiceTest extends VertxTest {
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
                 .buyeruid("uidval")
-                .ext(mapper.valueToTree(ExtUser.builder().build()))
+                .ext(ExtUser.builder().build())
                 .build());
     }
 
@@ -1153,7 +1153,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .auctiontimestamp(1000L)
                                 .data(ExtRequestPrebidData.of(singletonList("someBidder"))).build()))
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().data(dataNode).build()))
+                                .ext(ExtUser.builder().data(dataNode).build())
                                 .build()));
 
         // when
@@ -1168,8 +1168,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .extracting(User::getExt)
                 .containsOnly(
-                        mapper.valueToTree(ExtUser.builder().data(dataNode).build()),
-                        mapper.createObjectNode());
+                        ExtUser.builder().data(dataNode).build(),
+                        ExtUser.builder().build());
     }
 
     @Test

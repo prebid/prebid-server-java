@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.User;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
@@ -26,20 +25,6 @@ class AdformRequestUtil {
 
     AdformRequestUtil(JacksonMapper mapper) {
         this.mapper = Objects.requireNonNull(mapper);
-    }
-
-    /**
-     * Retrieves {@link ExtUser} from user.ext.
-     */
-    ExtUser getExtUser(User user) {
-        final ObjectNode extUserNode = user != null ? user.getExt() : null;
-        ExtUser extUser;
-        try {
-            extUser = extUserNode != null ? mapper.mapper().treeToValue(extUserNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            extUser = null;
-        }
-        return extUser;
     }
 
     /**

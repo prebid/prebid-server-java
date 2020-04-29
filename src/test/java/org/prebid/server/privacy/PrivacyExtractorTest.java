@@ -95,7 +95,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnConsentEmptyValueWhenUserConsentIsNull() {
         // given and when
         final User user = User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().build()))
+                .ext(ExtUser.builder().build())
                 .build();
         final String consent = privacyExtractor.validPrivacyFrom(null, user).getConsent();
 
@@ -107,7 +107,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnConsentWhenUserContainsConsent() {
         // given and when
         final User user = User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                .ext(ExtUser.builder().consent("consent").build())
                 .build();
         final String consent = privacyExtractor.validPrivacyFrom(null, user).getConsent();
 
@@ -119,7 +119,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnPrivacyWithExtractedParameters() {
         // given and when
         final User user = User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                .ext(ExtUser.builder().consent("consent").build())
                 .build();
         final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, "YAN")));
         final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);

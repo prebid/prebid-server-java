@@ -72,10 +72,10 @@ public class AdformAdapterTest extends VertxTest {
                 PreBidRequest.builder().tid("tid").device(Device.builder().ifa("ifaId").build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder()
+                                .ext(ExtUser.builder()
                                         .consent("consent")
                                         .digitrust(ExtUserDigiTrust.of("id", 123, 1))
-                                        .build()))
+                                        .build())
                                 .build())
                         .build())
                 .secure(0).ua("userAgent").ip("192.168.0.1").referer("www.example.com").uidsCookie(uidsCookie).build();

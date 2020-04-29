@@ -179,7 +179,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
-                .user(User.builder().buyeruid("buyer").ext(mapper.valueToTree(extUser)).build())
+                .user(User.builder().buyeruid("buyer").ext(extUser).build())
                 .test(1)
                 .tmax(TIMEOUT)
                 .build();

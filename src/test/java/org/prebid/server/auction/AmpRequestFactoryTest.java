@@ -1025,7 +1025,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("should-remain").build()))
+                                .ext(ExtUser.builder().consent("should-remain").build())
                                 .build())
                         .ext(ExtRequest.empty()),
                 Imp.builder().build());
@@ -1036,7 +1036,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         final User expectedUser = User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().consent("should-remain").build()))
+                .ext(ExtUser.builder().consent("should-remain").build())
                 .build();
 
         assertThat(firstResult.getUser()).isEqualTo(expectedUser);
@@ -1052,7 +1052,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 builder -> builder
                         .user(User.builder()
                                 .id("1")
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("should-be-overridden").build()))
+                                .ext(ExtUser.builder().consent("should-be-overridden").build())
                                 .build())
                         .ext(ExtRequest.empty()),
                 Imp.builder().build());
@@ -1064,7 +1064,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
                         .id("1")
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
+                        .ext(ExtUser.builder().consent("consent-value").build())
                         .build());
     }
 
@@ -1084,7 +1084,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
+                        .ext(ExtUser.builder().consent("consent-value").build())
                         .build());
     }
 
@@ -1105,7 +1105,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent-value").build()))
+                        .ext(ExtUser.builder().consent("consent-value").build())
                         .build());
     }
 

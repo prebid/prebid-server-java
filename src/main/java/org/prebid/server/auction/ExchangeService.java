@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -359,7 +358,8 @@ public class ExchangeService {
                                                            List<Imp> imps) {
 
         final BidRequest bidRequest = context.getBidRequest();
-        final ExtUser extUser = extUser(bidRequest.getUser());
+        final User user = bidRequest.getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
         final ExtRequest requestExt = bidRequest.getExt();
@@ -367,7 +367,7 @@ public class ExchangeService {
 
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
-            bidderToUser.put(bidder, prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
+            bidderToUser.put(bidder, prepareUser(user, extUser, bidder, aliases, uidsBody,
                     context.getUidsCookie(), firstPartyDataBidders.contains(bidder)));
         }
 
@@ -375,21 +375,6 @@ public class ExchangeService {
                 .mask(context, bidderToUser, extUser, bidders, aliases)
                 .map(bidderToPrivacyResult -> getBidderRequests(bidderToPrivacyResult, bidRequest, imps,
                         firstPartyDataBidders));
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
-    private ExtUser extUser(User user) {
-        final ObjectNode userExt = user != null ? user.getExt() : null;
-        if (userExt != null) {
-            try {
-                return mapper.mapper().treeToValue(userExt, ExtUser.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
     }
 
     /**
@@ -418,7 +403,7 @@ public class ExchangeService {
      */
     private User prepareUser(User user, ExtUser extUser, String bidder, BidderAliases aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData) {
-        final ObjectNode updatedExt = updateUserExt(extUser, useFirstPartyData);
+        final ExtUser updatedExt = updateUserExt(extUser, useFirstPartyData);
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
 
         if (updatedBuyerUid != null || updatedExt != null) {
@@ -444,7 +429,7 @@ public class ExchangeService {
      * <p>
      * Returns null if {@link ExtUser} doesn't need to be updated.
      */
-    private ObjectNode updateUserExt(ExtUser extUser, boolean useFirstPartyData) {
+    private ExtUser updateUserExt(ExtUser extUser, boolean useFirstPartyData) {
         if (extUser != null) {
             final boolean removePrebid = extUser.getPrebid() != null;
             final boolean removeFirstPartyData = !useFirstPartyData && extUser.getData() != null;
@@ -459,7 +444,7 @@ public class ExchangeService {
                     builder.data(null);
                 }
 
-                return mapper.mapper().valueToTree(builder.build());
+                return builder.build();
             }
         }
         return null;

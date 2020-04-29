@@ -375,10 +375,10 @@ public class AmpRequestFactory {
         }
 
         final boolean hasUser = user != null;
-        final ObjectNode extUserNode = hasUser ? user.getExt() : null;
+        final ExtUser extUser = hasUser ? user.getExt() : null;
 
-        final ExtUser.ExtUserBuilder extUserBuilder = extUserNode != null
-                ? extractExtUser(extUserNode).toBuilder()
+        final ExtUser.ExtUserBuilder extUserBuilder = extUser != null
+                ? extUser.toBuilder()
                 : ExtUser.builder();
 
         final ExtUser updatedExtUser = extUserBuilder.consent(gdprConsent).build();
@@ -386,19 +386,8 @@ public class AmpRequestFactory {
         final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
 
         return userBuilder
-                .ext(mapper.mapper().valueToTree(updatedExtUser))
+                .ext(updatedExtUser)
                 .build();
-    }
-
-    /**
-     * Extracts {@link ExtUser} from bidrequest.user.ext {@link ObjectNode}.
-     */
-    private ExtUser extractExtUser(ObjectNode extUserNode) {
-        try {
-            return mapper.mapper().treeToValue(extUserNode, ExtUser.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()));
-        }
     }
 
     private Regs overrideRegs(Regs regs, HttpServerRequest request) {

@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -334,23 +333,14 @@ public class RubiconAdapter extends OpenrtbAdapter {
         if (userBuilder == null) {
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
-        final ObjectNode ext = user == null ? null : user.getExt();
-        final ExtUser extUser = extUser(ext);
-        final RubiconUserExt rubiconUserExt = makeUserExt(rubiconParams, user, extUser);
+        final ExtUser extUser = user == null ? null : user.getExt();
+        final ExtUser rubiconUserExt = makeUserExt(rubiconParams, user, extUser);
         return rubiconUserExt != null
-                ? userBuilder.ext(mapper.mapper().valueToTree(rubiconUserExt)).build()
+                ? userBuilder.ext(rubiconUserExt).build()
                 : userBuilder.build();
     }
 
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, User user, ExtUser extUser) {
+    private ExtUser makeUserExt(RubiconParams rubiconParams, User user, ExtUser extUser) {
         final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
         final JsonNode visitorNode = rubiconParams.getVisitor();
         final JsonNode visitor = !visitorNode.isNull() && visitorNode.size() != 0 ? visitorNode : null;
@@ -360,15 +350,13 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final boolean makeRp = visitor != null || gender != null || yob != null || geo != null;
 
         if (digiTrust != null || visitor != null || gender != null || yob != null || geo != null) {
-            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
-            if (extUser != null) {
-                userExtBuilder
-                        .consent(extUser.getConsent())
-                        .eids(extUser.getEids());
-            }
-            return userExtBuilder
+            final ExtUser userExt = extUser != null
+                    ? ExtUser.builder().consent(extUser.getConsent()).eids(extUser.getEids()).build()
+                    : ExtUser.builder().build();
+            final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                     .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
                     .build();
+            return mapper.fillExtension(userExt, rubiconUserExt);
         }
         return null;
     }

@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -528,7 +527,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
         final User result;
 
-        final ExtUser extUser = user != null ? extUser(user.getExt()) : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUser.getEids())
                 : null;
@@ -539,50 +538,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
 
         if (userExtRp != null || userExtTpIds != null || userExtData != null) {
-            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
-            if (extUser != null) {
-                userExtBuilder
-                        .consent(extUser.getConsent())
-                        .digitrust(extUser.getDigitrust())
-                        .eids(extUser.getEids());
-            }
+            final ExtUser userExt = extUser != null
+                    ? ExtUser.builder().consent(extUser.getConsent())
+                    .digitrust(extUser.getDigitrust())
+                    .eids(extUser.getEids())
+                    .build()
+                    : ExtUser.builder().build();
 
-            final RubiconUserExt rubiconUserExt = userExtBuilder
+            final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                     .rp(userExtRp)
                     .tpid(userExtTpIds)
                     .build();
-            final ObjectNode rubiconUserExtNode = mapper.mapper().valueToTree(rubiconUserExt);
-
-            if (userExtData != null) {
-                final ObjectNode userExtRpNode = userExtRp != null
-                        ? mapper.mapper().valueToTree(userExtRp)
-                        : mapper.mapper().createObjectNode();
-
-                userExtRpNode.setAll(userExtData);
-
-                rubiconUserExtNode.set("rp", userExtRpNode);
-            }
 
             final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
             result = userBuilder
-                    .ext(rubiconUserExtNode)
+                    .ext(mapper.fillExtension(userExt, rubiconUserExt))
                     .build();
         } else {
             result = user;
         }
 
         return result;
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-        }
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
@@ -646,9 +622,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, visitor);
 
-        return target != null || gender != null || yob != null || geo != null
-                ? RubiconUserExtRp.of(target, gender, yob, geo)
-                : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final ObjectNode data = extUser != null ? extUser.getData() : null;
+
+        if (target != null || gender != null || yob != null || geo != null) {
+            final RubiconUserExtRp rubiconUserExtRp = RubiconUserExtRp.of(target, gender, yob, geo);
+            return data != null
+                    ? mapper.fillExtension(rubiconUserExtRp, data)
+                    : rubiconUserExtRp;
+        }
+
+        return null;
     }
 
     private JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode visitor) {

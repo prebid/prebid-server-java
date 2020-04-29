@@ -384,74 +384,70 @@ public class RequestValidator {
 
     private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
         if (user != null && user.getExt() != null) {
-            try {
-                final ExtUser extUser = mapper.mapper().treeToValue(user.getExt(), ExtUser.class);
+            final ExtUser extUser = user.getExt();
 
-                final ExtUserPrebid prebid = extUser.getPrebid();
-                if (prebid != null) {
-                    final Map<String, String> buyerUids = prebid.getBuyeruids();
-                    if (MapUtils.isEmpty(buyerUids)) {
-                        throw new ValidationException("request.user.ext.prebid requires a \"buyeruids\" property "
-                                + "with at least one ID defined. If none exist, then request.user.ext.prebid"
-                                + " should not be defined");
-                    }
-
-                    for (String bidder : buyerUids.keySet()) {
-                        if (isUnknownBidderOrAlias(bidder, aliases)) {
-                            throw new ValidationException("request.user.ext.%s is neither a known bidder "
-                                    + "name nor an alias in request.ext.prebid.aliases", bidder);
-                        }
-                    }
+            final ExtUserPrebid prebid = extUser.getPrebid();
+            if (prebid != null) {
+                final Map<String, String> buyerUids = prebid.getBuyeruids();
+                if (MapUtils.isEmpty(buyerUids)) {
+                    throw new ValidationException("request.user.ext.prebid requires a \"buyeruids\" property "
+                            + "with at least one ID defined. If none exist, then request.user.ext.prebid"
+                            + " should not be defined");
                 }
 
-                final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-                if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                    throw new ValidationException("request.user contains a digitrust object that is not valid");
+                for (String bidder : buyerUids.keySet()) {
+                    if (isUnknownBidderOrAlias(bidder, aliases)) {
+                        throw new ValidationException("request.user.ext.%s is neither a known bidder "
+                                + "name nor an alias in request.ext.prebid.aliases", bidder);
+                    }
                 }
+            }
 
-                final List<ExtUserEid> eids = extUser.getEids();
-                if (eids != null) {
-                    if (eids.isEmpty()) {
+            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
+            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
+                throw new ValidationException("request.user contains a digitrust object that is not valid");
+            }
+
+            final List<ExtUserEid> eids = extUser.getEids();
+            if (eids != null) {
+                if (eids.isEmpty()) {
+                    throw new ValidationException(
+                            "request.user.ext.eids must contain at least one element or be undefined");
+                }
+                final Set<String> uniqueSources = new HashSet<>(eids.size());
+                for (int index = 0; index < eids.size(); index++) {
+                    final ExtUserEid eid = eids.get(index);
+                    if (StringUtils.isBlank(eid.getSource())) {
                         throw new ValidationException(
-                                "request.user.ext.eids must contain at least one element or be undefined");
+                                "request.user.ext.eids[%d] missing required field: \"source\"", index);
                     }
-                    final Set<String> uniqueSources = new HashSet<>(eids.size());
-                    for (int index = 0; index < eids.size(); index++) {
-                        final ExtUserEid eid = eids.get(index);
-                        if (StringUtils.isBlank(eid.getSource())) {
+                    final String eidId = eid.getId();
+                    final List<ExtUserEidUid> eidUids = eid.getUids();
+                    if (eidId == null && eidUids == null) {
+                        throw new ValidationException(
+                                "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
+                    }
+                    if (eidId == null) {
+                        if (eidUids.isEmpty()) {
                             throw new ValidationException(
-                                    "request.user.ext.eids[%d] missing required field: \"source\"", index);
+                                    "request.user.ext.eids[%d].uids must contain at least one element "
+                                            + "or be undefined", index);
                         }
-                        final String eidId = eid.getId();
-                        final List<ExtUserEidUid> eidUids = eid.getUids();
-                        if (eidId == null && eidUids == null) {
-                            throw new ValidationException(
-                                    "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
-                        }
-                        if (eidId == null) {
-                            if (eidUids.isEmpty()) {
+                        for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
+                            final ExtUserEidUid uid = eidUids.get(uidsIndex);
+                            if (StringUtils.isBlank(uid.getId())) {
                                 throw new ValidationException(
-                                        "request.user.ext.eids[%d].uids must contain at least one element "
-                                                + "or be undefined", index);
-                            }
-                            for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
-                                final ExtUserEidUid uid = eidUids.get(uidsIndex);
-                                if (StringUtils.isBlank(uid.getId())) {
-                                    throw new ValidationException(
-                                            "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
-                                            uidsIndex);
-                                }
+                                        "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
+                                        uidsIndex);
                             }
                         }
-                        uniqueSources.add(eid.getSource());
                     }
-
-                    if (eids.size() != uniqueSources.size()) {
-                        throw new ValidationException("request.user.ext.eids must contain unique sources");
-                    }
+                    uniqueSources.add(eid.getSource());
                 }
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.user.ext object is not valid: %s", e.getMessage());
+
+                if (eids.size() != uniqueSources.size()) {
+                    throw new ValidationException("request.user.ext.eids must contain unique sources");
+                }
             }
         }
     }

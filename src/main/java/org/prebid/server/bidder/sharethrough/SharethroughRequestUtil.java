@@ -11,10 +11,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.sharethrough.model.Size;
-import org.prebid.server.bidder.sharethrough.model.UserExt;
 import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 
 import java.net.URI;
@@ -96,21 +96,15 @@ class SharethroughRequestUtil {
      * Retrieves {@link UserInfo} from user.ext or returns null in case of exception.
      */
     UserInfo getUserInfo(User user) {
-        final ObjectNode extUserNode = user != null ? user.getExt() : null;
-        try {
-            final UserExt userExt = extUserNode != null
-                    ? mapper.mapper().treeToValue(extUserNode, UserExt.class) : null;
-            final String consent = userExt != null ? userExt.getConsent() : null;
-            final String stxuid = user != null ? user.getBuyeruid() : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String consent = extUser != null ? extUser.getConsent() : null;
+        final String stxuid = user != null ? user.getBuyeruid() : null;
 
-            final String ttdUid = parseTtdUid(userExt);
-            return UserInfo.of(consent, ttdUid, stxuid);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
+        final String ttdUid = parseTtdUid(extUser);
+        return UserInfo.of(consent, ttdUid, stxuid);
     }
 
-    private static String parseTtdUid(UserExt userExt) {
+    private static String parseTtdUid(ExtUser userExt) {
         if (userExt == null || CollectionUtils.isEmpty(userExt.getEids())) {
             return null;
         }

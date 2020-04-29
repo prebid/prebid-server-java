@@ -65,7 +65,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                 .build();
@@ -94,7 +94,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                                 .bidfloor(BigDecimal.valueOf(1.39))
                                 .build()))
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                         .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
@@ -111,7 +111,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language(null).build())
                 .build();
 

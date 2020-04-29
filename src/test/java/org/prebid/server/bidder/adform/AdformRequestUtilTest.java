@@ -2,7 +2,6 @@ package org.prebid.server.bidder.adform;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -23,44 +22,6 @@ public class AdformRequestUtilTest extends VertxTest {
     @Before
     public void setUp() {
         requestUtil = new AdformRequestUtil(jacksonMapper);
-    }
-
-    @Test
-    public void getExtUserShouldReturnNullIfUserIsNull() {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(null);
-
-        // then
-        assertThat(extUser).isNull();
-    }
-
-    @Test
-    public void getExtUserShouldReturnNullIfUserExtIsNull() {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(User.builder().ext(null).build());
-
-        // then
-        assertThat(extUser).isNull();
-    }
-
-    @Test
-    public void getExtUserShouldReturnNullIfExtUserIsInvalidJSON() throws IOException {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(
-                User.builder().ext((ObjectNode) mapper.readTree("{\"prebid\":1}")).build());
-
-        // then
-        assertThat(extUser).isNull();
-    }
-
-    @Test
-    public void getExtUserShouldReturnExtUser() {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(
-                User.builder().ext(mapper.valueToTree(ExtUser.builder().build())).build());
-
-        // then
-        assertThat(extUser).isEqualTo(ExtUser.builder().build());
     }
 
     @Test

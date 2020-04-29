@@ -39,7 +39,7 @@ public class PrivacyExtractor {
      */
     public Privacy validPrivacyFrom(Regs regs, User user) {
         final ExtRegs extRegs = extRegs(regs);
-        final ExtUser extUser = extUser(user);
+        final ExtUser extUser = user != null ? user.getExt() : null;
 
         final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
@@ -53,15 +53,6 @@ public class PrivacyExtractor {
         final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
         try {
             return extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
-    private ExtUser extUser(User user) {
-        final ObjectNode extUserNode = user != null ? user.getExt() : null;
-        try {
-            return extUserNode != null ? mapper.mapper().treeToValue(extUserNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
             return null;
         }
