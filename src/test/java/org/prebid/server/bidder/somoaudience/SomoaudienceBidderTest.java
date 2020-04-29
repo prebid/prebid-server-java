@@ -67,7 +67,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .regs(Regs.of(0, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -96,7 +96,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(0, ExtRegs.of(1, null)))
                         .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                         .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
                         .build()));

@@ -527,15 +527,14 @@ public class ServiceConfiguration {
             TcfDefinerService tcfDefinerService,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce,
-            JacksonMapper mapper) {
+            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, mapper, useGeoLocation, ccpaEnforce);
+                bidderCatalog, tcfDefinerService, metrics, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
-    PrivacyExtractor privacyExtractor(JacksonMapper mapper) {
-        return new PrivacyExtractor(mapper);
+    PrivacyExtractor privacyExtractor() {
+        return new PrivacyExtractor();
     }
 
     @Bean

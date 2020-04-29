@@ -1,7 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
@@ -12,9 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -53,7 +49,6 @@ public class PrivacyEnforcementService {
     private final BidderCatalog bidderCatalog;
     private final TcfDefinerService tcfDefinerService;
     private final Metrics metrics;
-    private final JacksonMapper mapper;
     private final boolean ccpaEnforce;
 
     private final PrivacyExtractor privacyExtractor;
@@ -61,18 +56,16 @@ public class PrivacyEnforcementService {
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
                                      TcfDefinerService tcfDefinerService,
                                      Metrics metrics,
-                                     JacksonMapper mapper,
                                      boolean useGeoLocation,
                                      boolean ccpaEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.metrics = Objects.requireNonNull(metrics);
-        this.mapper = Objects.requireNonNull(mapper);
         this.useGeoLocation = useGeoLocation;
         this.ccpaEnforce = ccpaEnforce;
 
-        privacyExtractor = new PrivacyExtractor(mapper);
+        privacyExtractor = new PrivacyExtractor();
     }
 
     Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
@@ -208,7 +201,7 @@ public class PrivacyEnforcementService {
             AccountGdprConfig accountConfig,
             Timeout timeout) {
 
-        final ExtRegs extRegs = extRegs(regs);
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
@@ -225,21 +218,6 @@ public class PrivacyEnforcementService {
                 accountConfig,
                 timeout)
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
-    }
-
-    /**
-     * Extracts {@link ExtRegs} from {@link Regs}.
-     */
-    private ExtRegs extRegs(Regs regs) {
-        final ObjectNode regsExt = regs != null ? regs.getExt() : null;
-        if (regsExt != null) {
-            try {
-                return mapper.mapper().treeToValue(regsExt, ExtRegs.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
     }
 
     private Map<String, PrivacyEnforcementAction> mapTcfResponseToEachBidder(

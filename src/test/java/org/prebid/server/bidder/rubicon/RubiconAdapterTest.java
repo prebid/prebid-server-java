@@ -43,7 +43,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.bidder.rubicon.proto.RubiconParams.RubiconParamsBuilder;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconRegsExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
@@ -571,7 +570,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestShouldReturnBidRequestWithGdprFromPreBidRequestRegsExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5, null)))));
+                builder -> builder.regs(Regs.of(null, ExtRegs.of(5, null))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -581,8 +580,7 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getRegs()).isNotNull()
                 .extracting(Regs::getExt).isNotNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconRegsExt.class))
-                .extracting(RubiconRegsExt::getGdpr)
+                .extracting(ExtRegs::getGdpr)
                 .containsOnly(5);
     }
 

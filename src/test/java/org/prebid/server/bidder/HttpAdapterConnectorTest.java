@@ -112,7 +112,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         httpAdapterConnector = new HttpAdapterConnector(
-                httpClient, new PrivacyExtractor(jacksonMapper), clock, jacksonMapper);
+                httpClient, new PrivacyExtractor(), clock, jacksonMapper);
 
         usersyncer = new Usersyncer(null, "", "", null, null, false);
     }
@@ -580,7 +580,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     public void callShouldReturnGdprAwareAdapterResponseWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1--")));
+        final Regs regs = Regs.of(0, ExtRegs.of(1, "1--"));
         final User user = User.builder()
                 .ext(ExtUser.builder().consent("consent$1").build())
                 .build();

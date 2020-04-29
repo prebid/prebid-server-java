@@ -29,7 +29,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
 
     @Before
     public void setUp() {
-        requestUtil = new SharethroughRequestUtil(jacksonMapper);
+        requestUtil = new SharethroughRequestUtil();
     }
 
     @Test
@@ -234,7 +234,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
     public void isConsentRequiredShouldReturnFalseWhenRegsOrRegsExtIsNull() {
         // given
         final Regs regs = Regs.of(null, null);
-        final Regs regsWithGdprNull = Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null)));
+        final Regs regsWithGdprNull = Regs.of(null, ExtRegs.of(null, null));
 
         // when and then
         assertThat(requestUtil.isConsentRequired(null)).isFalse();
@@ -245,9 +245,9 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsExtIsNot1() {
         // given
-        final Regs regsWith3 = Regs.of(null, mapper.valueToTree(ExtRegs.of(3, null)));
-        final Regs regsWith0 = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
-        final Regs regsWith100 = Regs.of(null, mapper.valueToTree(ExtRegs.of(100, null)));
+        final Regs regsWith3 = Regs.of(null, ExtRegs.of(3, null));
+        final Regs regsWith0 = Regs.of(null, ExtRegs.of(0, null));
+        final Regs regsWith100 = Regs.of(null, ExtRegs.of(100, null));
 
         // when and then
         assertThat(requestUtil.isConsentRequired(regsWith0)).isFalse();
@@ -258,7 +258,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void isConsentRequiredShouldReturnTrueWhenRegsExtIs1() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(1, null));
 
         // when and then
         assertThat(requestUtil.isConsentRequired(regs)).isTrue();

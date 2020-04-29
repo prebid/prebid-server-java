@@ -448,22 +448,17 @@ public class RequestValidator {
      * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
      */
     private void validateRegs(Regs regs) throws ValidationException {
-        if (regs != null && regs.getExt() != null) {
+        if (regs != null) {
+            final ExtRegs extRegs = regs.getExt();
+            final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
+            if (gdpr != null && gdpr != 0 && gdpr != 1) {
+                throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
+            }
+            final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
             try {
-                final ExtRegs extRegs = mapper.mapper().treeToValue(regs.getExt(), ExtRegs.class);
-                final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
-                if (gdpr != null && gdpr != 0 && gdpr != 1) {
-                    throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
-                }
-                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
-                try {
-                    Ccpa.validateUsPrivacy(usPrivacy);
-                } catch (PreBidException ex) {
-                    throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
-                }
-
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
+                Ccpa.validateUsPrivacy(usPrivacy);
+            } catch (PreBidException ex) {
+                throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
             }
         }
     }

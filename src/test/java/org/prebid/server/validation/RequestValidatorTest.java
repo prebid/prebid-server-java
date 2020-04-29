@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.App.AppBuilder;
@@ -1229,7 +1228,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null))))
+                .regs(Regs.of(null, ExtRegs.of(null, null)))
                 .build();
 
         // when
@@ -1751,8 +1750,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2, null));
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .regs(Regs.of(null, ExtRegs.of(2, null)))
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1763,24 +1763,11 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenRegsExtIsNotValidJson() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode().put("gdpr", "String");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext is invalid:");
-    }
-
-    @Test
     public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid() {
         // given
-        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .regs(Regs.of(null, ExtRegs.of(null, "invalid")))
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);

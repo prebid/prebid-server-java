@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
@@ -400,21 +399,10 @@ public class AmpRequestFactory {
         Integer gdpr = null;
         if (regs != null) {
             coppa = regs.getCoppa();
-            gdpr = extractExtRegs(regs.getExt()).getGdpr();
+            gdpr = regs.getExt().getGdpr();
         }
 
-        return Regs.of(coppa, mapper.mapper().valueToTree(ExtRegs.of(gdpr, usPrivacyParam)));
-    }
-
-    /**
-     * Extracts {@link ExtRegs} from bidrequest.regs.ext {@link ObjectNode}.
-     */
-    private ExtRegs extractExtRegs(ObjectNode extRegsNode) {
-        try {
-            return mapper.mapper().treeToValue(extRegsNode, ExtRegs.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()));
-        }
+        return Regs.of(coppa, ExtRegs.of(gdpr, usPrivacyParam));
     }
 
     private static List<Format> parseMultiSizeParam(String ms) {

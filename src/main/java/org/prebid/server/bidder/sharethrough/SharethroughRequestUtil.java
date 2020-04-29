@@ -1,7 +1,5 @@
 package org.prebid.server.bidder.sharethrough;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
@@ -12,7 +10,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.sharethrough.model.Size;
 import org.prebid.server.bidder.sharethrough.model.UserInfo;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
@@ -21,19 +18,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 class SharethroughRequestUtil {
 
     private static final int MIN_CHROME_VERSION = 53;
     private static final int MIN_SAFARI_VERSION = 10;
-
-    private final JacksonMapper mapper;
-
-    SharethroughRequestUtil(JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
-    }
 
     /**
      * Retrieves size from imp.ext.sharethrough.iframeSize or from im.banner.format.
@@ -66,14 +56,7 @@ class SharethroughRequestUtil {
      * Retrieves gdpr from regs.ext.gdpr and in case of 1 returns true.
      */
     boolean isConsentRequired(Regs regs) {
-        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
-        final ExtRegs extRegs;
-        try {
-            extRegs = extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
-        } catch (JsonProcessingException e) {
-            return false;
-        }
-
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         return extRegs != null && extRegs.getGdpr() != null && extRegs.getGdpr() == 1;
     }
 

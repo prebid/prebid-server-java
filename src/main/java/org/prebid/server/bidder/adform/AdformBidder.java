@@ -61,7 +61,7 @@ public class AdformBidder implements Bidder<Void> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new AdformRequestUtil(mapper);
+        this.requestUtil = new AdformRequestUtil();
         this.httpUtil = new AdformHttpUtil(mapper);
     }
 

@@ -52,7 +52,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new AdformRequestUtil(mapper);
+        this.requestUtil = new AdformRequestUtil();
         this.httpUtil = new AdformHttpUtil(mapper);
     }
 

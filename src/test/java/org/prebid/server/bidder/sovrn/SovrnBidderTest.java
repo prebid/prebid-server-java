@@ -146,7 +146,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -171,7 +171,7 @@ public class SovrnBidderTest extends VertxTest {
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(null, ExtRegs.of(1, null)))
                         .build());
     }
 

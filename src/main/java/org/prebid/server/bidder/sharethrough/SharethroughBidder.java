@@ -59,7 +59,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new SharethroughRequestUtil(mapper);
+        this.requestUtil = new SharethroughRequestUtil();
     }
 
     /**

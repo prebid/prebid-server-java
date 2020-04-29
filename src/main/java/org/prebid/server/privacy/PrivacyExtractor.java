@@ -1,17 +1,12 @@
 package org.prebid.server.privacy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-
-import java.util.Objects;
 
 /**
  * GDPR-aware utilities
@@ -21,12 +16,6 @@ public class PrivacyExtractor {
     private static final String DEFAULT_CONSENT_VALUE = "";
     private static final String DEFAULT_GDPR_VALUE = "";
     private static final Ccpa DEFAULT_CCPA_VALUE = Ccpa.EMPTY;
-
-    private final JacksonMapper mapper;
-
-    public PrivacyExtractor(JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
-    }
 
     /**
      * Retrieves:
@@ -38,7 +27,7 @@ public class PrivacyExtractor {
      * And construct {@link Privacy} from them. Use default values in case of invalid value.
      */
     public Privacy validPrivacyFrom(Regs regs, User user) {
-        final ExtRegs extRegs = extRegs(regs);
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
 
         final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
@@ -47,15 +36,6 @@ public class PrivacyExtractor {
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
 
         return toValidPrivacy(gdpr, consent, usPrivacy);
-    }
-
-    private ExtRegs extRegs(Regs regs) {
-        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
-        try {
-            return extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
-        } catch (JsonProcessingException e) {
-            return null;
-        }
     }
 
     private static Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy) {

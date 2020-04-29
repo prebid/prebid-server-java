@@ -1137,7 +1137,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, "us_privacy"))));
+                .isEqualTo(Regs.of(null, ExtRegs.of(null, "us_privacy")));
     }
 
     @Test
@@ -1148,7 +1148,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .user(User.builder().build())
-                        .regs(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "replaced"))))
+                        .regs(Regs.of(1, ExtRegs.of(1, "replaced")))
                         .ext(ExtRequest.empty()),
                 Imp.builder().build());
 
@@ -1157,7 +1157,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "us_privacy"))));
+                .isEqualTo(Regs.of(1, ExtRegs.of(1, "us_privacy")));
     }
 
     @Test

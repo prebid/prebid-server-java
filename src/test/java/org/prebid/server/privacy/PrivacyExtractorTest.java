@@ -1,6 +1,5 @@
 package org.prebid.server.privacy;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import org.junit.Before;
@@ -11,8 +10,6 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PrivacyExtractorTest extends VertxTest {
@@ -21,7 +18,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        privacyExtractor = new PrivacyExtractor(jacksonMapper);
+        privacyExtractor = new PrivacyExtractor();
     }
 
     @Test
@@ -43,19 +40,9 @@ public class PrivacyExtractorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnGdprEmptyValueWhenRegExtIsNotValidJson() throws IOException {
-        // given and when
-        final Regs regs = Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}"));
-        final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
     public void shouldReturnGdprEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(2, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(2, null));
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
@@ -65,7 +52,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprOneWhenExtRegsContainsGdprOne() {
         // given and when
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(1, null));
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
@@ -75,7 +62,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprZeroWhenExtRegsContainsGdprZero() {
         // given and when
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(0, null));
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
@@ -121,7 +108,7 @@ public class PrivacyExtractorTest extends VertxTest {
         final User user = User.builder()
                 .ext(ExtUser.builder().consent("consent").build())
                 .build();
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, "YAN")));
+        final Regs regs = Regs.of(null, ExtRegs.of(0, "YAN"));
         final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);
 
         // then
