@@ -342,16 +342,11 @@ public class RequestValidator {
                         "request.site should include at least one of request.site.id or request.site.page");
             }
 
-            final ObjectNode siteExt = site.getExt();
-            if (siteExt != null && siteExt.size() > 0) {
-                try {
-                    final ExtSite extSite = mapper.mapper().treeToValue(siteExt, ExtSite.class);
-                    final Integer amp = extSite.getAmp();
-                    if (amp != null && (amp < 0 || amp > 1)) {
-                        throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
-                    }
-                } catch (JsonProcessingException e) {
-                    throw new ValidationException("request.site.ext object is not valid: %s", e.getMessage());
+            final ExtSite siteExt = site.getExt();
+            if (siteExt != null) {
+                final Integer amp = siteExt.getAmp();
+                if (amp != null && (amp < 0 || amp > 1)) {
+                    throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
                 }
             }
         }

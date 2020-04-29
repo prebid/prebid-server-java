@@ -222,8 +222,8 @@ public class AmpRequestFactory {
         final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
         final boolean hasSite = site != null;
-        final ObjectNode siteExt = hasSite ? site.getExt() : null;
-        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
+        final ExtSite siteExt = hasSite ? site.getExt() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
 
         if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp) {
             final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
@@ -238,8 +238,8 @@ public class AmpRequestFactory {
                 siteBuilder.publisher(publisherBuilder.id(accountId).build());
             }
             if (shouldSetExtAmp) {
-                final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
-                siteBuilder.ext(mapper.mapper().valueToTree(ExtSite.of(1, data)));
+                final ObjectNode data = siteExt != null ? siteExt.getData() : null;
+                siteBuilder.ext(ExtSite.of(1, data));
             }
             return siteBuilder.build();
         }

@@ -366,15 +366,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ExtImpContext context = extImpContext(imp);
 
             // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
-            final ObjectNode siteExt = site != null ? site.getExt() : null;
+            final ExtSite siteExt = site != null ? site.getExt() : null;
             if (siteExt != null) {
-                populateObjectNode(inventoryNode, getDataNode(siteExt));
+                populateObjectNode(inventoryNode, siteExt.getData());
             }
 
             // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
             final ObjectNode appExt = app != null ? app.getExt() : null;
             if (appExt != null) {
-                populateObjectNode(inventoryNode, getDataNode(appExt));
+                populateObjectNode(inventoryNode, appExt.get(DATA_NODE_NAME));
             }
 
             // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
@@ -422,10 +422,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    private static JsonNode getDataNode(ObjectNode extObjectNode) {
-        return extObjectNode.get(DATA_NODE_NAME);
     }
 
     private static void populateObjectNode(ObjectNode objectNode, JsonNode data) {
@@ -686,7 +682,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 : site.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
                 .content(makeSiteContent(site.getContent(), impLanguage))
-                .ext(mapper.mapper().valueToTree(makeSiteExt(site, rubiconImpExt)))
+                .ext(makeSiteExt(site, rubiconImpExt))
                 .build();
     }
 
@@ -713,7 +709,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
     }
 
-    private RubiconSiteExt makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
+    private ExtSite makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
         ExtSite extSite = null;
         if (site != null) {
             try {
@@ -723,7 +719,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
             }
         }
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
-        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()), siteExtAmp);
+
+        return mapper.fillExtension(
+                ExtSite.of(siteExtAmp, null),
+                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
     }
 
     private App makeApp(App app, ExtImpRubicon rubiconImpExt) {

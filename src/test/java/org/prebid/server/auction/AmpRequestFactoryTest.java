@@ -451,7 +451,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getExt)
-                .containsOnly(mapper.valueToTree(ExtSite.of(1, null)));
+                .containsOnly(ExtSite.of(1, null));
     }
 
     @Test
@@ -472,7 +472,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
+                .containsOnly(tuple("overridden-site-page", ExtSite.of(1, null)));
     }
 
     @Test
@@ -493,7 +493,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(request))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage, Site::getExt)
-                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
+                .containsOnly(tuple("overridden-site-page", ExtSite.of(1, null)));
     }
 
     @Test
@@ -516,7 +516,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Site::getPublisher, Site::getExt)
                 .containsOnly(tuple(
                         Publisher.builder().id("accountId").build(),
-                        mapper.valueToTree(ExtSite.of(1, null))));
+                        ExtSite.of(1, null)));
     }
 
     @Test
@@ -539,7 +539,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Site::getPublisher, Site::getExt)
                 .containsOnly(tuple(
                         Publisher.builder().id("accountId").build(),
-                        mapper.valueToTree(ExtSite.of(1, null))));
+                        ExtSite.of(1, null)));
     }
 
     @Test
@@ -562,7 +562,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Site::getPublisher, Site::getExt)
                 .containsOnly(tuple(
                         Publisher.builder().id("accountId").build(),
-                        mapper.valueToTree(ExtSite.of(1, null))));
+                        ExtSite.of(1, null)));
     }
 
     @Test

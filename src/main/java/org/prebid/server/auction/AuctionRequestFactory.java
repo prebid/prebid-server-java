@@ -300,11 +300,11 @@ public class AuctionRequestFactory {
 
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
-        final ObjectNode siteExt = site != null ? site.getExt() : null;
-        final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
-        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final ObjectNode modifiedSiteExt = shouldSetExtAmp
-                ? mapper.mapper().valueToTree(ExtSite.of(0, data))
+        final ExtSite siteExt = site != null ? site.getExt() : null;
+        final ObjectNode data = siteExt != null ? siteExt.getData() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
+        final ExtSite modifiedSiteExt = shouldSetExtAmp
+                ? ExtSite.of(0, data)
                 : null;
 
         String referer = null;

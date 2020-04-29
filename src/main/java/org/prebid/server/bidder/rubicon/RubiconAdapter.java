@@ -51,6 +51,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
@@ -284,14 +285,16 @@ public class RubiconAdapter extends OpenrtbAdapter {
         } else {
             siteBuilder
                     .publisher(makePublisher(rubiconParams))
-                    .ext(mapper.mapper().valueToTree(makeSiteExt(rubiconParams)));
+                    .ext(makeSiteExt(rubiconParams));
         }
 
         return siteBuilder.build();
     }
 
-    private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
-        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId()), null);
+    private ExtSite makeSiteExt(RubiconParams rubiconParams) {
+        return mapper.fillExtension(
+                ExtSite.of(null, null),
+                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId())));
     }
 
     private Publisher makePublisher(RubiconParams rubiconParams) {

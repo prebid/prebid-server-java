@@ -581,7 +581,7 @@ public class ExchangeService {
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
                 .app(prepareApp(app, extApp(app), firstPartyDataBidders.contains(bidder)))
-                .site(prepareSite(site, extSite(site), firstPartyDataBidders.contains(bidder)))
+                .site(prepareSite(site, firstPartyDataBidders.contains(bidder)))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, firstPartyDataBidders, bidderToPrebidBidders, bidRequest.getExt()))
                 .build());
@@ -597,21 +597,6 @@ public class ExchangeService {
                 return mapper.mapper().treeToValue(appExt, ExtApp.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.app.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Extracts {@link ExtSite} from {@link Site}.
-     */
-    private ExtSite extSite(Site site) {
-        final ObjectNode siteExt = site == null ? null : site.getExt();
-        if (siteExt != null) {
-            try {
-                return mapper.mapper().treeToValue(siteExt, ExtSite.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.site.ext: %s", e.getMessage()), e);
             }
         }
         return null;
@@ -664,11 +649,12 @@ public class ExchangeService {
      * Checks whether to pass the site.ext.data depending on request having a first party data
      * allowed for given bidder or not.
      */
-    private Site prepareSite(Site site, ExtSite extSite, boolean useFirstPartyData) {
+    private Site prepareSite(Site site, boolean useFirstPartyData) {
+        final ExtSite extSite = site == null ? null : site.getExt();
         final ObjectNode extSiteDataNode = extSite == null ? null : extSite.getData();
 
         return site != null && extSiteDataNode != null && !useFirstPartyData
-                ? site.toBuilder().ext(mapper.mapper().valueToTree(ExtSite.of(extSite.getAmp(), null))).build()
+                ? site.toBuilder().ext(ExtSite.of(extSite.getAmp(), null)).build()
                 : site;
     }
 

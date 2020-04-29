@@ -53,6 +53,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
@@ -324,7 +325,8 @@ public class RubiconAdapterTest extends VertxTest {
                                 .publisher(Publisher.builder()
                                         .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                         .build())
-                                .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001), null)))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                                 .build())
                         .device(Device.builder()
                                 .ua("userAgent")

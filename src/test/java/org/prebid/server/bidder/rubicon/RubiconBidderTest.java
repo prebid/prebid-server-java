@@ -944,7 +944,8 @@ public class RubiconBidderTest extends VertxTest {
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
-                        .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001), null)))
+                        .ext(jacksonMapper.fillExtension(
+                                ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                         .build());
     }
 
@@ -952,7 +953,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldPassSiteExtAmpIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.site(Site.builder().ext(mapper.valueToTree(ExtSite.of(1, null))).build()),
+                builder -> builder.site(Site.builder().ext(ExtSite.of(1, null)).build()),
                 builder -> builder.video(Video.builder().build()),
                 builder -> builder.accountId(2001).siteId(3001));
 
@@ -968,7 +969,8 @@ public class RubiconBidderTest extends VertxTest {
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
-                        .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001), 1)))
+                        .ext(jacksonMapper.fillExtension(
+                                ExtSite.of(1, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                         .build());
     }
 
@@ -1126,7 +1128,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode siteExtDataNode = mapper.createObjectNode().put("property", "value");
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .site(Site.builder().ext(mapper.valueToTree(ExtSite.of(0, siteExtDataNode))).build())
+                        .site(Site.builder().ext(ExtSite.of(0, siteExtDataNode)).build())
                         .ext(givenExtBidRequestWithRubiconFirstPartyData()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
@@ -1181,7 +1183,7 @@ public class RubiconBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .site(Site.builder().ext(mapper.valueToTree(ExtSite.of(0, siteExtDataNode))).build())
+                        .site(Site.builder().ext(ExtSite.of(0, siteExtDataNode)).build())
                         .ext(givenExtBidRequestWithRubiconFirstPartyData()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
