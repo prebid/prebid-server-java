@@ -99,26 +99,6 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddErrorIfAppExtPrebidCouldNotBeParsed() {
-        // given
-        final ObjectNode badAppExtPrebid = mapper.createObjectNode();
-        badAppExtPrebid.put("prebid", "bad value");
-
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.app(App.builder().ext(badAppExtPrebid).build()),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("invCode"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot construct instance of");
-        assertThat(result.getValue()).hasSize(1);
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -181,8 +161,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(
-                                        ExtAppPrebid.of("some source", "any version"), null)))
+                                .ext(ExtApp.of(ExtAppPrebid.of("some source", "any version"), null))
                                 .build()),
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
@@ -205,7 +184,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(null, null)))
+                                .ext(ExtApp.of(null, null))
                                 .build()),
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
@@ -228,8 +207,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(
-                                        ExtAppPrebid.of(null, "version"), null)))
+                                .ext(ExtApp.of(ExtAppPrebid.of(null, "version"), null))
                                 .build()),
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
@@ -252,8 +230,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(
-                                        ExtAppPrebid.of("source", null), null)))
+                                .ext(ExtApp.of(ExtAppPrebid.of("source", null), null))
                                 .build()),
                 impBuilder -> impBuilder.banner(Banner.builder().build()),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
@@ -276,8 +253,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder()
-                                .ext(mapper.valueToTree(ExtApp.of(
-                                        ExtAppPrebid.of("some source", "any version"), null)))
+                                .ext(ExtApp.of(ExtAppPrebid.of("some source", "any version"), null))
                                 .build()),
                 impBuilder -> impBuilder.banner(Banner.builder().build()).displaymanagerver("string exists"),
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));

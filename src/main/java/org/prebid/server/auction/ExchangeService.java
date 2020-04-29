@@ -580,26 +580,11 @@ public class ExchangeService {
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, firstPartyDataBidders.contains(bidder)))
-                .app(prepareApp(app, extApp(app), firstPartyDataBidders.contains(bidder)))
+                .app(prepareApp(app, firstPartyDataBidders.contains(bidder)))
                 .site(prepareSite(site, firstPartyDataBidders.contains(bidder)))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, firstPartyDataBidders, bidderToPrebidBidders, bidRequest.getExt()))
                 .build());
-    }
-
-    /**
-     * Extracts {@link ExtApp} from {@link App}.
-     */
-    private ExtApp extApp(App app) {
-        final ObjectNode appExt = app == null ? null : app.getExt();
-        if (appExt != null) {
-            try {
-                return mapper.mapper().treeToValue(appExt, ExtApp.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.app.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
     }
 
     /**
@@ -637,11 +622,12 @@ public class ExchangeService {
      * Checks whether to pass the app.ext.data depending on request having a first party data
      * allowed for given bidder or not.
      */
-    private App prepareApp(App app, ExtApp extApp, boolean useFirstPartyData) {
+    private App prepareApp(App app, boolean useFirstPartyData) {
+        final ExtApp extApp = app == null ? null : app.getExt();
         final ObjectNode extSiteDataNode = extApp == null ? null : extApp.getData();
 
         return app != null && extSiteDataNode != null && !useFirstPartyData
-                ? app.toBuilder().ext(mapper.mapper().valueToTree(ExtApp.of(extApp.getPrebid(), null))).build()
+                ? app.toBuilder().ext(ExtApp.of(extApp.getPrebid(), null)).build()
                 : app;
     }
 

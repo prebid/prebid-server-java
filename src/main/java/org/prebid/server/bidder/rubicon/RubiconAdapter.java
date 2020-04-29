@@ -30,6 +30,7 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
@@ -51,6 +52,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
@@ -194,7 +196,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconParams))
-                .ext(mapper.mapper().valueToTree(makeSiteExt(rubiconParams)))
+                .ext(makeAppExt(rubiconParams))
                 .build();
     }
 
@@ -295,6 +297,12 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return mapper.fillExtension(
                 ExtSite.of(null, null),
                 RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId())));
+    }
+
+    private ExtApp makeAppExt(RubiconParams rubiconParams) {
+        return mapper.fillExtension(
+                ExtApp.of(null, null),
+                RubiconAppExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId())));
     }
 
     private Publisher makePublisher(RubiconParams rubiconParams) {

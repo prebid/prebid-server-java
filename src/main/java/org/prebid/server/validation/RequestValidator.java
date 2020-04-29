@@ -3,7 +3,6 @@ package org.prebid.server.validation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -39,7 +38,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -168,7 +166,6 @@ public class RequestValidator {
                 throw new ValidationException("request.site or request.app must be defined, but not both");
             }
             validateSite(bidRequest.getSite());
-            validateApp(bidRequest.getApp());
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
@@ -347,18 +344,6 @@ public class RequestValidator {
                 final Integer amp = siteExt.getAmp();
                 if (amp != null && (amp < 0 || amp > 1)) {
                     throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
-                }
-            }
-        }
-    }
-
-    private void validateApp(App app) throws ValidationException {
-        if (app != null) {
-            if (app.getExt() != null) {
-                try {
-                    mapper.mapper().treeToValue(app.getExt(), ExtApp.class);
-                } catch (JsonProcessingException e) {
-                    throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
                 }
             }
         }

@@ -1222,7 +1222,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .data(ExtRequestPrebidData.of(singletonList("someBidder")))
                                 .auctiontimestamp(1000L)
                                 .build()))
-                        .app(App.builder().ext(mapper.valueToTree(ExtApp.of(null, dataNode))).build()));
+                        .app(App.builder().ext(ExtApp.of(null, dataNode)).build()));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1236,8 +1236,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidRequest::getApp)
                 .extracting(App::getExt)
                 .containsOnly(
-                        mapper.valueToTree(ExtApp.of(null, dataNode)),
-                        mapper.createObjectNode());
+                        ExtApp.of(null, dataNode),
+                        ExtApp.of(null, null));
     }
 
     @Test

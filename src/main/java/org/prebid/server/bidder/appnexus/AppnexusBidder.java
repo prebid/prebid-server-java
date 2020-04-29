@@ -124,7 +124,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest, errors);
+        final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest);
 
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
@@ -162,21 +162,17 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return Result.of(splitHttpRequests(outgoingRequest, processedImps, url, MAX_IMP_PER_REQUEST), errors);
     }
 
-    private String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
+    private String makeDefaultDisplayManagerVer(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
-            try {
-                final ExtApp extApp = mapper.mapper().convertValue(bidRequest.getApp().getExt(), ExtApp.class);
-                final ExtAppPrebid prebid = extApp != null ? extApp.getPrebid() : null;
-                if (prebid != null) {
-                    final String source = prebid.getSource();
-                    final String version = prebid.getVersion();
+            final ExtApp extApp = bidRequest.getApp().getExt();
+            final ExtAppPrebid prebid = extApp != null ? extApp.getPrebid() : null;
+            if (prebid != null) {
+                final String source = prebid.getSource();
+                final String version = prebid.getVersion();
 
-                    if (source != null && version != null) {
-                        return String.format("%s-%s", source, version);
-                    }
+                if (source != null && version != null) {
+                    return String.format("%s-%s", source, version);
                 }
-            } catch (IllegalArgumentException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
         return null;

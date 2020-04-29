@@ -65,6 +65,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -108,7 +109,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String ADSERVER_EID = "adserver.org";
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String DATA_NODE_NAME = "data";
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
@@ -372,9 +372,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             }
 
             // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
-            final ObjectNode appExt = app != null ? app.getExt() : null;
+            final ExtApp appExt = app != null ? app.getExt() : null;
             if (appExt != null) {
-                populateObjectNode(inventoryNode, appExt.get(DATA_NODE_NAME));
+                populateObjectNode(inventoryNode, appExt.getData());
             }
 
             // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
@@ -728,12 +728,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private App makeApp(App app, ExtImpRubicon rubiconImpExt) {
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
-                .ext(mapper.mapper().valueToTree(makeAppExt(rubiconImpExt)))
+                .ext(makeAppExt(rubiconImpExt))
                 .build();
     }
 
-    private static RubiconAppExt makeAppExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
+    private ExtApp makeAppExt(ExtImpRubicon rubiconImpExt) {
+        return mapper.fillExtension(ExtApp.of(null, null),
+                RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
     }
 
     private static Source makeSource(Source source, String pchain) {
