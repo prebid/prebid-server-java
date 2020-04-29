@@ -66,12 +66,13 @@ public class TcfDefinerService {
                                                            String gdpr,
                                                            String gdprConsent,
                                                            String ipAddress,
+                                                           AccountGdprConfig accountGdprConfig,
                                                            Timeout timeout) {
         return resultForInternal(
                 gdpr,
                 gdprConsent,
                 ipAddress,
-                null,
+                accountGdprConfig,
                 timeout,
                 country -> createAllowAllTcfResponse(vendorIds, country),
                 (consentString, country) -> tcf2Service.permissionsFor(vendorIds, consentString)
@@ -88,7 +89,6 @@ public class TcfDefinerService {
                                                             String ipAddress,
                                                             AccountGdprConfig accountGdprConfig,
                                                             Timeout timeout) {
-
         return resultForInternal(
                 gdpr,
                 gdprConsent,
@@ -108,15 +108,15 @@ public class TcfDefinerService {
                                                             String gdpr,
                                                             String gdprConsent,
                                                             String ipAddress,
+                                                            AccountGdprConfig accountGdprConfig,
                                                             Timeout timeout) {
-
         return resultForBidderNames(
                 bidderNames,
                 VendorIdResolver.of(bidderCatalog),
                 gdpr,
                 gdprConsent,
                 ipAddress,
-                null,
+                accountGdprConfig,
                 timeout);
     }
 
@@ -137,12 +137,12 @@ public class TcfDefinerService {
         return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
                 .compose(gdprInfoWithCountry ->
                         dispatchToService(gdprInfoWithCountry, allowAllTcfResponseCreator, tcf2Strategy, gdprStrategy));
-        // TODO Geo Location failed and Failed future
     }
 
     private boolean isGdprDisabled(Boolean gdprEnabled, AccountGdprConfig accountGdprConfig) {
-        final Boolean accountEnabled = accountGdprConfig != null ? accountGdprConfig.getEnabled() : null;
-        return BooleanUtils.isFalse(gdprEnabled) || BooleanUtils.isFalse(accountEnabled);
+        return accountGdprConfig != null && accountGdprConfig.getEnabled() != null
+                ? BooleanUtils.isFalse(accountGdprConfig.getEnabled())
+                : BooleanUtils.isFalse(gdprEnabled);
     }
 
     private Future<GdprInfoWithCountry<String>> toGdprInfo(
