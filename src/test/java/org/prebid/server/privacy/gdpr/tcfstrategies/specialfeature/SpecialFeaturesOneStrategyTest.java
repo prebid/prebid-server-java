@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class SpecialFeaturesOneStrategyTest {
 
@@ -54,10 +55,7 @@ public class SpecialFeaturesOneStrategyTest {
         target.allow(privacyEnforcementAction);
 
         // then
-        final PrivacyEnforcementAction expectedAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setMaskDeviceIp(true);
-        privacyEnforcementAction.setMaskGeo(true);
-        assertThat(privacyEnforcementAction).isEqualTo(expectedAction);
+        assertThat(privacyEnforcementAction).isEqualTo(allowSpecialFeature());
     }
 
     @Test
@@ -73,7 +71,7 @@ public class SpecialFeaturesOneStrategyTest {
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2);
 
-        final SpecialFeature specialFeature = SpecialFeature.of(true, emptyList());
+        final SpecialFeature specialFeature = SpecialFeature.of(false, emptyList());
 
         // when
         final Collection<VendorPermission> result = target.processSpecialFeaturesStrategy(tcString, specialFeature,
@@ -84,6 +82,8 @@ public class SpecialFeaturesOneStrategyTest {
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
                 vendorPermission2Changed);
+
+        verifyZeroInteractions(specialFeatureOptIns);
     }
 
     @Test
@@ -155,8 +155,8 @@ public class SpecialFeaturesOneStrategyTest {
 
     private static PrivacyEnforcementAction allowSpecialFeature() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setMaskDeviceIp(true);
-        privacyEnforcementAction.setMaskGeo(true);
+        privacyEnforcementAction.setMaskDeviceIp(false);
+        privacyEnforcementAction.setMaskGeo(false);
         return privacyEnforcementAction;
     }
 }
