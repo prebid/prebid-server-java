@@ -435,16 +435,16 @@ public class ExchangeService {
             final boolean removeFirstPartyData = !useFirstPartyData && extUser.getData() != null;
 
             if (removePrebid || removeFirstPartyData) {
-                final ExtUser.ExtUserBuilder builder = extUser.toBuilder();
+                final ExtUser.ExtUserBuilder extUserBuilder = extUser.toBuilder();
 
                 if (removePrebid) {
-                    builder.prebid(null);
+                    extUserBuilder.prebid(null);
                 }
                 if (removeFirstPartyData) {
-                    builder.data(null);
+                    extUserBuilder.data(null);
                 }
 
-                return builder.build();
+                return extUserBuilder.build();
             }
         }
         return null;

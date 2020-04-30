@@ -22,6 +22,10 @@ public class Ccpa {
 
     public static final Ccpa EMPTY = Ccpa.of("");
 
+    public boolean isNotEmpty() {
+        return StringUtils.isNotEmpty(usPrivacy);
+    }
+
     public boolean isCCPAEnforced() {
         try {
             validateUsPrivacy(usPrivacy);

@@ -37,6 +37,7 @@ import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -176,15 +177,10 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip,
-                        timeout)
-                        .compose(this::handleVendorIdResult)
-                        .compose(ignored ->
-                                tcfDefinerService.resultForBidderNames(biddersToSync, gdprAsString, gdprConsent, ip,
-                                        timeout))
-                        .setHandler(asyncResult ->
-                                handleBidderNamesResult(asyncResult, context, uidsCookie, biddersToSync, privacy,
-                                        limit)));
+                .compose(account -> prepareTcfResponse(gdprConsent, biddersToSync, gdprAsString, vendorIds, ip, account,
+                        timeout))
+                .setHandler(asyncResult ->
+                        handleBidderNamesResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
     }
 
     /**
@@ -250,6 +246,20 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private String bidderNameFor(String bidder) {
         return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
+    }
+
+    private Future<TcfResponse<String>> prepareTcfResponse(String gdprConsent,
+                                                           Set<String> biddersToSync,
+                                                           String gdprAsString,
+                                                           Set<Integer> vendorIds,
+                                                           String ip,
+                                                           Account account,
+                                                           Timeout timeout) {
+        final AccountGdprConfig accountGdpr = account.getGdpr();
+        return tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip, accountGdpr, timeout)
+                .compose(this::handleVendorIdResult)
+                .compose(ignored -> tcfDefinerService.resultForBidderNames(biddersToSync, gdprAsString, gdprConsent,
+                        ip, accountGdpr, timeout));
     }
 
     private Future<Void> handleVendorIdResult(TcfResponse<Integer> tcfResponse) {
@@ -435,8 +445,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
         return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(null)
+                ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise((Account) null);
+                .otherwise(Account.empty(accountId));
     }
 }

@@ -27,6 +27,9 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
@@ -332,17 +335,17 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMaskUserBuyeruidWhenTcfDefinerServiceRestrictUserBuyeruid() {
+    public void shouldMaskUserIdsWhenTcfDefinerServiceRestrictUserIds() {
         // given
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
-        privacyEnforcementAction.setRemoveUserBuyerUid(true);
+        privacyEnforcementAction.setRemoveUserIds(true);
 
         given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
-        final ExtUser extUser = ExtUser.builder().build();
-        final User user = notMaskedUser();
+        final ExtUser extUser = notMaskedExtUser();
+        final User user = notMaskedUser(extUser);
         final Device device = notMaskedDevice();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
@@ -362,8 +365,53 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // then
         final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
-                .user(givenNotMaskedUser(userBuilder -> userBuilder.buyeruid(null)))
+                .user(givenNotMaskedUser(userBuilder -> userBuilder.buyeruid(null)
+                        .ext(extUserTcfMasked())))
                 .device(notMaskedDevice())
+                .requestBidder(BIDDER_NAME)
+                .build();
+        assertThat(result).containsOnly(expectedBidderPrivacy);
+
+        verify(tcfDefinerService)
+                .resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), isNull(), any(), any(), any(), eq(timeout));
+    }
+
+    @Test
+    public void shouldMaskUserIdsWhenTcfDefinerServiceRestrictUserIdsAndReturnNullWhenAllValuesMasked() {
+        // given
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
+        privacyEnforcementAction.setRemoveUserIds(true);
+
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
+
+        final ExtUser extUser = ExtUser.builder()
+                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
+                .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
+                .build();
+        final User user = User.builder()
+                .buyeruid(BUYER_UID)
+                .ext(extUser)
+                .build();
+
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .regs(null));
+
+        final AuctionContext context = auctionContext(bidRequest);
+
+        // when
+        final List<BidderPrivacyResult> result = privacyEnforcementService
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .result();
+
+        // then
+        final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
                 .requestBidder(BIDDER_NAME)
                 .build();
         assertThat(result).containsOnly(expectedBidderPrivacy);
@@ -688,7 +736,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         verify(tcfDefinerService)
                 .resultForBidderNames(eq(singleton(BIDDER_NAME)), any(), isNull(), any(), any(), any(), eq(timeout));
         verifyNoMoreInteractions(tcfDefinerService);
-        verifyZeroInteractions(metrics);
     }
 
     @Test
@@ -822,6 +869,22 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
     }
 
+    private static User notMaskedUser(ExtUser extUser) {
+        return User.builder()
+                .buyeruid(BUYER_UID)
+                .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
+                .ext(extUser)
+                .build();
+    }
+
+    private static ExtUser notMaskedExtUser() {
+        return ExtUser.builder()
+                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
+                .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
+                .prebid(ExtUserPrebid.of(emptyMap()))
+                .build();
+    }
+
     private static Device deviceCoppaMasked() {
         return Device.builder()
                 .ip("192.168.0.0")
@@ -848,8 +911,14 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static User userTcfMasked() {
         return User.builder()
                 .buyeruid(null)
-                .ext(ExtUser.builder().consent("consent").build())
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).country("US").build())
+                .ext(ExtUser.builder().consent("consent").build())
+                .build();
+    }
+
+    private static ExtUser extUserTcfMasked() {
+        return ExtUser.builder()
+                .prebid(ExtUserPrebid.of(emptyMap()))
                 .build();
     }
 
@@ -887,7 +956,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .maskDeviceInfo(true)
                 .maskDeviceIp(true)
                 .maskGeo(true)
-                .removeUserBuyerUid(true)
+                .removeUserIds(true)
                 .build();
     }
 }
