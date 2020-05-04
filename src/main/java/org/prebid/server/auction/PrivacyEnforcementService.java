@@ -324,12 +324,13 @@ public class PrivacyEnforcementService {
         final boolean isLmtEnabled = isLmtEnabled(device);
         final boolean isDntEnabled = isDntEnabled(device, dntHeader);
 
-        final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled || isDntEnabled;
-        final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled || isDntEnabled;
+        boolean isLmtOrDntEnabled = isLmtEnabled || isDntEnabled;
+        final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtOrDntEnabled;
+        final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtOrDntEnabled;
         final User maskedUser = maskTcfUser(user, maskUserIds, maskGeo);
 
-        final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled || isDntEnabled;
-        final boolean maskInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled || isDntEnabled;
+        final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtOrDntEnabled;
+        final boolean maskInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtOrDntEnabled;
         final Device maskedDevice = maskTcfDevice(device, maskIp, maskGeo, maskInfo);
 
         return BidderPrivacyResult.builder()
