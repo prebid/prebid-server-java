@@ -141,8 +141,8 @@ public class TcfDefinerService {
 
     private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig) {
         return accountGdprConfig != null && accountGdprConfig.getEnabled() != null
-                ? BooleanUtils.isTrue(accountGdprConfig.getEnabled())
-                : BooleanUtils.isTrue(gdprEnabled);
+                ? accountGdprConfig.getEnabled()
+                : gdprEnabled;
     }
 
     private Future<GdprInfoWithCountry<String>> toGdprInfo(
