@@ -97,7 +97,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
-                        + " events_enabled, enforce_gdpr, tcf_config, analytics_sampling_factor FROM accounts_account"
+                        + " events_enabled, tcf_config, analytics_sampling_factor FROM accounts_account"
                         + " where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.builder()
@@ -106,9 +106,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .bannerCacheTtl(row.getInteger(2))
                         .videoCacheTtl(row.getInteger(3))
                         .eventsEnabled(row.getBoolean(4))
-                        .enforceGdpr(row.getBoolean(5))
-                        .gdpr(toAccountTcfConfig(row.getString(6)))
-                        .analyticsSamplingFactor(row.getInteger(7))
+                        .gdpr(toAccountTcfConfig(row.getString(5)))
+                        .analyticsSamplingFactor(row.getInteger(6))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
@@ -147,6 +146,14 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return value != null
                 ? Future.succeededFuture(value)
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+    }
+
+    private AccountGdprConfig toAccountTcfConfig(String tcfConfig) {
+        try {
+            return tcfConfig != null ? mapper.decodeValue(tcfConfig, AccountGdprConfig.class) : null;
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     /**
@@ -236,13 +243,5 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return paramsSize == 0
                 ? "NULL"
                 : IntStream.range(0, paramsSize).mapToObj(i -> "?").collect(Collectors.joining(","));
-    }
-
-    private AccountGdprConfig toAccountTcfConfig(String tcfConfig) {
-        try {
-            return tcfConfig != null ? mapper.decodeValue(tcfConfig, AccountGdprConfig.class) : null;
-        } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage());
-        }
     }
 }

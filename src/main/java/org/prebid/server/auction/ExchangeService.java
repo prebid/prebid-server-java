@@ -145,7 +145,6 @@ public class ExchangeService {
         final List<SeatBid> storedResponse = new ArrayList<>();
         final BidderAliases aliases = aliases(requestExt);
         final String publisherId = account.getId();
-        final Boolean isGdprEnforced = account.getEnforceGdpr();
         final ExtRequestTargeting targeting = targeting(requestExt);
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
         final boolean debugEnabled = isDebugEnabled(bidRequest, requestExt);
