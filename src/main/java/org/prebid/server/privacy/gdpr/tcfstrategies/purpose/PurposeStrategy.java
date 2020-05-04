@@ -104,8 +104,8 @@ public abstract class PurposeStrategy {
             TCString vendorConsent, boolean isEnforceVendors, Collection<VendorPermissionWithGvl> vendorForPurpose,
             Collection<VendorPermissionWithGvl> excludedVendors) {
 
-        return fullEnforcePurposeStrategy.allowedByTypeStrategy(getPurposeId(), vendorConsent, excludedVendors,
-                vendorForPurpose, isEnforceVendors);
+        return fullEnforcePurposeStrategy.allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose,
+                excludedVendors, isEnforceVendors);
 
     }
 }
