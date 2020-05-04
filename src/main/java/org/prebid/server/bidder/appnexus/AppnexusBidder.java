@@ -84,6 +84,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         IAB_CATEGORIES.put(18, "IAB13-6");
         IAB_CATEGORIES.put(19, "IAB18-4");
         IAB_CATEGORIES.put(20, "IAB1-5");
+        IAB_CATEGORIES.put(21, "IAB1-6");
         IAB_CATEGORIES.put(22, "IAB19-28");
         IAB_CATEGORIES.put(23, "IAB19-13");
         IAB_CATEGORIES.put(24, "IAB22-2");
