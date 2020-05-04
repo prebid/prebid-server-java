@@ -61,7 +61,7 @@ public class TcfDefinerService {
         this.tcf2Service = Objects.requireNonNull(tcf2Service);
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.geoLocationService = geoLocationService;
-        this.bidderCatalog = bidderCatalog;
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -134,7 +134,7 @@ public class TcfDefinerService {
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
             BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
 
-        if (isGdprDisabled(gdprEnabled, accountGdprConfig)) {
+        if (!isGdprEnabled(accountGdprConfig)) {
             return allowAllTcfResponseCreator.apply(null);
         }
 
@@ -143,10 +143,10 @@ public class TcfDefinerService {
                         dispatchToService(gdprInfoWithCountry, allowAllTcfResponseCreator, tcf2Strategy, gdprStrategy));
     }
 
-    private boolean isGdprDisabled(Boolean gdprEnabled, AccountGdprConfig accountGdprConfig) {
+    private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig) {
         return accountGdprConfig != null && accountGdprConfig.getEnabled() != null
-                ? BooleanUtils.isFalse(accountGdprConfig.getEnabled())
-                : BooleanUtils.isFalse(gdprEnabled);
+                ? accountGdprConfig.getEnabled()
+                : gdprEnabled;
     }
 
     private Future<GdprInfoWithCountry<String>> toGdprInfo(String gdpr,
@@ -238,7 +238,7 @@ public class TcfDefinerService {
         return Future.succeededFuture(TcfResponse.of(false, allowAll(keys), country));
     }
 
-    private TcfResponse<Integer> createVendorIdTcfResponse(
+    private static TcfResponse<Integer> createVendorIdTcfResponse(
             Collection<VendorPermission> vendorPermissions, String country) {
 
         return TcfResponse.of(
@@ -250,7 +250,7 @@ public class TcfDefinerService {
                 country);
     }
 
-    private TcfResponse<String> createBidderNameTcfResponse(
+    private static TcfResponse<String> createBidderNameTcfResponse(
             Collection<VendorPermission> vendorPermissions, String country) {
 
         return TcfResponse.of(
@@ -274,7 +274,9 @@ public class TcfDefinerService {
                 .map(vendorPermissions -> gdprResponseToTcfResponse(vendorPermissions, bidderToVendorId, country));
     }
 
-    private Map<String, Integer> resolveBidderToVendorId(Set<String> bidderNames, VendorIdResolver vendorIdResolver) {
+    private static Map<String, Integer> resolveBidderToVendorId(
+            Set<String> bidderNames, VendorIdResolver vendorIdResolver) {
+
         final Map<String, Integer> bidderToVendorId = new HashMap<>();
         bidderNames.forEach(bidderName -> bidderToVendorId.put(bidderName, vendorIdResolver.resolve(bidderName)));
         return bidderToVendorId;
@@ -319,7 +321,7 @@ public class TcfDefinerService {
         return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
     }
 
-    private TCString decodeTcString(String consentString) {
+    private static TCString decodeTcString(String consentString) {
         try {
             return TCString.decode(consentString);
         } catch (Throwable e) {
