@@ -119,7 +119,7 @@ public class FullEnforcePurposeStrategyTest {
     }
 
     @Test
-    public void shouldExpectedWhenMultiplePublisherRestrictionsProvided() {
+    public void shouldReturnExpectedWhenMultiplePublisherRestrictionsProvided() {
         // given
         final IntIterable requireConsentIterable = mock(IntIterable.class);
         final PublisherRestriction publisherRestriction1 = new PublisherRestriction(PURPOSE_ID,
