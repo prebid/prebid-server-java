@@ -219,7 +219,7 @@ public class PrivacyEnforcementService {
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
 
-        final VendorIdResolver vendorIdResolver = VendorIdResolver.of(bidderCatalog, aliases);
+        final VendorIdResolver vendorIdResolver = VendorIdResolver.of(aliases);
 
         return tcfDefinerService.resultForBidderNames(
                 new HashSet<>(bidders),

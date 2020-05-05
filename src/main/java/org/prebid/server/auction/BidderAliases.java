@@ -32,6 +32,10 @@ public class BidderAliases {
         return new BidderAliases(aliasToBidder, aliasToVendorId, bidderCatalog);
     }
 
+    public static BidderAliases of(BidderCatalog bidderCatalog) {
+        return new BidderAliases(null, null, bidderCatalog);
+    }
+
     public boolean isAliasDefined(String alias) {
         return aliasToBidder.containsKey(alias) || bidderCatalog.isAlias(alias);
     }
@@ -39,10 +43,22 @@ public class BidderAliases {
     public String resolveBidder(String aliasOrBidder) {
         return aliasToBidder.containsKey(aliasOrBidder)
                 ? aliasToBidder.get(aliasOrBidder)
-                : ObjectUtils.firstNonNull(bidderCatalog.nameByAlias(aliasOrBidder), aliasOrBidder);
+                : ObjectUtils.firstNonNull(resolveAliasViaCatalog(aliasOrBidder), aliasOrBidder);
     }
 
     public Integer resolveAliasVendorId(String alias) {
-        return aliasToVendorId.get(alias);
+        return aliasToVendorId.containsKey(alias)
+                ? aliasToVendorId.get(alias)
+                : resolveAliasVendorIdViaCatalog(alias);
+    }
+
+    private String resolveAliasViaCatalog(String aliasOrBidder) {
+        final String resolvedBidder = bidderCatalog.nameByAlias(aliasOrBidder);
+        return bidderCatalog.isActive(resolvedBidder) ? resolvedBidder : null;
+    }
+
+    private Integer resolveAliasVendorIdViaCatalog(String alias) {
+        final String bidderName = resolveBidder(alias);
+        return bidderCatalog.isActive(bidderName) ? bidderCatalog.vendorIdByName(bidderName) : null;
     }
 }
