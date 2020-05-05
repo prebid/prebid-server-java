@@ -27,6 +27,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -40,6 +41,25 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     @Before
     public void setUp() {
         zeroclickfraudBidder = new ZeroclickfraudBidder(ENDPOINT_TEMPLATE, jacksonMapper);
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new ZeroclickfraudBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURL() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(10, "host"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://host/openrtb2?sid=10");
     }
 
     @Test
