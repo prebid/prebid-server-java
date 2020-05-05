@@ -86,7 +86,7 @@ public class KidozBidder implements Bidder<BidRequest> {
     }
 
     private Imp validateImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
+        if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException("Kidoz only supports banner or video ads");
         }
 

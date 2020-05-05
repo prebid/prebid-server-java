@@ -60,6 +60,7 @@ public class KidozTest extends IntegrationTest {
                 "openrtb2/kidoz/test-auction-kidoz-response.json",
                 response, singletonList("kidoz"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        String actualStr = response.asString();
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }

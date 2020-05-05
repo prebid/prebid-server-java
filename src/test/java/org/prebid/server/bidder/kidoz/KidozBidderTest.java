@@ -118,7 +118,7 @@ public class KidozBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
         ExtPrebid<?, ExtImpKidoz> ext = ExtPrebid.of(null, ExtImpKidoz.of("token1", "publisherId"));
-        Imp imp = givenImp(
+        final Imp validImp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
                         .id("2")
@@ -126,15 +126,13 @@ public class KidozBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build()));
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        imp,
-                        givenImp(impBuilder -> impBuilder
-                                .banner(null)
-                                .id("2")
-                                .ext(mapper.valueToTree(ext))
-                                .audio(Audio.builder().build()))))
-                .build();
+        final Imp notValidImp = givenImp(impBuilder -> impBuilder
+                .banner(null)
+                .id("2")
+                .ext(mapper.valueToTree(ext))
+                .audio(Audio.builder().build()));
+
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(validImp, notValidImp)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kidozBidder.makeHttpRequests(bidRequest);
@@ -146,7 +144,7 @@ public class KidozBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(imp);
+                .containsOnly(validImp);
     }
 
     @Test
