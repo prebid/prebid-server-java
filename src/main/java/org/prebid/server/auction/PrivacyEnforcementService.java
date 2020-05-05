@@ -120,11 +120,12 @@ public class PrivacyEnforcementService {
                 .collect(Collectors.toList()));
     }
 
-    private static User maskCcpaUser(User user) {
+    private User maskCcpaUser(User user) {
         if (user != null) {
             return nullIfEmpty(user.toBuilder()
                     .buyeruid(null)
                     .geo(maskGeoDefault(user.getGeo()))
+                    .ext(maskUserExt(user.getExt()))
                     .build());
         }
         return null;
@@ -163,7 +164,7 @@ public class PrivacyEnforcementService {
                 .collect(Collectors.toList());
     }
 
-    private static User maskCoppaUser(User user) {
+    private User maskCoppaUser(User user) {
         if (user != null) {
             return nullIfEmpty(user.toBuilder()
                     .id(null)
@@ -171,6 +172,7 @@ public class PrivacyEnforcementService {
                     .gender(null)
                     .buyeruid(null)
                     .geo(maskGeoForCoppa(user.getGeo()))
+                    .ext(maskUserExt(user.getExt()))
                     .build());
         }
         return null;
