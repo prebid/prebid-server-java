@@ -43,7 +43,7 @@ public class BidderAliases {
     public String resolveBidder(String aliasOrBidder) {
         return aliasToBidder.containsKey(aliasOrBidder)
                 ? aliasToBidder.get(aliasOrBidder)
-                : ObjectUtils.firstNonNull(resolveAliasViaCatalog(aliasOrBidder), aliasOrBidder);
+                : ObjectUtils.firstNonNull(resolveBidderViaCatalog(aliasOrBidder), aliasOrBidder);
     }
 
     public Integer resolveAliasVendorId(String alias) {
@@ -52,7 +52,7 @@ public class BidderAliases {
                 : resolveAliasVendorIdViaCatalog(alias);
     }
 
-    private String resolveAliasViaCatalog(String aliasOrBidder) {
+    private String resolveBidderViaCatalog(String aliasOrBidder) {
         final String resolvedBidder = bidderCatalog.nameByAlias(aliasOrBidder);
         return bidderCatalog.isActive(resolvedBidder) ? resolvedBidder : null;
     }
