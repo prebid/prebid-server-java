@@ -102,7 +102,7 @@ public class PrivacyEnforcementService {
         final Timeout timeout = auctionContext.getTimeout();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         return getBidderToEnforcementAction(device, bidders, aliases, extUser, regs, accountConfig, timeout)
-                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, device))
+                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, aliases, requestType, device))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToUser, device, bidderToEnforcement));
     }
 
@@ -259,10 +259,13 @@ public class PrivacyEnforcementService {
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
-            Map<String, PrivacyEnforcementAction> bidderToEnforcement, MetricName requestType, Device device) {
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement,
+            BidderAliases aliases,
+            MetricName requestType,
+            Device device) {
 
         for (final Map.Entry<String, PrivacyEnforcementAction> bidderEnforcement : bidderToEnforcement.entrySet()) {
-            final String bidder = bidderEnforcement.getKey();
+            final String bidder = aliases.resolveBidder(bidderEnforcement.getKey());
             final PrivacyEnforcementAction enforcement = bidderEnforcement.getValue();
 
             metrics.updateAuctionTcfMetrics(

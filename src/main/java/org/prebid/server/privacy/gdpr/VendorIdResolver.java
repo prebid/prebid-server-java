@@ -5,6 +5,7 @@ import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.Objects;
 
+// FIXME
 public class VendorIdResolver {
 
     private final BidderCatalog bidderCatalog;

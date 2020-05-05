@@ -21,6 +21,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -53,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
@@ -77,6 +79,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private PrivacyEnforcementService privacyEnforcementService;
 
+    @Mock
+    private BidderAliases aliases;
     private Timeout timeout;
 
     @Before
@@ -84,6 +88,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, restrictDeviceAndUser()), null)));
+        given(aliases.resolveBidder(anyString())).willAnswer(invocation -> invocation.getArgument(0));
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
@@ -111,7 +116,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -148,7 +153,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -175,7 +180,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, emptyMap(), null, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, emptyMap(), null, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -210,7 +215,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -248,7 +253,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -287,7 +292,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -321,7 +326,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -362,7 +367,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -409,7 +414,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -448,7 +453,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -489,7 +494,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -532,7 +537,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -575,7 +580,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -623,11 +628,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         bidderToUser.put(requestBidder1Alias, notMaskedUser());
         bidderToUser.put(bidder2Alias, notMaskedUser());
         bidderToUser.put(requestBidder3Name, notMaskedUser());
-        final Map<String, String> aliases = new HashMap<>();
-        final Map<String, Integer> aliasgvlids = new HashMap<>();
-        aliases.put(requestBidder1Alias, requestBidder1Name);
-        aliases.put(bidder2Alias, bidder2Name);
-        aliasgvlids.put(bidder2Alias, bidder2AliasVendorId);
 
         final Map<String, PrivacyEnforcementAction> bidderNameToTcfEnforcement = new HashMap<>();
         bidderNameToTcfEnforcement.put(requestBidder1Name, PrivacyEnforcementAction.restrictAll());
@@ -638,11 +638,15 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, bidderNameToTcfEnforcement, null)));
 
+        given(aliases.resolveBidder(eq(requestBidder1Alias))).willReturn(requestBidder1Name);
+        given(aliases.resolveBidder(eq(bidder2Alias))).willReturn(bidder2Name);
+        given(aliases.resolveAliasVendorId(eq(bidder2Alias))).willReturn(bidder2AliasVendorId);
+
         // when
         final List<String> bidders =
                 asList(requestBidder1Name, requestBidder1Alias, bidder2Alias, requestBidder3Name);
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, bidders, BidderAliases.of(aliases, aliasgvlids))
+                .mask(context, bidderToUser, null, bidders, aliases)
                 .result();
 
         // then
@@ -694,7 +698,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .mask(context, bidderToUser, null, singletonList(BIDDER_NAME), aliases)
                 .result();
 
         // then
@@ -728,7 +732,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final Future<List<BidderPrivacyResult>> firstFuture = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null));
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), aliases);
 
         // then
         assertThat(firstFuture.failed()).isTrue();
@@ -752,7 +756,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // when and then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> privacyEnforcementService.mask(
-                        context, emptyMap(), null, singletonList(BIDDER_NAME), BidderAliases.of(null, null)))
+                        context, emptyMap(), null, singletonList(BIDDER_NAME), aliases))
                 .withMessageStartingWith("Error decoding bidRequest.regs.ext:");
     }
 
@@ -829,7 +833,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService
-                .mask(context, bidderToUser, extUser, bidders, BidderAliases.of(null, null))
+                .mask(context, bidderToUser, extUser, bidders, aliases)
                 .result();
 
         // then
@@ -856,9 +860,41 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 eq(timeout));
     }
 
+    @Test
+    public void shouldIncrementCcpaAndAuctionTcfMetrics() {
+        // given
+        final ExtUser extUser = ExtUser.builder().build();
+        final User user = notMaskedUser();
+        final Device device = notMaskedDevice();
+        final Map<String, User> bidderToUser = singletonMap("someAlias", user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap("someAlias", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .device(device));
+
+        final AuctionContext context = auctionContext(bidRequest);
+
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap("someAlias", restrictDeviceAndUser()), null)));
+
+        given(aliases.resolveBidder(eq("someAlias"))).willReturn(BIDDER_NAME);
+
+        // when
+        privacyEnforcementService.mask(context, bidderToUser, extUser, singletonList("someAlias"), aliases);
+
+        // then
+        verify(metrics).updatePrivacyCcpaMetrics(eq(false), eq(false));
+        verify(metrics).updateAuctionTcfMetrics(
+                eq(BIDDER_NAME), eq(MetricName.openrtb2web), eq(true), eq(true), eq(false), eq(false));
+    }
+
     private AuctionContext auctionContext(BidRequest bidRequest) {
         return AuctionContext.builder()
                 .account(Account.builder().build())
+                .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .build();

@@ -1647,8 +1647,12 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(TEN).build())))));
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.site(Site.builder().publisher(Publisher.builder().id("accountId").build()).build()));
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someAlias", 1)),
+                builder -> builder
+                        .site(Site.builder().publisher(Publisher.builder().id("accountId").build()).build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .aliases(singletonMap("someAlias", "someBidder"))
+                                .build()))));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1665,8 +1669,10 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldCallUpdateCookieMetricsWithExpectedValue() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someAlias", 1)),
                 builder -> builder.app(App.builder().build()));
+
+        given(bidderCatalog.nameByAlias("someAlias")).willReturn("someBidder");
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
