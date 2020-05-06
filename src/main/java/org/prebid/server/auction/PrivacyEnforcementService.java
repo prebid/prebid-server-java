@@ -453,7 +453,12 @@ public class PrivacyEnforcementService {
         }
         String maskedIp = ip;
         for (int i = 0; i < groups; i++) {
-            maskedIp = maskedIp.substring(0, maskedIp.lastIndexOf(delimiter));
+            if (maskedIp.contains(delimiter)) {
+                maskedIp = maskedIp.substring(0, maskedIp.lastIndexOf(delimiter));
+            } else {
+                // ip is malformed
+                return ip;
+            }
         }
         return String.format("%s%s", maskedIp,
                 IntStream.range(0, groups).mapToObj(ignored -> "0")
