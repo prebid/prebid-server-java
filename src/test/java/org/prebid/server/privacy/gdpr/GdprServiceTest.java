@@ -60,6 +60,16 @@ public class GdprServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAllDeniedWhenForVendorIsFailed() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("bad id"));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(9), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(9, null, denyAll())));
+    }
+
+    @Test
     public void shouldReturnAllDeniedWhenVendorIsNotInVendorList() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
