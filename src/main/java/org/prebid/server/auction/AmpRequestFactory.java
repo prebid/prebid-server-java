@@ -22,7 +22,6 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -559,8 +558,6 @@ public class AmpRequestFactory {
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
                 ? null : targeting.getMediatypepricegranularity();
 
-        final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
-
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 || targeting.getIncludewinners();
 
@@ -570,7 +567,6 @@ public class AmpRequestFactory {
         return ExtRequestTargeting.builder()
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
-                .currency(currency)
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
                 .build();

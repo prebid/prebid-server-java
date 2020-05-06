@@ -80,8 +80,8 @@ public class RhythmoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("placementId | zone | path not provided in imp id=123. Abort all " +
-                        "Request"));
+                .containsOnly(BidderError.badInput(
+                        "placementId | zone | path not provided in imp id=123. Abort all Request"));
         assertThat(result.getValue()).isEmpty();
     }
 

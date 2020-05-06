@@ -38,7 +38,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.Targeting;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -294,7 +293,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithDefaultIncludeBidderKeysIfStoredBidRequestExtTargetingHasNoIncludeBidderKeys() {
+    public void shouldReturnBidRequestWithDefaultIncludeBidderKeysIfStoredRequestExtTargetingHasNoIncludeBidderKeys() {
         // given
         givenBidRequest(
                 builder -> builder
@@ -528,7 +527,6 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Site::getPage, Site::getExt)
                 .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1, null))));
     }
-
 
     @Test
     public void shouldReturnBidRequestWithSitePublisherIdOverriddenWithAccountParamValue() {
@@ -1195,9 +1193,12 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameter() throws JsonProcessingException {
+    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameter() {
         // given
-        given(httpRequest.getParam("targeting")).willReturn("%7B%22bidders%22%3A%20%5B%20%22rubicon%22%2C%20%22appnexus%22%20%5D%2C%20%22site%22%3A%20%7B%22tags%22%3A%22autoestima%22%2C%22tagsId%22%3A%221357%22%2C%22parametro%22%3A%22%22%2C%22device%22%3A%22celular%22%7D%2C%20%22user%22%3A%7B%22ID%22%3A%2233559%22%7D%7D%0A");
+        given(httpRequest.getParam("targeting")).willReturn(
+                "%7B%22bidders%22%3A%20%5B%20%22rubicon%22%2C%20%22appnexus%22%20%5D%2C%20%22site%22%3A%20%7B%22"
+                        + "tags%22%3A%22autoestima%22%2C%22tagsId%22%3A%221357%22%2C%22parametro%22%3A%22%22%2C%22"
+                        + "device%22%3A%22celular%22%7D%2C%20%22user%22%3A%7B%22ID%22%3A%2233559%22%7D%7D%0A");
 
         givenBidRequest(
                 builder -> builder
@@ -1237,9 +1238,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameterWhenParametersAreEmpty() throws JsonProcessingException {
+    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameterWhenParametersAreEmpty()
+            throws JsonProcessingException {
         // given
-        given(httpRequest.getParam("targeting")).willReturn("%7B%22bidders%22%3A%20%5B%20%5D%2C%20%22site%22%3A%20%7B%7D%2C%20%22user%22%3A%7B%7D%7D%0A");
+        given(httpRequest.getParam("targeting")).willReturn(
+                "%7B%22bidders%22%3A%20%5B%20%5D%2C%20%22site%22%3A%20%7B%7D%2C%20%22user%22%3A%7B%7D%7D%0A");
 
         givenBidRequest(
                 builder -> builder
