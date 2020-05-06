@@ -693,7 +693,11 @@ public class BidResponseCreator {
                 throw new PreBidException(e.getMessage());
             }
 
-            responseAssets.forEach(asset -> setAssetTypes(asset, nativeRequest.getAssets()));
+            try {
+                responseAssets.forEach(asset -> setAssetTypes(asset, nativeRequest.getAssets()));
+            } catch (PreBidException e) {
+                throw new PreBidException(e.getMessage());
+            }
             bid.setAdm(mapper.encode(nativeMarkup));
         }
     }
@@ -704,6 +708,9 @@ public class BidResponseCreator {
             final Integer type = img != null ? img.getType() : null;
             if (type != null) {
                 responseAsset.getImg().setType(type);
+            } else {
+                throw new PreBidException(String.format("Response has an Image asset with ID:%s present that doesn't "
+                        + "exist in the request", responseAsset.getId()));
             }
         }
         if (responseAsset.getData() != null) {
@@ -711,6 +718,9 @@ public class BidResponseCreator {
             final Integer type = data != null ? data.getType() : null;
             if (type != null) {
                 responseAsset.getData().setType(type);
+            } else {
+                throw new PreBidException(String.format("Response has a Data asset with ID:%s present that doesn't "
+                        + "exist in the request", responseAsset.getId()));
             }
         }
     }
