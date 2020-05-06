@@ -16,7 +16,9 @@
       "ext": {
         "bidder": {
           "pid": "58bfec94eb0a1916fa380163",
-          "nq": ["search query"],
+          "nq": [
+            "search query"
+          ],
           "category": "Automotive",
           "subId": "a23",
           "ref": "https://nanointeractive.com"
@@ -38,7 +40,9 @@
       "ext": {
         "bidder": {
           "pid": "58bfec94eb0a1916fa380163",
-          "nq": ["search query"],
+          "nq": [
+            "search query"
+          ],
           "category": "Automotive",
           "subId": "a23",
           "ref": "https://nanointeractive.com"
@@ -47,7 +51,15 @@
     }
   ],
   "site": {
-    "ref": "https://nanointeractive.com"
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "ref": "https://nanointeractive.com",
+    "publisher": {
+      "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
+    }
   },
   "device": {
     "ua": "userAgent",

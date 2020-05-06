@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 public class NanointeractiveBidder implements Bidder<BidRequest> {
 
@@ -60,7 +62,7 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                     throw new PreBidException("pid is empty");
                 }
 
-                if (StringUtils.isNotBlank(extImp.getRef())) {
+                if (StringUtils.isBlank(reference) && StringUtils.isNotBlank(extImp.getRef())) {
                     reference = extImp.getRef();
                 }
                 validImps.add(validImp);
@@ -69,18 +71,10 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
             }
         }
 
-        Site updateSite = null;
-        if (StringUtils.isNotBlank(reference)) {
-            if (request.getSite() != null) {
-                updateSite = Site.builder().ref(reference).build();
-            }
-        }
-
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(validImps)
-                .site(updateSite)
+                .site(modifySite(reference, request))
                 .build();
-
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
@@ -109,6 +103,15 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static Site modifySite(String reference, BidRequest request) {
+        final Site site = request.getSite();
+        Site.SiteBuilder siteBuilder = null;
+        if (StringUtils.isNotBlank(reference)) {
+            siteBuilder = site == null ? Site.builder() : site.toBuilder().ref(reference);
+        }
+        return siteBuilder != null ? siteBuilder.build() : null;
+    }
+
     private MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
         final Device device = bidRequest.getDevice();
@@ -131,6 +134,16 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final int statusCode = httpCall.getResponse().getStatusCode();
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        } else if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
+            return Result.emptyWithError(BidderError.badInput("Invalid request."));
+        } else if (statusCode != HttpResponseStatus.OK.code()) {
+            return Result.emptyWithError(BidderError.badServerResponse(String.format("Unexpected HTTP status %s.",
+                    statusCode)));
+        }
+
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
@@ -151,7 +164,8 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
