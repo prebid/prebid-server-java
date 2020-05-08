@@ -32,7 +32,7 @@
     }
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
@@ -71,7 +71,8 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "user": {

@@ -54,7 +54,8 @@ public class VideoResponseFactoryTest extends VertxTest {
         final Bid bid2 = Bid.builder()
                 .impid("2_1")
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), mapper.createObjectNode())))
+                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null),
+                                mapper.createObjectNode())))
                 .build();
 
         final BidResponse bidResponse = BidResponse.builder()

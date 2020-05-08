@@ -8,29 +8,19 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.geolocation.GeoLocationService;
-import org.prebid.server.geolocation.model.GeoInfo;
-import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.gdpr.model.GdprPurpose;
-import org.prebid.server.privacy.gdpr.model.GdprResponse;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
-import java.util.Arrays;
-import java.util.HashSet;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class GdprServiceTest extends VertxTest {
 
@@ -38,326 +28,137 @@ public class GdprServiceTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private GeoLocationService geoLocationService;
-    @Mock
-    private Metrics metrics;
-    @Mock
-    private VendorListService vendorListService;
+    private VendorListService<VendorListV1, VendorV1> vendorListService;
 
     private GdprService gdprService;
 
     @Before
     public void setUp() {
-        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, singleton(GdprPurpose.informationStorageAndAccess.getId()))));
-        given(geoLocationService.lookup(anyString(), any()))
-                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country1").build()));
-
-        gdprService = new GdprService(emptyList(), "1", null, metrics, vendorListService);
+        gdprService = new GdprService(vendorListService);
     }
 
     @Test
-    public void isGdprEnforcedShouldConsiderRequestValue() {
-        // when
-        final boolean result = gdprService.isGdprEnforced("1", null, emptySet());
-
-        // then
-        assertTrue(result);
+    public void shouldReturnAllDeniedWhenNoConsentParam() {
+        assertThat(gdprService.resultFor(singleton(1), null))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
-    public void isGdprEnforcedShouldConsiderAccountConfigValue() {
-        // when
-        final boolean result = gdprService.isGdprEnforced(null, true, emptySet());
-
-        // then
-        assertTrue(result);
+    public void shouldReturnAllDeniedWhenConsentParamIsInvalid() {
+        assertThat(gdprService.resultFor(singleton(1), "invalid-consent"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
-    public void isGdprEnforcedShouldConsiderGdprEnforcedVendorsIfIsGdprEnforcedIsNull() {
-        // when
-        final boolean result = gdprService.isGdprEnforced(null, null, singleton(1));
-
-        // then
-        assertTrue(result);
-    }
-
-    @Test
-    public void shouldReturnGdprFromGeoLocationServiceIfGdprFromRequestIsNotValidAndUpdateMetrics() {
+    public void shouldReturnAllDeniedWhenVendorIsNotAllowed() {
         // given
-        gdprService = new GdprService(
-                singletonList("country1"), "1", geoLocationService, metrics, vendorListService);
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
-        // when
-        final Future<?> future = gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess),
-                singleton(1), "15", null, "ip", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), "country1"));
-
-        verify(metrics).updateGeoLocationMetric(true);
+        // when and then
+        assertThat(gdprService.resultFor(singleton(9), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(9, null, denyAll())));
     }
 
     @Test
-    public void shouldReturnSuccessResultIfGdprParamIsZero() {
-        // when
-        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
-    }
-
-    @Test
-    public void shouldReturnFalseForAllVendorIdsIfGdprParamIsOneAndNoConsentParam() {
-        // when
-        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "1", null, null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
-    }
-
-    @Test
-    public void shouldReturnTrueForAllVendorIdsIfGdprParamIsZeroAndNoConsentParam() {
-        // when
-        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
-    }
-
-    @Test
-    public void shouldReturnFalseForAllVendorIdsIfGdprIsOneButConsentParamIsInvalid() {
-        // when
-        final Future<GdprResponse> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), "1", "invalid-consent", null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
-    }
-
-    @Test
-    public void shouldReturnTrueForAllVendorIdsIfGdprIsZeroButConsentParamIsInvalid() {
-        // when
-        final Future<GdprResponse> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), "0", "invalid-consent", null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
-    }
-
-    @Test
-    public void shouldReturnRestrictedResultIfPurposeIsNotAllowed() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.adSelectionAndDeliveryAndReporting), singleton(1), "1",
-                        "BN5lERiOMYEdiAKAWXEND1HoSBE6CAFAApAMgBkIDIgM0AgOJxAnQA", null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
-    }
-
-    @Test
-    public void shouldReturnRestrictedResultIfVendorIdIsNull() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(null), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
-                        null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(null, false), null));
-    }
-
-    @Test
-    public void shouldReturnRestrictedResultIfVendorIdIsNotAllowed() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(9), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null,
-                        null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(9, false), null));
-    }
-
-    @Test
-    public void shouldReturnRestrictedResultIfVendorIdIsAbsentInVendorConsent() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(20), "1", "BOb3F3yOb3F3yABABBENABoAAAABQAAAgA", null,
-                        null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(20, false), null));
-    }
-
-    @Test
-    public void shouldReturnAllowedResultIfGdprParamIsOneAndConsentParamIsValid() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
-                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
-    }
-
-    @Test
-    public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotFoundButDefaultGdprIsZeroAndUpdateMetrics() {
+    public void shouldReturnAllDeniedWhenVendorIsNotInVendorList() {
         // given
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.failedFuture("country not found"));
-        gdprService = new GdprService(emptyList(), "0", geoLocationService, metrics, vendorListService);
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
-
-        verify(metrics).updateGeoLocationMetric(false);
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
-    public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotInEEA() {
-        // given
-        gdprService = new GdprService(emptyList(), "1", geoLocationService, metrics, vendorListService);
-
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), "country1"));
-
-        verify(metrics).updateGeoLocationMetric(true);
-    }
-
-    @Test
-    public void shouldReturnAllowedResultIfNoPurposesProvided() {
+    public void shouldReturnAllDeniedWhenAllClaimedPurposesAreNotAllowed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3)))));
+                singletonMap(1, VendorV1.of(1, singleton(4), singleton(5)))));
 
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), "1",
-                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     @Test
-    public void shouldReturnAllowedResultIfNoGdprParamAndConsentParamIsValidAndCountryIsInEEA() {
-        // given
-        gdprService = new GdprService(
-                singletonList("country1"), "1", geoLocationService, metrics, vendorListService);
-
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), null,
-                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", "ip", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), "country1"));
-
-        verify(metrics).updateGeoLocationMetric(true);
-    }
-
-    @Test
-    public void shouldReturnAllowedResultIfNoGdprParamAndNoIpButGdprDefaultValueIsZero() {
-        // given
-        gdprService = new GdprService(emptyList(), "0", null, metrics, vendorListService);
-
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), null, null, null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
-    }
-
-    @Test
-    public void shouldNotCallGeoLocationServiceIfValidGdprAndIpAddressAreInRequest() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
-                        null, "ip", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        verifyZeroInteractions(geoLocationService);
-    }
-
-    @Test
-    public void shouldReturnFailedFutureIfGdprSdkCantGetAllowedPurposesInAReasonOfInvalidConsentString() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
-                        "BONciguONcjGKADACHENAOLS1r", null, null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage())
-                .isEqualTo("Error when retrieving allowed purpose ids in a reason of invalid consent string");
-    }
-
-    @Test
-    public void shouldReturnFailedFutureIfGdprSdkCantCheckIfVendorAllowedInAReasonOfInvalidConsentString() {
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
-                        "BOSbaBZOSbaBoABABBENBcoAAAAgSABgBAA", null, null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage())
-                .isEqualTo("Error when checking if vendor is allowed in a reason of invalid consent string");
-    }
-
-    @Test
-    public void shouldReturnRestrictedResultIfGdprParamIsOneAndConsentHasNotAllVendorPurposes() {
+    public void shouldReturnPrivateInfoAllowedUserSyncDeniedWhenAllClaimedPurposesAreAllowed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3, 4)))));
+                singletonMap(1, VendorV1.of(1, singleton(2), singleton(3)))));
 
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(1), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(true, false))));
     }
 
     @Test
-    public void shouldReturnAllowedResultIfGdprParamIsOneAndConsentHasAllVendorPurposes() {
+    public void shouldReturnAllAllowedWhenAllClaimedPurposesAreAllowedIncludingPurposeOne() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
-                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3)))));
+                singletonMap(1, VendorV1.of(1, singleton(1), singleton(2)))));
 
-        // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(1), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(true, true))));
+    }
 
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
+    @Test
+    public void shouldReturnPrivateInfoDeniedUserSyncAllowedWhenNotAllClaimedPurposesAreAllowedButPurposeOneIs() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
+                singletonMap(1, VendorV1.of(1, singleton(1), singleton(4)))));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(false, true))));
+    }
+
+    @Test
+    public void shouldReturnUserSyncDeniedWhenPurposeOneIsAllowedButNotClaimed() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
+                singletonMap(1, VendorV1.of(1, singleton(2), singleton(3)))));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, action(true, false))));
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenGettingAllowedPurposesFails() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BONciguONcjGKADACHENAOLS1r"))
+                .isFailed()
+                .hasMessage("Error when retrieving allowed purpose ids in a reason of invalid consent string");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWhenGettingIfVendorAllowedFails() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOSbaBZOSbaBoABABBENBcoAAAAgSABgBAA"))
+                .isFailed()
+                .hasMessage("Error when checking if vendor is allowed in a reason of invalid consent string");
+    }
+
+    private static PrivacyEnforcementAction denyAll() {
+        return action(false, false);
+    }
+
+    private static PrivacyEnforcementAction action(boolean allowPrivateInfo, boolean allowUserSync) {
+        return PrivacyEnforcementAction.builder()
+                .removeUserIds(!allowPrivateInfo)
+                .maskGeo(!allowPrivateInfo)
+                .maskDeviceIp(!allowPrivateInfo)
+                .maskDeviceInfo(!allowPrivateInfo)
+                .blockAnalyticsReport(false)
+                .blockBidderRequest(false)
+                .blockPixelSync(!allowUserSync)
+                .build();
     }
 }

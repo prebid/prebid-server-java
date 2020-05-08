@@ -44,16 +44,16 @@
   "user": {
     "buyeruid": "CV-UID",
     "ext": {
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      },
-      "consent": "consentValue"
+      }
     }
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
@@ -81,16 +81,6 @@
             }
           ]
         },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
-          }
-        },
         "includewinners": true,
         "includebidderkeys": true
       },
@@ -99,7 +89,8 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   }
 }

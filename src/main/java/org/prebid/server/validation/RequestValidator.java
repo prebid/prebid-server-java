@@ -452,7 +452,7 @@ public class RequestValidator {
                         final ExtUserEid eid = eids.get(index);
                         if (StringUtils.isBlank(eid.getSource())) {
                             throw new ValidationException(
-                                    "request.user.ext.eids[%d].source missing required field: \"source\"", index);
+                                    "request.user.ext.eids[%d] missing required field: \"source\"", index);
                         }
                         final String eidId = eid.getId();
                         final List<ExtUserEidUid> eidUids = eid.getUids();

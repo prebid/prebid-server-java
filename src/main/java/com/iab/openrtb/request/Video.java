@@ -30,10 +30,14 @@ public class Video {
      */
     List<String> mimes;
 
-    /** Minimum video ad duration in seconds. (recommended) */
+    /**
+     * Minimum video ad duration in seconds. (recommended)
+     */
     Integer minduration;
 
-    /** Maximum video ad duration in seconds. (recommended) */
+    /**
+     * Maximum video ad duration in seconds. (recommended)
+     */
     Integer maxduration;
 
     /**
@@ -62,7 +66,9 @@ public class Video {
      */
     Integer startdelay;
 
-    /** Placement type for the impression. Refer to List 5.9. */
+    /**
+     * Placement type for the impression. Refer to List 5.9.
+     */
     Integer placement;
 
     /**
@@ -83,13 +89,13 @@ public class Video {
      * Videos of total duration greater than this number of seconds can be
      * skippable; only applicable if the ad is skippable.
      */
-    int skipmin;
+    Integer skipmin;
 
     /**
      * Number of seconds a video must play before skipping is enabled; only
      * applicable if the ad is skippable.
      */
-    int skipafter;
+    Integer skipafter;
 
     /**
      * If multiple ad impressions are offered in the same bid request, the
@@ -98,7 +104,9 @@ public class Video {
      */
     Integer sequence;
 
-    /** Blocked creative attributes. Refer to List 5.3. */
+    /**
+     * Blocked creative attributes. Refer to List 5.3.
+     */
     List<Integer> battr;
 
     /**
@@ -110,10 +118,14 @@ public class Video {
      */
     Integer maxextended;
 
-    /** Minimum bit rate in Kbps. */
+    /**
+     * Minimum bit rate in Kbps.
+     */
     Integer minbitrate;
 
-    /** Maximum bit rate in Kbps. */
+    /**
+     * Maximum bit rate in Kbps.
+     */
     Integer maxbitrate;
 
     /**
@@ -131,7 +143,9 @@ public class Video {
      */
     List<Integer> playbackmethod;
 
-    /** The event that causes playback to end. Refer to List 5.11. */
+    /**
+     * The event that causes playback to end. Refer to List 5.11.
+     */
     Integer playbackend;
 
     /**
@@ -140,10 +154,14 @@ public class Video {
      */
     List<Integer> delivery;
 
-    /** Ad position on screen. Refer to List 5.4. */
+    /**
+     * Ad position on screen. Refer to List 5.4.
+     */
     Integer pos;
 
-    /** Array of Banner objects (Section 3.2.6) if companion ads are available. */
+    /**
+     * Array of Banner objects (Section 3.2.6) if companion ads are available.
+     */
     List<Banner> companionad;
 
     /**
@@ -161,6 +179,8 @@ public class Video {
      */
     List<Integer> companiontype;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }
