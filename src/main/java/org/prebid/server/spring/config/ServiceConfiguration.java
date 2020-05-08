@@ -469,11 +469,11 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
-            JacksonMapper mapper,
-            @Value("${auction.generate-bid-id}") Boolean generateBidId) {
+            @Value("${auction.generate-bid-id}") boolean generateBidId,
+            JacksonMapper mapper) {
 
         return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
-                mapper, generateBidId);
+                generateBidId, mapper);
     }
 
     @Bean

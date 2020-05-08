@@ -125,7 +125,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
         bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
-                jacksonMapper, false);
+                false, jacksonMapper);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -430,7 +430,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService,
-                storedRequestProcessor, jacksonMapper, true);
+                storedRequestProcessor, true, jacksonMapper);
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, CACHE_INFO, ACCOUNT, false, 1000L, false, timeout).result();

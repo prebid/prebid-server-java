@@ -20,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
@@ -87,8 +88,8 @@ public class BidResponseCreator {
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final boolean generateBidId;
     private final JacksonMapper mapper;
-    private final Boolean generateBidId;
 
     private final String cacheHost;
     private final String cachePath;
@@ -96,7 +97,7 @@ public class BidResponseCreator {
 
     public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog, EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
-                              JacksonMapper mapper, Boolean generateBidId) {
+                              boolean generateBidId, JacksonMapper mapper) {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
@@ -662,16 +663,15 @@ public class BidResponseCreator {
             cache = null;
         }
 
-        final String extBidPrebidId = BooleanUtils.toBoolean(this.generateBidId) ? UUID.randomUUID().toString() : null;
-        final String eventId = BooleanUtils.toBoolean(this.generateBidId) ? extBidPrebidId : bid.getId();
+        final String extBidPrebidId = generateBidId ? UUID.randomUUID().toString() : null;
+        final String eventId = ObjectUtils.defaultIfNull(extBidPrebidId, bid.getId());
         final Video storedVideo = impIdToStoredVideo.get(bid.getImpid());
         final Events events = eventsEnabled && eventsAllowedByRequest
                 ? eventsService.createEvent(eventId, bidder, account.getId(), auctionTimestamp)
                 : null;
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(
-                extBidPrebidId, bidType, targetingKeywords, cache, storedVideo, events, null
-        );
+                extBidPrebidId, bidType, targetingKeywords, cache, storedVideo, events, null);
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
