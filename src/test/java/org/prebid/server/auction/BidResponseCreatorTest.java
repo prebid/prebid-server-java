@@ -441,7 +441,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getExt)
                 .extracting(ext -> ext.get("prebid"))
                 .extracting(extPrebid -> mapper.treeToValue(extPrebid, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getBidId)
+                .extracting(ExtBidPrebid::getBidid)
                 .hasSize(1)
                 .doesNotContainNull();
 

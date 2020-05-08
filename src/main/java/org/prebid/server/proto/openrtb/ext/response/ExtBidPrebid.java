@@ -14,7 +14,7 @@ import java.util.Map;
 @Value
 public class ExtBidPrebid {
 
-    String bidId;
+    String bidid;
 
     BidType type;
 
