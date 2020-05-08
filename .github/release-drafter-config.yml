@@ -1,0 +1,11 @@
+name-template: '$NEXT_PATCH_VERSION'
+tag-template: '$NEXT_PATCH_VERSION'
+change-template: '- $TITLE (#$NUMBER)'
+no-changes-template: '- No changes'
+template: |
+  ## What’s Changed
+  $CHANGES
+  
+  ## Contributors
+  
+  $CONTRIBUTORS
