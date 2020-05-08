@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class CustomizedAdminEndpointTest extends VertxTest {
 
-    private final static String PATH = "test";
+    private static final String PATH = "test";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();

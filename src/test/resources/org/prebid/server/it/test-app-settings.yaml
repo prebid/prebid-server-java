@@ -9,7 +9,6 @@ accounts:
   - id: 2763
   - id: 5001
     eventsEnabled: true
-    enforceGdpr: true
 configs:
   - id: 14062
     config: >

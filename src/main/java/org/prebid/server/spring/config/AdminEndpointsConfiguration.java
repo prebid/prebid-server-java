@@ -3,12 +3,12 @@ package org.prebid.server.spring.config;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.settings.SettingsCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,11 +31,11 @@ public class AdminEndpointsConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "logger-level-modifier", name = "enabled", havingValue = "true")
     CustomizedAdminEndpoint loggerLevelModifierEndpoint(
-            LogModifier logModifier,
+            AdminManager adminManager,
             @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials,
             @Value("${admin-endpoints.logger-level-modifier.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.logger-level-modifier.protected}") boolean isProtected) {
-        final AdminHandler adminHandler = new AdminHandler(logModifier);
+        final AdminHandler adminHandler = new AdminHandler(adminManager);
         final Map<String, String> adminEndpointCredentialsMap = adminEndpointCredentials == null
                 ? null
                 : adminEndpointCredentials.getCredentials();

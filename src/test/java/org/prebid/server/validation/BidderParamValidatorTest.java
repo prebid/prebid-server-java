@@ -304,7 +304,6 @@ public class BidderParamValidatorTest extends VertxTest {
         assertThat(messages.size()).isEqualTo(1);
     }
 
-
     @Test
     public void validateShouldNotReturnValidationMessagesWhenEplanningImpExtIsOk() {
         // given

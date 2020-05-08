@@ -9,7 +9,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
@@ -27,7 +26,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
@@ -48,10 +46,11 @@ import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
-import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
@@ -105,11 +104,11 @@ public class WebConfiguration {
         logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
                 httpPort);
 
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
+        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
                 vertx.createHttpServer(httpServerOptions)
                         .exceptionHandler(exceptionHandler)
                         .requestHandler(router)
-                        .listen(httpPort, future));
+                        .listen(httpPort, promise));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
@@ -144,8 +143,7 @@ public class WebConfiguration {
     }
 
     @Bean("router")
-    Router router(CookieHandler cookieHandler,
-                  BodyHandler bodyHandler,
+    Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
                   AuctionHandler auctionHandler,
@@ -166,7 +164,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
@@ -197,11 +194,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    CookieHandler cookieHandler() {
-        return CookieHandler.create();
-    }
-
-    @Bean
     NoCacheHandler noCacheHandler() {
         return NoCacheHandler.create();
     }
@@ -228,7 +220,7 @@ public class WebConfiguration {
             Metrics metrics,
             HttpAdapterConnector httpAdapterConnector,
             Clock clock,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -242,7 +234,7 @@ public class WebConfiguration {
                 metrics,
                 httpAdapterConnector,
                 clock,
-                gdprService,
+                tcfDefinerService,
                 privacyExtractor,
                 mapper,
                 hostVendorId,
@@ -256,11 +248,11 @@ public class WebConfiguration {
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
-            LogModifier logModifier,
+            AdminManager adminManager,
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, logModifier, mapper);
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, adminManager, mapper);
     }
 
     @Bean
@@ -273,7 +265,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
-            LogModifier logModifier,
+            AdminManager adminManager,
             JacksonMapper mapper) {
 
         return new AmpHandler(
@@ -285,7 +277,7 @@ public class WebConfiguration {
                 bidderCatalog,
                 ampProperties.getCustomTargetingSet(),
                 ampResponsePostProcessor,
-                logModifier,
+                adminManager,
                 mapper);
     }
 
@@ -317,9 +309,10 @@ public class WebConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
@@ -328,25 +321,26 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
-                coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
+        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation,
+                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
     @Bean
     SetuidHandler setuidHandler(
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
-                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, applicationSettings, bidderCatalog,
+                tcfDefinerService, hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -357,6 +351,7 @@ public class WebConfiguration {
     @Bean
     VtrackHandler vtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${vtrack.allow-unkonwn-bidder}") boolean allowUnknownBidder,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CacheService cacheService,
@@ -364,7 +359,8 @@ public class WebConfiguration {
             JacksonMapper mapper) {
 
         return new VtrackHandler(
-                defaultTimeoutMs, applicationSettings, bidderCatalog, cacheService, timeoutFactory, mapper);
+                defaultTimeoutMs, allowUnknownBidder, applicationSettings, bidderCatalog, cacheService, timeoutFactory,
+                mapper);
     }
 
     @Bean

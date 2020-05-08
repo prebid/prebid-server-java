@@ -10,7 +10,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,9 +30,9 @@ import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -88,7 +87,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private LogModifier logModifier;
+    private AdminManager adminManager;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -114,13 +113,11 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(logModifier.get()).willReturn(Logger::info);
-
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
 
         auctionHandler = new AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, logModifier, jacksonMapper);
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, adminManager, jacksonMapper);
     }
 
     @Test
@@ -302,12 +299,13 @@ public class AuctionHandlerTest extends VertxTest {
         final BidRequest resolvedRequest = BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder().mediatypepricegranularity(priceGranuality).build())
+                        .auctiontimestamp(0L)
                         .build())))
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-                                null, null, null, null)))
+                                null, null, null, null, null)))
                         .build()));
 
         // when
@@ -315,10 +313,9 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(exchangeService).holdAuction(any());
-
-        verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":" +
-                "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":" +
-                "[{\"max\":10,\"increment\":1}]},\"native\":{}}}}}}}}}"));
+        verify(httpResponse).end(eq("{\"ext\":{\"debug\":{\"resolvedrequest\":{\"ext\":{\"prebid\":"
+                + "{\"targeting\":{\"mediatypepricegranularity\":{\"banner\":{\"precision\":1,\"ranges\":"
+                + "[{\"max\":10,\"increment\":1}]},\"native\":{}}},\"auctiontimestamp\":0}}}}}}"));
     }
 
     @Test
@@ -380,8 +377,8 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        httpRequest.headers().add(HttpUtil.USER_AGENT_HEADER, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
-                "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
+        httpRequest.headers().add(HttpUtil.USER_AGENT_HEADER, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) "
+                + "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
 
         // when
         auctionHandler.handle(routingContext);
@@ -571,7 +568,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(logModifier).get();
+        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()

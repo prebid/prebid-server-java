@@ -26,8 +26,8 @@ public class BrightrollTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromBrightroll() throws IOException, JSONException {
         // given
         // brightroll bid response for imp 15
-        wireMockRule.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
-                .withQueryParam("publisher", equalTo("publisher"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
+                .withQueryParam("publisher", equalTo("businessinsider"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
@@ -39,12 +39,12 @@ public class BrightrollTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/brightroll/test-brightroll-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/brightroll/test-cache-brightroll-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/brightroll/test-cache-brightroll-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

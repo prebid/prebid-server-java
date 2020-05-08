@@ -489,7 +489,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         final ObjectNode inventory = mapper.createObjectNode();
         inventory.set("rating", mapper.createArrayNode().add(new TextNode("5-star")));
-        inventory.set("prodtype", mapper.createArrayNode().add((new TextNode("tech"))));
+        inventory.set("prodtype", mapper.createArrayNode().add(new TextNode("tech")));
 
         adapterRequest = givenBidderCustomizable(identity(), builder -> builder.inventory(inventory));
 
@@ -508,7 +508,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         final ObjectNode visitor = mapper.createObjectNode();
         visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
-        visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
+        visitor.set("search", mapper.createArrayNode().add(new TextNode("iphone")));
 
         adapterRequest = givenBidderCustomizable(identity(), builder -> builder.visitor(visitor));
 
@@ -641,8 +641,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBidRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull
-            () {
+    public void makeHttpRequestsShouldReturnRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder

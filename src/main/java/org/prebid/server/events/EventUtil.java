@@ -22,6 +22,9 @@ public class EventUtil {
 
     // Optional query string parameters
 
+    private static final String BIDDER_PARAMETER = "bidder";
+    private static final String TIMESTAMP_PARAMETER = "ts";
+
     private static final String FORMAT_PARAMETER = "f";
     private static final String BLANK_FORMAT = "b"; // default
     private static final String IMAGE_FORMAT = "i";
@@ -42,19 +45,19 @@ public class EventUtil {
         }
     }
 
-    public static void validateBidId(RoutingContext context) {
-        final String bidId = context.request().params().get(BID_ID_PARAMETER);
-        if (StringUtils.isBlank(bidId)) {
-            throw new IllegalArgumentException(String.format(
-                    "BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
-        }
-    }
-
     public static void validateAccountId(RoutingContext context) {
         final String accountId = context.request().params().get(ACCOUNT_ID_PARAMETER);
         if (StringUtils.isBlank(accountId)) {
             throw new IllegalArgumentException(String.format(
                     "Account '%s' is required query parameter and can't be empty", ACCOUNT_ID_PARAMETER));
+        }
+    }
+
+    public static void validateBidId(RoutingContext context) {
+        final String bidId = context.request().params().get(BID_ID_PARAMETER);
+        if (StringUtils.isBlank(bidId)) {
+            throw new IllegalArgumentException(String.format(
+                    "BidId '%s' is required query parameter and can't be empty", BID_ID_PARAMETER));
         }
     }
 
@@ -77,6 +80,18 @@ public class EventUtil {
         }
     }
 
+    public static void validateTimestamp(RoutingContext context) {
+        final String timestamp = StringUtils.stripToNull(context.request().params().get(TIMESTAMP_PARAMETER));
+        if (timestamp != null) {
+            try {
+                Long.parseLong(timestamp);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(String.format(
+                        "Timestamp '%s' query parameter is not valid number: %s", TIMESTAMP_PARAMETER, timestamp));
+            }
+        }
+    }
+
     public static EventRequest from(RoutingContext context) {
         final MultiMap queryParams = context.request().params();
 
@@ -90,10 +105,15 @@ public class EventUtil {
                 queryParams.get(ANALYTICS_PARAMETER))
                 ? EventRequest.Analytics.disabled : EventRequest.Analytics.enabled;
 
+        final String timestampAsString = StringUtils.stripToNull(queryParams.get(TIMESTAMP_PARAMETER));
+        final Long timestamp = timestampAsString != null ? Long.valueOf(timestampAsString) : null;
+
         return EventRequest.builder()
                 .type(type)
                 .bidId(queryParams.get(BID_ID_PARAMETER))
                 .accountId(queryParams.get(ACCOUNT_ID_PARAMETER))
+                .bidder(queryParams.get(BIDDER_PARAMETER))
+                .timestamp(timestamp)
                 .format(format)
                 .analytics(analytics)
                 .build();
@@ -105,25 +125,37 @@ public class EventUtil {
                 eventRequest.getBidId(),
                 eventRequest.getAccountId());
 
-        final String formatQueryString;
+        return urlWithRequiredParameters + optionalParameters(eventRequest);
+    }
+
+    private static String optionalParameters(EventRequest eventRequest) {
+        final StringBuilder result = new StringBuilder();
+
+        // timestamp
+        if (eventRequest.getTimestamp() != null) {
+            result.append(nameValueAsQueryString(TIMESTAMP_PARAMETER, eventRequest.getTimestamp().toString()));
+        }
+
+        // bidder
+        if (eventRequest.getBidder() != null) {
+            result.append(nameValueAsQueryString(BIDDER_PARAMETER, eventRequest.getBidder()));
+        }
+
+        // format
         if (eventRequest.getFormat() == EventRequest.Format.blank) {
-            formatQueryString = nameValueAsQueryString(FORMAT_PARAMETER, BLANK_FORMAT);
+            result.append(nameValueAsQueryString(FORMAT_PARAMETER, BLANK_FORMAT));
         } else if (eventRequest.getFormat() == EventRequest.Format.image) {
-            formatQueryString = nameValueAsQueryString(FORMAT_PARAMETER, IMAGE_FORMAT);
-        } else {
-            formatQueryString = StringUtils.EMPTY; // skip parameter
+            result.append(nameValueAsQueryString(FORMAT_PARAMETER, IMAGE_FORMAT));
         }
 
-        final String analyticsQueryString;
+        // analytics
         if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
-            analyticsQueryString = nameValueAsQueryString(ANALYTICS_PARAMETER, ENABLED_ANALYTICS);
+            result.append(nameValueAsQueryString(ANALYTICS_PARAMETER, ENABLED_ANALYTICS));
         } else if (eventRequest.getAnalytics() == EventRequest.Analytics.disabled) {
-            analyticsQueryString = nameValueAsQueryString(ANALYTICS_PARAMETER, DISABLED_ANALYTICS);
-        } else {
-            analyticsQueryString = StringUtils.EMPTY; // skip parameter
+            result.append(nameValueAsQueryString(ANALYTICS_PARAMETER, DISABLED_ANALYTICS));
         }
 
-        return urlWithRequiredParameters + formatQueryString + analyticsQueryString;
+        return result.toString();
     }
 
     private static String nameValueAsQueryString(String name, String value) {

@@ -410,8 +410,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     }
 
     @Test
-    public void
-    callShouldReturnAdapterResponseWithErrorIfAtLeastOneErrorOccursWhileHttpRequestForNotToleratedErrorsAdapter()
+    public void callShouldReturnAdapterResponseWithErrorIfErrorsOccurWhileHttpRequestForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, null);
@@ -443,8 +442,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     }
 
     @Test
-    public void
-    callShouldReturnAdapterResponseWithoutErrorIfAtLeastOneBidIsPresentWhileHttpRequestForToleratedErrorsAdapter()
+    public void callShouldReturnAdapterResponseWithoutErrorIfBidsArePresentWhileHttpRequestForToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         willReturn(asList(givenHttpRequest(), givenHttpRequest())).given(adapter).makeHttpRequests(any(), any());
@@ -475,8 +473,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     }
 
     @Test
-    public void
-    callShouldReturnAdapterResponseWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
+    public void callShouldReturnAdapterResponseWithErrorIfErrorsOccurWhileExtractingForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         willReturn(asList(givenHttpRequest(), givenHttpRequest())).given(adapter).makeHttpRequests(any(), any());
@@ -503,8 +500,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     }
 
     @Test
-    public void
-    callShouldReturnAdapterResponseWithoutErrorIfAtLeastOneBidIsPresentWhileExtractingForToleratedErrorsAdapter()
+    public void callShouldReturnAdapterResponseWithoutErrorIfBidsArePresentWhileExtractingForToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         willReturn(asList(givenHttpRequest(), givenHttpRequest())).given(adapter).makeHttpRequests(any(), any());

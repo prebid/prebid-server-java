@@ -27,7 +27,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -462,8 +461,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams, ExtImpPrebid prebidImpExt) {
-        final String videoType = prebidImpExt != null
-                && BooleanUtils.isTrue(prebidImpExt.getIsRewardedInventory()) ? "rewarded" : null;
+        final String videoType = prebidImpExt != null && prebidImpExt.getIsRewardedInventory() != null
+                && prebidImpExt.getIsRewardedInventory() == 1 ? "rewarded" : null;
 
         if (rubiconVideoParams == null && videoType == null) {
             return video;
