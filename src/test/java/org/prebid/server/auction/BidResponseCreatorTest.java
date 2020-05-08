@@ -71,6 +71,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -221,7 +222,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // just a stub to get through method call chain
         givenCacheServiceResult(singletonMap(bid1, CacheIdInfo.of(null, null)));
 
-        // when\
+        // when
         bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, ACCOUNT, false, 1000L, false,
                 timeout);
 
@@ -415,7 +416,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldOverwriteBidderIdToUUID() {
+    public void shouldOverrideBidIdWhenGenerateBidIdIsTurnedOn() {
         // given
         final BidRequest bidRequest = givenBidRequest();
 
@@ -443,7 +444,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(extPrebid -> mapper.treeToValue(extPrebid, ExtBidPrebid.class))
                 .extracting(ExtBidPrebid::getBidid)
                 .hasSize(1)
-                .doesNotContainNull();
+                .first()
+                .satisfies(bidId -> assertThat(UUID.fromString(bidId)).isInstanceOf(UUID.class));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
