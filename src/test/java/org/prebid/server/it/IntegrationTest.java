@@ -15,7 +15,6 @@ import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -53,9 +52,6 @@ public abstract class IntegrationTest extends VertxTest {
             .port(WIREMOCK_PORT)
             .gzipDisabled(true)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
-
-    @Rule
-    public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
 
     static final RequestSpecification SPEC = spec(APP_PORT);
 
