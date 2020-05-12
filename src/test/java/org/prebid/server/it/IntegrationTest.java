@@ -13,6 +13,7 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.prebid.server.VertxTest;
@@ -61,6 +62,11 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
+    @After
+    public void setUpInstance() {
+        WIRE_MOCK_RULE.resetAll();
     }
 
     static RequestSpecification spec(int port) {
