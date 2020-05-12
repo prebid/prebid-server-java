@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.applogy;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;

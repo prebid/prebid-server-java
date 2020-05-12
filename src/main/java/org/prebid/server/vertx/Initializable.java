@@ -8,6 +8,7 @@ import io.vertx.core.Handler;
  * Initialization is expected to be performed on Vert.x {@link io.vertx.core.Context} (event loop) thread, see
  * {@link io.vertx.core.Vertx#runOnContext(Handler)} and/or {@link io.vertx.core.Context#runOnContext(Handler)}.
  */
+@FunctionalInterface
 public interface Initializable {
 
     void initialize();

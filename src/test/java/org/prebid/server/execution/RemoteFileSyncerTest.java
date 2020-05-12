@@ -41,7 +41,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class RemoteFileSyncerTest extends VertxTest {
 
@@ -94,11 +93,14 @@ public class RemoteFileSyncerTest extends VertxTest {
                 () -> RemoteFileSyncer.create(SOURCE_URL, null, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT,
                         UPDATE_INTERVAL, httpClient, vertx, fileSystem));
         assertThatNullPointerException().isThrownBy(
-                () -> RemoteFileSyncer.create(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, UPDATE_INTERVAL, null, vertx, fileSystem));
+                () -> RemoteFileSyncer.create(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL,
+                        TIMEOUT, UPDATE_INTERVAL, null, vertx, fileSystem));
         assertThatNullPointerException().isThrownBy(
-                () -> RemoteFileSyncer.create(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, UPDATE_INTERVAL, httpClient, null, fileSystem));
+                () -> RemoteFileSyncer.create(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL,
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, null, fileSystem));
         assertThatNullPointerException().isThrownBy(
-                () -> RemoteFileSyncer.create(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL, TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, null));
+                () -> RemoteFileSyncer.create(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_COUNT, RETRY_INTERVAL,
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx, null));
     }
 
     @Test

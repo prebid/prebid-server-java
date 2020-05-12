@@ -27,7 +27,7 @@ public class EplanningTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromEplanning() throws IOException, JSONException {
         // given
         // eplanning bid response for imp15
-        wireMockRule.stubFor(get(urlPathEqualTo("/eplanning-exchange/12345/1/example.com/ROS"))
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/eplanning-exchange/12345/1/example.com/ROS"))
                 .withQueryParam("r", equalTo("pbs"))
                 .withQueryParam("ncb", equalTo("1"))
                 .withQueryParam("ur", equalTo("https://www.example.com"))
@@ -42,12 +42,12 @@ public class EplanningTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/eplanning/test-eplanning-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/eplanning/test-cache-eplanning-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/eplanning/test-cache-eplanning-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "https://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

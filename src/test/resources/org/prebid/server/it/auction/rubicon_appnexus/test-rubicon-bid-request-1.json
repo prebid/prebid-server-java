@@ -15,8 +15,6 @@
         "w": 300,
         "h": 250,
         "startdelay": 5,
-        "skipmin": 0,
-        "skipafter": 0,
         "playbackmethod": [
           1
         ],
@@ -65,11 +63,11 @@
   },
   "device": {
     "ua": "userAgent",
+    "dnt": 10,
     "ip": "193.168.244.1",
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId",
-    "dnt": 10,
     "ext": {
       "rp": {
         "pixelratio": 4.2
@@ -80,6 +78,7 @@
     "id": "12345",
     "buyeruid": "J5VLCWQP-26-CWFT",
     "ext": {
+      "consent": "consent1",
       "rp": {
         "target": {
           "ucat": [
@@ -89,19 +88,18 @@
             "iphone"
           ]
         }
-      },
-      "consent": "consent1"
+      }
     }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
   },
   "regs": {
     "ext": {
       "gdpr": 1
     }
-  },
-  "at": 1,
-  "tmax": 1000,
-  "source": {
-    "fd": 1,
-    "tid": "tid"
   }
 }

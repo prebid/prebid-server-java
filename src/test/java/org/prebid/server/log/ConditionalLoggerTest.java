@@ -16,6 +16,7 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -46,22 +47,53 @@ public class ConditionalLoggerTest {
     @Test
     public void infoShouldCallLoggerWithExpectedCount() {
         // when
-        for (int i = 0; i < 100; i++) {
-            conditionalLogger.info("Log Message", 20);
+        for (int i = 0; i < 10; i++) {
+            conditionalLogger.info("Log Message", 2);
         }
+
         // then
         verify(logger, times(5)).info("Log Message");
+    }
+
+    @Test
+    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedCount() {
+        // given
+        conditionalLogger = new ConditionalLogger("key1", logger);
+
+        // when
+        for (int i = 0; i < 10; i++) {
+            conditionalLogger.info("Log Message" + i, 2);
+        }
+
+        // then
+        verify(logger, times(5)).info(argThat(o -> o.toString().startsWith("Log Message")));
     }
 
     @Test
     public void infoShouldCallLoggerWithExpectedTimeout(TestContext context) {
         // when
         for (int i = 0; i < 5; i++) {
-            conditionalLogger.info("Log Message", 1, TimeUnit.SECONDS);
-            doWait(context, 500);
+            conditionalLogger.info("Log Message", 200, TimeUnit.MILLISECONDS);
+            doWait(context, 100);
         }
+
         // then
         verify(logger, times(2)).info("Log Message");
+    }
+
+    @Test
+    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedTimeout(TestContext context) {
+        // given
+        conditionalLogger = new ConditionalLogger("key1", logger);
+
+        // when
+        for (int i = 0; i < 5; i++) {
+            conditionalLogger.info("Log Message" + i, 200, TimeUnit.MILLISECONDS);
+            doWait(context, 100);
+        }
+
+        // then
+        verify(logger, times(2)).info(argThat(o -> o.toString().startsWith("Log Message")));
     }
 
     private void doWait(TestContext context, long timeout) {

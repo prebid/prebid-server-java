@@ -63,7 +63,7 @@ public class SharethroughUriBuilderUtilTest {
     }
 
     @Test
-    public void buildSharethroughUrlParametersShouldReturnOptionalParametersWithEmptyStringWhenUriNotContainsOptionalParameters() {
+    public void buildSharethroughUrlParametersShouldReturnOptionalParametersWithEmptyStringWhenUriHasNoOptParameters() {
         // given
         final String uriWithoutOptionalParameters = "http://uri.com?height=30&width=30";
 
@@ -79,8 +79,8 @@ public class SharethroughUriBuilderUtilTest {
     @Test
     public void buildSharethroughUrlParametersShouldPopulateWithParametersWhenUriContainsParameters() {
         // given
-        final String uriWithoutOptionalParameters = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=30" +
-                "&consent_required=true&stayInIframe=true&consent_string=123&";
+        final String uriWithoutOptionalParameters = "http://uri.com?placement_key=pkey&bidId=bidid&height=30&width=30"
+                + "&consent_required=true&stayInIframe=true&consent_string=123&";
 
         // when and then
         assertThat(SharethroughUriBuilderUtil.buildSharethroughUrlParameters(uriWithoutOptionalParameters))
@@ -116,9 +116,9 @@ public class SharethroughUriBuilderUtilTest {
         final String strVersion = "version";
 
         // when
-        final String expected = "http://uri.com?placement_key=3pkey3&bidId=2bidId2&consent_required=true&" +
-                "consent_string=1consentString1&instant_play_capable=true&stayInIframe=true&height=100&width=200&" +
-                "adRequestAt=testDate&supplyId=suId&strVersion=version&ttduid=ttd123&stxuid=uuid";
+        final String expected = "http://uri.com?placement_key=3pkey3&bidId=2bidId2&consent_required=true&"
+                + "consent_string=1consentString1&instant_play_capable=true&stayInIframe=true&height=100&width=200&"
+                + "adRequestAt=testDate&supplyId=suId&strVersion=version&ttduid=ttd123&stxuid=uuid";
         final String result = SharethroughUriBuilderUtil.buildSharethroughUrl(baseUri, supplyId, strVersion, "testDate",
                 strUriParameters);
 

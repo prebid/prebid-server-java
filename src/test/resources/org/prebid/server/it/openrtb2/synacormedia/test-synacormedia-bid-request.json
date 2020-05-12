@@ -50,8 +50,6 @@
           "video/mp4"
         ],
         "pos": 1,
-        "skipafter": 0,
-        "skipmin": 0,
         "w": 300
       }
     }
@@ -75,7 +73,7 @@
     "fd": 1,
     "tid": "tid"
   },
-  "tmax": 3000,
+  "tmax": 5000,
   "user": {
     "buyeruid": "SCM-UID",
     "ext": {
