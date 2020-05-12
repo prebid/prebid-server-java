@@ -60,7 +60,8 @@
           "USD": {
             "EUR": 0.811
           }
-        }
+        },
+        "usepbsrates": false
       },
       "targeting": {
         "pricegranularity": {

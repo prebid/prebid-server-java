@@ -16,4 +16,8 @@ public class ExtRequestCurrency {
      * Defines the contract for bidrequest.ext.prebid.currency.rates
      */
     Map<String, Map<String, BigDecimal>> rates;
+    /**
+     * Defines the contract for bidrequest.ext.prebid.currency.usepbsrates
+     */
+    Boolean usepbsrates;
 }
