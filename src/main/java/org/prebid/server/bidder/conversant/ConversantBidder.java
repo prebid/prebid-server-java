@@ -97,8 +97,6 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final List<Imp> modifiedImps = new ArrayList<>();
         Integer extMobile = null;
         String extSiteId = null;
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
 
         for (Imp imp : bidRequest.getImp()) {
             try {
@@ -118,7 +116,10 @@ public class ConversantBidder implements Bidder<BidRequest> {
         if (modifiedImps.isEmpty()) {
             throw new PreBidException("No valid impressions");
         }
-        validateSiteAppId(extSiteId, bidRequest.getSite(), bidRequest.getApp());
+
+        final Site site = bidRequest.getSite();
+        final App app = bidRequest.getApp();
+        validateSiteAppId(extSiteId, site, app);
 
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder()
                 .imp(modifiedImps);
@@ -143,7 +144,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
 
         if (app != null && StringUtils.isEmpty(app.getId()) && StringUtils.isEmpty(extSiteId)) {
-            throw new PreBidException("Missing site id");
+            throw new PreBidException("Missing app id");
         }
     }
 
@@ -155,13 +156,11 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpConversant parseImpExt(Imp imp) {
-        final ExtImpConversant extImpConversant;
         try {
-            extImpConversant = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-        return extImpConversant;
     }
 
     private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
