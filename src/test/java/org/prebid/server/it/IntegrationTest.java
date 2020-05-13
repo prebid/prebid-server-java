@@ -13,9 +13,9 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -54,6 +54,9 @@ public abstract class IntegrationTest extends VertxTest {
             .gzipDisabled(true)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
 
+    @Rule
+    public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
+
     static final RequestSpecification SPEC = spec(APP_PORT);
 
     @BeforeClass
@@ -62,11 +65,6 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
-    }
-
-    @After
-    public void setUpInstance() {
-        WIRE_MOCK_RULE.resetAll();
     }
 
     static RequestSpecification spec(int port) {
