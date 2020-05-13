@@ -693,11 +693,7 @@ public class BidResponseCreator {
                 throw new PreBidException(e.getMessage());
             }
 
-            try {
-                responseAssets.forEach(asset -> setAssetTypes(asset, nativeRequest.getAssets()));
-            } catch (PreBidException e) {
-                throw new PreBidException(e.getMessage());
-            }
+            responseAssets.forEach(asset -> setAssetTypes(asset, nativeRequest.getAssets()));
             bid.setAdm(mapper.encode(nativeMarkup));
         }
     }
