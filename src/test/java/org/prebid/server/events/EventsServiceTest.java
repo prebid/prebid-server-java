@@ -24,29 +24,38 @@ public class EventsServiceTest {
     @Test
     public void createEventsShouldReturnExpectedEvent() {
         // when
-        final Events events = eventsService.createEvent("bidId", "accountId");
+        final Events events = eventsService.createEvent("bidId", "bidder", "accountId", 1000L);
 
         // then
         assertThat(events).isEqualTo(Events.of(
-                "http://external-url/event?t=win&b=bidId&a=accountId&f=i",
-                "http://external-url/event?t=imp&b=bidId&a=accountId&f=i"));
+                "http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i",
+                "http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i"));
     }
 
     @Test
     public void winUrlTargetingShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.winUrlTargeting("accountId");
+        final String winUrlTargeting = eventsService.winUrlTargeting("bidder", "accountId", 1000L);
 
         // then
-        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&f=i");
+        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=win&b=BIDID&a=accountId&ts=1000&bidder=bidder&f=i");
     }
 
     @Test
-    public void vastUrlTrackingShouldReturnExpectedUrl() {
+    public void winUrlShouldReturnExpectedUrl() {
         // when
-        final String winUrlTargeting = eventsService.vastUrlTracking("bidId", "accountId");
+        final String winUrl = eventsService.winUrl("bidId", "bidder", "accountId", 1000L);
 
         // then
-        assertThat(winUrlTargeting).isEqualTo("http://external-url/event?t=imp&b=bidId&a=accountId&f=b");
+        assertThat(winUrl).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=i");
+    }
+
+    @Test
+    public void vastUrlShouldReturnExpectedUrl() {
+        // when
+        final String vastUrl = eventsService.vastUrlTracking("bidId", "bidder", "accountId", 1000L);
+
+        // then
+        assertThat(vastUrl).isEqualTo("http://external-url/event?t=imp&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b");
     }
 }

@@ -24,21 +24,21 @@ public class ImprovedigitalTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromImproveDigital() throws IOException, JSONException {
         // given
         // Improvedigital bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/improvedigital-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/improvedigital-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-request-1.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/improvedigital/test-improvedigital-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/improvedigital/test-cache-improvedigital-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/improvedigital/test-cache-improvedigital-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

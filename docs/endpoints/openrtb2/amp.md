@@ -28,6 +28,16 @@ An example Stored Request is given below:
      },
      "ext": {
          "prebid": {
+                "currency": {
+                    "rates": {
+                        "EUR": {
+                        "USD": 1.2406
+                        },
+                        "USD": {
+                        "EUR": 0.8110
+                        }
+                    }
+                },
              "targeting": {
                  "pricegranularity": {  // This is equivalent to the deprecated "pricegranularity": "medium"
                      "precision": 2,

@@ -12,12 +12,12 @@ import org.junit.Test;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
@@ -131,7 +131,8 @@ public class VideoRequestValidatorTest {
 
         // when and then
         assertThatExceptionOfType(InvalidRequestException.class)
-                .isThrownBy(() -> videoRequestValidator.validateStoredBidRequest(requestVideo, false, singletonList("BAD")))
+                .isThrownBy(() -> videoRequestValidator.validateStoredBidRequest(
+                        requestVideo, false, singletonList("BAD")))
                 .withMessage("Prebid-server does not process requests from App ID: BAD");
     }
 
@@ -144,7 +145,8 @@ public class VideoRequestValidatorTest {
 
         // when and then
         assertThatExceptionOfType(InvalidRequestException.class)
-                .isThrownBy(() -> videoRequestValidator.validateStoredBidRequest(requestVideo, false, singletonList("BAD")))
+                .isThrownBy(() -> videoRequestValidator.validateStoredBidRequest(
+                        requestVideo, false, singletonList("BAD")))
                 .withMessage("request.app missing required field: id or bundle");
     }
 
@@ -199,10 +201,19 @@ public class VideoRequestValidatorTest {
         final Pod notStoredPod = Pod.of(7, 1, "conf19");
         final Pod normalPod = Pod.of(10, 1, "conf10");
 
-        final Podconfig podConfig = Podconfig.builder().pods(Arrays.asList(pod, duplicatedPod, negativeDurationPod, missingConfigIdPod,
-                negativeIdPod, notStoredPod, normalPod, missingDurationPod)).build();
+        final Podconfig podConfig = Podconfig.builder()
+                .pods(asList(
+                        pod,
+                        duplicatedPod,
+                        negativeDurationPod,
+                        missingConfigIdPod,
+                        negativeIdPod,
+                        notStoredPod,
+                        normalPod,
+                        missingDurationPod))
+                .build();
 
-        final Set<String> storedIds = new HashSet<>(Arrays.asList("cnf1", "cnf2", "cnf3", "cnf4", "cnf5", "conf10"));
+        final Set<String> storedIds = new HashSet<>(asList("cnf1", "cnf2", "cnf3", "cnf4", "cnf5", "conf10"));
 
         // when
         final WithPodErrors<List<Pod>> result = videoRequestValidator.validPods(podConfig, storedIds);
@@ -211,15 +222,30 @@ public class VideoRequestValidatorTest {
         assertThat(result.getData()).containsOnly(normalPod);
         assertThat(result.getPodErrors()).containsOnly(
                 PodError.of(1, 1, singletonList("request duplicated required field: PodConfig.Pods.PodId, Pod id: 1")),
-                PodError.of(5, 2, singletonList("request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: 2")),
-                PodError.of(6, 3, Arrays.asList(
-                        "request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod index: 3",
-                        "request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: 3")),
-                PodError.of(-100, 4, singletonList("request missing required field: PodConfig.Pods.PodId, Pod index: 4")),
-                PodError.of(-100, 7, Arrays.asList(
-                        "request duplicated required field: PodConfig.Pods.PodId, Pod id: -100",
-                        "request missing required field: PodConfig.Pods.PodId, Pod index: 7",
-                        "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod index: 7")),
+                PodError.of(
+                        5,
+                        2,
+                        singletonList("request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative,"
+                                + " Pod index: 2")),
+                PodError.of(
+                        6,
+                        3,
+                        asList(
+                                "request incorrect required field: PodConfig.Pods.AdPodDurationSec is negative, Pod "
+                                        + "index: 3",
+                                "request missing or incorrect required field: PodConfig.Pods.ConfigId, Pod index: 3")),
+                PodError.of(
+                        -100,
+                        4,
+                        singletonList("request missing required field: PodConfig.Pods.PodId, Pod index: 4")),
+                PodError.of(
+                        -100,
+                        7,
+                        asList(
+                                "request duplicated required field: PodConfig.Pods.PodId, Pod id: -100",
+                                "request missing required field: PodConfig.Pods.PodId, Pod index: 7",
+                                "request missing or incorrect required field: PodConfig.Pods.AdPodDurationSec, Pod "
+                                        + "index: 7")),
                 PodError.of(7, 5, singletonList("unable to load Pod id: 7")));
     }
 
@@ -231,11 +257,10 @@ public class VideoRequestValidatorTest {
                 .storedrequestid("storedrequestid")
                 .podconfig(podconfigCustomizer.apply(Podconfig.builder()
                         .pods(singletonList(Pod.of(123, 100, "1")))
-                        .durationRangeSec(Arrays.asList(200, 100)))
+                        .durationRangeSec(asList(200, 100)))
                         .build())
                 .site(Site.builder().id("siteId").build())
                 .video(VideoVideo.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
     }
-
 }

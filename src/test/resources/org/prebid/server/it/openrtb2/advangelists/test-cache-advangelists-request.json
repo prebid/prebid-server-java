@@ -8,8 +8,7 @@
         "price": 0.01,
         "id": "testid",
         "impid": "testimpid",
-        "cid": "8048",
-        "wurl": "http://localhost:8000/event?t=win&b=testid&a=publisherId&f=i"
+        "cid": "8048"
       }
     }
   ]
