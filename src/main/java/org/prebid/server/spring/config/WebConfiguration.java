@@ -9,7 +9,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
@@ -28,8 +27,8 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.handler.AccountCacheInvalidationHandler;
 import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
@@ -52,11 +51,13 @@ import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
-import org.prebid.server.privacy.gdpr.GdprService;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
@@ -109,11 +110,11 @@ public class WebConfiguration {
         logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
                 httpPort);
 
-        contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
+        contextRunner.<HttpServer>runOnNewContext(httpServerNum, promise ->
                 vertx.createHttpServer(httpServerOptions)
                         .exceptionHandler(exceptionHandler)
                         .requestHandler(router)
-                        .listen(httpPort, future));
+                        .listen(httpPort, promise));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
@@ -148,8 +149,7 @@ public class WebConfiguration {
     }
 
     @Bean
-    Router router(CookieHandler cookieHandler,
-                  BodyHandler bodyHandler,
+    Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
                   AuctionHandler auctionHandler,
@@ -169,7 +169,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
@@ -192,11 +191,6 @@ public class WebConfiguration {
         router.get("/").handler(staticHandler); // serves index.html by default
 
         return router;
-    }
-
-    @Bean
-    CookieHandler cookieHandler() {
-        return CookieHandler.create();
     }
 
     @Bean
@@ -226,7 +220,7 @@ public class WebConfiguration {
             Metrics metrics,
             HttpAdapterConnector httpAdapterConnector,
             Clock clock,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -240,7 +234,7 @@ public class WebConfiguration {
                 metrics,
                 httpAdapterConnector,
                 clock,
-                gdprService,
+                tcfDefinerService,
                 privacyExtractor,
                 mapper,
                 hostVendorId,
@@ -254,11 +248,11 @@ public class WebConfiguration {
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
-            LogModifier logModifier,
+            AdminManager adminManager,
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, logModifier, mapper);
+                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, adminManager, mapper);
     }
 
     @Bean
@@ -271,7 +265,7 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
-            LogModifier logModifier,
+            AdminManager adminManager,
             JacksonMapper mapper) {
 
         return new AmpHandler(
@@ -283,7 +277,7 @@ public class WebConfiguration {
                 bidderCatalog,
                 ampProperties.getCustomTargetingSet(),
                 ampResponsePostProcessor,
-                logModifier,
+                adminManager,
                 mapper);
     }
 
@@ -315,9 +309,10 @@ public class WebConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyEnforcementService privacyEnforcementService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
@@ -326,25 +321,26 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                gdprService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
-                coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
+        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation,
+                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
     @Bean
     SetuidHandler setuidHandler(
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
-                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, applicationSettings, bidderCatalog,
+                tcfDefinerService, hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -447,11 +443,14 @@ public class WebConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
-        @Autowired(required = false)
+        @Autowired
         private AdminHandler adminHandler;
 
         @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
+
+        @Autowired(required = false)
+        private AccountCacheInvalidationHandler accountCacheInvalidationHandler;
 
         @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
@@ -463,10 +462,11 @@ public class WebConfiguration {
         private int adminPort;
 
         @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "account-invalidation-enabled",
                 havingValue = "true")
-        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
-            return new SettingsCacheNotificationHandler(settingsCache, mapper);
+        AccountCacheInvalidationHandler accountCacheInvalidationHandler(
+                CachingApplicationSettings cachingApplicationSettings) {
+            return new AccountCacheInvalidationHandler(cachingApplicationSettings);
         }
 
         @Bean
@@ -479,14 +479,20 @@ public class WebConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
+            return new SettingsCacheNotificationHandler(settingsCache, mapper);
+        }
+
+        @Bean
         VersionHandler versionHandler(JacksonMapper mapper) {
             return VersionHandler.create("git-revision.json", mapper);
         }
 
         @Bean
-        @ConditionalOnProperty(prefix = "logger-level-modifier", name = "enabled", havingValue = "true")
-        AdminHandler adminHandler(LogModifier logModifier) {
-            return new AdminHandler(logModifier);
+        AdminHandler adminHandler(AdminManager adminManager) {
+            return new AdminHandler(adminManager);
         }
 
         @Bean
@@ -516,9 +522,12 @@ public class WebConfiguration {
             if (ampCacheNotificationHandler != null) {
                 router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
             }
+            if (accountCacheInvalidationHandler != null) {
+                router.route("/cache/invalidate").handler(accountCacheInvalidationHandler);
+            }
 
-            contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router).listen(adminPort, future));
+            contextRunner.<HttpServer>runOnServiceContext(promise ->
+                    vertx.createHttpServer().requestHandler(router).listen(adminPort, promise));
 
             logger.info("Successfully started Admin Server");
         }

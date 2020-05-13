@@ -60,8 +60,8 @@ public class EngagebdrBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(
-                BidderError.badInput("Ignoring imp id=123, invalid MediaType EngageBDR only supports Banner, " +
-                        "Video and Native"));
+                BidderError.badInput("Ignoring imp id=123, invalid MediaType EngageBDR only supports Banner, "
+                        + "Video and Native"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -234,7 +234,6 @@ public class EngagebdrBidderTest extends VertxTest {
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(engagebdrBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
-
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);

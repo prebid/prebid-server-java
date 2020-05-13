@@ -64,7 +64,7 @@ class AdformRequestUtil {
      */
     String getConsent(ExtUser extUser) {
         final String gdprConsent = extUser != null ? extUser.getConsent() : "";
-        return ObjectUtils.firstNonNull(gdprConsent, "");
+        return ObjectUtils.defaultIfNull(gdprConsent, "");
     }
 
     /**

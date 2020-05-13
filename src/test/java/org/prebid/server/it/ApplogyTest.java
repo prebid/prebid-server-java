@@ -25,26 +25,26 @@ public class ApplogyTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromApplogy() throws IOException, JSONException {
         // given
         // Applogy bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/applogy-exchange/1234"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/applogy-exchange/1234"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/applogy/test-applogy-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/applogy/test-applogy-bid-response-1.json"))));
 
         // Applogy bid response for imp 002
-        wireMockRule.stubFor(post(urlPathEqualTo("/applogy-exchange/12345"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/applogy-exchange/12345"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/applogy/test-applogy-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/applogy/test-applogy-bid-response-2.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/applogy/test-cache-applogy-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/applogy/test-cache-applogy-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -58,8 +58,6 @@ public class ApplogyTest extends IntegrationTest {
                 "openrtb2/applogy/test-auction-applogy-response.json",
                 response, singletonList("applogy"));
 
-
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
-
