@@ -18,16 +18,20 @@ public class GeoLocationHealthChecker extends PeriodicHealthChecker {
 
     private final GeoLocationService geoLocationService;
     private final TimeoutFactory timeoutFactory;
+    private final Clock clock;
 
     private StatusResponse status;
 
     public GeoLocationHealthChecker(Vertx vertx,
                                     long refreshPeriod,
                                     GeoLocationService geoLocationService,
-                                    TimeoutFactory timeoutFactory) {
+                                    TimeoutFactory timeoutFactory,
+                                    Clock clock) {
+
         super(vertx, refreshPeriod);
         this.geoLocationService = Objects.requireNonNull(geoLocationService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     @Override
@@ -36,7 +40,7 @@ public class GeoLocationHealthChecker extends PeriodicHealthChecker {
                 .setHandler(result ->
                         status = StatusResponse.of(
                                 result.succeeded() ? Status.UP.name() : Status.DOWN.name(),
-                                ZonedDateTime.now(Clock.systemUTC())));
+                                ZonedDateTime.now(clock)));
     }
 
     @Override
