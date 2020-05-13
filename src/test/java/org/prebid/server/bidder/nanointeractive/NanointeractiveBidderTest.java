@@ -7,6 +7,9 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -18,7 +21,9 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.nanointeractive.ExtImpNanointeractive;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +148,32 @@ public class NanointeractiveBidderTest extends VertxTest {
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidOnlyWithNotZeroPrice() throws JsonProcessingException {
+        // given
+        final String response = mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(asList(Bid.builder().impid("impId1").price(BigDecimal.valueOf(5.67)).build(),
+                                Bid.builder().impid("impId2").price(BigDecimal.valueOf(0)).build()))
+                        .build()))
+                .cur("USD")
+                .build());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("impId").banner(Banner.builder().build()).build()))
+                .build();
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, response);
+
+        // when
+        final Result<List<BidderBid>> result = nanointeractiveBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").price(BigDecimal.valueOf(5.67)).build(),
+                        BidType.banner, "USD"));
     }
 
     @Test

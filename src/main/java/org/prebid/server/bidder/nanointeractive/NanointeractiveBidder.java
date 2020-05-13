@@ -40,7 +40,6 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpNanointeractive>> NANOINTERACTIVE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpNanointeractive>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -73,7 +72,7 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(validImps)
-                .site(modifySite(reference, request))
+                .site(modified(reference, request.getSite()))
                 .build();
         final String body = mapper.encode(outgoingRequest);
 
@@ -103,13 +102,11 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Site modifySite(String reference, BidRequest request) {
-        final Site site = request.getSite();
-        Site.SiteBuilder siteBuilder = null;
+    private static Site modified(String reference, Site site) {
         if (StringUtils.isNotBlank(reference)) {
-            siteBuilder = site == null ? Site.builder() : site.toBuilder().ref(reference);
+            return site == null ? Site.builder().ref(reference).build() : site.toBuilder().ref(reference).build();
         }
-        return siteBuilder != null ? siteBuilder.build() : null;
+        return site;
     }
 
     private MultiMap headers(BidRequest bidRequest) {
