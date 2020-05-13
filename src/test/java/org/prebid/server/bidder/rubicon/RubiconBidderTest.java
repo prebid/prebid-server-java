@@ -339,7 +339,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldTransferRewardedVideoFlagIntoRewardedVideoObject() {
         // given
         final ExtImpPrebid prebid =
-                ExtImpPrebid.builder().isRewardedInventory(true).build();
+                ExtImpPrebid.builder().isRewardedInventory(1).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
@@ -391,6 +391,33 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldIgnoreRewardedVideoLogicIfRewardedInventoryIsNotOne() {
+        // given
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(2).build();
+        final ExtImpRubicon rubicon = ExtImpRubicon.builder()
+                .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
+                .build();
+
+        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
+                .ext(mapper.valueToTree(ext)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotFailIfVideoParamIsNull() {
         // given
         final ExtImpPrebid prebid = ExtImpPrebid
@@ -414,7 +441,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldIgnoreRewardedVideoFlag() {
         // given
-        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(false).build();
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(0).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();

@@ -1,7 +1,7 @@
 adapters:
   ix:
     enabled: false
-    endpoint: http://ny3-dsr.lb.indexww.com/transbidder?p=189517
+    endpoint: http://rubicon-us-east.lb.indexww.com/transbidder?p=189517
     pbs-enforces-gdpr: true
     modifying-vast-xml-allowed: true
     deprecated-names: indexExchange
