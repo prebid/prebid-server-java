@@ -23,7 +23,6 @@ import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -136,9 +135,9 @@ public class SharethroughBidderTest extends VertxTest {
                 bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string=" +
-                "&instant_play_capable=true&stayInIframe=false&height=10&width=20" +
-                "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=7";
+        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string="
+                + "&instant_play_capable=true&stayInIframe=false&height=10&width=20"
+                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=7";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
                 DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
 
@@ -161,7 +160,8 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeadersDefaultParameters() throws JsonProcessingException {
+    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeadersDefaultParameters()
+            throws JsonProcessingException {
         // given
         final List<ExtUserEidUid> uids = Arrays.asList(
                 ExtUserEidUid.of("first", null),
@@ -188,8 +188,8 @@ public class SharethroughBidderTest extends VertxTest {
                 bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent" +
-                "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
+        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent"
+                + "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
                 + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
                 + "&supplyId=FGMrCMMc&strVersion=7&ttduid=first&stxuid=buyer";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
@@ -230,26 +230,31 @@ public class SharethroughBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
 
         // then
-        final String adm = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999\" />\n" +
-                "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n" +
-                //Decoded: {"adserverRequestId":"arid","bidId":"bid","creatives":[{"cpm":10,"creative":{"campaign_key":"cmpKey","creative_key":"creaKey","deal_id":"dealId"}]}
-                "\t\t<script>var str_response_bid = \"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYXRpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSWQifX1dfQ==\"</script>\n" +
-                "\t\t\t<script src=\"//native.sharethrough.com/assets/sfp-set-targeting.js\"></script>\n" +
-                "\t    \t<script>\n" +
-                "\t     (function() {\n" +
-                "\t     if (!(window.STR && window.STR.Tag) && !(window.top.STR && window.top.STR.Tag)){\n" +
-                "\t         var sfp_js = document.createElement('script');\n" +
-                "\t         sfp_js.src = \"//native.sharethrough.com/assets/sfp.js\";\n" +
-                "\t         sfp_js.type = 'text/javascript';\n" +
-                "\t         sfp_js.charset = 'utf-8';\n" +
-                "\t         try {\n" +
-                "\t             window.top.document.getElementsByTagName('body')[0].appendChild(sfp_js);\n" +
-                "\t         } catch (e) {\n" +
-                "\t           console.log(e);\n" +
-                "\t         }\n" +
-                "\t       }\n" +
-                "\t     })()\n" +
-                "\t\t   </script>\n";
+        final String adm = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999"
+                + "\" />\n"
+                + "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n"
+                // Decoded: {"adserverRequestId":"arid","bidId":"bid","creatives":[{"cpm":10,
+                // "creative":{"campaign_key":"cmpKey","creative_key":"creaKey","deal_id":"dealId"}]}
+                + "\t\t<script>var str_response_bid = "
+                + "\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYX"
+                + "RpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSW"
+                + "QifX1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp-set-targeting"
+                + ".js\"></script>\n"
+                + "\t    \t<script>\n"
+                + "\t     (function() {\n"
+                + "\t     if (!(window.STR && window.STR.Tag) && !(window.top.STR && window.top.STR.Tag)){\n"
+                + "\t         var sfp_js = document.createElement('script');\n"
+                + "\t         sfp_js.src = \"//native.sharethrough.com/assets/sfp.js\";\n"
+                + "\t         sfp_js.type = 'text/javascript';\n"
+                + "\t         sfp_js.charset = 'utf-8';\n"
+                + "\t         try {\n"
+                + "\t             window.top.document.getElementsByTagName('body')[0].appendChild(sfp_js);\n"
+                + "\t         } catch (e) {\n"
+                + "\t           console.log(e);\n"
+                + "\t         }\n"
+                + "\t       }\n"
+                + "\t     })()\n"
+                + "\t\t   </script>\n";
 
         final BidderBid expected = BidderBid.of(
                 Bid.builder()

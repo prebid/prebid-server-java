@@ -1,6 +1,5 @@
 package org.prebid.server.health;
 
-
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;

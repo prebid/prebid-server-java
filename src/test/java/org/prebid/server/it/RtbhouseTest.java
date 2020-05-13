@@ -23,17 +23,17 @@ public class RtbhouseTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheRtbHouse() throws IOException, JSONException {
         // given
-        wireMockRule.stubFor(post(urlPathEqualTo("/rtbhouse-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rtbhouse-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rtbhouse/test-rtbhouse-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/rtbhouse/test-rtbhouse-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rtbhouse/test-cache-rtbhouse-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/rtbhouse/test-cache-rtbhouse-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

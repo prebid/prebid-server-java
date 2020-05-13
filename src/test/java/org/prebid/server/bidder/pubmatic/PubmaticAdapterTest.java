@@ -55,7 +55,6 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
@@ -83,12 +82,6 @@ public class PubmaticAdapterTest extends VertxTest {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
         adapter = new PubmaticAdapter(COOKIE_FAMILY, ENDPOINT_URL, jacksonMapper);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(null, null, jacksonMapper));
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticAdapter(COOKIE_FAMILY, null, jacksonMapper));
     }
 
     @Test

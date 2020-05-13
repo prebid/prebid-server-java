@@ -92,7 +92,7 @@
     }
   },
   "at": 1,
-  "tmax": 1000,
+  "tmax": 5000,
   "source": {
     "fd": 1,
     "tid": "tid"

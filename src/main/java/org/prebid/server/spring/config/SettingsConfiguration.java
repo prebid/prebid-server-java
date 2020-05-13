@@ -75,10 +75,11 @@ public class SettingsConfiguration {
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponseQuery,
-                JdbcClient jdbcClient) {
+                JdbcClient jdbcClient,
+                JacksonMapper jacksonMapper) {
 
-            return new JdbcApplicationSettings(jdbcClient, storedRequestsQuery, ampStoredRequestsQuery,
-                    storedResponseQuery);
+            return new JdbcApplicationSettings(
+                    jdbcClient, jacksonMapper, storedRequestsQuery, ampStoredRequestsQuery, storedResponseQuery);
         }
 
         @Bean
@@ -113,8 +114,7 @@ public class SettingsConfiguration {
                 Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
             final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
 
-            contextRunner.runOnServiceContext(
-                    future -> basicJdbcClient.initialize().compose(ignored -> future.complete(), future));
+            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().setHandler(promise));
 
             return basicJdbcClient;
         }
@@ -321,7 +321,7 @@ public class SettingsConfiguration {
         ApplicationSettings applicationSettings(
                 @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
                 @Autowired(required = false) CompositeApplicationSettings compositeApplicationSettings) {
-            return ObjectUtils.firstNonNull(cachingApplicationSettings, compositeApplicationSettings);
+            return ObjectUtils.defaultIfNull(cachingApplicationSettings, compositeApplicationSettings);
         }
     }
 
