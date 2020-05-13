@@ -2,6 +2,7 @@ package org.prebid.server.vertx;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -136,14 +137,14 @@ public class CircuitBreakerTest {
     }
 
     private Future<String> executeWithSuccess(TestContext context, String result) {
-        return execute(context, operationFuture -> operationFuture.complete(result));
+        return execute(context, operationPromise -> operationPromise.complete(result));
     }
 
     private Future<String> executeWithFail(TestContext context, String errorMessage) {
-        return execute(context, operationFuture -> operationFuture.fail(new RuntimeException(errorMessage)));
+        return execute(context, operationPromise -> operationPromise.fail(new RuntimeException(errorMessage)));
     }
 
-    private Future<String> execute(TestContext context, Handler<Future<String>> handler) {
+    private Future<String> execute(TestContext context, Handler<Promise<String>> handler) {
         final Future<String> future = circuitBreaker.execute(handler);
 
         final Async async = context.async();

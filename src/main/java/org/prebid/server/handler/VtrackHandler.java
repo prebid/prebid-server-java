@@ -72,8 +72,8 @@ public class VtrackHandler implements Handler<RoutingContext> {
             respondWithBadRequest(context, e.getMessage());
             return;
         }
-
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
+
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
                 .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout));
@@ -132,7 +132,6 @@ public class VtrackHandler implements Handler<RoutingContext> {
             final Set<String> biddersAllowingVastUpdate = Objects.equals(asyncAccount.result().getEventsEnabled(), true)
                     ? biddersAllowingVastUpdate(vtrackPuts)
                     : Collections.emptySet();
-
             cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
         }

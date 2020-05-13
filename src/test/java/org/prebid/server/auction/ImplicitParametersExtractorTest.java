@@ -166,7 +166,6 @@ public class ImplicitParametersExtractorTest {
         assertThat(extractor.secureFrom(httpRequest)).isEqualTo(1);
     }
 
-
     @Test
     public void secureFromShouldReturnOneIfConnectedViaSSL() {
         // given

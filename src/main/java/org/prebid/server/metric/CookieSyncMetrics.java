@@ -28,13 +28,24 @@ public class CookieSyncMetrics extends UpdatableMetrics {
 
     static class BidderCookieSyncMetrics extends UpdatableMetrics {
 
+        private final TcfMetrics tcfMetrics;
+
         BidderCookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
             super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                    nameCreator(Objects.requireNonNull(bidder)));
+                    nameCreator(Objects.requireNonNull(createCookieSyncPrefix(bidder))));
+            tcfMetrics = new TcfMetrics(metricRegistry, counterType, createCookieSyncPrefix(bidder));
         }
 
-        private static Function<MetricName, String> nameCreator(String bidder) {
-            return metricName -> String.format("cookie_sync.%s.%s", bidder, metricName.toString());
+        TcfMetrics tcf() {
+            return tcfMetrics;
+        }
+
+        private static String createCookieSyncPrefix(String bidder) {
+            return String.format("cookie_sync.%s", bidder);
+        }
+
+        private static Function<MetricName, String> nameCreator(String prefix) {
+            return metricName -> String.format("%s.%s", prefix, metricName.toString());
         }
     }
 }

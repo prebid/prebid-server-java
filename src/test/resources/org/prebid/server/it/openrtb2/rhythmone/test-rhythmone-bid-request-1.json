@@ -27,9 +27,7 @@
           "video/mp4"
         ],
         "w": 640,
-        "h": 480,
-        "skipmin": 0,
-        "skipafter": 0
+        "h": 480
       },
       "ext": {
         "bidder": {
@@ -71,7 +69,7 @@
     }
   },
   "at": 1,
-  "tmax": 3000,
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
@@ -86,6 +84,16 @@
   },
   "ext": {
     "prebid": {
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -96,16 +104,6 @@
             }
           ]
         },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.811
-            }
-          }
-        },
         "includewinners": true,
         "includebidderkeys": true
       },
@@ -114,7 +112,8 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   }
 }

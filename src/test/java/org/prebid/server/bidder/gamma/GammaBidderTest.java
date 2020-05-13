@@ -184,9 +184,11 @@ public class GammaBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.GET, HttpRequest::getMethod)
-                .returns("https://test.endpoint.com/?id=id&zid=zid&wid=wid&bidid=&hb=pbmobile" +
-                        "&device_ip=123.123.123.12&device_model=Model&device_os=OS&device_ua=userAgent" +
-                        "&device_ifa=ifa&app_id=appId&app_bundle=bundle&app_name=appName", HttpRequest::getUri);
+                .returns(
+                        "https://test.endpoint.com/?id=id&zid=zid&wid=wid&bidid=&hb=pbmobile"
+                                + "&device_ip=123.123.123.12&device_model=Model&device_os=OS&device_ua=userAgent"
+                                + "&device_ifa=ifa&app_id=appId&app_bundle=bundle&app_name=appName",
+                        HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(

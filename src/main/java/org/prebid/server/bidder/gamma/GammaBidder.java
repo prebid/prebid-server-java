@@ -146,7 +146,7 @@ public class GammaBidder implements Bidder<Void> {
                 .append("?id=").append(extImpGamma.getId())
                 .append("&zid=").append(extImpGamma.getZid())
                 .append("&wid=").append(extImpGamma.getWid())
-                .append("&bidid=").append(ObjectUtils.firstNonNull(impId, ""))
+                .append("&bidid=").append(ObjectUtils.defaultIfNull(impId, ""))
                 .append("&hb=pbmobile");
 
         if (device != null) {
