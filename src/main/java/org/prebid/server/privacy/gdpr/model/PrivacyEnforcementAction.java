@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class PrivacyEnforcementAction {
 
-    boolean removeUserBuyerUid;
+    boolean removeUserIds;  // user.buyeruid, user.id, user.ext.eids, user.ext.digitrust
 
     boolean maskGeo;  // user.geo, device.geo
 
@@ -23,7 +23,7 @@ public class PrivacyEnforcementAction {
 
     public static PrivacyEnforcementAction restrictAll() {
         return PrivacyEnforcementAction.builder()
-                .removeUserBuyerUid(true)
+                .removeUserIds(true)
                 .maskGeo(true)
                 .maskDeviceIp(true)
                 .maskDeviceInfo(true)
