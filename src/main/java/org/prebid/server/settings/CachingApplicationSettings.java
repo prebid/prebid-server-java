@@ -1,6 +1,8 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
@@ -20,6 +22,8 @@ import java.util.function.BiFunction;
  * Adds caching functionality for {@link ApplicationSettings} implementation
  */
 public class CachingApplicationSettings implements ApplicationSettings {
+
+    private static final Logger logger = LoggerFactory.getLogger(CachingApplicationSettings.class);
 
     private final ApplicationSettings delegate;
 
@@ -171,5 +175,10 @@ public class CachingApplicationSettings implements ApplicationSettings {
             }
         }
         return storedIdToJson;
+    }
+
+    public void invalidateAccountCache(String accountId) {
+        accountCache.remove(accountId);
+        logger.debug("Account with id {0} was invalidated", accountId);
     }
 }

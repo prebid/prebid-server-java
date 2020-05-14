@@ -544,7 +544,9 @@ public class ConversantBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+            Function<ExtImpConversant.ExtImpConversantBuilder,
+                    ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
@@ -556,14 +558,16 @@ public class ConversantBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+            Function<ExtImpConversant.ExtImpConversantBuilder,
+                    ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
 
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
     private static Imp givenImp(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpConversant.ExtImpConversantBuilder, ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+            Function<ExtImpConversant.ExtImpConversantBuilder,
+                    ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")

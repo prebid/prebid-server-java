@@ -25,7 +25,7 @@ public class SomoaudienceTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSomoaudience() throws IOException, JSONException {
         // given
         // somoaudience bid response for imp 16 & 17
-        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId02"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -39,7 +39,7 @@ public class SomoaudienceTest extends IntegrationTest {
                         "openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
 
         // somoaudience bid response for imp 18
-        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId03"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -53,7 +53,7 @@ public class SomoaudienceTest extends IntegrationTest {
                         "openrtb2/somoaudience/test-somoaudience-bid-response-2.json"))));
 
         // somoaudience bid response for imp 19
-        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId04"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
@@ -67,7 +67,7 @@ public class SomoaudienceTest extends IntegrationTest {
                         "openrtb2/somoaudience/test-somoaudience-bid-response-3.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json"),
                         true, false))
                 .willReturn(aResponse()
@@ -76,7 +76,7 @@ public class SomoaudienceTest extends IntegrationTest {
                                 "openrtb2/somoaudience/test-cache-matcher-somoaudience.json")));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

@@ -25,18 +25,18 @@ public class LockerdomeTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromLockerDome() throws IOException, JSONException {
         // given
         // LockerDome bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/lockerdome-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lockerdome-exchange"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lockerdome/test-lockerdome-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lockerdome/test-lockerdome-bid-response.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lockerdome/test-cache-lockerdome-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lockerdome/test-cache-lockerdome-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

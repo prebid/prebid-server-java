@@ -234,28 +234,28 @@ public class AdformBidder implements Bidder<Void> {
      * Retrieves userAgent from {@link Device}.
      */
     private String getUserAgent(Device device) {
-        return device != null ? ObjectUtils.firstNonNull(device.getUa(), "") : "";
+        return device != null ? ObjectUtils.defaultIfNull(device.getUa(), "") : "";
     }
 
     /**
      * Retrieves ip from {@link Device}.
      */
     private String getIp(Device device) {
-        return device != null ? ObjectUtils.firstNonNull(device.getIp(), "") : "";
+        return device != null ? ObjectUtils.defaultIfNull(device.getIp(), "") : "";
     }
 
     /**
      * Retrieves ifs from {@link Device}.
      */
     private String getIfa(Device device) {
-        return device != null ? ObjectUtils.firstNonNull(device.getIfa(), "") : "";
+        return device != null ? ObjectUtils.defaultIfNull(device.getIfa(), "") : "";
     }
 
     /**
      * Retrieves tid from {@link Source}.
      */
     private String getTid(Source source) {
-        return source != null ? ObjectUtils.firstNonNull(source.getTid(), "") : "";
+        return source != null ? ObjectUtils.defaultIfNull(source.getTid(), "") : "";
     }
 
     /**

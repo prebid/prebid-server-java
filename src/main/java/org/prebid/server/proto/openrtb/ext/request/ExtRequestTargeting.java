@@ -25,11 +25,6 @@ public class ExtRequestTargeting {
     ExtMediaTypePriceGranularity mediatypepricegranularity;
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.currency
-     */
-    ExtCurrency currency;
-
-    /**
      * Defines the contract for bidrequest.ext.prebid.targeting.includewinners
      */
     Boolean includewinners;

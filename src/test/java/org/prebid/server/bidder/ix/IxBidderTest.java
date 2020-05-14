@@ -221,7 +221,6 @@ public class IxBidderTest extends VertxTest {
                                         .format(singletonList(Format.builder().w(600).h(400).build())).build()))))
                 .build();
 
-
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
 
