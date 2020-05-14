@@ -59,7 +59,7 @@
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
   "at": 1,
-  "tmax": 1900,
+  "tmax": 5000,
   "regs": {
     "ext": {
       "gdpr": 0

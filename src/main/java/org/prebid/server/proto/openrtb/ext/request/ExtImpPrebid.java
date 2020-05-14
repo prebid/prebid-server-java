@@ -38,5 +38,5 @@ public class ExtImpPrebid {
     /**
      * Defines the contract for bidrequest.imp[i].ext.prebid.is_rewarded_inventory
      */
-    Boolean isRewardedInventory;
+    Integer isRewardedInventory;
 }

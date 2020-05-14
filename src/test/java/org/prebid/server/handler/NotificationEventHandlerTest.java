@@ -119,6 +119,24 @@ public class NotificationEventHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBadRequestWhenTimestampIsInvalid() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("bidder", "bidder")
+                .add("ts", "invalid"));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(analyticsReporter);
+
+        assertThat(captureResponseStatusCode()).isEqualTo(400);
+    }
+
+    @Test
     public void shouldReturnUnauthorizedWhenAccountIsMissing() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -304,6 +322,46 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse);
+    }
+
+    @Test
+    public void shouldPassExpectedEventToAnalyticsReporter() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000"));
+
+        final Account account = Account.builder().eventsEnabled(true).build();
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        notificationHandler.handle(routingContext);
+
+        // then
+        final Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("t", "win");
+        queryParams.put("b", "bidId");
+        queryParams.put("a", "accountId");
+        queryParams.put("bidder", "bidder");
+        queryParams.put("ts", "1000");
+        final HttpContext expectedHttpContext = HttpContext.builder()
+                .queryParams(queryParams)
+                .headers(Collections.emptyMap())
+                .cookies(Collections.emptyMap())
+                .build();
+
+        assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
+                .type(NotificationEvent.Type.win)
+                .bidId("bidId")
+                .account(account)
+                .bidder("bidder")
+                .timestamp(1000L)
+                .httpContext(expectedHttpContext)
+                .build());
     }
 
     private Integer captureResponseStatusCode() {

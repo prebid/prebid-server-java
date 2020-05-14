@@ -10,8 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import java.util.List;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -23,6 +21,9 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
+
+import java.util.List;
+import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -94,7 +95,8 @@ public class SynacormediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfFirstValidImpHasEmptySeatId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of(" ", "tagId")))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpSynacormedia.of(" ", "tagId")))),
                 identity());
 
         // when
@@ -110,7 +112,8 @@ public class SynacormediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfFirstValidImpHasEmptyTagId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seadId", " ")))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpSynacormedia.of("seadId", " ")))),
                 identity());
 
         // when

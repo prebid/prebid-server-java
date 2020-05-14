@@ -368,7 +368,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
         final String cookieValue = uidsCookie != null ? uidsCookie.uidFrom(cookieFamilyName) : null;
 
-        return Cookie.cookie("KADUSERCOOKIE", ObjectUtils.firstNonNull(cookieValue, "")).encode();
+        return Cookie.cookie("KADUSERCOOKIE", ObjectUtils.defaultIfNull(cookieValue, "")).encode();
     }
 
     @Override
