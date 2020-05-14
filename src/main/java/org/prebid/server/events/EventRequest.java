@@ -16,6 +16,10 @@ public class EventRequest {
 
     String accountId;
 
+    String bidder;
+
+    Long timestamp;
+
     Format format;
 
     Analytics analytics;

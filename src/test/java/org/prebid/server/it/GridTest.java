@@ -24,17 +24,17 @@ public class GridTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromTheMediaGrid() throws IOException, JSONException {
         // given
         // TheMediaGrid bid response for imp 001
-        wireMockRule.stubFor(post(urlPathEqualTo("/grid-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/grid-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/grid/test-grid-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/grid/test-grid-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/grid/test-cache-grid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/grid/test-cache-grid-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
