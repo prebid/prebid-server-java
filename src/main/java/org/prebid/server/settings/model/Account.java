@@ -17,8 +17,6 @@ public class Account {
 
     Boolean eventsEnabled;
 
-    Boolean enforceGdpr;
-
     AccountGdprConfig gdpr;
 
     Integer analyticsSamplingFactor;
@@ -29,4 +27,3 @@ public class Account {
                 .build();
     }
 }
-

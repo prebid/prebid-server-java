@@ -121,6 +121,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             throw new PreBidException("publisher is empty");
         }
 
+        if (!publisherIdToOverride.containsKey(publisher)) {
+            throw new PreBidException("publisher is not valid");
+        }
+
         return publisher;
     }
 

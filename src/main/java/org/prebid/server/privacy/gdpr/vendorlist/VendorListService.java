@@ -1,5 +1,6 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
@@ -10,27 +11,21 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -45,70 +40,46 @@ import java.util.stream.Collectors;
  * If request asks version that is absent in cache, we respond with failed result but start background process
  * to download new version and then put it to cache.
  */
-public class VendorListService {
+public abstract class VendorListService<T, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(VendorListService.class);
-
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
-
-    private final String endpointTemplate;
-    private final int defaultTimeoutMs;
-    private final Set<Integer> knownVendorIds;
-    private final String cacheDir;
-    private final FileSystem fileSystem;
-    private final HttpClient httpClient;
-    private final JacksonMapper mapper;
+    private static final Integer EXPIRE_DAY_CACHE_DURATION = 5;
 
     /**
-     * This is memory/performance optimized {@link VendorList} model slice:
-     * map of vendor list version -> map of vendor ID -> set of purposes
+     * This is memory/performance optimized model slice:
+     * map of vendor list version -> map of vendor ID -> Vendors
      */
-    private final Map<Integer, Map<Integer, Set<Integer>>> cache;
+    protected final Map<Integer, Map<Integer, V>> cache;
+    private final FileSystem fileSystem;
+    private final HttpClient httpClient;
+    private final String endpointTemplate;
+    private final int defaultTimeoutMs;
+    private final String cacheDir;
+    protected Set<Integer> knownVendorIds;
+    protected JacksonMapper mapper;
 
-    private VendorListService(String cacheDir,
-                              String endpointTemplate,
-                              int defaultTimeoutMs,
-                              Set<Integer> knownVendorIds,
-                              Map<Integer, Map<Integer, Set<Integer>>> cache,
-                              FileSystem fileSystem,
-                              HttpClient httpClient,
-                              JacksonMapper mapper) {
+    public VendorListService(String cacheDir,
+                             String endpointTemplate,
+                             int defaultTimeoutMs,
+                             Integer gdprHostVendorId,
+                             BidderCatalog bidderCatalog,
+                             FileSystem fileSystem,
+                             HttpClient httpClient,
+                             JacksonMapper mapper) {
 
-        this.cacheDir = cacheDir;
-        this.endpointTemplate = endpointTemplate;
+        this.cacheDir = Objects.requireNonNull(cacheDir);
+        this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
         this.defaultTimeoutMs = defaultTimeoutMs;
-        this.knownVendorIds = knownVendorIds;
-        this.cache = cache;
-        this.fileSystem = fileSystem;
-        this.httpClient = httpClient;
-        this.mapper = mapper;
-    }
-
-    public static VendorListService create(String cacheDir,
-                                           String endpointTemplate,
-                                           int defaultTimeoutMs,
-                                           Integer gdprHostVendorId,
-                                           BidderCatalog bidderCatalog,
-                                           FileSystem fileSystem,
-                                           HttpClient httpClient,
-                                           JacksonMapper mapper) {
-
-        Objects.requireNonNull(fileSystem);
-        Objects.requireNonNull(cacheDir);
-        Objects.requireNonNull(httpClient);
-        Objects.requireNonNull(endpointTemplate);
-        Objects.requireNonNull(bidderCatalog);
-        Objects.requireNonNull(mapper);
+        this.fileSystem = Objects.requireNonNull(fileSystem);
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.mapper = Objects.requireNonNull(mapper);
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
 
-        final Set<Integer> knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
-        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(
-                fileSystem, cacheDir, knownVendorIds, mapper);
-
-        return new VendorListService(
-                cacheDir, endpointTemplate, defaultTimeoutMs, knownVendorIds, cache, fileSystem, httpClient, mapper);
+        this.knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
+        this.cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
     }
 
     /**
@@ -128,37 +99,47 @@ public class VendorListService {
     }
 
     /**
-     * Fetches Vendor IDs from all known bidders
+     * Creates vendorList object from string content or throw {@link PreBidException}.
      */
+    protected abstract T toVendorList(String content);
+
+    /**
+     * Returns a Map of vendor id to Vendors.
+     */
+    protected abstract Map<Integer, V> filterVendorIdToVendors(T vendorList);
+
+    /**
+     * Verifies all significant fields of given {@link T} object.
+     */
+    protected abstract boolean isValid(T vendorList);
+
     private static Set<Integer> knownVendorIds(Integer gdprHostVendorId, BidderCatalog bidderCatalog) {
-        final Set<Integer> vendorIds = bidderCatalog.names().stream()
-                .map(bidderCatalog::bidderInfoByName)
-                .map(bidderInfo -> bidderInfo.getGdpr().getVendorId())
-                .collect(Collectors.toSet());
+        final Set<Integer> knownVendorIds = bidderCatalog.knownVendorIds();
 
         // add host vendor ID (used in /setuid and /cookie_sync endpoint handlers)
         if (gdprHostVendorId != null) {
-            vendorIds.add(gdprHostVendorId);
+            knownVendorIds.add(gdprHostVendorId);
         }
 
-        return Collections.unmodifiableSet(vendorIds);
+        return Collections.unmodifiableSet(knownVendorIds);
     }
 
     /**
-     * Creates cache from previously downloaded vendor lists.
+     * Creates the cache from previously downloaded vendor lists.
      */
-    private static Map<Integer, Map<Integer, Set<Integer>>> createCache(
-            FileSystem fileSystem, String cacheDir, Set<Integer> knownVendorIds, JacksonMapper mapper) {
-
+    private Map<Integer, Map<Integer, V>> createCache(FileSystem fileSystem, String cacheDir) {
         final Map<String, String> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
 
-        final Map<Integer, Map<Integer, Set<Integer>>> cache = new ConcurrentHashMap<>(versionToFileContent.size());
-        for (Map.Entry<String, String> entry : versionToFileContent.entrySet()) {
-            final VendorList vendorList = toVendorList(entry.getValue(), mapper);
-            final Map<Integer, Set<Integer>> vendorIdToPurposes = mapVendorIdToPurposes(vendorList.getVendors(),
-                    knownVendorIds);
+        final Map<Integer, Map<Integer, V>> cache = Caffeine.newBuilder()
+                .expireAfterWrite(EXPIRE_DAY_CACHE_DURATION, TimeUnit.DAYS)
+                .<Integer, Map<Integer, V>>build()
+                .asMap();
 
-            cache.put(Integer.valueOf(entry.getKey()), vendorIdToPurposes);
+        for (Map.Entry<String, String> versionAndFileContent : versionToFileContent.entrySet()) {
+            final T vendorList = toVendorList(versionAndFileContent.getValue());
+            final Map<Integer, V> vendorIdToVendors = filterVendorIdToVendors(vendorList);
+
+            cache.put(Integer.valueOf(versionAndFileContent.getKey()), vendorIdToVendors);
         }
         return cache;
     }
@@ -167,7 +148,7 @@ public class VendorListService {
      * Reads files with .json extension in configured directory and
      * returns a {@link Map} where key is a file name without .json extension and value is file content.
      */
-    private static Map<String, String> readFileSystemCache(FileSystem fileSystem, String dir) {
+    protected Map<String, String> readFileSystemCache(FileSystem fileSystem, String dir) {
         return fileSystem.readDirBlocking(dir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
@@ -175,35 +156,12 @@ public class VendorListService {
     }
 
     /**
-     * Creates {@link VendorList} object from string content or throw {@link PreBidException}.
-     */
-    private static VendorList toVendorList(String content, JacksonMapper mapper) {
-        try {
-            return mapper.mapper().readValue(content, VendorList.class);
-        } catch (IOException e) {
-            final String message = String.format("Cannot parse vendor list from: %s", content);
-
-            logger.error(message, e);
-            throw new PreBidException(message, e);
-        }
-    }
-
-    /**
-     * Returns a map with vendor ID as a key and set of purposes as a value from given list of {@link Vendor}s.
-     */
-    private static Map<Integer, Set<Integer>> mapVendorIdToPurposes(List<Vendor> vendors, Set<Integer> knownVendorIds) {
-        return vendors.stream()
-                .filter(vendor -> knownVendorIds.contains(vendor.getId())) // optimize cache to use only known vendors
-                .collect(Collectors.toMap(Vendor::getId, Vendor::combinedPurposes));
-    }
-
-    /**
      * Returns a map with vendor ID as a key and a set of purposes as a value for given vendor list version.
      */
-    public Future<Map<Integer, Set<Integer>>> forVersion(int version) {
-        final Map<Integer, Set<Integer>> vendorIdToPurposes = cache.get(version);
-        if (vendorIdToPurposes != null) {
-            return Future.succeededFuture(vendorIdToPurposes);
+    public Future<Map<Integer, V>> forVersion(int version) {
+        final Map<Integer, V> idToVendor = cache.get(version);
+        if (idToVendor != null) {
+            return Future.succeededFuture(idToVendor);
         } else {
             logger.info("Vendor list for version {0} not found, started downloading.", version);
             fetchNewVendorListFor(version);
@@ -221,7 +179,7 @@ public class VendorListService {
 
         httpClient.get(url, defaultTimeoutMs)
                 .compose(response -> processResponse(response, version))
-                .compose(this::saveToFileAndUpdateCache)
+                .compose(vendorListResult -> saveToFileAndUpdateCache(vendorListResult, version))
                 .recover(exception -> failResponse(exception, version));
     }
 
@@ -230,19 +188,14 @@ public class VendorListService {
      * and creates {@link Future} with {@link VendorListResult} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private Future<VendorListResult> processResponse(HttpClientResponse response, int version) {
+    private Future<VendorListResult<T>> processResponse(HttpClientResponse response, int version) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
         final String body = response.getBody();
-        final VendorList vendorList;
-        try {
-            vendorList = mapper.decodeValue(body, VendorList.class);
-        } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
-        }
+        final T vendorList = toVendorList(body);
 
         // we should care on obtained vendor list, because it'll be saved and never be downloaded again
         // while application is running
@@ -253,25 +206,12 @@ public class VendorListService {
         return Future.succeededFuture(VendorListResult.of(version, body, vendorList));
     }
 
-    /**
-     * Verifies all significant fields of given {@link VendorList} object.
-     */
-    private static boolean isValid(VendorList vendorList) {
-        return vendorList.getVendorListVersion() != null
-                && vendorList.getLastUpdated() != null
-                && CollectionUtils.isNotEmpty(vendorList.getVendors())
-                && vendorList.getVendors().stream()
-                .allMatch(vendor -> vendor != null && vendor.getId() != null
-                        && (vendor.getPurposeIds() != null || vendor.getLegIntPurposeIds() != null));
-    }
-
-    private Future<Void> saveToFileAndUpdateCache(VendorListResult vendorListResult) {
-        final VendorList vendorList = vendorListResult.getVendorList();
-        final int version = vendorListResult.getVersion();
+    private Future<Void> saveToFileAndUpdateCache(VendorListResult<T> vendorListResult, int version) {
+        final T vendorList = vendorListResult.getVendorList();
 
         saveToFile(vendorListResult.getVendorListAsString(), version)
                 // add new entry to in-memory cache
-                .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
+                .map(ignored -> cache.put(version, filterVendorIdToVendors(vendorList)));
 
         return Future.succeededFuture();
     }
@@ -309,12 +249,12 @@ public class VendorListService {
 
     @AllArgsConstructor(staticName = "of")
     @Value
-    private static class VendorListResult {
+    private static class VendorListResult<T> {
 
         int version;
 
         String vendorListAsString;
 
-        VendorList vendorList;
+        T vendorList;
     }
 }

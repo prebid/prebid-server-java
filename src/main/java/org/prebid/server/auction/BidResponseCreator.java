@@ -33,6 +33,7 @@ import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
+import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -297,7 +298,11 @@ public class BidResponseCreator {
                     .bidderToBidIds(bidderToBidIds)
                     .build();
 
-            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, auctionTimestamp,
+            final EventsContext eventsContext = EventsContext.builder()
+                    .auctionTimestamp(auctionTimestamp)
+                    .build();
+
+            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, eventsContext,
                     timeout)
                     .map(cacheResult -> addNotCachedBids(cacheResult, bidsToCache));
         }
