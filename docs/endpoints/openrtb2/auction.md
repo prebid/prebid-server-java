@@ -127,10 +127,16 @@ Bidders [are encouraged](../../developers/add-new-bidder.md) to make Net bids. H
 If you find that some bidders use Gross bids, publishers can adjust for it with `request.ext.prebid.bidadjustmentfactors`:
  
  ```
- {
-   "appnexus: 0.8,
-   "rubicon": 0.7
- }
+{
+  "ext": {
+    "prebid": {
+      "bidadjustmentfactors": {
+        "appnexus: 0.8,
+        "rubicon": 0.7
+      }
+    }
+  }
+}
  ```
  
 This may also be useful for publishers who want to account for different discrepancies with different bidders.
@@ -147,27 +153,21 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
 
 ```
 {
-  "pricegranularity": {
-    "precision": 2,
-    "ranges": [
-      {
-        "max": 20.00,
-        "increment": 0.10 // This is equivalent to the deprecated "pricegranularity": "medium"
-      }
-    ]
-  },
-  "currency": {
-    "rates": {
-      "EUR": {
-        "USD": 1.2406
-      },
-      "USD": {
-        "EUR": 0.8110
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [{
+                "max":20.00,
+                "increment":0.10 // This is equivalent to the deprecated "pricegranularity": "medium"
+          }]
+        },
+        "includewinners": false, // Optional param defaulting to true
+        "includebidderkeys": false // Optional param defaulting to true
       }
     }
-  },
-  "includewinners": false, // Optional param defaulting to true
-  "includebidderkeys": false // Optional param defaulting to true
+  }
 }
 ```
 
@@ -215,9 +215,20 @@ MediaType PriceGranularity - when a single OpenRTB request contains multiple imp
 
 ```
 {
-  "hb_bidder_{bidderName}": "The seatbid.seat which contains this bid",
-  "hb_size_{bidderName}": "A string like '300x250' using bid.w and bid.h for this bid",
-  "hb_pb_{bidderName}": "The bid.cpm, rounded down based on the price granularity."
+  "seatbid": [{
+    "bid": [{
+      ...
+      "ext": {
+        "prebid": {
+          "targeting": {
+            "hb_bidder_{bidderName}": "The seatbid.seat which contains this bid",
+            "hb_size_{bidderName}": "A string like '300x250' using bid.w and bid.h for this bid",
+            "hb_pb_{bidderName}": "The bid.cpm, rounded down based on the price granularity."
+          }
+        }
+      }
+    }]
+  }]
 }
 ```
 
@@ -236,8 +247,16 @@ In most cases, this is probably a bad idea.
 
 ```
 {
-  "appnexus": "some-appnexus-id",
-  "rubicon": "some-rubicon-id"
+  "user": {
+    "ext": {
+      "prebid": {
+        "buyeruids": {
+          "appnexus": "some-appnexus-id",
+          "rubicon": "some-rubicon-id"
+        }
+      }
+    }
+  }
 }
 ```
 
@@ -298,11 +317,9 @@ This prevents breaking API changes as new Bidders are added to the project.
 For example, if the Request defines an alias like this:
 
 ```
-{
   "aliases": {
     "appnexus": "rubicon"
   }
-}
 ```
 
 then any `imp.ext.appnexus` params will actually go to the **rubicon** adapter.
@@ -326,19 +343,17 @@ For example, a request may return this in `response.ext`
 
  ```
 {
-  "errors": {
-    "appnexus": [
-      {
-        "code": 2,
-        "message": "A hybrid Banner/Audio Imp was offered, but Appnexus doesn't support Audio."
-      }
-    ],
-    "rubicon": [
-      {
-        "code": 1,
-        "message: "The request exceeded the timeout allocated"
-      }
-    ]
+  "ext": {
+    "errors": {
+      "appnexus": [{
+          "code": 2,
+          "message": "A hybrid Banner/Audio Imp was offered, but Appnexus doesn't support Audio."
+      }],
+      "rubicon": [{
+          "code": 1,
+          "message": "The request exceeded the timeout allocated"
+      }]
+    }
   }
 }
 ```
@@ -372,7 +387,15 @@ A typical `storedrequest` value looks like this:
 
 ```
 {
-  "id": "some-id"
+  "imp": [{
+    "ext": {
+      "prebid": {
+        "storedrequest": {
+          "id": "some-id"
+        }
+      }
+    }
+  }]
 }
 ```
 
@@ -384,13 +407,19 @@ Bids can be temporarily cached on the server by sending the following data as `r
 
 ```
 {
-  "bids": {},
-  "vastxml": {}
+  "ext": {
+    "prebid": {
+      "cache": {
+        "bids": {},
+        "vastxml": {}
+      }
+    }
+  }
 }
 ```
 
-Both `bids` and `vastxml` are optional, but one of the two is required. 
-This property will have no effect unless `request.ext.prebid.targeting` is also set in the request.
+Both `bids` and `vastxml` are optional, but one of the two is required if you want to cache bids. This property will have no effect 
+unless `request.ext.prebid.targeting` is also set in the request.
 
 If `bids` is present, Prebid Server will make a _best effort_ to include these extra `bid.ext.prebid.targeting` keys:
 
@@ -460,6 +489,37 @@ Example:
 
 PBS receiving a request for an interstitial imp and these parameters set, it will rewrite the format object within the interstitial imp. If the format array's first object is a size, PBS will take it as the max size for the interstitial. If that size is 1x1, it will look up the device's size and use that as the max size. If the format is not present, it will also use the device size as the max size. (1x1 support so that you don't have to omit the format object to use the device size)
 PBS with interstitial support will come preconfigured with a list of common ad sizes. Preferentially organized by weighing the larger and more common sizes first. But no guarantees to the ordering will be made. PBS will generate a new format list for the interstitial imp by traversing this list and picking the first 10 sizes that fall within the imp's max size and minimum percentage size. There will be no attempt to favor aspect ratios closer to the original size's aspect ratio. The limit of 10 is enforced to ensure we don't overload bidders with an overlong list. All the interstitial parameters will still be passed to the bidders, so they may recognize them and use their own size matching algorithms if they prefer.
+
+#### Currency Support
+
+To set the desired 'ad server currency', use the standard OpenRTB `cur` attribute. Note that Prebid Server only looks at the first currency in the array.
+
+```
+    "cur": ["USD"]
+```
+
+If you want or need to define currency conversion rates (e.g. for currencies that your Prebid Server doesn't support),
+define ext.prebid.currency.rates. (Currently supported in PBS-Java only)
+
+```
+"ext": {
+  "prebid": {
+	  "currency": {
+		  "rates": {
+			  "USD": { "UAH": 24.47, "ETB": 32.04 }
+		  }
+	  }
+  }
+}
+```
+
+If it exists, a rate defined in ext.prebid.currency.rates has the highest priority.
+If a currency rate doesn't exist in the request, the external file will be used.
+
+#### Rewarded Video (PBS-Java only)
+
+Rewarded video is a way to incentivize users to watch ads by giving them 'points' for viewing an ad. A Prebid Server
+client can declare a given adunit as eligible for rewards by declaring `imp.ext.prebid.is_rewarded_inventory:1`.
 
 #### Stored Responses
 
@@ -625,33 +685,33 @@ It specifies where in the OpenRTB request non-standard attributes should be pass
 
 ```
 {
-    ext: {
-       prebid: {
-           data: { bidders: [ 'rubicon', 'appnexus' ] }  // these are the bidders allowed to see protected data
+    "ext": {
+       "prebid": {
+           "data": { "bidders": [ "rubicon", "appnexus" ] }  // these are the bidders allowed to see protected data
        }
     },
-    site: {
-         keywords: "",
-         search: "",
-         ext: {
+    "site": {
+         "keywords": "",
+         "search": "",
+         "ext": {
              data: { GLOBAL CONTEXT DATA } // only seen by bidders named in ext.prebid.data.bidders[]
          }
     },
-    user: {
-        keywords: "", 
-        gender: "", 
-        yob: 1999, 
-        geo: {},
-        ext: {
+    "user": {
+        "keywords": "", 
+        "gender": "", 
+        "yob": 1999, 
+        "geo": {},
+        "ext": {
             data: { GLOBAL USER DATA }  // only seen by bidders named in ext.prebid.data.bidders[]
         }
     },
-    imp: [
-        ext: {
-            context: {
-                keywords: "",
-                search: "",
-                data: { ADUNIT SPECFIC CONTEXT DATA }  // can be seen by all bidders
+    "imp": [
+        "ext": {
+            "context": {
+                "keywords": "",
+                "search": "",
+                "data": { ADUNIT SPECFIC CONTEXT DATA }  // can be seen by all bidders
             }
          }
     ]
