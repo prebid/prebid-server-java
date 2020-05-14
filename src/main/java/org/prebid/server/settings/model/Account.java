@@ -17,10 +17,13 @@ public class Account {
 
     Boolean eventsEnabled;
 
-    Boolean enforceGdpr;
-
-    GdprConfig gdpr;
+    AccountGdprConfig gdpr;
 
     Integer analyticsSamplingFactor;
-}
 
+    public static Account empty(String id) {
+        return Account.builder()
+                .id(id)
+                .build();
+    }
+}

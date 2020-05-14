@@ -1320,6 +1320,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1338,6 +1339,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1358,6 +1360,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1420,6 +1423,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1447,6 +1451,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1469,6 +1474,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1670,7 +1676,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].source missing required field: \"source\"");
+                .containsOnly("request.user.ext.eids[0] missing required field: \"source\"");
     }
 
     @Test
@@ -2562,14 +2568,14 @@ public class RequestValidatorTest extends VertxTest {
                 .containsOnly("request.imp[0].id and request.imp[1].id are both \"11\". Imp IDs must be unique.");
     }
 
-    private BidRequest givenBidRequest(
+    private static BidRequest givenBidRequest(
             Function<Native.NativeBuilder, Native.NativeBuilder> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
     }
 
-    private BidRequest givenBidRequestWithNativeRequest(
+    private static BidRequest givenBidRequestWithNativeRequest(
             Function<Request.RequestBuilder, Request.RequestBuilder> nativeRequestCustomizer)
             throws JsonProcessingException {
         return validBidRequestBuilder()

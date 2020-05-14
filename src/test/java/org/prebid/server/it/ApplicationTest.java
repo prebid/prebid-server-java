@@ -346,7 +346,8 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null))
+                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null,
+                        null))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -519,6 +520,8 @@ public class ApplicationTest extends IntegrationTest {
                 .queryParam("b", "bidId")
                 .queryParam("a", "14062")
                 .queryParam("f", "i")
+                .queryParam("bidder", "bidder")
+                .queryParam("ts", "1000")
                 .get("/event");
 
         assertThat(response.getStatusCode()).isEqualTo(200);

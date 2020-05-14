@@ -58,8 +58,7 @@ public class OpenxTest extends IntegrationTest {
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/openx/test-auction-openx-response.json",
-                response, singletonList("openx"));
+                "openrtb2/openx/test-auction-openx-response.json", response, singletonList("openx"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

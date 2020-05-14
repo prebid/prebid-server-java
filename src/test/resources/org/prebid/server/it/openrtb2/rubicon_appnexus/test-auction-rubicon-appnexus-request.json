@@ -208,6 +208,16 @@
   "ext": {
     "prebid": {
       "debug": 1,
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
       "schains": [
         {
           "bidders": [
@@ -242,6 +252,7 @@
       "aliases": {
         "appnexusAlias": "appnexus"
       },
+      "events": {},
       "targeting": {
         "pricegranularity": {
           "precision": 2,
@@ -251,16 +262,6 @@
               "increment": 0.1
             }
           ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
         }
       },
       "cache": {
@@ -268,12 +269,13 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
+      "consent": "BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA",
       "digitrust": {
         "id": "id",
         "keyv": 123
