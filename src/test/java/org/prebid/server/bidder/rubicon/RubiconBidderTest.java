@@ -339,7 +339,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldTransferRewardedVideoFlagIntoRewardedVideoObject() {
         // given
         final ExtImpPrebid prebid =
-                ExtImpPrebid.builder().isRewardedInventory(true).build();
+                ExtImpPrebid.builder().isRewardedInventory(1).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
@@ -391,30 +391,9 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotFailIfVideoParamIsNull() {
+    public void makeHttpRequestsShouldIgnoreRewardedVideoLogicIfRewardedInventoryIsNotOne() {
         // given
-        final ExtImpPrebid prebid = ExtImpPrebid
-                .builder().build();
-        final ExtImpRubicon rubicon = ExtImpRubicon.builder()
-                .video(null)
-                .build();
-
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
-
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
-                .ext(mapper.valueToTree(ext)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldIgnoreRewardedVideoFlag() {
-        // given
-        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(false).build();
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(2).build();
         final ExtImpRubicon rubicon = ExtImpRubicon.builder()
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
@@ -438,6 +417,53 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
     }
 
+    @Test
+    public void makeHttpRequestsShouldNotFailIfVideoParamIsNull() {
+        // given
+        final ExtImpPrebid prebid = ExtImpPrebid
+                .builder().build();
+        final ExtImpRubicon rubicon = ExtImpRubicon.builder()
+                .video(null)
+                .build();
+
+        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
+                .ext(mapper.valueToTree(ext)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreRewardedVideoFlag() {
+        // given
+        final ExtImpPrebid prebid = ExtImpPrebid.builder().isRewardedInventory(0).build();
+        final ExtImpRubicon rubicon = ExtImpRubicon.builder()
+                .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
+                .build();
+
+        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
+                .ext(mapper.valueToTree(ext)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt).doesNotContainNull()
+                .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
+    }
 
     @Test
     public void makeHttpRequestsShouldFillUserExtIfUserAndVisitorPresent() {
@@ -1643,12 +1669,12 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithBidIdFieldFromBidResponseIfZero() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString((BidResponse.builder()
+                mapper.writeValueAsString(BidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().id("0").price(ONE).build()))
                                 .build()))
-                        .build())));
+                        .build()));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
@@ -1663,12 +1689,12 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithOriginalBidIdFieldFromBidResponseIfNotZero() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString((BidResponse.builder()
+                mapper.writeValueAsString(BidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().id("non-zero").price(ONE).build()))
                                 .build()))
-                        .build())));
+                        .build()));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
@@ -1686,11 +1712,11 @@ public class RubiconBidderTest extends VertxTest {
                 ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, jacksonMapper);
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString((BidResponse.builder()
+                mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().id("bidid1").price(ONE).build()))
                                 .build()))
-                        .build())));
+                        .build()));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);

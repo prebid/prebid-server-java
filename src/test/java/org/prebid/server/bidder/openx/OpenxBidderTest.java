@@ -23,7 +23,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -237,7 +236,6 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customParams(givenCustomParams("foo4", "bar4"))
                                                         .delDomain("se-demo-d.openx.net")
                                                         .unit("unitId").build()))).build(),
-
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())

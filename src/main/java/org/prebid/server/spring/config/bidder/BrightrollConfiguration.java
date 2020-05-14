@@ -1,7 +1,12 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.brightroll.BrightrollBidder;
+import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -15,8 +20,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/brightroll.yaml", factory = YamlPropertySourceFactory.class)
@@ -33,21 +43,63 @@ public class BrightrollConfiguration {
 
     @Autowired
     @Qualifier("brightrollConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
+    private BrightrollConfigurationProperties configProperties;
 
     @Bean("brightrollConfigurationProperties")
     @ConfigurationProperties("adapters.brightroll")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    BrightrollConfigurationProperties configurationProperties() {
+        return new BrightrollConfigurationProperties();
     }
 
     @Bean
     BidderDeps brightrollBidderDeps() {
+        final Map<String, PublisherOverride> publisherIdToOverride = configProperties.getAccounts() == null
+                ? Collections.emptyMap()
+                : configProperties.getAccounts().stream()
+                        .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
                 .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper))
+                .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint(), mapper,
+                        publisherIdToOverride))
                 .assemble();
+    }
+
+    private PublisherOverride toPublisherOverride(BidderAccount bidderAccount) {
+        return PublisherOverride.of(bidderAccount.getBadv(), bidderAccount.getBcat(), bidderAccount.getImpBattr());
+    }
+
+    @Validated
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BrightrollConfigurationProperties extends BidderConfigurationProperties {
+
+        private List<BidderAccount> accounts;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BidderAccount {
+
+        private String id;
+
+        /**
+         * Blocked advertisers.
+         */
+        private List<String> badv;
+
+        /**
+         * Blocked advertisers.
+         */
+        private List<String> bcat;
+
+        /**
+         * Blocked IAB categories.
+         */
+        private List<Integer> impBattr;
     }
 }
