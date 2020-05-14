@@ -10,14 +10,12 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -52,7 +50,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
@@ -223,16 +220,12 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldExecuteAdminManagerOnInvalidRequestException() {
         // given
-        final AdminManager adminManager = Mockito.spy(new AdminManager());
-        adminManager.setupByCounter(AdminManager.COUNTER_KEY, 1,
-                (BiConsumer<Logger, String>) Logger::info,
-                (BiConsumer<Logger, String>) (logger, s) -> {
-                });
-        final AuctionHandler auctionHandler = new AuctionHandler(
-                auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock, adminManager, jacksonMapper);
+        auctionHandler = new AuctionHandler(auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock,
+                adminManager, jacksonMapper);
 
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+
         // when
         auctionHandler.handle(routingContext);
 
