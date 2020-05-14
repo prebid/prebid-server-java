@@ -108,29 +108,29 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService
-                        .resultFor(vendorIds, Collections.emptySet(), gdpr, gdprConsent, ip, account, timeout))
+                .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip,
+                        account.getGdpr(), timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
         return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(null)
+                ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                        .otherwise((Account) null);
+                .otherwise(Account.empty(accountId));
     }
 
-    private void handleResult(AsyncResult<TcfResponse> asyncResult, RoutingContext context,
+    private void handleResult(AsyncResult<TcfResponse<Integer>> asyncResult, RoutingContext context,
                               UidsCookie uidsCookie, String bidder) {
         if (asyncResult.failed()) {
             respondWithError(context, bidder, asyncResult.cause());
         } else {
             // allow cookie only if user is not in GDPR scope or vendor passed GDPR check
-            final TcfResponse tcfResponse = asyncResult.result();
+            final TcfResponse<Integer> tcfResponse = asyncResult.result();
 
             final boolean notInGdprScope = BooleanUtils.isFalse(tcfResponse.getUserInGdprScope());
 
-            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getVendorIdToActionMap();
+            final Map<Integer, PrivacyEnforcementAction> vendorIdToAction = tcfResponse.getActions();
             final PrivacyEnforcementAction privacyEnforcementAction = vendorIdToAction != null
                     ? vendorIdToAction.get(gdprHostVendorId)
                     : null;
@@ -166,7 +166,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
         respondWith(context, status, body);
-        metrics.updateUserSyncGdprPreventMetric(bidder);
+        metrics.updateUserSyncTcfBlockedMetric(bidder);
         analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 
