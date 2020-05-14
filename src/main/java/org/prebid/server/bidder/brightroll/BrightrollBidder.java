@@ -11,9 +11,12 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -27,7 +30,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,17 +43,24 @@ import java.util.stream.Collectors;
  */
 public class BrightrollBidder implements Bidder<BidRequest> {
 
-    private final String endpointUrl;
-    private final JacksonMapper mapper;
-
-    public BrightrollBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.mapper = Objects.requireNonNull(mapper);
-    }
-
+    private static final String OPENRTB_VERSION = "2.5";
+    private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+    private final Map<String, PublisherOverride> publisherIdToOverride;
+
+    public BrightrollBidder(String endpointUrl,
+                            JacksonMapper mapper,
+                            Map<String, PublisherOverride> publisherIdToOverride) {
+
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
+        this.publisherIdToOverride = Objects.requireNonNull(publisherIdToOverride);
+    }
 
     /**
      * Creates POST HTTP requests which should be made to fetch bids.
@@ -112,6 +121,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             throw new PreBidException("publisher is empty");
         }
 
+        if (!publisherIdToOverride.containsKey(publisher)) {
+            throw new PreBidException("publisher is not valid");
+        }
+
         return publisher;
     }
 
@@ -119,20 +132,22 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Updates {@link BidRequest} with default auction type
      * and {@link Imp}s if something changed or dropped from the list.
      */
-    private static BidRequest updateBidRequest(BidRequest bidRequest, String firstImpExtPublisher,
-                                               List<BidderError> errors) {
+    private BidRequest updateBidRequest(BidRequest bidRequest, String firstImpExtPublisher,
+                                        List<BidderError> errors) {
         final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder();
         // Defaulting to first price auction for all prebid requests
         builder.at(1);
 
-        final boolean isBIPublisher = Objects.equals(firstImpExtPublisher, "businessinsider");
-        if (isBIPublisher) {
-            builder.bcat(BrightrollConstant.BLOCKED_CATEGORIES_FOR_BUSINESSINSIDER);
+        final PublisherOverride publisherOverride = publisherIdToOverride.get(firstImpExtPublisher);
+
+        if (publisherOverride != null) {
+            builder.bcat(publisherOverride.getBcat())
+                    .badv(publisherOverride.getBadv());
         }
 
         builder.imp(bidRequest.getImp().stream()
                 .filter(imp -> isImpValid(imp, errors))
-                .map(imp -> updateImp(imp, firstImpExtPublisher))
+                .map(imp -> updateImp(imp, publisherOverride))
                 .collect(Collectors.toList()));
 
         return builder.build();
@@ -154,9 +169,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     /**
      * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
-    private static Imp updateImp(Imp imp, String publisher) {
+    private Imp updateImp(Imp imp, PublisherOverride publisherOverride) {
         final Banner banner = imp.getBanner();
-        final boolean isBIPublisher = Objects.equals(publisher, "businessinsider");
         if (banner != null) {
             final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
             if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
@@ -166,18 +180,18 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                         .w(firstFormat.getW())
                         .h(firstFormat.getH());
             }
-            if (isBIPublisher) {
-                bannerBuilder.battr(BrightrollConstant.BLOCKED_CREATIVETYPES_FOR_BUSINESSINSIDER);
+            if (publisherOverride != null) {
+                bannerBuilder.battr(publisherOverride.getImpBattr());
             }
             return imp.toBuilder()
                     .banner(bannerBuilder.build())
                     .build();
         }
         final Video video = imp.getVideo();
-        if (video != null && isBIPublisher) {
+        if (video != null && publisherOverride != null) {
             return imp.toBuilder()
                     .video(video.toBuilder()
-                            .battr(BrightrollConstant.BLOCKED_CREATIVETYPES_FOR_BUSINESSINSIDER)
+                            .battr(publisherOverride.getImpBattr())
                             .build())
                     .build();
         }
@@ -190,7 +204,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private MultiMap createHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
 
-        headers.add(BrightrollConstant.OPEN_RTB_VERSION_HEADER, BrightrollConstant.VERSION);
+        headers.add(OPEN_RTB_VERSION_HEADER, OPENRTB_VERSION);
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());

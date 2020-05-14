@@ -21,8 +21,7 @@
               }
             ]
           }
-        },
-        "wurl": "http://localhost:8000/event?t=win&b=326132363&a=accountId&f=i"
+        }
       }
     },
     {
@@ -49,8 +48,7 @@
             "bid_ad_type": 0,
             "ranking_price": 0.0
           }
-        },
-        "wurl": "http://localhost:8000/event?t=win&b=7706636740145184841&a=accountId&f=i"
+        }
       }
     }
   ]

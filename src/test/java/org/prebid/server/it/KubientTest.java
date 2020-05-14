@@ -24,17 +24,17 @@ public class KubientTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromKubient() throws IOException, JSONException {
         // given
         // Kubient bid response for imp 001 and 002
-        wireMockRule.stubFor(post(urlPathEqualTo("/kubient-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kubient-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/kubient/test-kubient-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kubient/test-kubient-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/kubient/test-cache-kubient-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kubient/test-cache-kubient-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

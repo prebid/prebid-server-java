@@ -66,7 +66,13 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(httpServerRequest.getParam(anyString())).willReturn("test");
 
-        factory = new VideoRequestFactory(Integer.MAX_VALUE, false, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
+        factory = new VideoRequestFactory(
+                Integer.MAX_VALUE,
+                false,
+                videoStoredRequestProcessor,
+                auctionRequestFactory,
+                timeoutResolver,
+                jacksonMapper);
     }
 
     @Test
@@ -87,8 +93,15 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredRequestIsEnforcedAndIdIsNotProvided() throws JsonProcessingException {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(BidRequestVideo.builder().build())));
-        factory = new VideoRequestFactory(Integer.MAX_VALUE, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
+        given(routingContext.getBody())
+                .willReturn(Buffer.buffer(mapper.writeValueAsBytes(BidRequestVideo.builder().build())));
+        factory = new VideoRequestFactory(
+                Integer.MAX_VALUE,
+                true,
+                videoStoredRequestProcessor,
+                auctionRequestFactory,
+                timeoutResolver,
+                jacksonMapper);
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -103,7 +116,13 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new VideoRequestFactory(2, true, videoStoredRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
+        factory = new VideoRequestFactory(
+                2,
+                true,
+                videoStoredRequestProcessor,
+                auctionRequestFactory,
+                timeoutResolver,
+                jacksonMapper);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -141,11 +160,19 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .build();
         final Imp expectedImp1 = Imp.builder()
                 .id("123_0")
-                .video(Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(singletonList(123)).build())
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .maxduration(100)
+                        .protocols(singletonList(123))
+                        .build())
                 .build();
         final Imp expectedImp2 = Imp.builder()
                 .id("123_1")
-                .video(Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(singletonList(123)).build())
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .maxduration(100)
+                        .protocols(singletonList(123))
+                        .build())
                 .build();
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
                 .cache(ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null))
@@ -167,13 +194,16 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ext)))
                 .build();
 
-        final WithPodErrors<BidRequest> mergedBidRequest = WithPodErrors.of(bidRequest, singletonList(PodError.of(1, 1, singletonList("TEST"))));
+        final WithPodErrors<BidRequest> mergedBidRequest = WithPodErrors.of(
+                bidRequest, singletonList(PodError.of(1, 1, singletonList("TEST"))));
 
         final BidRequestVideo requestVideo = BidRequestVideo.builder().build();
         given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsBytes(requestVideo)));
-        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any())).willReturn(Future.succeededFuture(mergedBidRequest));
+        given(videoStoredRequestProcessor.processVideoRequest(any(), any(), any()))
+                .willReturn(Future.succeededFuture(mergedBidRequest));
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.toAuctionContext(any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture());
 

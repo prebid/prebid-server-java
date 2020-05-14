@@ -207,6 +207,26 @@ public class BidderCatalogTest {
     }
 
     @Test
+    public void nameByVendorIdShouldReturnBidderNameForVendorId() {
+        // given
+        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
+                singletonList("banner"), singletonList("video"), null, 99, true, false);
+
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(emptyList())
+                .bidder(bidder)
+                .bidderInfo(bidderInfo)
+                .build();
+
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.nameByVendorId(99)).isEqualTo(BIDDER);
+    }
+
+    @Test
     public void bidderByNameShouldReturnNullForUnknownBidder() {
         // given
         bidderCatalog = new BidderCatalog(emptyList());
