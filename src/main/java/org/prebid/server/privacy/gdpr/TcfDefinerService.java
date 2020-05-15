@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -310,7 +311,12 @@ public class TcfDefinerService {
 
     private static TCString decodeTcString(GdprInfoWithCountry<String> gdprInfo) {
         try {
-            return TCString.decode(gdprInfo.getConsent());
+            final String consent = gdprInfo.getConsent();
+            if (StringUtils.isBlank(consent)) {
+                return null;
+            }
+
+            return TCString.decode(consent);
         } catch (Throwable e) {
             logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
             return null;
