@@ -54,7 +54,7 @@ public class TCStringEmpty implements TCString {
 
     @Override
     public int getVendorListVersion() {
-        return 0;
+        return -1;
     }
 
     @Override
