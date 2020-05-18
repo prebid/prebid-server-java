@@ -99,7 +99,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result = target.resultForVendorIds(singleton(1), null, null, null, null,
-                null);
+                null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -118,7 +118,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<String>> result = target.resultForBidderNames(
-                singleton("b"), null, null, null, null, accountGdprConfig, null);
+                singleton("b"), null, null, null, null, accountGdprConfig, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -137,7 +137,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result = target.resultForVendorIds(singleton(1), "1", "consent", "ip",
-                accountGdprConfig, null);
+                accountGdprConfig, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -152,7 +152,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForVendorIdsShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
         // when
-        target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
+        target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null, null);
 
         // then
         verify(geoLocationService).lookup(eq("ip"), any());
@@ -162,7 +162,7 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsNotValid() {
         // when
-        target.resultForVendorIds(singleton(1), "1", "consent", "ip", null, null);
+        target.resultForVendorIds(singleton(1), "1", "consent", "ip", null, null, null);
 
         // then
         verify(tcf2Service).permissionsFor(
@@ -175,7 +175,7 @@ public class TcfDefinerServiceTest {
     public void resultForVendorIdsShouldReturnAllowAllWhenGdprIsZero() {
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), "0", "consent", "ip", null, null);
+                target.resultForVendorIds(singleton(1), "0", "consent", "ip", null, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -189,7 +189,7 @@ public class TcfDefinerServiceTest {
     public void resultForBidderNamesShouldReturnAllowAllWhenGdprIsZero() {
         // when
         final Future<TcfResponse<String>> result =
-                target.resultForBidderNames(singleton("b1"), "0", "consent", "ip", null, null);
+                target.resultForBidderNames(singleton("b1"), "0", "consent", "ip", null, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -207,7 +207,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
+                target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -228,7 +228,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
+                target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -247,7 +247,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(singleton(1), null, "consent", null, null, null);
+                target.resultForVendorIds(singleton(1), null, "consent", null, null, null, null);
 
         // then
         assertThat(result).succeededWith(
@@ -272,7 +272,7 @@ public class TcfDefinerServiceTest {
                 "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
                 null,
                 AccountGdprConfig.builder().build(),
-                null);
+                null, null);
 
         // then
         final HashMap<Integer, PrivacyEnforcementAction> expectedVendorIdToPrivacyMap = new HashMap<>();
@@ -305,7 +305,7 @@ public class TcfDefinerServiceTest {
                 "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
                 null,
                 null,
-                null);
+                null, null);
 
         // then
         final HashMap<String, PrivacyEnforcementAction> expectedBidderNameToPrivacyMap = new HashMap<>();
@@ -335,7 +335,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfResponse<Integer>> result =
-                target.resultForVendorIds(new HashSet<>(asList(1, 2)), "1", null, null, null, null);
+                target.resultForVendorIds(new HashSet<>(asList(1, 2)), "1", null, null, null, null, null);
 
         // then
         final HashMap<Integer, PrivacyEnforcementAction> expectedVendorIdToPrivacyMap = new HashMap<>();
@@ -356,7 +356,7 @@ public class TcfDefinerServiceTest {
         // when
         final Set<String> bidderNames = new HashSet<>(asList("b1", "b2"));
         final Future<TcfResponse<String>> result = target.resultForBidderNames(
-                bidderNames, "1", "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null, null);
+                bidderNames, "1", "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA", null, null, null, null);
 
         // then
         final HashMap<String, PrivacyEnforcementAction> expectedBidderNameToPrivacyMap = new HashMap<>();

@@ -29,6 +29,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.CookieSyncRequest;
@@ -256,10 +257,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                                                            Account account,
                                                            Timeout timeout) {
         final AccountGdprConfig accountGdpr = account.getGdpr();
-        return tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip, accountGdpr, timeout)
+        final RequestLogInfo requestLogInfo = RequestLogInfo.of(null, null, account.getId());
+        return tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip, accountGdpr,
+                requestLogInfo, timeout)
                 .compose(this::handleVendorIdResult)
                 .compose(ignored -> tcfDefinerService.resultForBidderNames(biddersToSync, gdprAsString, gdprConsent,
-                        ip, accountGdpr, timeout));
+                        ip, accountGdpr, requestLogInfo, timeout));
     }
 
     private Future<Void> handleVendorIdResult(TcfResponse<Integer> tcfResponse) {

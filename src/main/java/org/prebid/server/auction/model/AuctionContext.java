@@ -23,6 +23,9 @@ public class AuctionContext {
     BidRequest bidRequest;
 
     @JsonIgnore
+    RequestType requestType;
+
+    @JsonIgnore
     Timeout timeout;
 
     Account account;

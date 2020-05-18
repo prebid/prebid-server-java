@@ -22,6 +22,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -105,11 +106,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String gdpr = context.request().getParam(GDPR_PARAM);
         final String gdprConsent = context.request().getParam(GDPR_CONSENT_PARAM);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
+
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
                 .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip,
-                        account.getGdpr(), timeout))
+                        account.getGdpr(), RequestLogInfo.of(null, null, account.getId()), timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 

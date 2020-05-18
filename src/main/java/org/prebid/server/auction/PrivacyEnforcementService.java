@@ -11,6 +11,7 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.prebid.server.auction.model.RequestType;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -22,10 +23,12 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.VendorIdResolver;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 
 import java.text.DecimalFormat;
@@ -98,10 +101,14 @@ public class PrivacyEnforcementService {
             return maskCcpa(bidderToUser, device);
         }
 
-        final AccountGdprConfig accountConfig = auctionContext.getAccount().getGdpr();
+        final Account account = auctionContext.getAccount();
+        final AccountGdprConfig accountConfig = account.getGdpr();
+        final RequestLogInfo requestLogInfo = requestLogInfo(auctionContext.getRequestType(), bidRequest,
+                account.getId());
         final Timeout timeout = auctionContext.getTimeout();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
-        return getBidderToEnforcementAction(device, bidders, aliases, extUser, regs, accountConfig, timeout)
+        return getBidderToEnforcementAction(device, bidders, aliases, extUser, regs, requestLogInfo, accountConfig,
+                timeout)
                 .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, device))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToUser, device, bidderToEnforcement));
     }
@@ -200,6 +207,11 @@ public class PrivacyEnforcementService {
         return updatedGeo == null || updatedGeo.equals(Geo.EMPTY) ? null : updatedGeo;
     }
 
+    private RequestLogInfo requestLogInfo(RequestType requestType, BidRequest bidRequest, String accountId) {
+        final String refUrl = Objects.equals(requestType, RequestType.WEB) ? bidRequest.getSite().getRef() : null;
+        return RequestLogInfo.of(requestType, refUrl, accountId);
+    }
+
     /**
      * Returns {@link Future &lt;{@link Map}&lt;{@link String}, {@link PrivacyEnforcementAction}&gt;&gt;},
      * where bidder names mapped to actions for GDPR masking for pbs server.
@@ -210,6 +222,7 @@ public class PrivacyEnforcementService {
             BidderAliases aliases,
             ExtUser extUser,
             Regs regs,
+            RequestLogInfo requestLogInfo,
             AccountGdprConfig accountConfig,
             Timeout timeout) {
 
@@ -228,6 +241,7 @@ public class PrivacyEnforcementService {
                 gdprConsent,
                 ipAddress,
                 accountConfig,
+                requestLogInfo,
                 timeout)
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }

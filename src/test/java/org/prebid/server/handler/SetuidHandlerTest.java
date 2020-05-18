@@ -90,7 +90,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void setUp() {
         final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null,
                 PrivacyEnforcementAction.allowAll());
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -162,7 +162,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(null, privacyEnforcementAction), null)));
 
@@ -185,7 +185,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -207,7 +207,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("unexpected error"));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -250,7 +250,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), eq("192.168.144.1"), any(), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), eq("192.168.144.1"), any(), any(), any());
     }
 
     @Test
@@ -274,7 +274,8 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any(),
+                any());
     }
 
     @Test
@@ -295,7 +296,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any(), any());
     }
 
     @Test
@@ -425,7 +426,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
 
         given(uidsCookieService.parseFromRequest(any()))

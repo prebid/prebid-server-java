@@ -21,6 +21,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RequestType;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
@@ -204,7 +205,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(auctionRequestFactory.validateRequest(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
-        given(auctionRequestFactory.toAuctionContext(any(), any(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyLong(), any()))
                 .willReturn(Future.succeededFuture());
 
         // when
@@ -215,7 +216,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(videoStoredRequestProcessor).processVideoRequest(null, emptySet(), requestVideo);
         verify(auctionRequestFactory).validateRequest(bidRequest);
         verify(auctionRequestFactory).fillImplicitParameters(bidRequest, routingContext, timeoutResolver);
-        verify(auctionRequestFactory).toAuctionContext(routingContext, bidRequest, 0, timeoutResolver);
+        verify(auctionRequestFactory).toAuctionContext(routingContext, bidRequest, RequestType.VIDEO, 0,
+                timeoutResolver);
 
         assertThat(result.result().getPodErrors()).isEqualTo(mergedBidRequest.getPodErrors());
     }

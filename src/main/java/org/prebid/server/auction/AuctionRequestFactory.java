@@ -20,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RequestType;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -153,7 +154,12 @@ public class AuctionRequestFactory {
         }
 
         return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
+                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, requestType(bidRequest),
+                        startTime, timeoutResolver));
+    }
+
+    private RequestType requestType(BidRequest bidRequest) {
+        return bidRequest.getApp() != null ? RequestType.APP : RequestType.WEB;
     }
 
     /**
@@ -162,7 +168,7 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
-                                            long startTime, TimeoutResolver timeoutResolver) {
+                                            RequestType requestType, long startTime, TimeoutResolver timeoutResolver) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, routingContext)
@@ -170,6 +176,7 @@ public class AuctionRequestFactory {
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
                         .bidRequest(bidRequest)
+                        .requestType(requestType)
                         .timeout(timeout)
                         .account(account)
                         .build());

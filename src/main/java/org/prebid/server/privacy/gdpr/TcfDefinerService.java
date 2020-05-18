@@ -6,13 +6,16 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.RequestType;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.GdprInfoWithCountry;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TCStringEmpty;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
@@ -31,6 +34,14 @@ import java.util.stream.Collectors;
 public class TcfDefinerService {
 
     private static final Logger logger = LoggerFactory.getLogger(TcfDefinerService.class);
+    private static final ConditionalLogger AMP_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("amp_corrupt_consent", logger);
+    private static final ConditionalLogger APP_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("app_corrupt_consent", logger);
+    private static final ConditionalLogger SITE_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("site_corrupt_consent", logger);
+    private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("undefined_corrupt_consent", logger);
 
     private static final String GDPR_ZERO = "0";
     private static final String GDPR_ONE = "1";
@@ -68,12 +79,14 @@ public class TcfDefinerService {
                                                            String gdprConsent,
                                                            String ipAddress,
                                                            AccountGdprConfig accountGdprConfig,
+                                                           RequestLogInfo requestLogInfo,
                                                            Timeout timeout) {
         return resultForInternal(
                 gdpr,
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
+                requestLogInfo,
                 timeout,
                 country -> createAllowAllTcfResponse(vendorIds, country),
                 (consentString, country) -> tcf2Service.permissionsFor(vendorIds, consentString)
@@ -89,12 +102,14 @@ public class TcfDefinerService {
                                                             String gdprConsent,
                                                             String ipAddress,
                                                             AccountGdprConfig accountGdprConfig,
+                                                            RequestLogInfo requestLogInfo,
                                                             Timeout timeout) {
         return resultForInternal(
                 gdpr,
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
+                requestLogInfo,
                 timeout,
                 country -> createAllowAllTcfResponse(bidderNames, country),
                 (consentString, country) ->
@@ -110,6 +125,7 @@ public class TcfDefinerService {
                                                             String gdprConsent,
                                                             String ipAddress,
                                                             AccountGdprConfig accountGdprConfig,
+                                                            RequestLogInfo requestLogInfo,
                                                             Timeout timeout) {
         return resultForBidderNames(
                 bidderNames,
@@ -118,6 +134,7 @@ public class TcfDefinerService {
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
+                requestLogInfo,
                 timeout);
     }
 
@@ -126,6 +143,7 @@ public class TcfDefinerService {
             String gdprConsent,
             String ipAddress,
             AccountGdprConfig accountGdprConfig,
+            RequestLogInfo requestLogInfo,
             Timeout timeout,
             Function<String, Future<TcfResponse<T>>> allowAllTcfResponseCreator,
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
@@ -137,7 +155,8 @@ public class TcfDefinerService {
 
         return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
                 .compose(gdprInfoWithCountry ->
-                        dispatchToService(gdprInfoWithCountry, allowAllTcfResponseCreator, tcf2Strategy, gdprStrategy));
+                        dispatchToService(gdprInfoWithCountry, requestLogInfo, allowAllTcfResponseCreator, tcf2Strategy,
+                                gdprStrategy));
     }
 
     private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig) {
@@ -189,11 +208,12 @@ public class TcfDefinerService {
 
     private <T> Future<TcfResponse<T>> dispatchToService(
             GdprInfoWithCountry<String> gdprInfoWithCountry,
+            RequestLogInfo requestLogInfo,
             Function<String, Future<TcfResponse<T>>> allowAllTcfResponseCreator,
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
             BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
 
-        TCString tcString = decodeTcString(gdprInfoWithCountry);
+        TCString tcString = decodeTcString(gdprInfoWithCountry, requestLogInfo);
 
         updatePrivacyTcfMetrics(gdprInfoWithCountry, tcString);
 
@@ -309,18 +329,53 @@ public class TcfDefinerService {
         return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
     }
 
-    private static TCString decodeTcString(GdprInfoWithCountry<String> gdprInfo) {
+    private static TCString decodeTcString(GdprInfoWithCountry<String> gdprInfo, RequestLogInfo requestLogInfo) {
+        final String consent = gdprInfo.getConsent();
         try {
-            final String consent = gdprInfo.getConsent();
             if (StringUtils.isBlank(consent)) {
                 return null;
             }
 
             return TCString.decode(consent);
         } catch (Throwable e) {
-            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            logWarn(consent, e.getMessage(), requestLogInfo);
             return null;
         }
+    }
+
+    private static void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
+        if (requestLogInfo == null) {
+            final String exceptionMessage = String.format("Parsing consent string:\"%s\" failed for undefined type "
+                    + "with exception %s", consent, message);
+            UNDEFINED_CORRUPT_CONSENT_LOGGER.warn(exceptionMessage, 100);
+            return;
+        }
+
+        switch (requestLogInfo.getRequestType()) {
+            case AMP:
+                AMP_CORRUPT_CONSENT_LOGGER.warn(
+                        logMessage(consent, RequestType.AMP.toString(), requestLogInfo, message), 100);
+                break;
+            case APP:
+                APP_CORRUPT_CONSENT_LOGGER.warn(
+                        logMessage(consent, RequestType.APP.toString(), requestLogInfo, message), 100);
+                break;
+            case WEB:
+                SITE_CORRUPT_CONSENT_LOGGER.warn(
+                        logMessage(consent, RequestType.WEB.toString(), requestLogInfo, message), 100);
+                break;
+            case LEGACY:
+            case VIDEO:
+            default:
+                UNDEFINED_CORRUPT_CONSENT_LOGGER.warn(
+                        logMessage(consent, "video or legacy or sync or setuid", requestLogInfo, message), 100);
+        }
+    }
+
+    private static String logMessage(String consent, String type, RequestLogInfo requestLogInfo, String message) {
+        return String.format(
+                "Parsing consent string: \"%s\" failed for: %s type for account id: %s with ref: %s with exception: %s",
+                consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
     }
 
     private static PrivacyEnforcementAction restrictAllButAnalyticsAndAuction() {

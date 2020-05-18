@@ -246,8 +246,10 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
 
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
-        verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any(),
+                any());
+        verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), eq(accountGdprConfig), any(),
+                any());
     }
 
     @Test
@@ -266,8 +268,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
 
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any());
-        verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), isNull(), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any(), any());
+        verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), isNull(), any(), any());
     }
 
     @Test
@@ -1127,12 +1129,12 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     private void givenTcfServiceReturningVendorIdResult(Set<Integer> vendorIds) {
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds), null)));
     }
 
     private void givenTcfServiceReturningBidderNamesResult(Set<String> bidderNames) {
-        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(bidderNames), null)));
     }
 

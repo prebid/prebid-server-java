@@ -18,6 +18,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.RequestType;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -83,7 +84,8 @@ public class AmpRequestFactory {
 
         return createBidRequest(routingContext, tagId)
                 .compose(bidRequest ->
-                        auctionRequestFactory.toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
+                        auctionRequestFactory.toAuctionContext(routingContext, bidRequest, RequestType.AMP, startTime,
+                                timeoutResolver));
     }
 
     /**

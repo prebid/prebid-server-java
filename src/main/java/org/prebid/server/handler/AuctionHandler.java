@@ -14,6 +14,7 @@ import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.TargetingKeywordsCreator;
 import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.model.RequestType;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.Adapter;
@@ -30,6 +31,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -255,6 +257,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 privacy.getConsent(),
                 ip,
                 account.getGdpr(),
+                RequestLogInfo.of(RequestType.LEGACY, null, account.getId()),
                 preBidRequestContext.getTimeout())
                 .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getActions(), hostVendorIdIsMissing));
     }
