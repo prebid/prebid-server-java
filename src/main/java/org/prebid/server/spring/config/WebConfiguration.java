@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
@@ -8,11 +9,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -48,6 +51,7 @@ import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
+import org.prebid.server.handler.openrtb2.aspects.QueuedRequestTimeout;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
@@ -156,6 +160,7 @@ public class WebConfiguration {
                   org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
                   VideoHandler openrtbVideoHandler,
+                  RequestTimeoutHeaders requestTimeoutHeaders,
                   StatusHandler statusHandler,
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
@@ -175,7 +180,13 @@ public class WebConfiguration {
         router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
         router.get("/openrtb2/amp").handler(openrtbAmpHandler);
-        router.post("/openrtb2/video").handler(openrtbVideoHandler);
+
+        Handler<RoutingContext> videoHandler = openrtbVideoHandler;
+        if (StringUtils.isNoneEmpty(requestTimeoutHeaders.getRequestTimeInQueue(),
+                requestTimeoutHeaders.getRequestTimeoutInQueue())) {
+            videoHandler = new QueuedRequestTimeout(openrtbVideoHandler, requestTimeoutHeaders);
+        }
+        router.post("/openrtb2/video").handler(videoHandler);
         router.get("/status").handler(statusHandler);
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
@@ -414,6 +425,17 @@ public class WebConfiguration {
         Set<String> getCustomTargetingSet() {
             return new HashSet<>(customTargeting);
         }
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "request-timeout-headers")
+    @Data
+    @NoArgsConstructor
+    public static class RequestTimeoutHeaders {
+
+        String requestTimeInQueue;
+
+        String requestTimeoutInQueue;
     }
 
     @Component
