@@ -263,6 +263,20 @@ public class VendorListServiceV1Test extends VertxTest {
     // In-memory cache related tests
 
     @Test
+    public void shouldFailIfVendorListIsBelowOrZero() {
+        // given
+        givenHttpClientProducesException(new RuntimeException());
+
+        // when
+        final Future<?> result1 = vendorListService.forVersion(0);
+        final Future<?> result2 = vendorListService.forVersion(-2);
+
+        // then
+        assertThat(result1).isFailed().hasMessage("Vendor list for version 0 not valid.");
+        assertThat(result2).isFailed().hasMessage("Vendor list for version -2 not valid.");
+    }
+
+    @Test
     public void shouldFailIfVendorListNotFound() {
         // given
         givenHttpClientProducesException(new RuntimeException());
