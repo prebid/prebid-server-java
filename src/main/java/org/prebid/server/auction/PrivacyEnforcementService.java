@@ -123,6 +123,7 @@ public class PrivacyEnforcementService {
     private static User maskCcpaUser(User user) {
         if (user != null) {
             return nullIfEmpty(user.toBuilder()
+                    .id(null)
                     .buyeruid(null)
                     .geo(maskGeoDefault(user.getGeo()))
                     .build());
