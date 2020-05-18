@@ -17,7 +17,8 @@ public class QueuedRequestTimeout implements Handler<RoutingContext> {
     private final VideoHandler videoHandler;
     private final WebConfiguration.RequestTimeoutHeaders requestTimeoutHeaders;
 
-    public QueuedRequestTimeout(VideoHandler videoHandler, WebConfiguration.RequestTimeoutHeaders requestTimeoutHeaders) {
+    public QueuedRequestTimeout(VideoHandler videoHandler,
+                                WebConfiguration.RequestTimeoutHeaders requestTimeoutHeaders) {
         this.videoHandler = videoHandler;
         this.requestTimeoutHeaders = requestTimeoutHeaders;
     }
