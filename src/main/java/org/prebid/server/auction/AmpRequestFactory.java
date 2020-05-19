@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -28,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
@@ -38,7 +40,9 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -131,9 +135,12 @@ public class AmpRequestFactory {
     }
 
     /**
-     * Updates {@link BidRequest}.ext.prebid.targeting and {@link BidRequest}.ext.prebid.cache.bids with default values
-     * if it was not included by user. Updates {@link Imp} security if required to ensure that amp always uses
-     * https protocol. Sets {@link BidRequest}.test = 1 if it was passed in {@link RoutingContext}.
+     * - Updates {@link BidRequest}.ext.prebid.targeting and {@link BidRequest}.ext.prebid.cache.bids with default
+     * values if it was not included by user
+     * - Updates {@link Imp} security if required to ensure that amp always uses
+     * https protocol
+     * - Sets {@link BidRequest}.test = 1 if it was passed in {@link RoutingContext}
+     * - Updates {@link BidRequest}.ext.prebid.amp.data with all query parameters
      */
     private BidRequest fillExplicitParameters(BidRequest bidRequest, RoutingContext context) {
         final List<Imp> imps = bidRequest.getImp();
@@ -175,12 +182,23 @@ public class AmpRequestFactory {
                 ? debugQueryParam
                 : null;
 
+        final ExtRequestPrebidAmp amp = prebid != null ? prebid.getAmp() : null;
+        final Map<String, String> ampData = amp != null ? amp.getData() : null;
+        final Map<String, String> updatedAmpData = updateAmpData(ampData, context.request());
+
         final BidRequest result;
-        if (setSecure || setDefaultTargeting || setDefaultCache || updatedTest != null || updatedDebug != null) {
+        if (setSecure
+                || setDefaultTargeting
+                || setDefaultCache
+                || updatedTest != null
+                || updatedDebug != null
+                || updatedAmpData != null) {
+
             result = bidRequest.toBuilder()
                     .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
                     .test(ObjectUtils.defaultIfNull(updatedTest, test))
-                    .ext(extBidRequestNode(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
+                    .ext(extBidRequestNode(
+                            bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug, updatedAmpData))
                     .build();
         } else {
             result = bidRequest;
@@ -484,11 +502,15 @@ public class AmpRequestFactory {
     /**
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                         boolean setDefaultTargeting, boolean setDefaultCache,
-                                         Integer updatedDebug) {
+    private ObjectNode extBidRequestNode(BidRequest bidRequest,
+                                         ExtRequestPrebid prebid,
+                                         boolean setDefaultTargeting,
+                                         boolean setDefaultCache,
+                                         Integer updatedDebug,
+                                         Map<String, String> updatedAmpData) {
+
         final ObjectNode result;
-        if (setDefaultTargeting || setDefaultCache || updatedDebug != null) {
+        if (setDefaultTargeting || setDefaultCache || updatedDebug != null || updatedAmpData != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
                     : ExtRequestPrebid.builder();
@@ -502,6 +524,10 @@ public class AmpRequestFactory {
             }
             if (updatedDebug != null) {
                 prebidBuilder.debug(updatedDebug);
+            }
+
+            if (updatedAmpData != null) {
+                prebidBuilder.amp(ExtRequestPrebidAmp.of(updatedAmpData));
             }
 
             result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder.build()));
@@ -540,5 +566,21 @@ public class AmpRequestFactory {
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
                 .build();
+    }
+
+    private static Map<String, String> updateAmpData(Map<String, String> existingAmpData, HttpServerRequest request) {
+        final MultiMap queryParams = request.params();
+        if (queryParams.isEmpty()) {
+            return null;
+        }
+
+        final Map<String, String> ampQueryData = queryParams.entries().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (value1, value2) -> value1));
+
+        final Map<String, String> updatedAmpData =
+                new HashMap<>(ObjectUtils.defaultIfNull(existingAmpData, Collections.emptyMap()));
+        updatedAmpData.putAll(ampQueryData);
+
+        return updatedAmpData;
     }
 }
