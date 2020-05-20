@@ -6,7 +6,6 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -34,16 +33,24 @@ import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.execution.LogModifier;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.Tcf2Service;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.GdprConfig;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.Purposes;
+import org.prebid.server.settings.model.SpecialFeature;
+import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -68,8 +75,10 @@ import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -167,7 +176,8 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            AdminManager adminManager) {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
@@ -349,37 +359,90 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VendorListService vendorListService(
-            @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.http-default-timeout-ms}") int defaultTimeoutMs,
+    VendorListServiceV1 vendorListServiceV1(
+            @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v1.http-default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             BidderCatalog bidderCatalog,
             FileSystem fileSystem,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return VendorListService.create(
-                cacheDir,
-                endpointTemplate,
-                defaultTimeoutMs,
-                hostVendorId,
-                bidderCatalog,
-                fileSystem,
-                httpClient,
-                mapper);
+        return new VendorListServiceV1(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
+                fileSystem, httpClient, mapper);
     }
 
     @Bean
-    GdprService gdprService(
-            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            @Value("${gdpr.default-value}") String defaultValue,
-            @Autowired(required = false) GeoLocationService geoLocationService,
-            Metrics metrics,
-            VendorListService vendorListService) {
+    VendorListServiceV2 vendorListServiceV2(
+            @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.v2.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            BidderCatalog bidderCatalog,
+            FileSystem fileSystem,
+            HttpClient httpClient,
+            JacksonMapper mapper) {
 
-        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
-        return new GdprService(eeaCountries, defaultValue, geoLocationService, metrics, vendorListService);
+        return new VendorListServiceV2(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
+                fileSystem, httpClient, mapper);
+    }
+
+    @Bean
+    GdprService gdprService(VendorListServiceV1 vendorListServiceV1) {
+        return new GdprService(vendorListServiceV1);
+    }
+
+    @Bean
+    Tcf2Service tcf2Service(GdprConfig gdprConfig,
+                            VendorListServiceV2 vendorListServiceV2,
+                            BidderCatalog bidderCatalog) {
+
+        return new Tcf2Service(gdprConfig, vendorListServiceV2, bidderCatalog);
+    }
+
+    @Bean
+    TcfDefinerService tcfDefinerService(
+            GdprConfig gdprConfig,
+            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
+            GdprService gdprService,
+            Tcf2Service tcf2Service,
+            @Autowired(required = false) GeoLocationService geoLocationService,
+            BidderCatalog bidderCatalog,
+            Metrics metrics) {
+
+        final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
+
+        return new TcfDefinerService(
+                gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr")
+    GdprConfig gdprConfig() {
+        return new GdprConfig();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.purposes")
+    Purposes purposes() {
+        return new Purposes();
+    }
+
+    @Bean
+    Purpose purpose() {
+        return new Purpose();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.special-features")
+    SpecialFeatures specialFeatures() {
+        return new SpecialFeatures();
+    }
+
+    @Bean
+    SpecialFeature specialFeature() {
+        return new SpecialFeature();
     }
 
     @Bean
@@ -406,9 +469,11 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.generate-bid-id}") boolean generateBidId,
             JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, mapper);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
+                generateBidId, mapper);
     }
 
     @Bean
@@ -462,13 +527,14 @@ public class ServiceConfiguration {
 
     @Bean
     PrivacyEnforcementService privacyEnforcementService(
-            GdprService gdprService,
             BidderCatalog bidderCatalog,
+            TcfDefinerService tcfDefinerService,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             JacksonMapper mapper) {
-        return new PrivacyEnforcementService(gdprService, bidderCatalog, metrics, mapper, useGeoLocation, ccpaEnforce);
+        return new PrivacyEnforcementService(
+                bidderCatalog, tcfDefinerService, metrics, mapper, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
@@ -527,11 +593,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    LogModifier logModifier() {
-        return new LogModifier(LoggerFactory.getLogger(ServiceConfiguration.class));
-    }
-
-    @Bean
     BidResponsePostProcessor bidResponsePostProcessor() {
         return BidResponsePostProcessor.noOp();
     }
@@ -559,5 +620,10 @@ public class ServiceConfiguration {
 
         return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
                 mapper);
+    }
+
+    @Bean
+    AdminManager adminManager() {
+        return new AdminManager();
     }
 }

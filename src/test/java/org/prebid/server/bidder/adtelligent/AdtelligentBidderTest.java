@@ -22,7 +22,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -234,6 +233,7 @@ public class AdtelligentBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithoutErrors() throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("impId").build()))
                         .build()))
@@ -250,7 +250,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
     @Test
@@ -407,9 +407,9 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badServerResponse(
-                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at" +
-                                " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, " +
-                                "column: 3]"));
+                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
+                                + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
+                                + "column: 3]"));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

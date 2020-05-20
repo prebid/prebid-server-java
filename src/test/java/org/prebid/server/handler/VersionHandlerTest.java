@@ -15,7 +15,6 @@ import org.prebid.server.VertxTest;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-
 public class VersionHandlerTest extends VertxTest {
 
     @Rule
@@ -53,7 +52,6 @@ public class VersionHandlerTest extends VertxTest {
         // then
         verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set")));
     }
-
 
     @Test
     public void handleShouldRespondWithHashWhenPropertyIsInFile() throws JsonProcessingException {

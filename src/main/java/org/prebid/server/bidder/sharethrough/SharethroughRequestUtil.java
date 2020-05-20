@@ -89,7 +89,7 @@ class SharethroughRequestUtil {
      */
     String retrieveFromUserInfo(UserInfo userInfo, Function<UserInfo, String> retrieve) {
         final String gdprConsent = userInfo != null ? retrieve.apply(userInfo) : "";
-        return ObjectUtils.firstNonNull(gdprConsent, "");
+        return ObjectUtils.defaultIfNull(gdprConsent, "");
     }
 
     /**

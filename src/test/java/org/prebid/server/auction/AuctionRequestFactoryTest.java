@@ -15,6 +15,8 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -104,6 +106,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private RoutingContext routingContext;
     @Mock
+    private HttpServerRequest httpRequest;
+    @Mock
     private TimeoutResolver timeoutResolver;
     @Mock
     private TimeoutFactory timeoutFactory;
@@ -111,6 +115,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Before
     public void setUp() {
         given(interstitialProcessor.process(any())).will(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -187,7 +194,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
-
         factory = new AuctionRequestFactory(
                 1000,
                 true,
@@ -431,6 +437,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .site(Site.builder().domain("home.com").build())
                 .build());
 
+        given(paramsExtractor.refererFrom(any())).willReturn("http://not-valid-site");
         given(paramsExtractor.domainFrom(anyString())).willThrow(new PreBidException("Couldn't derive domain"));
 
         // when
@@ -1287,7 +1294,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccured() {
+    public void shouldReturnAuctionContextWithEmptyAccountIfExceptionOccurred() {
         // given
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder()
@@ -1330,13 +1337,13 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private void givenBidRequest(BidRequest bidRequest) {
         try {
             given(routingContext.getBody()).willReturn(Buffer.buffer(mapper.writeValueAsString(bidRequest)));
-
-            given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
-
-            given(requestValidator.validate(any())).willReturn(ValidationResult.success());
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
+
+        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(bidRequest));
+
+        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
     }
 
     private void givenValidBidRequest() {

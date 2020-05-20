@@ -25,7 +25,6 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
@@ -43,7 +42,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-
 
 public class VtrackHandlerTest extends VertxTest {
 
@@ -71,7 +69,9 @@ public class VtrackHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+
         given(httpRequest.getParam("a")).willReturn("accountId");
+
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         handler = new VtrackHandler(
@@ -236,7 +236,8 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastNotAllowed() throws JsonProcessingException {
+    public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastNotAllowed()
+            throws JsonProcessingException {
         // given
         handler = new VtrackHandler(
                 2000, false, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
@@ -262,7 +263,8 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"),
+                any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"}]}"));
     }
@@ -299,16 +301,24 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheExpectedPutsAndUpdatableUnknownBiddersWhenUnknownBidderIsAllowed() throws JsonProcessingException {
+    public void shouldSendToCacheExpectedPutsAndUpdatableUnknownBiddersWhenUnknownBidderIsAllowed()
+            throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = asList(
-                PutObject.builder().bidid("bidId1").bidder("bidder").value(new TextNode("value1")).build(),
-                PutObject.builder().bidid("bidId2").bidder("updatable_bidder").value(new TextNode("value2")).build());
+                PutObject.builder()
+                        .bidid("bidId1")
+                        .bidder("bidder")
+                        .value(new TextNode("value1"))
+                        .build(),
+                PutObject.builder()
+                        .bidid("bidId2")
+                        .bidder("updatable_bidder")
+                        .value(new TextNode("value2"))
+                        .build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
 
         given(bidderCatalog.isValidName(any())).willReturn(false);
-        given(bidderCatalog.isModifyingVastXmlAllowed(any())).willReturn(false);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
@@ -328,7 +338,8 @@ public class VtrackHandlerTest extends VertxTest {
 
     @SafeVarargs
     private static Buffer givenVtrackRequest(
-            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers) throws JsonProcessingException {
+            Function<PutObject.PutObjectBuilder, PutObject.PutObjectBuilder>... customizers)
+            throws JsonProcessingException {
 
         final List<PutObject> putObjects;
         if (customizers != null) {

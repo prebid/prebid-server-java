@@ -23,7 +23,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -238,7 +237,6 @@ public class OpenxBidderTest extends VertxTest {
                                                         .delDomain("se-demo-d.openx.net")
                                                         .unit("unitId").build()))).build(),
 
-
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
@@ -363,6 +361,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build()))
                         .build()))
+                .cur("UAH")
                 .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -388,7 +387,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "UAH"));
     }
 
     @Test
@@ -432,7 +431,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "USD"));
     }
 
     @Test

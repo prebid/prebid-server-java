@@ -25,7 +25,7 @@ public class CpmRange {
     public static String fromCpm(BigDecimal cpm, PriceGranularity priceGranularity) {
         final BigDecimal value = fromCpmAsNumber(cpm, priceGranularity);
         return value != null
-                ? format(value, ObjectUtils.firstNonNull(priceGranularity.getPrecision(), 2))
+                ? format(value, ObjectUtils.defaultIfNull(priceGranularity.getPrecision(), 2))
                 : StringUtils.EMPTY;
     }
 

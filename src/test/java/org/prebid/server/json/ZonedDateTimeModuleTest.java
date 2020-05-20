@@ -19,8 +19,8 @@ public class ZonedDateTimeModuleTest {
     @Test
     public void shouldEncodeSuccessfully() throws IOException {
         // given
-        final ZonedDateTime VALUE = ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018349, ZoneOffset.UTC);
-        final Model model = new Model(VALUE);
+        final ZonedDateTime value = ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018349, ZoneOffset.UTC);
+        final Model model = new Model(value);
 
         // when
         final String modelAsString = MAPPER.writeValueAsString(model);
@@ -32,8 +32,8 @@ public class ZonedDateTimeModuleTest {
     @Test
     public void shouldEncodeVariableNumberOfNanos() throws IOException {
         // given
-        final ZonedDateTime VALUE = ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018000, ZoneOffset.UTC);
-        final Model model = new Model(VALUE);
+        final ZonedDateTime value = ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018000, ZoneOffset.UTC);
+        final Model model = new Model(value);
 
         // when
         final String modelAsString = MAPPER.writeValueAsString(model);

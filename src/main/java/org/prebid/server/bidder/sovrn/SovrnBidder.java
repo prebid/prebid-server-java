@@ -111,7 +111,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
                 .bidfloor(sovrnExt.getBidfloor())
-                .tagid(ObjectUtils.firstNonNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
+                .tagid(ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
 
@@ -160,7 +160,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, null))
+                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
