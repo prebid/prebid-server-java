@@ -1,6 +1,7 @@
 package org.prebid.server.privacy.gdpr;
 
 import io.vertx.core.Future;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -366,5 +367,32 @@ public class TcfDefinerServiceTest {
 
         verifyZeroInteractions(gdprService);
         verify(metrics).updatePrivacyTcfGeoMetric(2, null);
+    }
+
+    @Test
+    public void isGdprConsentIsValidShouldReturnTrueWhenStringIsValid() {
+        // when
+        final boolean result = TcfDefinerService.isGdprConsentIsValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
+
+        // then
+        Assertions.assertThat(result).isTrue();
+    }
+
+    @Test
+    public void isGdprConsentIsValidShouldReturnFalseWhenStringIsNull() {
+        // when
+        final boolean result = TcfDefinerService.isGdprConsentIsValid(null);
+
+        // then
+        Assertions.assertThat(result).isFalse();
+    }
+
+    @Test
+    public void isGdprConsentIsValidShouldReturnFalseWhenStringNotValid() {
+        // when
+        final boolean result = TcfDefinerService.isGdprConsentIsValid("invalid");
+
+        // then
+        Assertions.assertThat(result).isFalse();
     }
 }

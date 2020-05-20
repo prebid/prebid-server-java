@@ -334,4 +334,16 @@ public class TcfDefinerService {
                 .blockPixelSync(true)
                 .build();
     }
+
+    /**
+     * Checks if received string can be parsed to vendor consent
+     */
+    public static boolean isGdprConsentIsValid(String gdprConsent) {
+        try {
+            TCString.decode(gdprConsent);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
 }
