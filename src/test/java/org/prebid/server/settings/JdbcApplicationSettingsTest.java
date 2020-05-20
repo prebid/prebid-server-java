@@ -98,7 +98,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection = DriverManager.getConnection(JDBC_URL);
         connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
                 + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
-                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, enforce_ccpa BIT, "
+                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
                 + "tcf_config varchar(512), analytics_sampling_factor INT);");
         connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
                 + "NOT NULL, config varchar(512));");
@@ -116,9 +116,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
-                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_gdpr, "
-                + "enforce_ccpa, tcf_config, analytics_sampling_factor) "
-                + "values ('accountId','med', 100, 100, TRUE, TRUE, TRUE, '{\"enabled\": true}', 1);");
+                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
+                + "tcf_config, analytics_sampling_factor) "
+                + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1);");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
@@ -169,7 +169,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .videoCacheTtl(100)
                     .analyticsSamplingFactor(1)
                     .eventsEnabled(true)
-                    .enforceGdpr(true)
                     .enforceCcpa(true)
                     .gdpr(AccountGdprConfig.builder()
                             .enabled(true)

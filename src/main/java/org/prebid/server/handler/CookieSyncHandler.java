@@ -171,12 +171,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip,
-                        timeout)
+                .compose(account -> tcfDefinerService.resultForVendorIds(
+                        vendorIds, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout)
                         .compose(this::handleVendorIdResult)
-                        .compose(ignored ->
-                                tcfDefinerService.resultForBidderNames(biddersToSync, gdprAsString, gdprConsent, ip,
-                                        timeout))
+                        .compose(ignored -> tcfDefinerService.resultForBidderNames(
+                                biddersToSync, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout))
                         .map(tcfResponse -> handleBidderNamesResult(
                                 tcfResponse, context, account, uidsCookie, biddersToSync, privacy, limit))
                         .otherwise(ignored -> handleTcfError(context, uidsCookie, biddersToSync, privacy, limit)));

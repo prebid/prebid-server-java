@@ -168,7 +168,7 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     @Test
-    public void permissionsForShouldReturnByGdprPurposeWhenVendorListServiceIsFailed() {
+    public void permissionsForShouldReturnByGdprPurposeAndDowngradeToBasicTypeWhenVendorListServiceIsFailed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("Bad version"));
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
@@ -183,7 +183,15 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
                 expectedVendorPermission, VendorV2.empty(1));
-        verifyEachPurposeStrategyReceive(singletonList(expectedVendorPermissionWitGvl));
+        final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(expectedVendorPermissionWitGvl);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls);
+
+        final Purpose expectedDowngradedPurpose = Purpose.of(EnforcePurpose.basic, purpose7.getEnforceVendors(),
+                purpose1.getVendorExceptions());
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, expectedDowngradedPurpose,
+                vendorPermissionWithGvls);
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(bidderCatalog).nameByVendorId(1);

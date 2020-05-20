@@ -75,8 +75,10 @@ import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -409,7 +411,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             Metrics metrics) {
 
-        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
+        final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
 
         return new TcfDefinerService(
                 gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
@@ -467,9 +469,11 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.generate-bid-id}") boolean generateBidId,
             JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, mapper);
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
+                generateBidId, mapper);
     }
 
     @Bean

@@ -108,16 +108,16 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService
-                        .resultForVendorIds(vendorIds, gdpr, gdprConsent, ip, timeout))
+                .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip,
+                        account.getGdpr(), timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
         return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(null)
+                ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise((Account) null);
+                .otherwise(Account.empty(accountId));
     }
 
     private void handleResult(AsyncResult<TcfResponse<Integer>> asyncResult, RoutingContext context,

@@ -17,8 +17,6 @@ public class Account {
 
     Boolean eventsEnabled;
 
-    Boolean enforceGdpr;
-
     Boolean enforceCcpa;
 
     AccountGdprConfig gdpr;

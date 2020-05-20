@@ -146,7 +146,7 @@ public class GdprService {
 
     private static PrivacyEnforcementAction toAction(boolean allowPrivateInfo, boolean allowUserSync) {
         return PrivacyEnforcementAction.builder()
-                .removeUserBuyerUid(!allowPrivateInfo)
+                .removeUserIds(!allowPrivateInfo)
                 .maskGeo(!allowPrivateInfo)
                 .maskDeviceIp(!allowPrivateInfo)
                 .maskDeviceInfo(!allowPrivateInfo)
