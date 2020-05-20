@@ -156,7 +156,7 @@ public class TcfDefinerService {
 
         final boolean isInScopeByConsentString = consentStringMeansInScope
                 && StringUtils.isNotBlank(gdprConsent)
-                && decodeTcString(gdprConsent) != null;
+                && isGdprConsentIsValid(gdprConsent);
         if (isInScopeByConsentString) {
             return Future.succeededFuture(GdprInfoWithCountry.of(GDPR_ONE, gdprConsent));
         }
@@ -353,7 +353,7 @@ public class TcfDefinerService {
         try {
             TCString.decode(gdprConsent);
             return true;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return false;
         }
     }
