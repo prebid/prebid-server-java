@@ -740,8 +740,7 @@ public class BidResponseCreator {
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
                 ? null
-                : TargetingKeywordsCreator.create(parsePriceGranularity(priceGranularityNode),
-                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp);
+                : createKeywordsCreator(targeting, isApp, priceGranularityNode);
     }
 
     /**
@@ -750,6 +749,7 @@ public class BidResponseCreator {
      */
     private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
                                                                             boolean isApp) {
+
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
 
         if (mediaTypePriceGranularity == null) {
@@ -761,25 +761,33 @@ public class BidResponseCreator {
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
-            result.put(BidType.banner, TargetingKeywordsCreator.create(parsePriceGranularity(banner),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
+            result.put(BidType.banner, createKeywordsCreator(targeting, isApp, banner));
         }
 
         final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
-            result.put(BidType.video, TargetingKeywordsCreator.create(parsePriceGranularity(video),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
+            result.put(BidType.video, createKeywordsCreator(targeting, isApp, video));
         }
 
         final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
-            result.put(BidType.xNative, TargetingKeywordsCreator.create(parsePriceGranularity(xNative),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp));
+            result.put(BidType.xNative, createKeywordsCreator(targeting, isApp, xNative));
         }
 
         return result;
+    }
+
+    private TargetingKeywordsCreator createKeywordsCreator(
+            ExtRequestTargeting targeting, boolean isApp, JsonNode priceGranularity) {
+
+        return TargetingKeywordsCreator.create(
+                parsePriceGranularity(priceGranularity),
+                targeting.getIncludewinners(),
+                targeting.getIncludebidderkeys(),
+                isApp,
+                TargetingKeywordsResolver.noOp()); // FIXME
     }
 
     /**
