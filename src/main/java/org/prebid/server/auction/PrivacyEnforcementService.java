@@ -95,7 +95,6 @@ public class PrivacyEnforcementService {
         final Account account = auctionContext.getAccount();
         final Regs regs = bidRequest.getRegs();
         final Device device = bidRequest.getDevice();
-        final User user = bidRequest.getUser();
 
         // For now, COPPA masking all values, so we can omit GDPR masking.
         if (isCoppaMaskingRequired(regs)) {
@@ -121,6 +120,12 @@ public class PrivacyEnforcementService {
                 .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
+    public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
+        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
+
+        return shouldEnforceCcpa && ccpa.isCCPAEnforced();
+    }
+
     private Map<String, BidderPrivacyResult> ccpaResult(BidRequest bidRequest,
                                                         Account account,
                                                         List<String> bidders,
@@ -134,12 +139,6 @@ public class PrivacyEnforcementService {
         }
 
         return Collections.emptyMap();
-    }
-
-    public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
-        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
-
-        return shouldEnforceCcpa && ccpa.isCCPAEnforced();
     }
 
     private Map<String, BidderPrivacyResult> maskCcpa(
@@ -350,7 +349,11 @@ public class PrivacyEnforcementService {
         return bidderToUser.entrySet().stream()
                 .filter(entry -> bidders.contains(entry.getKey()))
                 .map(bidderUserEntry -> createBidderPrivacyResult(
-                        bidderUserEntry.getValue(), device, bidderUserEntry.getKey(), isLmtEnabled, bidderToEnforcement))
+                        bidderUserEntry.getValue(),
+                        device,
+                        bidderUserEntry.getKey(),
+                        isLmtEnabled,
+                        bidderToEnforcement))
                 .collect(Collectors.toList());
     }
 
