@@ -695,17 +695,6 @@ public class AuctionRequestFactory {
                 ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> accountFallback(exception, accountId, routingContext));
-                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));
-    }
-
-    /**
-     * Returns response depending on enforceValidAccount flag.
-     */
-    private Future<Account> responseToMissingAccount(String accountId) {
-        return enforceValidAccount
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Unauthorised account id %s", accountId), accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
     }
 
     /**
