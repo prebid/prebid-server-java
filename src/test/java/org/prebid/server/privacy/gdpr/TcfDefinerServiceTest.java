@@ -151,6 +151,46 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
+    public void resultForVendorIdsShouldConsiderPresenceOfConsentStringAsInScope() {
+        // given
+        gdprConfig.setConsentStringMeansInScope(true);
+
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
+                geoLocationService, bidderCatalog, metrics);
+
+        // when
+        final String vendorConsent = "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA";
+        target.resultForVendorIds(singleton(1), null, vendorConsent, "ip", null, null);
+
+        // then
+        verify(gdprService).resultFor(any(), eq(vendorConsent));
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+    }
+
+    @Test
+    public void resultForBidderNamesShouldConsiderPresenceOfConsentStringAsInScope() {
+        // given
+        gdprConfig.setConsentStringMeansInScope(true);
+
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
+                geoLocationService, bidderCatalog, metrics);
+
+        // when
+        final String vendorConsent = "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA";
+        target.resultForBidderNames(singleton("b"), null, vendorConsent, "ip", null, null);
+
+        // then
+        verify(gdprService).resultFor(any(), eq(vendorConsent));
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+    }
+
+    @Test
     public void resultForVendorIdsShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
         // when
         target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
