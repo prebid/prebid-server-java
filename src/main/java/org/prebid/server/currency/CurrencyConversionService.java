@@ -129,7 +129,7 @@ public class CurrencyConversionService implements Initializable {
      * or if absent, from latest currency rates. Throws {@link PreBidException} in case conversion is not possible.
      */
     public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                      String adServerCurrency, String bidCurrency, boolean usepbsrates) {
+                                      String adServerCurrency, String bidCurrency, Boolean usepbsrates) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
         final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
@@ -139,21 +139,11 @@ public class CurrencyConversionService implements Initializable {
         }
 
         BigDecimal conversionRate = null;
-        if (usepbsrates) {
-            conversionRate = getConversionRateFromServer(externalCurrencyRates, adServerCurrency, effectiveBidCurrency,
-                    conversionRate);
-            if (conversionRate == null) {
-                conversionRate = getConversionRateFromRequest(requestCurrencyRates, adServerCurrency,
-                        effectiveBidCurrency, conversionRate);
-            }
-        } else {
-            conversionRate = getConversionRateFromRequest(requestCurrencyRates,
+        conversionRate = usepbsrates
+                    ? getConversionRateFromServer(externalCurrencyRates, requestCurrencyRates, adServerCurrency,
+                    effectiveBidCurrency, conversionRate)
+                    : getConversionRateFromRequest(externalCurrencyRates, requestCurrencyRates,
                     adServerCurrency, effectiveBidCurrency, conversionRate);
-            if (conversionRate == null) {
-                conversionRate = getConversionRateFromServer(externalCurrencyRates, adServerCurrency,
-                        effectiveBidCurrency, conversionRate);
-            }
-        }
 
         if (conversionRate == null) {
             throw new PreBidException("no currency conversion available");
@@ -165,11 +155,17 @@ public class CurrencyConversionService implements Initializable {
     /**
      *  Get conversion rate from request currency rates if it is present
      */
-    private static BigDecimal getConversionRateFromRequest(Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+    private static BigDecimal getConversionRateFromRequest(Map<String, Map<String, BigDecimal>> externalCurrencyRates,
+                                                           Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                                            String adServerCurrency, String effectiveBidCurrency,
                                                            BigDecimal conversionRate) {
         if (requestCurrencyRates != null) {
             conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
+        }
+
+        if (conversionRate == null) {
+            conversionRate = getConversionRateFromServer(externalCurrencyRates, requestCurrencyRates, adServerCurrency,
+                    effectiveBidCurrency, conversionRate);
         }
         return conversionRate;
     }
@@ -177,11 +173,15 @@ public class CurrencyConversionService implements Initializable {
     /**
      * Get conversion rate from server
      */
-    private static BigDecimal getConversionRateFromServer(Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+    private static BigDecimal getConversionRateFromServer(Map<String, Map<String, BigDecimal>> externalCurrencyRates,
+                                                          Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                                           String adServerCurrency, String effectiveBidCurrency,
                                                           BigDecimal conversionRate) {
         if (conversionRate == null) {
-            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
+            conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
+        } else {
+            conversionRate = getConversionRateFromRequest(externalCurrencyRates, requestCurrencyRates, adServerCurrency,
+                    effectiveBidCurrency, conversionRate);
         }
         return conversionRate;
     }

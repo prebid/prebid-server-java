@@ -218,10 +218,11 @@ public class ExchangeService {
     /**
      * Extracts usepbsrates flag from {@link ExtBidRequest}.
      */
-    private static boolean usepbsrates(ExtBidRequest requestExt) {
+    private static Boolean usepbsrates(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        return currency != null ? currency.getUsepbsrates() : false;
+        final Boolean usepbsrates = currency != null ? currency.getUsepbsrates() : null;
+        return usepbsrates != null;
     }
 
     /**
@@ -789,7 +790,7 @@ public class ExchangeService {
                                                boolean debugEnabled, BidderAliases aliases,
                                                Map<String, BigDecimal> bidAdjustments,
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates,
-                                               boolean usepbsrates) {
+                                               Boolean usepbsrates) {
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
         final List<String> cur = bidderRequest.getBidRequest().getCur();
@@ -847,7 +848,7 @@ public class ExchangeService {
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
                                                Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                                String adServerCurrency, BigDecimal priceAdjustmentFactor,
-                                               boolean usepbsrates) {
+                                               Boolean usepbsrates) {
         final List<BidderBid> bidderBids = bidderSeatBid.getBids();
         if (bidderBids.isEmpty()) {
             return bidderSeatBid;
