@@ -358,7 +358,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
         try {
             final BidRequest bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
             final String requestId = bidRequest.getId();
-            if (!StringUtils.isEmpty(requestId)) {
+            if (StringUtils.isEmpty(requestId)) {
                 return null;
             }
 
