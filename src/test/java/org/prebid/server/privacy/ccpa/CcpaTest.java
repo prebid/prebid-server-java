@@ -45,12 +45,75 @@ public class CcpaTest {
     }
 
     @Test
+    public void isCCPAEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndexLowercase() {
+        // given
+        final Ccpa ccpa = Ccpa.of("1yny");
+
+        // when and then
+        assertThat(ccpa.isCCPAEnforced()).isFalse();
+    }
+
+    @Test
+    public void isCCPAEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndexMixedCase() {
+        // given
+        final Ccpa ccpa = Ccpa.of("1-Ny");
+
+        // when and then
+        assertThat(ccpa.isCCPAEnforced()).isFalse();
+    }
+
+    @Test
     public void isCCPAEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndex() {
         // given
         final Ccpa ccpa = Ccpa.of("1NYN");
 
         // when and then
         assertThat(ccpa.isCCPAEnforced()).isTrue();
+    }
+
+    @Test
+    public void isCCPAEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndexLowercase() {
+        // given
+        final Ccpa ccpa = Ccpa.of("1nyn");
+
+        // when and then
+        assertThat(ccpa.isCCPAEnforced()).isTrue();
+    }
+
+    @Test
+    public void isCCPAEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndexMixedCase() {
+        // given
+        final Ccpa ccpa = Ccpa.of("1-Yn");
+
+        // when and then
+        assertThat(ccpa.isCCPAEnforced()).isTrue();
+    }
+
+    @Test
+    public void isCcpaStringShouldReturnTrueWhenValidCcpaStringIsProvided() {
+        // given, when and then
+        assertThat(Ccpa.isCcpaString("1YYY")).isTrue();
+        assertThat(Ccpa.isCcpaString("1NNN")).isTrue();
+        assertThat(Ccpa.isCcpaString("1NYN")).isTrue();
+        assertThat(Ccpa.isCcpaString("1NyN")).isTrue();
+        assertThat(Ccpa.isCcpaString("1nyN")).isTrue();
+        assertThat(Ccpa.isCcpaString("1---")).isTrue();
+        assertThat(Ccpa.isCcpaString("1--N")).isTrue();
+        assertThat(Ccpa.isCcpaString("1--y")).isTrue();
+        assertThat(Ccpa.isCcpaString("1Y-y")).isTrue();
+    }
+
+    @Test
+    public void isCcpaStringShouldReturnFalseWhenNotValidCcpaStringIsProvided() {
+        // given, when and then
+        assertThat(Ccpa.isCcpaString("2YYY")).isFalse();
+        assertThat(Ccpa.isCcpaString("")).isFalse();
+        assertThat(Ccpa.isCcpaString(null)).isFalse();
+        assertThat(Ccpa.isCcpaString("1iyN")).isFalse();
+        assertThat(Ccpa.isCcpaString("1nyNa")).isFalse();
+        assertThat(Ccpa.isCcpaString("1-----")).isFalse();
+        assertThat(Ccpa.isCcpaString("1#1251-N")).isFalse();
+        assertThat(Ccpa.isCcpaString("1")).isFalse();
     }
 
     @Test
@@ -74,15 +137,15 @@ public class CcpaTest {
         // given, when and then
         assertThatThrownBy(() -> Ccpa.validateUsPrivacy("1IYN"))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("us_privacy must specify 'N', 'Y', or '-' for the explicit notice");
+                .hasMessage("us_privacy must specify 'N' or 'n', 'Y' or 'y', '-' for the explicit notice");
     }
 
     @Test
     public void validateUsPrivacyShouldThrowPrebidExceptionWhenOptOutSaleInvalid() {
         // given, when and then
-        assertThatThrownBy(() -> Ccpa.validateUsPrivacy("1NIN"))
+        assertThatThrownBy(() -> Ccpa.validateUsPrivacy("1nIN"))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("us_privacy must specify 'N', 'Y', or '-' for the opt-out sale");
+                .hasMessage("us_privacy must specify 'N' or 'n', 'Y' or 'y', '-' for the opt-out sale");
     }
 
     @Test
@@ -90,6 +153,7 @@ public class CcpaTest {
         // given, when and then
         assertThatThrownBy(() -> Ccpa.validateUsPrivacy("1NYI"))
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("us_privacy must specify 'N', 'Y', or '-' for the limited service provider agreement");
+                .hasMessage("us_privacy must specify 'N' or 'n', 'Y' or 'y', '-' for the "
+                        + "limited service provider agreement");
     }
 }
