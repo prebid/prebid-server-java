@@ -197,7 +197,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidderType(imps, bid.getImpid()), null))
+                .map(bid -> BidderBid.of(bid, getBidderType(imps, bid.getImpid()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
