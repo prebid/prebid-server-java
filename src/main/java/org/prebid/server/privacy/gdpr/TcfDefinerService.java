@@ -323,6 +323,10 @@ public class TcfDefinerService {
 
     private static TCString decodeTcString(String consentString) {
         try {
+            if (StringUtils.isBlank(consentString)) {
+                return null;
+            }
+
             return TCString.decode(consentString);
         } catch (Throwable e) {
             logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
@@ -340,5 +344,17 @@ public class TcfDefinerService {
                 .blockBidderRequest(false)
                 .blockPixelSync(true)
                 .build();
+    }
+
+    /**
+     * Checks if received string can be parsed to vendor consent
+     */
+    public static boolean isGdprConsentIsValid(String gdprConsent) {
+        try {
+            TCString.decode(gdprConsent);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 }
