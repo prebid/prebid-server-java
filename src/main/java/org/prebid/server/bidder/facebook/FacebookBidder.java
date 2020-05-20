@@ -20,6 +20,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.TimeoutBidder;
@@ -356,9 +357,25 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
         try {
             final BidRequest bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
-            final String auctionId = bidRequest.getImp().get(0).getId();
+            final String requestId = bidRequest.getId();
+            if (!StringUtils.isEmpty(requestId)) {
+                return null;
+            }
+
+            final App app = bidRequest.getApp();
+            final Publisher appPublisher = app != null ? app.getPublisher() : null;
+            final Site site = bidRequest.getSite();
+            final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+            final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+            final String publisherId = publisher != null ? publisher.getId() : null;
+
+            if (StringUtils.isEmpty(publisherId)) {
+                return null;
+            }
+
             final String url = String.format(
-                    TIMEOUT_NOTIFICATION_URL, this.platformId, this.platformId, auctionId
+                    TIMEOUT_NOTIFICATION_URL, this.platformId, publisherId, requestId
             );
             return HttpRequest.<Void>builder()
                     .method(HttpMethod.GET)
