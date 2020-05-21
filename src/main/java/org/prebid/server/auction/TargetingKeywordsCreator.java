@@ -137,7 +137,7 @@ public class TargetingKeywordsCreator {
                 includeWinners,
                 includeBidderKeys,
                 isApp,
-                TargetingKeywordsResolver.noOp());
+                null);
     }
 
     /**
@@ -174,6 +174,10 @@ public class TargetingKeywordsCreator {
         final Map<String, String> keywords = makeFor(bidder, bid.getId(), winningBid, bid.getPrice(), "0.0",
                 bid.getW(), bid.getH(), cacheId,
                 vastCacheId, bid.getDealid(), cacheHost, cachePath, winUrl);
+
+        if (resolver == null) {
+            return keywords;
+        }
 
         final Map<String, String> augmentedKeywords = new HashMap<>(keywords);
         augmentedKeywords.putAll(resolver.resolve(bid));

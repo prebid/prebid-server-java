@@ -787,7 +787,7 @@ public class BidResponseCreator {
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
                 isApp,
-                TargetingKeywordsResolver.noOp()); // FIXME
+                null); // FIXME
     }
 
     /**
