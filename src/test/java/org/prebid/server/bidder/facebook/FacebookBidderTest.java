@@ -694,12 +694,11 @@ public class FacebookBidderTest extends VertxTest {
         final HttpRequest<Void> notification = facebookBidder.makeTimeoutNotification(httpRequest);
 
         // then
-        final String expectedUrl = 
+        final String expectedUrl =
                 "https://www.facebook.com/audiencenetwork/nurl/?partner=101&app=test&auction=req1&ortb_loss_code=2";
         assertThat(notification.getUri())
                 .isEqualTo(expectedUrl);
     }
-
 
     @Test
     public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
