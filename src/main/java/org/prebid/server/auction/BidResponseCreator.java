@@ -645,9 +645,9 @@ public class BidResponseCreator {
                 bid.setAdm(null);
             }
 
-            final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp);
+            final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp, bidRequest);
             final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
-                    keywordsCreatorByBidType(targeting, isApp);
+                    keywordsCreatorByBidType(targeting, isApp, bidRequest);
             final boolean isWinningBid = winningBids.contains(bid);
             final String winUrl = eventsEnabled && bidType != BidType.video
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(bidder, account.getId(), auctionTimestamp))
@@ -736,11 +736,13 @@ public class BidResponseCreator {
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
      * instance if it is present.
      */
-    private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
+    private TargetingKeywordsCreator keywordsCreator(
+            ExtRequestTargeting targeting, boolean isApp, BidRequest bidRequest) {
+
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
                 ? null
-                : createKeywordsCreator(targeting, isApp, priceGranularityNode);
+                : createKeywordsCreator(targeting, isApp, priceGranularityNode, bidRequest);
     }
 
     /**
@@ -748,7 +750,8 @@ public class BidResponseCreator {
      * extracted from {@link ExtRequestTargeting} if it exists.
      */
     private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
-                                                                            boolean isApp) {
+                                                                            boolean isApp,
+                                                                            BidRequest bidRequest) {
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
 
@@ -761,33 +764,33 @@ public class BidResponseCreator {
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
-            result.put(BidType.banner, createKeywordsCreator(targeting, isApp, banner));
+            result.put(BidType.banner, createKeywordsCreator(targeting, isApp, banner, bidRequest));
         }
 
         final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
-            result.put(BidType.video, createKeywordsCreator(targeting, isApp, video));
+            result.put(BidType.video, createKeywordsCreator(targeting, isApp, video, bidRequest));
         }
 
         final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
-            result.put(BidType.xNative, createKeywordsCreator(targeting, isApp, xNative));
+            result.put(BidType.xNative, createKeywordsCreator(targeting, isApp, xNative, bidRequest));
         }
 
         return result;
     }
 
     private TargetingKeywordsCreator createKeywordsCreator(
-            ExtRequestTargeting targeting, boolean isApp, JsonNode priceGranularity) {
+            ExtRequestTargeting targeting, boolean isApp, JsonNode priceGranularity, BidRequest bidRequest) {
 
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
                 isApp,
-                null); // FIXME
+                TargetingKeywordsResolver.create(bidRequest, mapper));
     }
 
     /**

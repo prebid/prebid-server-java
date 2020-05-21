@@ -125,7 +125,14 @@
           "ttlseconds": 120
         }
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "adservertargeting": [
+        {
+          "key": "static_keyword1",
+          "source": "static",
+          "value": "static_value1"
+        }
+      ]
     }
   }
 }
