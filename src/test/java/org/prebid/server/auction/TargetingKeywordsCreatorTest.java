@@ -34,8 +34,16 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5)))), true, true, false, null).makeFor(bid, false);
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                null,
+                null,
+                null)
+                .makeFor(bid, false);
 
         // then
         assertThat(keywords).containsOnly(
@@ -53,10 +61,17 @@ public class TargetingKeywordsCreatorTest {
                 .dealid("dealId1").w(50).h(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(ExtPriceGranularity.of(2,
-                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), true, true,
-                false, null)
-                .makeFor(bid, "bidder1", false, null, null, null, null, null);
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                null,
+                null,
+                null)
+                .makeFor(bid, "bidder1", false, null, null, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -73,9 +88,16 @@ public class TargetingKeywordsCreatorTest {
                 .cacheId("cacheId1").width(50).height(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(ExtPriceGranularity.of(2,
-                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), true, true,
-                false, null)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                null,
+                null,
+                null)
                 .makeFor(bid, false);
 
         // then
@@ -94,10 +116,17 @@ public class TargetingKeywordsCreatorTest {
                 .dealid("dealId1").w(50).h(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(ExtPriceGranularity.of(2,
-                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), true, true,
-                false, null)
-                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null, null);
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                null,
+                null,
+                null)
+                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -114,9 +143,16 @@ public class TargetingKeywordsCreatorTest {
                 .width(50).height(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(ExtPriceGranularity.of(2,
-                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), true, true,
-                false, null)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                null,
+                null,
+                null)
                 .makeFor(bid, true);
 
         // then
@@ -140,10 +176,17 @@ public class TargetingKeywordsCreatorTest {
                 .dealid("dealId1").w(50).h(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(ExtPriceGranularity.of(2,
-                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), true, true,
-                false, null)
-                .makeFor(bid, "bidder1", true, "cacheId1", "videoCacheId1", null, null, null);
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                null,
+                null,
+                null)
+                .makeFor(bid, "bidder1", true, "cacheId1", "videoCacheId1", null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -195,7 +238,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
-                .makeFor(bid, "", true, null, null, null, null, null);
+                .makeFor(bid, "", true, null, null, null);
 
         // then
         assertThat(keywords).contains(entry("hb_pb", "3.80"));
@@ -222,7 +265,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
-                .makeFor(bid, "bidder", true, null, null, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_cache_id_bidder", "hb_deal_bidder", "hb_size_bidder",
@@ -251,7 +294,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true)
-                .makeFor(bid, "bidder", true, null, null, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null);
 
         // then
         assertThat(keywords).contains(
@@ -266,7 +309,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false)
-                .makeFor(bid, "bidder1", true, null, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder", "hb_pb");
@@ -279,7 +322,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
-                .makeFor(bid, "bidder1", true, null, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).containsKeys("hb_bidder", "hb_pb");
@@ -292,7 +335,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, false, false)
-                .makeFor(bid, "bidder1", true, null, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -305,7 +348,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false)
-                .makeFor(bid, "bidder1", true, null, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).containsKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -321,7 +364,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
-                .makeFor(bid, "bidder1", true, null, null, null, null, "http://extetranlUrl");
+                .makeFor(bid, "bidder1", true, null, null, "http://extetranlUrl");
 
         // then
         assertThat(keywords).contains(
@@ -341,7 +384,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
-                .makeFor(bid, "bidder1", false, null, null, null, null, "http://extetranlUrl");
+                .makeFor(bid, "bidder1", false, null, null, "http://extetranlUrl");
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
@@ -357,7 +400,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
-                .makeFor(bid, "bidder1", true, null, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
@@ -377,12 +420,15 @@ public class TargetingKeywordsCreatorTest {
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
                 ExtPriceGranularity.of(
-                        2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
                 true,
                 true,
                 false,
+                null,
+                null,
                 resolver)
-                .makeFor(bid, "bidder1", true, null, null, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).contains(entry("keyword1", "value1"));

@@ -653,7 +653,7 @@ public class BidResponseCreator {
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(bidder, account.getId(), auctionTimestamp))
                     : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
-                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl);
+                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, winUrl);
 
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
@@ -790,6 +790,8 @@ public class BidResponseCreator {
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
                 isApp,
+                cacheHost,
+                cachePath,
                 TargetingKeywordsResolver.create(bidRequest, mapper));
     }
 

@@ -92,18 +92,24 @@ public class TargetingKeywordsCreator {
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
     private final boolean isApp;
+    private final String cacheHost;
+    private final String cachePath;
     private final TargetingKeywordsResolver resolver;
 
     private TargetingKeywordsCreator(PriceGranularity priceGranularity,
                                      boolean includeWinners,
                                      boolean includeBidderKeys,
                                      boolean isApp,
+                                     String cacheHost,
+                                     String cachePath,
                                      TargetingKeywordsResolver resolver) {
 
         this.priceGranularity = priceGranularity;
         this.includeWinners = includeWinners;
         this.includeBidderKeys = includeBidderKeys;
         this.isApp = isApp;
+        this.cacheHost = cacheHost;
+        this.cachePath = cachePath;
         this.resolver = resolver;
     }
 
@@ -114,6 +120,8 @@ public class TargetingKeywordsCreator {
                                                   boolean includeWinners,
                                                   boolean includeBidderKeys,
                                                   boolean isApp,
+                                                  String cacheHost,
+                                                  String cachePath,
                                                   TargetingKeywordsResolver extractor) {
 
         return new TargetingKeywordsCreator(
@@ -121,6 +129,8 @@ public class TargetingKeywordsCreator {
                 includeWinners,
                 includeBidderKeys,
                 isApp,
+                cacheHost,
+                cachePath,
                 extractor);
     }
 
@@ -137,6 +147,8 @@ public class TargetingKeywordsCreator {
                 includeWinners,
                 includeBidderKeys,
                 isApp,
+                null,
+                null,
                 null);
     }
 
@@ -162,18 +174,37 @@ public class TargetingKeywordsCreator {
      * Creates map of keywords for the given {@link Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
-        return makeFor(bid.getBidder(), bid.getBidId(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(),
-                bid.getHeight(), bid.getCacheId(), null, bid.getDealId(), null, null, null);
+        return makeFor(
+                bid.getBidder(),
+                bid.getBidId(),
+                winningBid,
+                bid.getPrice(),
+                StringUtils.EMPTY,
+                bid.getWidth(),
+                bid.getHeight(),
+                bid.getCacheId(),
+                null,
+                bid.getDealId(),
+                null);
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
     Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid, String cacheId,
-                                String vastCacheId, String cacheHost, String cachePath, String winUrl) {
-        final Map<String, String> keywords = makeFor(bidder, bid.getId(), winningBid, bid.getPrice(), "0.0",
-                bid.getW(), bid.getH(), cacheId,
-                vastCacheId, bid.getDealid(), cacheHost, cachePath, winUrl);
+                                String vastCacheId, String winUrl) {
+        final Map<String, String> keywords = makeFor(
+                bidder,
+                bid.getId(),
+                winningBid,
+                bid.getPrice(),
+                "0.0",
+                bid.getW(),
+                bid.getH(),
+                cacheId,
+                vastCacheId,
+                bid.getDealid(),
+                winUrl);
 
         if (resolver == null) {
             return keywords;
@@ -189,8 +220,16 @@ public class TargetingKeywordsCreator {
      * Common method for creating targeting keywords.
      */
     private Map<String, String> makeFor(
-            String bidder, String bidId, boolean winningBid, BigDecimal price, String defaultCpm, Integer width,
-            Integer height, String cacheId, String vastCacheId, String dealId, String cacheHost, String cachePath,
+            String bidder,
+            String bidId,
+            boolean winningBid,
+            BigDecimal price,
+            String defaultCpm,
+            Integer width,
+            Integer height,
+            String cacheId,
+            String vastCacheId,
+            String dealId,
             String winUrl) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
