@@ -90,7 +90,7 @@
       "amp": {
         "data": {
           "curl": "https%3A%2F%2Fgoogle.com",
-          "us_privacy": "1YNN",
+          "consent_string": "1YNN",
           "ow": "980",
           "oh": "120",
           "tag_id": "test-amp-stored-request",
