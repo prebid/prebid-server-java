@@ -33,13 +33,17 @@ public class TargetingKeywordsResolver {
     private final JacksonMapper mapper;
 
     private final Map<String, String> staticAndRequestKeywords;
+    private final List<ExtRequestPrebidAdservertargetingRule> impRequestRules;
+    private final List<ExtRequestPrebidAdservertargetingRule> responseRules;
 
     private TargetingKeywordsResolver(BidRequest bidRequest, JacksonMapper mapper) {
         this.bidRequest = Objects.requireNonNull(bidRequest);
         this.mapper = Objects.requireNonNull(mapper);
 
-        final Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource = extractRulesBySource();
+        final Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource = rulesBySource();
 
+        this.impRequestRules = impRequestRules(rulesBySource);
+        this.responseRules = responseRules(rulesBySource);
         this.staticAndRequestKeywords = resolveStaticAndRequestKeywords(rulesBySource);
     }
 
@@ -48,10 +52,13 @@ public class TargetingKeywordsResolver {
     }
 
     public Map<String, String> resolve(Bid bid) {
-        return staticAndRequestKeywords;
+        final Map<String, String> result = new HashMap<>(staticAndRequestKeywords);
+        result.putAll(resolveImpRequestKeywords(bid));
+
+        return result;
     }
 
-    private Map<Source, List<ExtRequestPrebidAdservertargetingRule>> extractRulesBySource() {
+    private Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource() {
         final ExtBidRequest extRequest = parseExt(bidRequest.getExt());
         final List<ExtRequestPrebidAdservertargetingRule> rules =
                 get(get(extRequest, ExtBidRequest::getPrebid), ExtRequestPrebid::getAdservertargeting);
@@ -62,10 +69,18 @@ public class TargetingKeywordsResolver {
                 .collect(Collectors.groupingBy(ExtRequestPrebidAdservertargetingRule::getSource));
     }
 
-    private static boolean isValid(ExtRequestPrebidAdservertargetingRule rule) {
-        return StringUtils.isNotBlank(rule.getKey())
-                && StringUtils.isNotBlank(rule.getValue())
-                && rule.getSource() != null;
+    private static List<ExtRequestPrebidAdservertargetingRule> impRequestRules(
+            Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
+
+        return rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
+                .filter(TargetingKeywordsResolver::hasImpPath)
+                .collect(Collectors.toList());
+    }
+
+    private static List<ExtRequestPrebidAdservertargetingRule> responseRules(
+            Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
+
+        return rulesBySource.getOrDefault(Source.bidresponse, Collections.emptyList());
     }
 
     private Map<String, String> resolveStaticAndRequestKeywords(
@@ -90,33 +105,84 @@ public class TargetingKeywordsResolver {
     private Map<String, String> resolveRequestKeywords(
             Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
 
-        final Map<String, String> result = new HashMap<>();
-
-        final List<ExtRequestPrebidAdservertargetingRule> requestRules =
-                rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
-                        .filter(rule -> !hasImpPath(rule))
-                        .collect(Collectors.toList());
+        final List<ExtRequestPrebidAdservertargetingRule> requestRules = requestRules(rulesBySource);
 
         if (!requestRules.isEmpty()) {
-            final JsonNode bidRequestNode = mapper.mapper().valueToTree(bidRequest);
+            return lookupValues(
+                    mapper.mapper().valueToTree(bidRequest),
+                    requestRules,
+                    ExtRequestPrebidAdservertargetingRule::getValue);
+        }
 
-            for (final ExtRequestPrebidAdservertargetingRule requestRule : requestRules) {
-                final String path = toPath(requestRule.getValue());
-                final String lookupResult = bidRequestNode.at(path).asText();
-                if (StringUtils.isNotBlank(lookupResult)) {
-                    result.put(requestRule.getKey(), lookupResult);
-                }
+        return Collections.emptyMap();
+    }
+
+    private static List<ExtRequestPrebidAdservertargetingRule> requestRules(
+            Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
+
+        return rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
+                .filter(rule -> !hasImpPath(rule))
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, String> resolveImpRequestKeywords(Bid bid) {
+        if (!impRequestRules.isEmpty()) {
+            final JsonNode impNode = locateImp(bid);
+
+            if (impNode != null) {
+                return lookupValues(
+                        impNode, impRequestRules, rule -> rule.getValue().replaceFirst(IMP_PREFIX, StringUtils.EMPTY));
             }
         }
 
-        return result;
+        return Collections.emptyMap();
+    }
+
+    private JsonNode locateImp(Bid bid) {
+        final String impid = bid.getImpid();
+        if (StringUtils.isBlank(impid)) {
+            return null;
+        }
+
+        return bidRequest.getImp().stream()
+                .filter(imp -> Objects.equals(imp.getId(), impid))
+                .findFirst()
+                .<JsonNode>map(imp -> mapper.mapper().valueToTree(imp))
+                .orElse(null);
+    }
+
+    private static boolean isValid(ExtRequestPrebidAdservertargetingRule rule) {
+        return StringUtils.isNotBlank(rule.getKey())
+                && StringUtils.isNotBlank(rule.getValue())
+                && rule.getSource() != null;
     }
 
     private static boolean hasImpPath(ExtRequestPrebidAdservertargetingRule rule) {
         return rule.getValue().startsWith(IMP_PREFIX);
     }
 
-    private String toPath(String value) {
+    private static Map<String, String> lookupValues(
+            JsonNode node,
+            List<ExtRequestPrebidAdservertargetingRule> rules,
+            Function<ExtRequestPrebidAdservertargetingRule, String> pathValueMapper) {
+
+        final Map<String, String> result = new HashMap<>();
+
+        for (final ExtRequestPrebidAdservertargetingRule rule : rules) {
+            final String lookupResult = lookupValue(node, pathValueMapper.apply(rule));
+            if (StringUtils.isNotBlank(lookupResult)) {
+                result.put(rule.getKey(), lookupResult);
+            }
+        }
+
+        return result;
+    }
+
+    private static String lookupValue(JsonNode impNode, String value) {
+        return impNode.at(toPath(value)).asText();
+    }
+
+    private static String toPath(String value) {
         return String.format("/%s", value.replaceAll("\\.", "/"));
     }
 

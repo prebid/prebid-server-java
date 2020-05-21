@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -8,6 +9,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +25,7 @@ import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdserv
 public class TargetingKeywordsResolverTest extends VertxTest {
 
     @Test
-    public void shouldResolveStaticKeywords() {
+    public void shouldResolveStaticKeyword() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
@@ -60,7 +62,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldResolveRequestKeywords() {
+    public void shouldResolveRequestKeyword() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
@@ -105,7 +107,156 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         assertThat(keywords).containsOnly(entry("keyword2", "value2"));
     }
 
-    // FIXME
+    @Test
+    public void shouldConvertRequestKeywordValueToString() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword2", bidrequest, "ext.prebid.debug")))
+                        .debug(1)
+                        .build())))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().build());
+
+        // then
+        assertThat(keywords).containsOnly(entry("keyword2", "1"));
+    }
+
+    @Test
+    public void shouldTolerateRequestPathThatIsNotValue() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword2", bidrequest, "ext.prebid.schains")))
+                        .schains(singletonList(ExtRequestPrebidSchain.of(null, null)))
+                        .build())))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().build());
+
+        // then
+        assertThat(keywords).isEmpty();
+    }
+
+    @Test
+    public void shouldResolveImpRequestKeyword() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                        .build())))
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(singletonMap("attr1", "value3")))
+                        .build()))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().impid("impId").build());
+
+        // then
+        assertThat(keywords).containsOnly(entry("keyword3", "value3"));
+    }
+
+    @Test
+    public void shouldTolerateDuplicateImpRequestKeys() {
+        // given
+        final Map<String, String> impExt = new HashMap<>();
+        impExt.put("attr1", "value3duplicate");
+        impExt.put("attr2", "value3");
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(asList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1"),
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr2")))
+                        .build())))
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(impExt))
+                        .build()))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().impid("impId").build());
+
+        // then
+        assertThat(keywords).containsOnly(entry("keyword3", "value3"));
+    }
+
+    @Test
+    public void shouldConvertImpRequestKeywordValueToString() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                        .build())))
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(singletonMap("attr1", 3)))
+                        .build()))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().impid("impId").build());
+
+        // then
+        assertThat(keywords).containsOnly(entry("keyword3", "3"));
+    }
+
+    @Test
+    public void shouldTolerateImpRequestPathThatIsNotValue() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                        .build())))
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(singletonMap("attr1", singletonList("value3"))))
+                        .build()))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().impid("impId").build());
+
+        // then
+        assertThat(keywords).isEmpty();
+    }
+
+    @Test
+    public void shouldTolerateMissingImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                        .build())))
+                .imp(singletonList(Imp.builder().id("impId1").build()))
+                .build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
+                .resolve(Bid.builder().impid("impId2").build());
+
+        // then
+        assertThat(keywords).isEmpty();
+    }
+
     @Test
     public void shouldResolveAllKindsOfKeywords() {
         // given
@@ -119,15 +270,20 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                                         "keyword3", bidrequest, "imp.ext.attr1")))
                         .amp(ExtRequestPrebidAmp.of(singletonMap("attr1", "value2")))
                         .build())))
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .ext(mapper.valueToTree(singletonMap("attr1", "value3")))
+                        .build()))
                 .build();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsResolver.create(bidRequest, jacksonMapper)
-                .resolve(Bid.builder().build());
+                .resolve(Bid.builder().impid("impId").build());
 
         // then
         assertThat(keywords).containsOnly(
                 entry("keyword1", "value1"),
-                entry("keyword2", "value2"));
+                entry("keyword2", "value2"),
+                entry("keyword3", "value3"));
     }
 }
