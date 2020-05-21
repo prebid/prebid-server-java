@@ -410,27 +410,27 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnTrueWhenStringIsValid() {
+    public void isGdprConsentValidShouldReturnTrueWhenStringIsValid() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
+        final boolean result = TcfDefinerService.isGdprConsentValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
 
         // then
         Assertions.assertThat(result).isTrue();
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnFalseWhenStringIsNull() {
+    public void isGdprConsentValidShouldReturnFalseWhenStringIsNull() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid(null);
+        final boolean result = TcfDefinerService.isGdprConsentValid(null);
 
         // then
         Assertions.assertThat(result).isFalse();
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnFalseWhenStringNotValid() {
+    public void isGdprConsentValidShouldReturnFalseWhenStringNotValid() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid("invalid");
+        final boolean result = TcfDefinerService.isGdprConsentValid("invalid");
 
         // then
         Assertions.assertThat(result).isFalse();

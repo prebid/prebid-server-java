@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -59,7 +60,6 @@ public class AmpRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final String CONSENT_PARAM = "consent_string";
-    private static final String CONSENT_FORMAT_REGEX = "1([yY\\-nN]){3}";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final StoredRequestProcessor storedRequestProcessor;
@@ -214,11 +214,12 @@ public class AmpRequestFactory {
         final String requestConsentParam = request.getParam(CONSENT_PARAM);
         final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
+
         String gdprConsent = null;
         String ccpaConsent = null;
         if (StringUtils.isNotBlank(consentString)) {
-            gdprConsent = TcfDefinerService.isGdprConsentIsValid(consentString) ? consentString : null;
-            ccpaConsent = consentString.matches(CONSENT_FORMAT_REGEX) ? consentString : null;
+            gdprConsent = TcfDefinerService.isGdprConsentValid(consentString) ? consentString : null;
+            ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
             if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
                 logger.warn("Amp request parameter consent_string or gdpr_consent have invalid format = {0}",
