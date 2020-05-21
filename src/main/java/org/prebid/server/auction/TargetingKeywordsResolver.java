@@ -28,6 +28,8 @@ public class TargetingKeywordsResolver {
     private static final Logger logger = LoggerFactory.getLogger(TargetingKeywordsResolver.class);
 
     public static final String IMP_PREFIX = "imp.";
+    public static final String SEATBID_BID_PREFIX = "seatbid.bid.";
+    public static final String BIDDER_MACRO = "{{BIDDER}}";
 
     private final BidRequest bidRequest;
     private final JacksonMapper mapper;
@@ -51,9 +53,10 @@ public class TargetingKeywordsResolver {
         return new TargetingKeywordsResolver(bidRequest, mapper);
     }
 
-    public Map<String, String> resolve(Bid bid) {
+    public Map<String, String> resolve(Bid bid, String bidder) {
         final Map<String, String> result = new HashMap<>(staticAndRequestKeywords);
         result.putAll(resolveImpRequestKeywords(bid));
+        result.putAll(resolveResponseKeywords(bid, bidder));
 
         return result;
     }
@@ -80,7 +83,9 @@ public class TargetingKeywordsResolver {
     private static List<ExtRequestPrebidAdservertargetingRule> responseRules(
             Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
 
-        return rulesBySource.getOrDefault(Source.bidresponse, Collections.emptyList());
+        return rulesBySource.getOrDefault(Source.bidresponse, Collections.emptyList()).stream()
+                .filter(TargetingKeywordsResolver::hasSeatbidBidPath)
+                .collect(Collectors.toList());
     }
 
     private Map<String, String> resolveStaticAndRequestKeywords(
@@ -111,7 +116,8 @@ public class TargetingKeywordsResolver {
             return lookupValues(
                     mapper.mapper().valueToTree(bidRequest),
                     requestRules,
-                    ExtRequestPrebidAdservertargetingRule::getValue);
+                    Function.identity(),
+                    Function.identity());
         }
 
         return Collections.emptyMap();
@@ -131,7 +137,10 @@ public class TargetingKeywordsResolver {
 
             if (impNode != null) {
                 return lookupValues(
-                        impNode, impRequestRules, rule -> rule.getValue().replaceFirst(IMP_PREFIX, StringUtils.EMPTY));
+                        impNode,
+                        impRequestRules,
+                        value -> StringUtils.substringAfter(value, IMP_PREFIX),
+                        Function.identity());
             }
         }
 
@@ -151,6 +160,20 @@ public class TargetingKeywordsResolver {
                 .orElse(null);
     }
 
+    private Map<String, String> resolveResponseKeywords(Bid bid, String bidder) {
+        if (!responseRules.isEmpty()) {
+            final JsonNode bidNode = mapper.mapper().valueToTree(bid);
+
+            return lookupValues(
+                    bidNode,
+                    responseRules,
+                    value -> StringUtils.substringAfter(value, SEATBID_BID_PREFIX),
+                    key -> StringUtils.replace(key, BIDDER_MACRO, bidder));
+        }
+
+        return Collections.emptyMap();
+    }
+
     private static boolean isValid(ExtRequestPrebidAdservertargetingRule rule) {
         return StringUtils.isNotBlank(rule.getKey())
                 && StringUtils.isNotBlank(rule.getValue())
@@ -161,17 +184,22 @@ public class TargetingKeywordsResolver {
         return rule.getValue().startsWith(IMP_PREFIX);
     }
 
+    private static boolean hasSeatbidBidPath(ExtRequestPrebidAdservertargetingRule rule) {
+        return rule.getValue().startsWith(SEATBID_BID_PREFIX);
+    }
+
     private static Map<String, String> lookupValues(
             JsonNode node,
             List<ExtRequestPrebidAdservertargetingRule> rules,
-            Function<ExtRequestPrebidAdservertargetingRule, String> pathValueMapper) {
+            Function<String, String> pathValueMapper,
+            Function<String, String> keyMapper) {
 
         final Map<String, String> result = new HashMap<>();
 
         for (final ExtRequestPrebidAdservertargetingRule rule : rules) {
-            final String lookupResult = lookupValue(node, pathValueMapper.apply(rule));
+            final String lookupResult = lookupValue(node, pathValueMapper.apply(rule.getValue()));
             if (StringUtils.isNotBlank(lookupResult)) {
-                result.put(rule.getKey(), lookupResult);
+                result.put(keyMapper.apply(rule.getKey()), lookupResult);
             }
         }
 

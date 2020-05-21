@@ -17,6 +17,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -371,7 +372,7 @@ public class TargetingKeywordsCreatorTest {
                 .build();
 
         final TargetingKeywordsResolver resolver = mock(TargetingKeywordsResolver.class);
-        given(resolver.resolve(any())).willReturn(singletonMap("keyword1", "value1"));
+        given(resolver.resolve(any(), anyString())).willReturn(singletonMap("keyword1", "value1"));
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(

@@ -180,7 +180,7 @@ public class TargetingKeywordsCreator {
         }
 
         final Map<String, String> augmentedKeywords = new HashMap<>(keywords);
-        augmentedKeywords.putAll(resolver.resolve(bid));
+        augmentedKeywords.putAll(resolver.resolve(bid, bidder));
 
         return augmentedKeywords;
     }
