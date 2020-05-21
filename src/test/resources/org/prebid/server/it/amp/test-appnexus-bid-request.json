@@ -98,7 +98,14 @@
           "account": "accountId",
           "timeout": "10000000"
         }
-      }
+      },
+      "adservertargeting": [
+        {
+          "key": "static_keyword1",
+          "source": "static",
+          "value": "static_value1"
+        }
+      ]
     }
   }
 }
