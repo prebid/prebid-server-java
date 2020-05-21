@@ -214,11 +214,12 @@ public class AmpRequestFactory {
         final String requestConsentParam = request.getParam(CONSENT_PARAM);
         final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
+
         String gdprConsent = null;
         String ccpaConsent = null;
         if (StringUtils.isNotBlank(consentString)) {
-            gdprConsent = TcfDefinerService.isGdprConsentIsValid(consentString) ? consentString : null;
-            ccpaConsent = Ccpa.isCcpaString(consentString) ? consentString : null;
+            gdprConsent = TcfDefinerService.isGdprConsentValid(consentString) ? consentString : null;
+            ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
             if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
                 logger.warn("Amp request parameter consent_string or gdpr_consent have invalid format = {0}",

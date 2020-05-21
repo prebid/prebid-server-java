@@ -9,111 +9,120 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class CcpaTest {
 
     @Test
-    public void isCCPAEnforcedShouldReturnFalseWhenCCPAisBlank() {
-        // given
-        final Ccpa ccpa = Ccpa.of("");
-
-        // when and then
-        assertThat(ccpa.isCCPAEnforced()).isFalse();
-    }
-
-    @Test
-    public void isCCPAEnforcedShouldReturnFalseWhenCCPAisNull() {
+    public void isEnforcedShouldReturnFalseWhenCCPAisNull() {
         // given
         final Ccpa ccpa = Ccpa.of(null);
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isFalse();
+        assertThat(ccpa.isEnforced()).isFalse();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnFalseWhenCCPAisInvalid() {
+    public void isEnforcedShouldReturnFalseWhenCCPAisEmpty() {
+        // given
+        final Ccpa ccpa = Ccpa.of("");
+
+        // when and then
+        assertThat(ccpa.isEnforced()).isFalse();
+    }
+
+    @Test
+    public void isEnforcedShouldReturnFalseWhenCCPAisBlank() {
+        // given
+        final Ccpa ccpa = Ccpa.of(" ");
+
+        // when and then
+        assertThat(ccpa.isEnforced()).isFalse();
+    }
+
+    @Test
+    public void isEnforcedShouldReturnFalseWhenCCPAisInvalid() {
         // given
         final Ccpa ccpa = Ccpa.of("invalid");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isFalse();
+        assertThat(ccpa.isEnforced()).isFalse();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndex() {
+    public void isEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndex() {
         // given
         final Ccpa ccpa = Ccpa.of("1YNY");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isFalse();
+        assertThat(ccpa.isEnforced()).isFalse();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndexLowercase() {
+    public void isEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndexLowercase() {
         // given
         final Ccpa ccpa = Ccpa.of("1yny");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isFalse();
+        assertThat(ccpa.isEnforced()).isFalse();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndexMixedCase() {
+    public void isEnforcedShouldReturnFalseWhenCCPAHasNoInOutSaleIndexMixedCase() {
         // given
         final Ccpa ccpa = Ccpa.of("1-Ny");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isFalse();
+        assertThat(ccpa.isEnforced()).isFalse();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndex() {
+    public void isEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndex() {
         // given
         final Ccpa ccpa = Ccpa.of("1NYN");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isTrue();
+        assertThat(ccpa.isEnforced()).isTrue();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndexLowercase() {
+    public void isEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndexLowercase() {
         // given
         final Ccpa ccpa = Ccpa.of("1nyn");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isTrue();
+        assertThat(ccpa.isEnforced()).isTrue();
     }
 
     @Test
-    public void isCCPAEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndexMixedCase() {
+    public void isEnforcedShouldReturnTrueWhenCCPAHasYesInOutSaleIndexMixedCase() {
         // given
         final Ccpa ccpa = Ccpa.of("1-Yn");
 
         // when and then
-        assertThat(ccpa.isCCPAEnforced()).isTrue();
+        assertThat(ccpa.isEnforced()).isTrue();
     }
 
     @Test
-    public void isCcpaStringShouldReturnTrueWhenValidCcpaStringIsProvided() {
+    public void isValidShouldReturnTrueWhenValidCcpaStringIsProvided() {
         // given, when and then
-        assertThat(Ccpa.isCcpaString("1YYY")).isTrue();
-        assertThat(Ccpa.isCcpaString("1NNN")).isTrue();
-        assertThat(Ccpa.isCcpaString("1NYN")).isTrue();
-        assertThat(Ccpa.isCcpaString("1NyN")).isTrue();
-        assertThat(Ccpa.isCcpaString("1nyN")).isTrue();
-        assertThat(Ccpa.isCcpaString("1---")).isTrue();
-        assertThat(Ccpa.isCcpaString("1--N")).isTrue();
-        assertThat(Ccpa.isCcpaString("1--y")).isTrue();
-        assertThat(Ccpa.isCcpaString("1Y-y")).isTrue();
+        assertThat(Ccpa.isValid("1YYY")).isTrue();
+        assertThat(Ccpa.isValid("1NNN")).isTrue();
+        assertThat(Ccpa.isValid("1NYN")).isTrue();
+        assertThat(Ccpa.isValid("1NyN")).isTrue();
+        assertThat(Ccpa.isValid("1nyN")).isTrue();
+        assertThat(Ccpa.isValid("1---")).isTrue();
+        assertThat(Ccpa.isValid("1--N")).isTrue();
+        assertThat(Ccpa.isValid("1--y")).isTrue();
+        assertThat(Ccpa.isValid("1Y-y")).isTrue();
     }
 
     @Test
-    public void isCcpaStringShouldReturnFalseWhenNotValidCcpaStringIsProvided() {
+    public void isValidShouldReturnFalseWhenNotValidCcpaStringIsProvided() {
         // given, when and then
-        assertThat(Ccpa.isCcpaString("2YYY")).isFalse();
-        assertThat(Ccpa.isCcpaString("")).isFalse();
-        assertThat(Ccpa.isCcpaString(null)).isFalse();
-        assertThat(Ccpa.isCcpaString("1iyN")).isFalse();
-        assertThat(Ccpa.isCcpaString("1nyNa")).isFalse();
-        assertThat(Ccpa.isCcpaString("1-----")).isFalse();
-        assertThat(Ccpa.isCcpaString("1#1251-N")).isFalse();
-        assertThat(Ccpa.isCcpaString("1")).isFalse();
+        assertThat(Ccpa.isValid("2YYY")).isFalse();
+        assertThat(Ccpa.isValid("")).isFalse();
+        assertThat(Ccpa.isValid(null)).isFalse();
+        assertThat(Ccpa.isValid("1iyN")).isFalse();
+        assertThat(Ccpa.isValid("1nyNa")).isFalse();
+        assertThat(Ccpa.isValid("1-----")).isFalse();
+        assertThat(Ccpa.isValid("1#1251-N")).isFalse();
+        assertThat(Ccpa.isValid("1")).isFalse();
     }
 
     @Test

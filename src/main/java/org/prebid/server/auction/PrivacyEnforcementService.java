@@ -107,7 +107,7 @@ public class PrivacyEnforcementService {
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa) {
-        return ccpaEnforce && ccpa.isCCPAEnforced();
+        return ccpaEnforce && ccpa.isEnforced();
     }
 
     private Future<List<BidderPrivacyResult>> maskCcpa(Map<String, User> bidderToUser, Device device) {
@@ -255,7 +255,7 @@ public class PrivacyEnforcementService {
     }
 
     private void updateCcpaMetrics(Ccpa ccpa) {
-        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isCCPAEnforced());
+        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isEnforced());
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
