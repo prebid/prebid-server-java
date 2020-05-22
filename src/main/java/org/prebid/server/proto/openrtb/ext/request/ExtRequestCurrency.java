@@ -18,7 +18,6 @@ public class ExtRequestCurrency {
     Map<String, Map<String, BigDecimal>> rates;
     /**
      * Defines the contract for bidrequest.ext.prebid.currency.usepbsrates
-     * default value is false
      */
     Boolean usepbsrates;
 }

@@ -221,8 +221,7 @@ public class ExchangeService {
     private static Boolean usepbsrates(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
-        final Boolean usepbsrates = currency != null ? currency.getUsepbsrates() : null;
-        return usepbsrates != null;
+        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**

@@ -246,7 +246,12 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final Map<String, Map<String, BigDecimal>> requestConversionRates = singletonMap(USD,
                 singletonMap(EUR, BigDecimal.valueOf(0.8434)));
 
-        // when and then
+        givenHttpClientReturnsResponse(httpClient, 503, "server unavailable");
+
+        // when
+        currencyService = setExternalResource(URL, 1L, vertx, httpClient);
+
+        // then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, AUD,
                         false))
