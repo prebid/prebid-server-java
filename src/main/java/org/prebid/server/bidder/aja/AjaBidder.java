@@ -65,10 +65,11 @@ public class AjaBidder implements Bidder<BidRequest> {
                     .ext(null)
                     .build();
 
-            if (!impsByTagID.containsKey(imp.getTagid())) {
-                tagIds.add(imp.getTagid());
+            final String tagId = imp.getTagid();
+            if (!impsByTagID.containsKey(tagId)) {
+                tagIds.add(tagId);
             }
-            impsByTagID.put(imp.getTagid(), imp);
+            impsByTagID.put(tagId, imp);
         }
 
         for (final String tagId : tagIds) {
