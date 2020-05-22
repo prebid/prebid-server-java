@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.34.0-SNAPSHOT</version>
+    <version>1.35.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -45,7 +45,7 @@
         <metrics.version>4.0.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
-        <iab-tcf>2.0.0-alpha.0</iab-tcf>
+        <iabtcf.version>2.0.7</iabtcf.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
 
@@ -250,8 +250,8 @@
         </dependency>
         <dependency>
             <groupId>com.iabtcf</groupId>
-            <artifactId>iabtcf-core</artifactId>
-            <version>${iab-tcf}</version>
+            <artifactId>iabtcf-decoder</artifactId>
+            <version>${iabtcf.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>

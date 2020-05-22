@@ -13,6 +13,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -21,6 +23,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -44,6 +48,8 @@ import java.util.stream.Collectors;
 
 public class AmpRequestFactory {
 
+    private static final Logger logger = LoggerFactory.getLogger(AmpRequestFactory.class);
+
     private static final String TAG_ID_REQUEST_PARAM = "tag_id";
     private static final String TARGETING_REQUEST_PARAM = "targeting";
     private static final String DEBUG_REQUEST_PARAM = "debug";
@@ -57,7 +63,7 @@ public class AmpRequestFactory {
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
-    private static final String US_PRIVACY_PARAM = "us_privacy";
+    private static final String CONSENT_PARAM = "consent_string";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final StoredRequestProcessor storedRequestProcessor;
@@ -65,10 +71,8 @@ public class AmpRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
 
-    public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
-                             AuctionRequestFactory auctionRequestFactory,
-                             TimeoutResolver timeoutResolver,
-                             JacksonMapper mapper) {
+    public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor, AuctionRequestFactory auctionRequestFactory,
+                             TimeoutResolver timeoutResolver, JacksonMapper mapper) {
 
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
@@ -210,14 +214,30 @@ public class AmpRequestFactory {
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
     private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
+        final String requestConsentParam = request.getParam(CONSENT_PARAM);
+        final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
+        final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
+
+        String gdprConsent = null;
+        String ccpaConsent = null;
+        if (StringUtils.isNotBlank(consentString)) {
+            gdprConsent = TcfDefinerService.isGdprConsentValid(consentString) ? consentString : null;
+            ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
+
+            if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
+                logger.warn("Amp request parameter consent_string or gdpr_consent have invalid format = {0}",
+                        consentString);
+            }
+        }
+
         final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
         final Targeting targeting = parseTargeting(requestTargeting);
 
         final Site updatedSite = overrideSite(bidRequest.getSite(), targeting, request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
-        final User updatedUser = overrideUser(bidRequest.getUser(), targeting, request);
-        final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), request);
+        final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent, targeting, request);
+        final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), ccpaConsent);
         final ObjectNode updatedExt = overrideExt(bidRequest.getExt(), targeting);
 
         final BidRequest result;
@@ -404,8 +424,7 @@ public class AmpRequestFactory {
         return timeout > 0 && !Objects.equals(timeout, tmax) ? timeout : null;
     }
 
-    private User overrideUser(User user, Targeting targeting, HttpServerRequest request) {
-        final String gdprConsent = request.getParam(GDPR_CONSENT_PARAM);
+    private User overrideUser(User user, String gdprConsent, Targeting targeting, HttpServerRequest request) {
         final ObjectNode targetingUser = targeting.getUser();
         if (StringUtils.isBlank(gdprConsent) && targetingUser == null) {
             return null;
@@ -444,9 +463,8 @@ public class AmpRequestFactory {
         }
     }
 
-    private Regs overrideRegs(Regs regs, HttpServerRequest request) {
-        final String usPrivacyParam = request.getParam(US_PRIVACY_PARAM);
-        if (StringUtils.isBlank(usPrivacyParam)) {
+    private Regs overrideRegs(Regs regs, String ccpaConsent) {
+        if (StringUtils.isBlank(ccpaConsent)) {
             return null;
         }
 
@@ -457,7 +475,7 @@ public class AmpRequestFactory {
             gdpr = extractExtRegs(regs.getExt()).getGdpr();
         }
 
-        return Regs.of(coppa, mapper.mapper().valueToTree(ExtRegs.of(gdpr, usPrivacyParam)));
+        return Regs.of(coppa, mapper.mapper().valueToTree(ExtRegs.of(gdpr, ccpaConsent)));
     }
 
     private ObjectNode overrideExt(ObjectNode ext, Targeting targeting) {
