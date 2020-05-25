@@ -176,6 +176,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         // given
         final Map<String, Map<String, BigDecimal>> requestConversionRates = new HashMap<>();
         requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.6)));
+
         // when
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, GBP,
                 true);
@@ -187,8 +188,9 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void convertCurrencyShouldUseConversionRateFromRequestIfusepbsratesIsFalse() {
         // given
-        final Map<String, Map<String, BigDecimal>> requestConversionRates = new HashMap<>();
-        requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.6)));
+        final Map<String, Map<String, BigDecimal>> requestConversionRates = singletonMap(EUR, singletonMap(USD,
+                BigDecimal.valueOf(0.6)));
+
         // when
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, USD,
                 false);

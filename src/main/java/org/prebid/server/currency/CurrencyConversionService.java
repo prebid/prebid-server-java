@@ -1,5 +1,6 @@
 package org.prebid.server.currency;
 
+import org.apache.commons.lang3.BooleanUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -139,11 +140,9 @@ public class CurrencyConversionService implements Initializable {
             return price;
         }
 
-        final BigDecimal conversionRate = usepbsrates
-                    ? getConversionRateFromServer(externalCurrencyRates, requestCurrencyRates, adServerCurrency,
-                    effectiveBidCurrency)
-                    : getConversionRateFromRequest(externalCurrencyRates, requestCurrencyRates,
-                    adServerCurrency, effectiveBidCurrency);
+        final BigDecimal conversionRate = BooleanUtils.isTrue(usepbsrates)
+                    ? getConversionRateFromServer(requestCurrencyRates, adServerCurrency, effectiveBidCurrency)
+                    : getConversionRateFromRequest(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
             throw new PreBidException("no currency conversion available");
@@ -153,34 +152,30 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
-     *  Get conversion rate from request currency rates if it is present
+     *  Get conversion rate from request currency rates if it is present and then from server if it is not processed.
      */
-    private static BigDecimal getConversionRateFromRequest(Map<String, Map<String, BigDecimal>> externalCurrencyRates,
-                                                           Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                                           String adServerCurrency, String effectiveBidCurrency) {
+    private BigDecimal getConversionRateFromRequest(Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                                         String adServerCurrency, String effectiveBidCurrency) {
         BigDecimal conversionRate = null;
         if (requestCurrencyRates != null) {
             conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
         }
 
         if (conversionRate == null && externalCurrencyRates != null) {
-            conversionRate = getConversionRateFromServer(externalCurrencyRates, requestCurrencyRates, adServerCurrency,
-                    effectiveBidCurrency);
+            conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
         }
         return conversionRate;
     }
 
     /**
-     * Get conversion rate from server
+     * Get conversion rate from server and then using request currency if it is not processed.
      */
-    private static BigDecimal getConversionRateFromServer(Map<String, Map<String, BigDecimal>> externalCurrencyRates,
-                                                          Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                                          String adServerCurrency, String effectiveBidCurrency) {
+    private BigDecimal getConversionRateFromServer(Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                                        String adServerCurrency, String effectiveBidCurrency) {
         BigDecimal conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null && requestCurrencyRates != null) {
-            conversionRate = getConversionRateFromRequest(externalCurrencyRates, requestCurrencyRates, adServerCurrency,
-                    effectiveBidCurrency);
+            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
         }
         return conversionRate;
     }
