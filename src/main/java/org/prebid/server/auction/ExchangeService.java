@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -657,13 +658,35 @@ public class ExchangeService {
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
-        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
+        final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
+        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
 
         if (useFirstPartyData) {
             result.set(CONTEXT_EXT, impExt.get(CONTEXT_EXT));
         }
 
         return result;
+    }
+
+    private JsonNode prepareImpExtPrebid(String bidder, JsonNode extImpPrebidNode) {
+        if (extImpPrebidNode != null && extImpPrebidNode.hasNonNull(bidder)) {
+            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode).toBuilder()
+                    .bidder(extImpPrebidNode.get(bidder)) // leave appropriate bidder related data
+                    .build();
+            return mapper.mapper().valueToTree(extImpPrebid);
+        }
+        return extImpPrebidNode;
+    }
+
+    /**
+     * Returns {@link ExtImpPrebid} from imp.ext.prebid {@link JsonNode}.
+     */
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+        try {
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding imp.ext.prebid: %s", e.getMessage()), e);
+        }
     }
 
     /**
