@@ -4,21 +4,21 @@
 
  Feature | Java | Go 
 | --- | :---: | :---:|
-First Party data |+|-
+First Party Data |+|-
 Stored Requests |+|+
 Stored Responses |+|-
 Currency Conversion** |+|+
-Geo location (used for GDPR) |+|-
-Circuit Breaker (Http, DB) |+|-
-Passing Bidder ext in `imp[...].ext.prebid.bidder` |-|+
-Passing `request.ext.prebid.bidders.BIDDER` to corresponding bidder |+|-
+Geo Location (used for GDPR) |+|-
+Circuit Breaker (HTTP, DB) |+|-
+Passing Bidder extension in `imp[i].ext.prebid.bidder` |+|+
+Passing `ext.prebid.bidders.BIDDER` to corresponding bidder |+|-
 Media Type Price Granularity |+|-
 Cache only-winning-bids flag |+|-
 User ID Module |+|+
 Bid Categories |-|+
 Apps/Accounts Blacklist  |+|+
 Event Notification endpoint |+|-
-Video Auction endpoint |-|+
+Video Auction endpoint |+|+
 Video Impression Tracking endpoint |+|-
 GDPR |+|+
 COPPA |+|+

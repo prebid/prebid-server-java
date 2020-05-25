@@ -788,6 +788,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             bid.setId(bidResponse.getBidid());
         }
 
+        // Unconditionally set price if coming from CPM override
         final Float cpmOverride = ObjectUtils.defaultIfNull(cpmOverrideFromImp(imp), cmpOverrideFromRequest);
         if (cpmOverride != null) {
             bid.setPrice(new BigDecimal(String.valueOf(cpmOverride)));
