@@ -222,7 +222,7 @@ public class AmpRequestFactory {
             ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
             if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
-                logger.warn("Amp request parameter consent_string or gdpr_consent have invalid format = {0}",
+                logger.debug("Amp request parameter consent_string or gdpr_consent have invalid format: {0}",
                         consentString);
             }
         }
