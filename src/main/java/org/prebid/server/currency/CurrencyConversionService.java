@@ -127,7 +127,7 @@ public class CurrencyConversionService implements Initializable {
     /**
      * Converts price from bidCurrency to adServerCurrency using rates and usepbsrates flag defined in request.
      * If usepbsrates is true it takes rates from prebid server, if false from request. Default value of usepbsrates
-     * is false.
+     * is true.
      * Throws {@link PreBidException} in case conversion is not possible.
      */
     public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
