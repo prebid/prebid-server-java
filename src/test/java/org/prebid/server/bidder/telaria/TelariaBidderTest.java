@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.telaria;
 
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -74,8 +74,7 @@ public class TelariaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpHasNoVideo() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(identity()),
+                .imp(singletonList(
                         givenImp(impBuilder -> impBuilder.video(null))))
                 .build();
 
@@ -84,6 +83,21 @@ public class TelariaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Only Supports Video"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpHasBanner() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder.banner(Banner.builder().build()))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Banner not supported"));
     }
 
     @Test
@@ -99,7 +113,6 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -183,6 +196,7 @@ public class TelariaBidderTest extends VertxTest {
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("x-openrtb-version", "2.5"),
+                        tuple("Accept-Encoding", "gzip"),
                         tuple("User-Agent", "userAgent"),
                         tuple("X-Forwarded-For", "123.123.123.12"),
                         tuple("Accept-Language", "en"),

@@ -15,6 +15,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.HttpCall;
@@ -32,13 +33,15 @@ import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Objects;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 public class TelariaBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -56,7 +59,6 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
             return Result.emptyWithError(BidderError.badInput("Telaria: Missing Imp Object"));
         }
@@ -72,24 +74,18 @@ public class TelariaBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpTelaria extImp = parseImpExt(imp);
-                if (StringUtils.isBlank(extImp.getSeatCode())) {
-                    throw new PreBidException("Telaria: Seat Code required");
-                }
                 seatCode = extImp.getSeatCode();
-                requestBuilder
-                        .imp(Collections.singletonList(imp.toBuilder()
-                                .tagid(extImp.getAdCode())
-                                .ext(mapper.mapper().valueToTree(ExtImpOutTelaria.of(imp.getTagid(), publisherId)))
-                                .build()));
+                Imp updateImp = updateImp(imp, extImp, publisherId);
+                requestBuilder.imp(Collections.singletonList(updateImp));
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
         }
 
         if (bidRequest.getSite() != null) {
-            modifySite(seatCode, bidRequest, requestBuilder);
+            requestBuilder.site(modifySite(seatCode, bidRequest));
         } else if (bidRequest.getApp() != null) {
-            modifyApp(seatCode, bidRequest, requestBuilder);
+            requestBuilder.app(modifyApp(seatCode, bidRequest));
         }
 
         final BidRequest outgoingRequest = requestBuilder.build();
@@ -103,15 +99,31 @@ public class TelariaBidder implements Bidder<BidRequest> {
                         .payload(outgoingRequest)
                         .body(body)
                         .build()),
-                errors);
+                Collections.emptyList());
     }
 
     private void validateImp(List<Imp> imps) {
+        boolean hasVideoObject = false;
         for (Imp imp : imps) {
-            if (imp.getVideo() == null) {
-                throw new PreBidException("Telaria: Only Supports Video");
+            if (imp.getBanner() != null) {
+                throw new PreBidException("Telaria: Banner not supported");
             }
+            hasVideoObject = hasVideoObject || imp.getVideo() != null;
         }
+
+        if (!hasVideoObject) {
+            throw new PreBidException("Telaria: Only Supports Video");
+        }
+    }
+
+    private Imp updateImp(Imp imp, ExtImpTelaria extImp, String publisherId) {
+        if (StringUtils.isBlank(extImp.getSeatCode())) {
+            throw new PreBidException("Telaria: Seat Code required");
+        }
+        return imp.toBuilder()
+                .tagid(extImp.getAdCode())
+                .ext(mapper.mapper().valueToTree(ExtImpOutTelaria.of(imp.getTagid(), publisherId)))
+                .build();
     }
 
     private String getPublisherId(BidRequest bidRequest) {
@@ -131,26 +143,26 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void modifySite(String seatCode, BidRequest bidRequest,
-                                   BidRequest.BidRequestBuilder bidRequestBuilder) {
+    private Site modifySite(String seatCode, BidRequest bidRequest) {
         final Site site = bidRequest.getSite();
         if (site.getPublisher() != null) {
             final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(seatCode).build();
-            bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
+            return site.toBuilder().publisher(modifiedPublisher).build();
         }
+        return site;
     }
 
-    private static void modifyApp(String seatCode, BidRequest bidRequest,
-                                  BidRequest.BidRequestBuilder bidRequestBuilder) {
+    private App modifyApp(String seatCode, BidRequest bidRequest) {
         final App app = bidRequest.getApp();
         if (app.getPublisher() != null) {
             final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(seatCode).build();
-            bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
+            return app.toBuilder().publisher(modifiedPublisher).build();
         }
+        return app;
     }
 
     private MultiMap headers(BidRequest bidRequest) {
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5").add("Accept-Encoding", "gzip");
         final Device device = bidRequest.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
@@ -176,7 +188,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
         try {
             return Result.of(extractBids(httpCall.getRequest().getPayload(), getBidResponse(httpCall.getResponse())),
                     Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException | PreBidException | IOException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -187,10 +199,10 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private BidResponse getBidResponse(HttpResponse response) {
+    private BidResponse getBidResponse(HttpResponse response) throws IOException {
         if ("gzip".equals(response.getHeaders().get("Content-Encoding"))) {
             response.getHeaders().remove("Content-Encoding");
-            return mapper.decodeValue(Buffer.buffer(response.getBody()), BidResponse.class);
+            return mapper.decodeValue(Buffer.buffer(decompress(response.getBody())), BidResponse.class);
         }
         return mapper.decodeValue(response.getBody(), BidResponse.class);
     }
@@ -203,6 +215,12 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, BidType.video, DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
+    }
+
+    public static byte[] decompress(String file) throws IOException {
+        try (GZIPInputStream gzipInput = new GZIPInputStream(new FileInputStream(file))) {
+            return IOUtils.toByteArray(gzipInput);
+        }
     }
 
     @Override
