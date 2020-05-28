@@ -141,7 +141,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         result.getLeft(), result.getRight(), routingContext))
 
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+                .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

@@ -7,7 +7,6 @@ import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -107,11 +106,11 @@ public class AuctionHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
 
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         timeout = new TimeoutFactory(clock).create(2000L);
@@ -659,7 +658,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
 
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("header", "value1");
         headers.add("header", "value2");
         given(httpRequest.headers()).willReturn(headers);

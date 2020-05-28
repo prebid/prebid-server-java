@@ -110,7 +110,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         accountById(requestAccount, timeout)
                 .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip,
                         account.getGdpr(), timeout))
-                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
+                .onComplete(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {

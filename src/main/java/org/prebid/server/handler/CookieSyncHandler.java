@@ -179,7 +179,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         accountById(requestAccount, timeout)
                 .compose(account -> prepareTcfResponse(gdprConsent, biddersToSync, gdprAsString, vendorIds, ip, account,
                         timeout))
-                .setHandler(asyncResult ->
+                .onComplete(asyncResult ->
                         handleBidderNamesResult(asyncResult, context, uidsCookie, biddersToSync, privacy, limit));
     }
 

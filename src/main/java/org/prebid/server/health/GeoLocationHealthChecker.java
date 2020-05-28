@@ -33,7 +33,7 @@ public class GeoLocationHealthChecker extends PeriodicHealthChecker {
     @Override
     void updateStatus() {
         geoLocationService.lookup(PREBID_ORG_IP, timeoutFactory.create(TIMEOUT_MILLIS))
-                .setHandler(result ->
+                .onComplete(result ->
                         status = StatusResponse.of(
                                 result.succeeded() ? Status.UP.name() : Status.DOWN.name(),
                                 ZonedDateTime.now(Clock.systemUTC())));

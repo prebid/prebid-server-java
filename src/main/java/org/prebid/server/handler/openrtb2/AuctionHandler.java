@@ -92,7 +92,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .map(bidResponse -> Tuple2.of(bidResponse, context)))
 
                 .map(result -> addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
-                .setHandler(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
+                .onComplete(result -> handleResult(result, auctionEventBuilder, routingContext, startTime));
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {

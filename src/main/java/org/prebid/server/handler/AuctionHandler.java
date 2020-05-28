@@ -146,7 +146,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
                                 result.getRight()))
 
-                .setHandler(preBidResponseResult ->
+                .onComplete(preBidResponseResult ->
                         respondWith(bidResponseOrError(preBidResponseResult), context, startTime));
     }
 
