@@ -26,12 +26,14 @@ public class Metrics extends UpdatableMetrics {
     private final BidderCatalog bidderCatalog;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
+    private final Function<MetricName, QueuedRequestMetrics> queuedRequestMetricsFunction;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
+    private final Map<MetricName, QueuedRequestMetrics> queuedRequestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final UserSyncMetrics userSyncMetrics;
@@ -46,9 +48,12 @@ public class Metrics extends UpdatableMetrics {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
 
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
+        queuedRequestMetricsFunction = requestType ->
+                new QueuedRequestMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
         requestMetrics = new EnumMap<>(MetricName.class);
+        queuedRequestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
@@ -58,6 +63,12 @@ public class Metrics extends UpdatableMetrics {
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
         return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
+    }
+
+    public void updateQueuedRequestMetrics(MetricName requestType, boolean success, long millis) {
+        final QueuedRequestMetrics queuedRequestMetrics =
+                this.queuedRequestMetrics.computeIfAbsent(requestType, queuedRequestMetricsFunction);
+        queuedRequestMetrics.updateTimer(success ? MetricName.accepted : MetricName.rejected, millis);
     }
 
     AccountMetrics forAccount(String account) {

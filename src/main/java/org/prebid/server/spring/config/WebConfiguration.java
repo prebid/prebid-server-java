@@ -56,6 +56,7 @@ import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.manager.AdminManager;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -171,7 +172,8 @@ public class WebConfiguration {
                   BiddersHandler biddersHandler,
                   BidderDetailsHandler bidderDetailsHandler,
                   NotificationEventHandler notificationEventHandler,
-                  StaticHandler staticHandler) {
+                  StaticHandler staticHandler,
+                  Metrics metrics) {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
@@ -184,7 +186,10 @@ public class WebConfiguration {
         Handler<RoutingContext> videoHandler = openrtbVideoHandler;
         if (StringUtils.isNoneEmpty(requestTimeoutHeaders.getRequestTimeInQueue(),
                 requestTimeoutHeaders.getRequestTimeoutInQueue())) {
-            videoHandler = new QueuedRequestTimeout(openrtbVideoHandler, requestTimeoutHeaders);
+            videoHandler = new QueuedRequestTimeout(openrtbVideoHandler,
+                    requestTimeoutHeaders,
+                    metrics,
+                    MetricName.video);
         }
         router.post("/openrtb2/video").handler(videoHandler);
         router.get("/status").handler(statusHandler);

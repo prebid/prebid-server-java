@@ -284,6 +284,17 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateQueuedRequestMetricsShouldUpdateMetrics() {
+        // when
+        metrics.updateQueuedRequestMetrics(MetricName.video, true, 1000);
+        metrics.updateQueuedRequestMetrics(MetricName.video, false, 1000);
+
+        // then
+        assertThat(metricRegistry.timer("queued_requests.video.accepted").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("queued_requests.video.rejected").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         assertThat(metrics.cookieSync().forBidder(RUBICON)).isSameAs(metrics.cookieSync().forBidder(RUBICON));
     }

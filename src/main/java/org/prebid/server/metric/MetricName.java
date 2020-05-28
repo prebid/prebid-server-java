@@ -93,8 +93,8 @@ public enum MetricName {
     prebid_cache_request_success_time,
     prebid_cache_request_error_time,
 
-    //account.*.requests.
-    rejected;
+    rejected,
+    accepted;
 
     private final String name;
 

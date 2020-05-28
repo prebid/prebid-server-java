@@ -14,6 +14,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.handler.openrtb2.VideoHandler;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.WebConfiguration;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +34,8 @@ public class QueuedRequestTimeoutTest extends VertxTest {
     private QueuedRequestTimeout queuedRequestTimeout;
     @Mock
     private VideoHandler videoHandler;
+    @Mock
+    private Metrics metrics;
     @Mock
     private WebConfiguration.RequestTimeoutHeaders requestTimeoutHeaders;
     @Mock
@@ -56,7 +60,7 @@ public class QueuedRequestTimeoutTest extends VertxTest {
         given(requestTimeoutHeaders.getRequestTimeInQueue()).willReturn(TEST_TIME_IN_QUEUE_HEADER);
         given(requestTimeoutHeaders.getRequestTimeoutInQueue()).willReturn(TEST_TIMEOUT_IN_QUEUE_HEADER);
 
-        queuedRequestTimeout = new QueuedRequestTimeout(videoHandler, requestTimeoutHeaders);
+        queuedRequestTimeout = new QueuedRequestTimeout(videoHandler, requestTimeoutHeaders, metrics, MetricName.video);
     }
 
     @Test
@@ -72,6 +76,7 @@ public class QueuedRequestTimeoutTest extends VertxTest {
 
         // then
         verify(videoHandler).handle(routingContext);
+        verify(metrics).updateQueuedRequestMetrics(MetricName.video, true, 900);
     }
 
     @Test
@@ -117,6 +122,7 @@ public class QueuedRequestTimeoutTest extends VertxTest {
 
         // then
         verify(httpResponse).end("Queued request processing time exceeded maximum");
+        verify(metrics).updateQueuedRequestMetrics(MetricName.video, false, 6000);
     }
 
 }
