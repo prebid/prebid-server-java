@@ -35,11 +35,12 @@ import org.prebid.server.util.HttpUtil;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Objects;
-import java.util.List;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -59,6 +60,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<Imp> validImps = new ArrayList<>();
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
             return Result.emptyWithError(BidderError.badInput("Telaria: Missing Imp Object"));
         }
@@ -75,8 +77,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
             try {
                 final ExtImpTelaria extImp = parseImpExt(imp);
                 seatCode = extImp.getSeatCode();
-                Imp updateImp = updateImp(imp, extImp, publisherId);
-                requestBuilder.imp(Collections.singletonList(updateImp));
+                validImps.add(updateImp(imp, extImp, publisherId));
             } catch (PreBidException e) {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
@@ -88,7 +89,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
             requestBuilder.app(modifyApp(seatCode, bidRequest));
         }
 
-        final BidRequest outgoingRequest = requestBuilder.build();
+        final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
@@ -145,20 +146,14 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     private Site modifySite(String seatCode, BidRequest bidRequest) {
         final Site site = bidRequest.getSite();
-        if (site.getPublisher() != null) {
-            final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(seatCode).build();
-            return site.toBuilder().publisher(modifiedPublisher).build();
-        }
-        return site;
+        final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(seatCode).build();
+        return site.toBuilder().publisher(modifiedPublisher).build();
     }
 
     private App modifyApp(String seatCode, BidRequest bidRequest) {
         final App app = bidRequest.getApp();
-        if (app.getPublisher() != null) {
-            final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(seatCode).build();
-            return app.toBuilder().publisher(modifiedPublisher).build();
-        }
-        return app;
+        final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(seatCode).build();
+        return app.toBuilder().publisher(modifiedPublisher).build();
     }
 
     private MultiMap headers(BidRequest bidRequest) {
