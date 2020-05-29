@@ -15,7 +15,7 @@ public class UsersyncerTest {
         assertThat(
                 new Usersyncer("rubicon", "//usersync-url", "/redicret-url", "http://localhost:8000", "redirect", true))
                 .extracting(Usersyncer::getRedirectUrl)
-                .containsOnly("http://localhost:8000/redicret-url");
+                .isEqualTo("http://localhost:8000/redicret-url");
     }
 
     @Test
@@ -23,7 +23,7 @@ public class UsersyncerTest {
         // given, when and then
         assertThat(new Usersyncer("rubicon", "//usersync-url", null, null, "redirect", true))
                 .extracting(Usersyncer::getRedirectUrl)
-                .containsOnly("");
+                .isEqualTo("");
     }
 
     @Test

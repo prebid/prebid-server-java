@@ -391,7 +391,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(request.getSite())
                 .extracting(Site::getExt)
-                .containsOnly(mapper.valueToTree(ExtSite.of(0, null)));
+                .isEqualTo(mapper.valueToTree(ExtSite.of(0, null)));
     }
 
     @Test

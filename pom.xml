@@ -50,12 +50,13 @@
         <maxmind-client.version>2.13.1</maxmind-client.version>
 
         <!-- test dependencies versions -->
-        <junit.version>4.12</junit.version>
-        <mockito.version>2.23.4</mockito.version>
-        <assertj.version>3.8.0</assertj.version>
+        <junit.version>4.13</junit.version>
+        <mockito.version>2.3.3</mockito.version>
+        <assertj.version>3.16.1</assertj.version>
         <wiremock.version>2.11.0</wiremock.version>
-        <restassured.version>3.0.6</restassured.version>
-        <h2.version>1.4.196</h2.version>
+        <rest-assured.version>4.3.0</rest-assured.version>
+        <groovy.version>3.0.2</groovy.version>
+        <h2.version>1.4.200</h2.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
@@ -307,7 +308,25 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <version>${restassured.version}</version>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>json-path</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>xml-path</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- for Mockito to be able to mock Vert.x-specific classes -->

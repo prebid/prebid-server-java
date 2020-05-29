@@ -410,7 +410,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(prebid1).isNotNull();
         final JsonNode bidders1 = prebid1.get("bidders");
         assertThat(bidders1).isNotNull();
-        assertThat(bidders1.fields()).hasSize(1)
+        assertThat(bidders1.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
@@ -420,7 +420,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(prebid2).isNotNull();
         final JsonNode bidders2 = prebid2.get("bidders");
         assertThat(bidders2).isNotNull();
-        assertThat(bidders2.fields()).hasSize(1)
+        assertThat(bidders2.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 
