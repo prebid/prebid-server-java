@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.prebid</groupId>
@@ -59,13 +60,13 @@
         <h2.version>1.4.200</h2.version>
 
         <!-- plugin versions -->
-        <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
-        <checkstyle.version>8.29</checkstyle.version>
-        <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.2</jacoco-plugin.version>
-        <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
-        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
+        <checkstyle.version>8.32</checkstyle.version>
+        <download-plugin.version>1.6.0</download-plugin.version>
+        <jacoco-plugin.version>0.8.5</jacoco-plugin.version>
+        <git-commmit-plugin.version>4.0.0</git-commmit-plugin.version>
+        <maven-checkstyle-plugin.version>3.1.1</maven-checkstyle-plugin.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     </properties>
 
@@ -361,7 +362,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>${checkstyle-plugin.version}</version>
+                    <version>${maven-checkstyle-plugin.version}</version>
                     <configuration>
                         <!-- Project rooted path to CheckStyle configuration file. -->
                         <configLocation>checkstyle.xml</configLocation>
@@ -416,6 +417,7 @@
                             <url>https://publicsuffix.org/list/effective_tld_names.dat</url>
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <outputFileName>effective_tld_names.dat</outputFileName>
+                            <md5>dummy</md5> <!-- get rid of warning -->
                         </configuration>
                     </execution>
                 </executions>
