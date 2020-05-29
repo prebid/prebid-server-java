@@ -1,0 +1,17 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": {
+        "id": "58278",
+        "impid": "some-impression-id",
+        "price": 46.6,
+        "adm": "<div id=\"medibasspContainer\">\n<iframe src=\"https:\/\/s3-ap-northeast-1.amazonaws.com\/sdk-temp\/adg-sample-ad\/300x250.html?prc=-Cuepak&rd=https%3A%2F%2Ftg.socdm.com%2Frd%2Fv1%2Fz%2FhKFj2gDXY2hzbT0xOTgsZmJkZGMyNWEvNTgyNzgvU1NQTE9DLzUxMjYwMS83MjExNS43Njg1NS41MTI2MDEvMTA5MzkyNi82NDkxOS81ODI3ODpTU1BMT0M6Ki9jdD0xNTg1MjEyMDg1Nzg5O3NyPWh0dHBzO2RzcGlkPTMwMTtwcj16RGFfYVY0O3ByYj15UTtwcm89eVE7cHJvYz1KUFk7Y3JkMnk9MTA5LjQzMDAwMDAwMDAwMDAxO2NyeTJkPTAuMDA5MTM4MjYxOTAyNTg2MTI3MztpZHg9MDulc2VxaWTaACQ0NzFhM2JlNS1lYTQzLWRhZjAtYjhjZi1mNjJkNTA1N2Y5ZWOnc2VxdGltZa0xNTg1MjEyMDg1Nzg5pHh1aWS4WE52SVNNQ281bUlBQU1hN2dOUUFBQUFB%2Fp%2Fctsv%3Dm-ad226%3Bseqid%3D471a3be5-ea43-daf0-b8cf-f62d5057f9ec%3B%2Fg%2FU%3A%3Furl%3D\" style=\"border: 0px;\" width=\"300\" height=\"250\" frameborder=\"0\" scrolling=\"no\"><\/iframe>\n    <\/div>\n  <img src=\"https://tg.socdm.com/bc/v3?b=beaconID&amp;xuid=XUID&amp;ctsv=CTSV&amp;seqid=SeqID&amp;seqtime=SeqTime&amp;seqctx=SeqCtx&amp;t=.gif\" width=\"1\" height=\"1\" style=\"display:none;border:none;padding:0;margin:0;width:1px;height:1px\"/>",
+        "crid": "Dummy_supership.jp",
+        "w": 300,
+        "h": 250,
+        "dealid": "test-deal-id"
+      }
+    }
+  ]
+}

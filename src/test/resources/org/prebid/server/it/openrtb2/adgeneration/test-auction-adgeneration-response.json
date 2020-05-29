@@ -1,0 +1,15 @@
+{
+  "id": "tid",
+  "seatbid": [],
+  "cur": "USD",
+  "nbr":0,
+  "ext": {
+    "responsetimemillis": {
+      "adgeneration": "{{ adgeneration.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}
