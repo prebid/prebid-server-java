@@ -135,7 +135,7 @@ public class TelariaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(identity())))
-                .site(Site.builder().publisher(Publisher.builder().build()).build())
+                .site(Site.builder().build())
                 .app(App.builder().build())
                 .build();
 

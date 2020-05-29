@@ -84,9 +84,9 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
 
         if (bidRequest.getSite() != null) {
-            requestBuilder.site(modifySite(seatCode, bidRequest));
+            requestBuilder.site(modifySite(seatCode, bidRequest.getSite()));
         } else if (bidRequest.getApp() != null) {
-            requestBuilder.app(modifyApp(seatCode, bidRequest));
+            requestBuilder.app(modifyApp(seatCode, bidRequest.getApp()));
         }
 
         final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
@@ -144,16 +144,18 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Site modifySite(String seatCode, BidRequest bidRequest) {
-        final Site site = bidRequest.getSite();
-        final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(seatCode).build();
-        return site.toBuilder().publisher(modifiedPublisher).build();
+    private Site modifySite(String seatCode, Site site) {
+        return site.toBuilder().publisher(createPublisher(seatCode, site.getPublisher())).build();
     }
 
-    private App modifyApp(String seatCode, BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(seatCode).build();
-        return app.toBuilder().publisher(modifiedPublisher).build();
+    private App modifyApp(String seatCode, App app) {
+        return app.toBuilder().publisher(createPublisher(seatCode, app.getPublisher())).build();
+    }
+
+    private Publisher createPublisher(String seatCode, Publisher publisher) {
+        return publisher != null
+                ? publisher.toBuilder().id(seatCode).build()
+                : Publisher.builder().id(seatCode).build();
     }
 
     private MultiMap headers(BidRequest bidRequest) {
