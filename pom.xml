@@ -417,7 +417,6 @@
                             <url>https://publicsuffix.org/list/effective_tld_names.dat</url>
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <outputFileName>effective_tld_names.dat</outputFileName>
-                            <md5>dummy</md5> <!-- get rid of warning -->
                         </configuration>
                     </execution>
                 </executions>
