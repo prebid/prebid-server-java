@@ -1,13 +1,17 @@
 package org.prebid.server.exception;
 
+import lombok.Getter;
+
 import java.util.Collections;
 import java.util.List;
 
 @SuppressWarnings("serial")
 public class InvalidRequestException extends RuntimeException {
 
+    @Getter
     private final List<String> messages;
 
+    @Getter
     private final boolean needEnhancedLogging;
 
     public InvalidRequestException(String message) {
@@ -38,13 +42,5 @@ public class InvalidRequestException extends RuntimeException {
         super(String.join("\n", messages));
         this.messages = messages;
         this.needEnhancedLogging = needEnhancedLogging;
-    }
-
-    public List<String> getMessages() {
-        return messages;
-    }
-
-    public boolean isNeedEnhancedLogging() {
-        return needEnhancedLogging;
     }
 }
