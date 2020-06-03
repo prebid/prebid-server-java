@@ -43,11 +43,11 @@
     "id": "siteId",
     "domain": "example.com",
     "page": "http://www.example.com",
-    "ext": {
-      "amp": 0
-    },
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -61,12 +61,12 @@
   "user": {
     "buyeruid": "CV-UID",
     "ext": {
-      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "consent": "consentValue"
     }
   },
   "at": 1,

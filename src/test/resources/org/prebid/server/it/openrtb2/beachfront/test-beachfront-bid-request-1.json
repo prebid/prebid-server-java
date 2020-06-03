@@ -21,11 +21,11 @@
     "site": {
       "domain": "example.com",
       "page": "http://www.example.com",
-      "ext": {
-        "amp": 0
-      },
       "publisher": {
         "id": "publisherId"
+      },
+      "ext": {
+        "amp": 0
       }
     },
     "device": {
