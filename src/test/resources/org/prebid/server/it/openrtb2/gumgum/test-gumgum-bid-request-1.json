@@ -16,8 +16,7 @@
       "ext": {
         "bidder": {
           "zone": "first_zone"
-        },
-        "context": null
+        }
       }
     },
     {
@@ -35,8 +34,7 @@
       "ext": {
         "bidder": {
           "zone": "second_zone"
-        },
-        "context": null
+        }
       }
     }
   ],

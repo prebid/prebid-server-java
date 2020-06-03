@@ -269,11 +269,10 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(null, 1));
-        expectedExtImp.set("context", null);
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest.getImp()).hasSize(1)
-                .element(0).returns(expectedExtImp, Imp::getExt);
+                .element(0)
+                .returns(mapper.valueToTree(ExtPrebid.of(null, 1)), Imp::getExt);
     }
 
     @Test
@@ -294,8 +293,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
-        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(0, 1));
-        expectedExtImp.set("context", null);
         assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
                 .id("requestId")
                 .cur(singletonList("USD"))
@@ -304,10 +301,9 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(expectedExtImp)
+                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
                 .tmax(500L)
-
                 .build());
     }
 
@@ -337,8 +333,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
-        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(0, 1));
-        expectedExtImp.set("context", null);
         assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
                 .id("requestId")
                 .cur(singletonList("USD"))
@@ -347,7 +341,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(expectedExtImp)
+                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
                 .ext(mapper.valueToTree(
                         ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
@@ -630,21 +624,19 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnSeparateSeatBidsForTheSameBidderIfBiddersAliasAndBidderWereUsedWithingSingleImp() {
         // given
-        final ObjectNode expectedExtImp1 = mapper.valueToTree(ExtPrebid.of(null, 1));
-        expectedExtImp1.set("context", null);
-        given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(expectedExtImp1),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .auctiontimestamp(1000L)
-                        .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(),
+                eq(givenBidRequest(givenSingleImp(mapper.valueToTree(ExtPrebid.of(null, 1))),
+                        builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(BigDecimal.ONE).build())))));
 
-        final ObjectNode expectedExtImp2 = mapper.valueToTree(ExtPrebid.of(null, 2));
-        expectedExtImp2.set("context", null);
-        given(httpBidderRequester.requestBids(any(), eq(givenBidRequest(givenSingleImp(expectedExtImp2),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .auctiontimestamp(1000L)
-                        .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
+        given(httpBidderRequester.requestBids(any(),
+                eq(givenBidRequest(givenSingleImp(mapper.valueToTree(ExtPrebid.of(null, 2))),
+                        builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .aliases(singletonMap("bidderAlias", "bidder")).build()))))), any(), anyBoolean()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(BigDecimal.ONE).build())))));
 
@@ -954,8 +946,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
-        final ObjectNode expectedExtImp = mapper.valueToTree(ExtPrebid.of(0, 1));
-        expectedExtImp.set("context", null);
         assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
                 .id("requestId")
                 .cur(singletonList("USD"))
@@ -964,7 +954,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(expectedExtImp)
+                        .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
                 .tmax(500L)
                 .build());

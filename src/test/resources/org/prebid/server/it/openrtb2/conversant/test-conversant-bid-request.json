@@ -18,8 +18,7 @@
       "ext": {
         "bidder": {
           "site_id": "siteId"
-        },
-        "context": null
+        }
       }
     },
     {
@@ -36,8 +35,7 @@
       "ext": {
         "bidder": {
           "site_id": "siteId"
-        },
-        "context": null
+        }
       }
     }
   ],

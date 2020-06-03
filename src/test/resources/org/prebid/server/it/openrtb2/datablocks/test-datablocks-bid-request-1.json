@@ -15,8 +15,7 @@
         "bidder": {
           "host": "localhost:8090",
           "sourceId": 1
-        },
-        "context": null
+        }
       }
     }
   ],

@@ -18,8 +18,7 @@
           "endpoint": "tappx-exchange",
           "host": "localhost:8090",
           "bidfloor": 1.5
-        },
-        "context": null
+        }
       }
     }
   ],

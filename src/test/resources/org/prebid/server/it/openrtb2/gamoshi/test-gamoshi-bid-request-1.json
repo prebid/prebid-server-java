@@ -16,8 +16,7 @@
       "ext": {
         "bidder": {
           "supplyPartnerId": "1701"
-        },
-        "context": null
+        }
       }
     },
     {
@@ -36,8 +35,7 @@
       "ext": {
         "bidder": {
           "supplyPartnerId": "1707"
-        },
-        "context": null
+        }
       }
     }
   ],

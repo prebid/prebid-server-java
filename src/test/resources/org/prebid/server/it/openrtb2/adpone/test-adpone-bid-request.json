@@ -14,8 +14,7 @@
       "ext": {
         "bidder": {
           "placementId": "some_placement_id"
-        },
-        "context": null
+        }
       }
     }
   ],

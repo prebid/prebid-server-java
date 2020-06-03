@@ -11,8 +11,7 @@
       "ext": {
         "bidder": {
           "slot_tag": "slot.tag"
-        },
-        "context": null
+        }
       }
     }
   ],

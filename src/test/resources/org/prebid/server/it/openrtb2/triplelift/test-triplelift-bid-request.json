@@ -15,8 +15,7 @@
       "ext": {
         "bidder": {
           "inventoryCode": "foo"
-        },
-        "context": null
+        }
       }
     }
   ],

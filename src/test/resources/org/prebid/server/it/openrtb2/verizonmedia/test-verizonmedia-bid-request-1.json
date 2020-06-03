@@ -18,8 +18,7 @@
         "bidder": {
           "dcn": "dcn",
           "pos": "pos"
-        },
-        "context": null
+        }
       }
     }
   ],

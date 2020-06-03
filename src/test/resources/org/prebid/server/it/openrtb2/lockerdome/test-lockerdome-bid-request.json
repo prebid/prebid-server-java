@@ -14,8 +14,7 @@
       "ext": {
         "bidder": {
           "adUnitId": "test_adUnitId"
-        },
-        "context": null
+        }
       }
     }
   ],

@@ -15,8 +15,7 @@
       "ext": {
         "bidder": {
           "TagID": "first-tagid"
-        },
-        "context": null
+        }
       }
     }
   ],

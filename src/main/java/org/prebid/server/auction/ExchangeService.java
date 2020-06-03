@@ -675,7 +675,10 @@ public class ExchangeService {
         final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
 
         if (useFirstPartyData) {
-            result.set(CONTEXT_EXT, impExt.get(CONTEXT_EXT));
+            final JsonNode contextNode = impExt.get(CONTEXT_EXT);
+            if (contextNode != null && !contextNode.isNull()) {
+                result.set(CONTEXT_EXT, contextNode);
+            }
         }
 
         return result;

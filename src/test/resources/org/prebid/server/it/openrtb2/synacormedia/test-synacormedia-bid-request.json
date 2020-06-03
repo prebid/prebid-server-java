@@ -16,8 +16,7 @@
         "bidder": {
           "seatId": "228",
           "tagId": "demo1"
-        },
-        "context": null
+        }
       }
     },
     {
@@ -35,8 +34,7 @@
         "bidder": {
           "seatId": "1987",
           "tagId": "demo1"
-        },
-        "context": null
+        }
       }
     }
   ],
