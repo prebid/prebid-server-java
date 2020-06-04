@@ -65,8 +65,23 @@ public enum MetricName {
     sets,
     gen,
     matches,
-    gdpr_prevent,
-    gdpr_masked,
+    blocked,
+
+    // tcf
+    userid_removed,
+    geo_masked,
+    request_blocked,
+    analytics_blocked,
+
+    // privacy
+    coppa,
+    lmt,
+    specified,
+    opt_out("opt-out"),
+    invalid,
+    in_geo("in-geo"),
+    out_geo("out-geo"),
+    unknown_geo("unknown-geo"),
 
     // stored data
     stored_requests_found,

@@ -45,10 +45,8 @@ public class AdformTest extends IntegrationTest {
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.3"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
-                .withHeader("Cookie", equalTo(
-                        "uid=AF-UID;DigiTrust.v1.identity="
-                                // Base 64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":false}}
-                                + "eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
+                .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2l"
+                        + "vbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adform/test-adform-bid-response-1.json"))));
 

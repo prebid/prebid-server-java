@@ -310,6 +310,7 @@ public class SovrnBidderTest extends VertxTest {
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -337,7 +338,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, null));
+                        BidType.banner, "EUR"));
     }
 
     @Test

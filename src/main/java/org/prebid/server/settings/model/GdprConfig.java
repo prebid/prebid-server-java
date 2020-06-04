@@ -20,12 +20,15 @@ public class GdprConfig {
     @JsonProperty("default-value")
     String defaultValue;
 
+    @JsonProperty("consent-string-means-in-scope")
+    Boolean consentStringMeansInScope;
+
     Purposes purposes;
 
     @JsonProperty("special-features")
     SpecialFeatures specialFeatures;
 
     @JsonProperty("purpose-one-treatment-interpretation")
-    Boolean purposeOneTreatmentInterpretation;
+    PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
 }
 

@@ -188,7 +188,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
-                .hasMessage("Unauthorised account id ");
+                .hasMessage("Unauthorized account id: ");
     }
 
     @Test
@@ -232,7 +232,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(UnauthorizedAccountException.class)
-                .hasMessage("Unauthorised account id absentId");
+                .hasMessage("Unauthorized account id: absentId");
     }
 
     @Test
