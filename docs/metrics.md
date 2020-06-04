@@ -6,8 +6,8 @@ This document describes all metrics collected and submitted to configured backen
 - `vertx.http.servers.[IP]:[PORT].open-netsockets.count` - current number of open connections
 
 where:
-- `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`).
-- `[PORT]` should be equal to `http.port` configuration property.
+- `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`)
+- `[PORT]` should be equal to `http.port` configuration property
 
 Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/#_the_metrics) page.
 
@@ -27,8 +27,8 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `db_circuitbreaker_opened` - number of times database circuit breaker was opened (database is unavailable)
 - `db_circuitbreaker_closed` - number of times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
-- `httpclient_circuitbreaker_opened` - number of times http client circuit breaker was opened (requested resource is unavailable)
-- `httpclient_circuitbreaker_closed` - number of times http client circuit breaker was closed (requested resource is available again)
+- `httpclient_circuitbreaker_opened.<underscored_host>` - number of times http client circuit breaker was opened (requested resource is unavailable) for particular host
+- `httpclient_circuitbreaker_closed.<underscored_host>` - number of times http client circuit breaker was closed (requested resource is available again) for particular host
 - `stored_requests_found` - number of stored requests that were found
 - `stored_requests_missing` - number of stored requests that were not found by provided stored request IDs
 - `stored_imps_found` - number of stored impressions that were found
@@ -46,7 +46,7 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>`
 - `adapter.<bidder-name>.prices` - histogram of bid prices received from `<bidder-name>`
 - `adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>`
-- `adapter.<bidder-name>.(banner|video|audio|native).(adm_bids_received|nurl_bids_received)` - number of bids received from `<bidder-name>` broken down by bid type and whether they had `adm` or `nurl` specified.
+- `adapter.<bidder-name>.(banner|video|audio|native).(adm_bids_received|nurl_bids_received)` - number of bids received from `<bidder-name>` broken down by bid type and whether they had `adm` or `nurl` specified
 - `adapter.<bidder-name>.requests.type.(openrtb2-web|openrtb-app|amp|legacy)` - number of requests made to `<bidder-name>` broken down by type of incoming request
 - `adapter.<bidder-name>.requests.(gotbids|nobid|badinput|badserverresponse|timeout|unknown_error)` - number of requests made to `<bidder-name>` broken down by result status
 - `adapter.<bidder-name>.gdpr_masked` - number of requests made to `<bidder-name>` that required personal information masking as a result of GDPR enforcement for that bidder

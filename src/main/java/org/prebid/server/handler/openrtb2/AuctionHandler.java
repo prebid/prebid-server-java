@@ -155,7 +155,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
-                final String message = String.format("Unauthorized: %s", exception.getMessage());
+                final String message = exception.getMessage();
                 conditionalLogger.info(message, 100);
                 errorMessages = Collections.singletonList(message);
 

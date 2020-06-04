@@ -1,22 +1,22 @@
 {
   "id": "tid",
-  "imp":[
+  "imp": [
     {
-      "id":"impId002",
-      "video":{
-        "mimes":[
+      "id": "impId002",
+      "video": {
+        "mimes": [
           "video/mp4"
         ],
-        "protocols":[
+        "protocols": [
           2,
           5
         ],
-        "w":1024,
-        "h":576
+        "w": 1024,
+        "h": 576
       },
-      "ext":{
-        "bidder":{
-          "token":"12345"
+      "ext": {
+        "bidder": {
+          "token": "12345"
         }
       }
     }

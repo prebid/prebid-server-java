@@ -496,17 +496,20 @@ public class RequestValidator {
         if (regs != null && regs.getExt() != null) {
             try {
                 final ExtRegs extRegs = mapper.mapper().treeToValue(regs.getExt(), ExtRegs.class);
+
                 final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
                 if (gdpr != null && gdpr != 0 && gdpr != 1) {
                     throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
                 }
-                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
-                try {
-                    Ccpa.validateUsPrivacy(usPrivacy);
-                } catch (PreBidException ex) {
-                    throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
-                }
 
+                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
+                if (usPrivacy != null) {
+                    try {
+                        Ccpa.validateUsPrivacy(usPrivacy);
+                    } catch (PreBidException ex) {
+                        throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
+                    }
+                }
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
             }

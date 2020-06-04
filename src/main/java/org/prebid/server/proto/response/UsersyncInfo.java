@@ -75,16 +75,24 @@ public class UsersyncInfo {
          * if the "gdpr" arg was empty, and the consent arg was "BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw"
          */
         public UsersyncInfoAssembler withPrivacy(Privacy privacy) {
-            final String gdpr = ObjectUtils.defaultIfNull(privacy.getGdpr(), "");
-            final String consent = ObjectUtils.defaultIfNull(privacy.getConsent(), "");
-            final String ccpa = ObjectUtils.defaultIfNull(privacy.getCcpa().getUsPrivacy(), "");
-            redirectUrl = updateUrlWithPrivacy(redirectUrl, gdpr, consent, ccpa);
+            final String gdpr = valueOrEmpty(privacy.getGdpr());
+            final String consent = valueOrEmpty(privacy.getConsent());
+            final String usPrivacy = valueOrEmpty(privacy.getCcpa() != null ? privacy.getCcpa().getUsPrivacy() : null);
+            redirectUrl = updateUrlWithPrivacy(redirectUrl, gdpr, consent, usPrivacy);
 
             final String encodedGdpr = HttpUtil.encodeUrl(gdpr);
             final String encodedConsent = HttpUtil.encodeUrl(consent);
-            final String encodedUsPrivacy = HttpUtil.encodeUrl(ccpa);
+            final String encodedUsPrivacy = HttpUtil.encodeUrl(usPrivacy);
             usersyncUrl = updateUrlWithPrivacy(usersyncUrl, encodedGdpr, encodedConsent, encodedUsPrivacy);
+
             return this;
+        }
+
+        /**
+         * Returns valid value to be used with query string parameter.
+         */
+        private static String valueOrEmpty(String value) {
+            return ObjectUtils.defaultIfNull(value, StringUtils.EMPTY);
         }
 
         private static String updateUrlWithPrivacy(String url, String gdpr, String gdprConsent, String usPrivacy) {
