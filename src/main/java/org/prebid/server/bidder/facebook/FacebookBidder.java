@@ -353,24 +353,24 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     }
 
     @Override
-    public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
-        try {
-            final BidRequest bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
-            final String auctionId = bidRequest.getImp().get(0).getId();
-            final String url = String.format(
-                    TIMEOUT_NOTIFICATION_URL, this.platformId, this.platformId, auctionId
-            );
-            return HttpRequest.<Void>builder()
-                    .method(HttpMethod.GET)
-                    .uri(url)
-                    .build();
-        } catch (Exception e) {
-            return null;
-        }
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
     }
 
     @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+    public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
+        final BidRequest bidRequest;
+        try {
+            bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
+        } catch (DecodeException e) {
+            return null; // never should happen
+        }
+
+        final String auctionId = bidRequest.getImp().get(0).getId();
+        final String url = String.format(TIMEOUT_NOTIFICATION_URL, platformId, platformId, auctionId);
+        return HttpRequest.<Void>builder()
+                .method(HttpMethod.GET)
+                .uri(url)
+                .build();
     }
 }

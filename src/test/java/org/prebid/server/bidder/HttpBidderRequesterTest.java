@@ -27,7 +27,6 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -336,23 +335,19 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldSendTimeoutNotificationIfTimeoutBidder() {
         // given
-        final BidRequest request = BidRequest.builder().build();
-        given(timeoutBidder.makeHttpRequests(request)).willReturn(Result.of(
-                Collections.singletonList(HttpRequest.<BidRequest>builder().build()),
-                null
-        ));
-        final HttpRequest<Void> timeoutRequest = HttpRequest.<Void>builder()
-                .uri("url")
-                .method(HttpMethod.POST)
-                .body("{}")
-                .build();
-        given(timeoutBidder.makeTimeoutNotification(any())).willReturn(timeoutRequest);
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        final Timeout timeout = timeoutFactory.create(clock.instant().minusMillis(1L).toEpochMilli(), 1L);
+        given(timeoutBidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
+                emptyList()));
+
+        givenHttpClientProducesException(new TimeoutException("Timeout error"));
 
         // when
-        bidderHttpConnector.requestBids(timeoutBidder, request, timeout, false);
+        bidderHttpConnector.requestBids(timeoutBidder, BidRequest.builder().build(), timeout, false);
 
         // then
         verify(timeoutBidder).makeTimeoutNotification(any());
