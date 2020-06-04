@@ -10,14 +10,15 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtRequestPrebidSchainSchainNode {
+
     /**
      * Defines the contract for bidrequest.ext.prebid.schains.asi
      */
     String asi;
+
     /**
      * Defines the contract for bidrequest.ext.prebid.schains.sid
      */
-
     String sid;
 
     /**
