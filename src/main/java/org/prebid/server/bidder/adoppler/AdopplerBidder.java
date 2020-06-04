@@ -14,7 +14,6 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -27,7 +26,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -164,11 +162,11 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         if (impTypes.get(bid.getImpid()) == null) {
             throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
         }
-        getExtBidPrebidVideo(bid, impTypes);
+        validateResponseVideoExt(bid, impTypes);
         return BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
     }
 
-    private ExtBidPrebidVideo getExtBidPrebidVideo(Bid bid, Map<String, BidType> impTypes) {
+    private void validateResponseVideoExt(Bid bid, Map<String, BidType> impTypes) {
         if (impTypes.get(bid.getImpid()) == BidType.video) {
             final ObjectNode ext = bid.getExt();
             final AdopplerResponseExt adopplerResponseExt = parseResponseExt(ext);
@@ -176,11 +174,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             if (adopplerResponseVideoExt == null) {
                 throw new PreBidException("$.seatbid.bid.ext.ads.video required");
             }
-            final AdopplerResponseVideoAdsExt responseVideoAdsExt = adopplerResponseVideoExt.getVideo();
-            final Integer duration = responseVideoAdsExt != null ? responseVideoAdsExt.getDuration() : null;
-            return ExtBidPrebidVideo.of(duration, head(bid.getCat()));
         }
-        return null;
     }
 
     private AdopplerResponseExt parseResponseExt(ObjectNode ext) {
