@@ -43,11 +43,13 @@ import java.util.stream.Collectors;
  * Adoppler {@link Bidder} implementation.
  */
 public class AdopplerBidder implements Bidder<BidRequest> {
+
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private final String endpointTemplate;
     private final JacksonMapper mapper;
 
@@ -192,10 +194,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     }
 
     private String head(List<String> cat) {
-        if (cat.size() == 0) {
-            return "";
-        }
-        return cat.get(0);
+        return cat.size() == 0 ? "" : cat.get(0);
     }
 
     @Override
