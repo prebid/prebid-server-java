@@ -204,7 +204,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .forEach(bid -> addBidOrError(bid, idToImps, bidderBids, errors));
+                .forEach(bid -> addBidOrError(bid, idToImps, bidderBids, errors, bidResponse.getCur()));
 
         return Result.of(bidderBids, errors);
     }
@@ -213,12 +213,12 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
      * Creates {@link BidderBid} from {@link Bid} if it has matching {@link Imp}, otherwise adds error to error list.
      */
     private static void addBidOrError(Bid bid, Map<String, Imp> idToImps, List<BidderBid> bidderBids,
-                                      List<BidderError> errors) {
+                                      List<BidderError> errors, String currency) {
         final String bidImpId = bid.getImpid();
 
         if (idToImps.containsKey(bidImpId)) {
             final Video video = idToImps.get(bidImpId).getVideo();
-            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, null));
+            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, currency));
         } else {
             errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
