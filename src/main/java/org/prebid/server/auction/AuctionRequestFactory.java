@@ -767,7 +767,7 @@ public class AuctionRequestFactory {
     private Future<Account> responseForUnknownAccount(String accountId) {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Unauthorised account id %s", accountId), accountId))
+                String.format("Unauthorized account id: %s", accountId), accountId))
                 : Future.succeededFuture(Account.empty(accountId));
     }
 }

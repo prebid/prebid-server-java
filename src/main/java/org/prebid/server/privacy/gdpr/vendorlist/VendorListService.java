@@ -232,7 +232,7 @@ public abstract class VendorListService<T, V> {
                 logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
                 promise.complete();
             } else {
-                logger.warn("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
+                logger.error("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
                         filepath);
                 promise.fail(result.cause());
             }

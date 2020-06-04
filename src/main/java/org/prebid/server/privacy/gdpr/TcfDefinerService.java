@@ -156,7 +156,7 @@ public class TcfDefinerService {
 
         final boolean isInScopeByConsentString = consentStringMeansInScope
                 && StringUtils.isNotBlank(gdprConsent)
-                && isGdprConsentIsValid(gdprConsent);
+                && isGdprConsentValid(gdprConsent);
         if (isInScopeByConsentString) {
             return Future.succeededFuture(GdprInfoWithCountry.of(GDPR_ONE, gdprConsent));
         }
@@ -190,7 +190,10 @@ public class TcfDefinerService {
     }
 
     private GdprInfoWithCountry<String> updateMetricsAndReturnDefault(Throwable exception, String gdprConsent) {
-        logger.info("Geolocation lookup failed", exception);
+        final String message = String.format("Geolocation lookup failed: %s", exception.getMessage());
+        logger.warn(message);
+        logger.debug(message, exception);
+
         metrics.updateGeoLocationMetric(false);
         return defaultGdprInfoWithCountry(gdprConsent);
     }
@@ -325,7 +328,7 @@ public class TcfDefinerService {
         try {
             return StringUtils.isBlank(consentString) ? null : TCString.decode(consentString);
         } catch (Throwable e) {
-            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            logger.info("Parsing consent string failed with error: {0}", e.getMessage());
             return null;
         }
     }
@@ -345,7 +348,7 @@ public class TcfDefinerService {
     /**
      * Checks if received string can be parsed to vendor consent
      */
-    public static boolean isGdprConsentIsValid(String gdprConsent) {
+    public static boolean isGdprConsentValid(String gdprConsent) {
         try {
             TCString.decode(gdprConsent);
             return true;
