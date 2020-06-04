@@ -49,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -562,7 +563,7 @@ public class ExchangeService {
                                                   Map<String, ExtBidderConfigFpd> biddersToConfigs) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(requestExt);
-        final Map<String, ObjectNode> bidderToPrebidSchains = bidderToPrebidSchains(requestExt);
+        final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = bidderToPrebidSchains(requestExt);
         final List<BidderRequest> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
@@ -600,7 +601,7 @@ public class ExchangeService {
     /**
      * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.schains.
      */
-    private static Map<String, ObjectNode> bidderToPrebidSchains(ExtBidRequest requestExt) {
+    private static Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final List<ExtRequestPrebidSchain> schains = prebid == null ? null : prebid.getSchains();
 
@@ -608,7 +609,7 @@ public class ExchangeService {
             return Collections.emptyMap();
         }
 
-        final Map<String, ObjectNode> bidderToPrebidSchains = new HashMap<>();
+        final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = new HashMap<>();
         for (ExtRequestPrebidSchain schain : schains) {
             final List<String> schainBidders = schain.getBidders();
             if (CollectionUtils.isNotEmpty(schainBidders)) {
@@ -628,12 +629,11 @@ public class ExchangeService {
                                               List<String> firstPartyDataBidders,
                                               Map<String, ExtBidderConfigFpd> biddersToConfigs,
                                               Map<String, JsonNode> bidderToPrebidBidders,
-                                              Map<String, ObjectNode> bidderToPrebidSchains) {
+                                              Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains) {
         final String bidder = bidderPrivacyResult.getRequestBidder();
         if (bidderPrivacyResult.isBlockedRequestByTcf()) {
             return null;
         }
-
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
         final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(ALL_BIDDERS_CONFIG),
                 biddersToConfigs.get(bidder));
@@ -707,11 +707,12 @@ public class ExchangeService {
     /**
      * Returns {@link Source} with corresponding request.ext.prebid.schains.
      */
-    private Source prepareSource(String bidder, Map<String, ObjectNode> bidderToSchain, Source receivedSource) {
-        final ObjectNode defaultSchain = bidderToSchain.get(GENERIC_SCHAIN_KEY);
-        final ObjectNode bidderSchain = bidderToSchain.getOrDefault(bidder, defaultSchain);
+    private Source prepareSource(String bidder, Map<String, ExtRequestPrebidSchainSchain> bidderToSchain,
+                                 Source receivedSource) {
+        final ExtRequestPrebidSchainSchain defaultSchain = bidderToSchain.get(GENERIC_SCHAIN_KEY);
+        final ExtRequestPrebidSchainSchain bidderSchain = bidderToSchain.getOrDefault(bidder, defaultSchain);
 
-        if (bidderSchain == null || bidderSchain.isNull()) {
+        if (bidderSchain == null) {
             return receivedSource;
         }
 
