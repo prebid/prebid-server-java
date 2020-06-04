@@ -286,12 +286,14 @@ public class AuctionRequestFactory {
         if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
-            final String ipFromRequest = paramsExtractor.ipFrom(request);
-            final InetAddress inetAddress = inetAddressByIp(ipFromRequest);
+
             if (StringUtils.isBlank(ip)) {
-                if (isIpv4(inetAddress, ipFromRequest)) {
+                final String ipFromRequest = paramsExtractor.ipFrom(request);
+                final InetAddress inetAddress = inetAddressByIp(ipFromRequest);
+
+                if (inetAddress instanceof Inet4Address) {
                     builder.ip(ipFromRequest);
-                } else if (isIpv6(inetAddress)) {
+                } else if (inetAddress instanceof Inet6Address) {
                     builder.ipv6(ipFromRequest);
                 }
             }
@@ -305,21 +307,10 @@ public class AuctionRequestFactory {
     private InetAddress inetAddressByIp(String ip) {
         try {
             return InetAddress.getByName(ip);
-        } catch (UnknownHostException ex) {
-            logger.debug("Error occurred while checking IP", ex);
+        } catch (UnknownHostException e) {
+            logger.debug("Error occurred while checking IP", e);
             return null;
         }
-    }
-
-    private boolean isIpv4(InetAddress inetAddress, String ip) {
-        if (inetAddress instanceof Inet4Address) {
-            return ((Inet4Address) inetAddress).getHostAddress().equals(ip);
-        }
-        return false;
-    }
-
-    private boolean isIpv6(InetAddress inetAddress) {
-        return inetAddress instanceof Inet6Address;
     }
 
     /**
