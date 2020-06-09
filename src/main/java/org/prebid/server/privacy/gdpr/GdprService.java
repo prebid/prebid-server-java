@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class GdprService {
 
     private static final Logger logger = LoggerFactory.getLogger(GdprService.class);
+
     private static final int PURPOSE_ONE_ID = 1;
 
     private final VendorListService<VendorListV1, VendorV1> vendorListService;
@@ -72,7 +73,7 @@ public class GdprService {
         try {
             return VendorConsentDecoder.fromBase64String(vendorConsentString);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            logger.info("Parsing consent string failed with error: {0}", e.getMessage());
             return null;
         }
     }

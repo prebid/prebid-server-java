@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://ad.360yield.com/pbs
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
