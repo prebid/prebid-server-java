@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.util.InetAddressUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.bidder.BidderCatalog;
@@ -434,14 +435,14 @@ public class PrivacyEnforcementService {
      * Masks ip v4 address by replacing last group with zero.
      */
     private static String maskIpv4(String ip) {
-        return maskIp(ip, ".", 1);
+        return ip != null && InetAddressUtils.isIPv4Address(ip) ? maskIp(ip, ".", 1) : ip;
     }
 
     /**
      * Masks ip v6 address by replacing last number of groups .
      */
     private static String maskIpv6(String ip, Integer groupsNumber) {
-        return maskIp(ip, ":", groupsNumber);
+        return ip != null && InetAddressUtils.isIPv6Address(ip) ? maskIp(ip, ":", groupsNumber) : ip;
     }
 
     /**
