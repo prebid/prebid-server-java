@@ -1404,12 +1404,16 @@ public class ExchangeServiceTest extends VertxTest {
         final App bidderConfigApp = App.builder().id("appFromConfig").build();
         final User bidderConfigUser = User.builder().id("userFromConfig").build();
 
+        final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(bidderConfigSite, bidderConfigApp, bidderConfigUser));
+        final ExtRequestPrebidBidderConfig extRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
+                singletonList("someBidder"), extBidderConfig);
+
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(singletonList("someBidder"),
-                                ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                        bidderConfigSite, bidderConfigApp, bidderConfigUser)))))
-                        .build()))));
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidderconfig(singletonList(extRequestPrebidBidderConfig))
+                                .build()))));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1421,8 +1425,50 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
-                .containsOnly(
-                        tuple(bidderConfigSite, bidderConfigApp, bidderConfigUser));
+                .containsOnly(tuple(bidderConfigSite, bidderConfigApp, bidderConfigUser));
+    }
+
+    @Test
+    public void shouldReplaceUserAppAndSiteFromExtPrebidBidderConfigIgnoresAllBidderConfigMapping() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final Site bidderConfigSite = Site.builder().id("siteFromConfig").build();
+        final App bidderConfigApp = App.builder().id("appFromConfig").build();
+        final User bidderConfigUser = User.builder().id("userFromConfig").build();
+
+        final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(bidderConfigSite, bidderConfigApp, bidderConfigUser));
+        final ExtRequestPrebidBidderConfig extRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
+                singletonList("someBidder"), extBidderConfig);
+
+        final Site emptySite = Site.builder().build();
+        final App emptyApp = App.builder().build();
+        final User emptyUser = User.builder().build();
+        final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(emptySite, emptyApp, emptyUser));
+        final ExtRequestPrebidBidderConfig allExtRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
+                singletonList("*"), allExtBidderConfig);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.builder()
+                                .bidderconfig(
+                                        Arrays.asList(allExtRequestPrebidBidderConfig, extRequestPrebidBidderConfig))
+                                .build()))));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
+                .containsOnly(tuple(bidderConfigSite, bidderConfigApp, bidderConfigUser));
     }
 
     @Test
