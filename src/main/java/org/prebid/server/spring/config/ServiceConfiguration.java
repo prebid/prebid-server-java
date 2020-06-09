@@ -43,14 +43,6 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeFourStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeOneStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeSevenStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.PurposeTwoStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.BasicEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.FullEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
 import org.prebid.server.settings.ApplicationSettings;
@@ -83,8 +75,10 @@ import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -400,65 +394,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    Tcf2Service tcf2Service(
-            GdprConfig gdprConfig,
-            VendorListServiceV2 vendorListServiceV2,
-            BidderCatalog bidderCatalog,
-            List<PurposeStrategy> purposeStrategies) {
+    Tcf2Service tcf2Service(GdprConfig gdprConfig,
+                            VendorListServiceV2 vendorListServiceV2,
+                            BidderCatalog bidderCatalog) {
 
-        return new Tcf2Service(gdprConfig, vendorListServiceV2, bidderCatalog, purposeStrategies);
-    }
-
-    @Bean
-    PurposeOneStrategy purposeOneStrategy(
-            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-
-        return new PurposeOneStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
-                noEnforcePurposeStrategy);
-    }
-
-    @Bean
-    PurposeTwoStrategy purposeTwoStrategy(
-            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeTwoStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
-                noEnforcePurposeStrategy);
-    }
-
-    @Bean
-    PurposeFourStrategy purposeFourStrategy(
-            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeFourStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
-                noEnforcePurposeStrategy);
-    }
-
-    @Bean
-    PurposeSevenStrategy purposeSevenStrategy(
-            FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeSevenStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
-                noEnforcePurposeStrategy);
-    }
-
-    @Bean
-    FullEnforcePurposeStrategy fullEnforcePurposeStrategy() {
-        return new FullEnforcePurposeStrategy();
-    }
-
-    @Bean
-    BasicEnforcePurposeStrategy basicEnforcePurposeStrategy() {
-        return new BasicEnforcePurposeStrategy();
-    }
-
-    @Bean
-    NoEnforcePurposeStrategy noEnforcePurposeStrategy() {
-        return new NoEnforcePurposeStrategy();
+        return new Tcf2Service(gdprConfig, vendorListServiceV2, bidderCatalog);
     }
 
     @Bean
@@ -471,7 +411,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             Metrics metrics) {
 
-        final List<String> eeaCountries = Arrays.asList(eeaCountriesAsString.trim().split(","));
+        final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
 
         return new TcfDefinerService(
                 gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
@@ -529,16 +469,18 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.generate-bid-id}") boolean generateBidId,
             @Value("${settings.targeting.truncate-attr-chars}") Integer truncateTargetingAttrMaxChars,
             JacksonMapper mapper) {
 
         if (truncateTargetingAttrMaxChars != null
                 && (truncateTargetingAttrMaxChars < 0 || truncateTargetingAttrMaxChars > 255)) {
             throw new IllegalArgumentException(
-                    "application.yaml settings.targeting.truncate-attr-chars value must be from 0 to 225 or null");
+                    "Configuration option settings.targeting.truncate-attr-chars value must be from 0 to 225 or null");
         }
         return new BidResponseCreator(cacheService, bidderCatalog, truncateTargetingAttrMaxChars,
-                eventsService, storedRequestProcessor, mapper);
+                eventsService, storedRequestProcessor,
+                generateBidId, mapper);
     }
 
     @Bean

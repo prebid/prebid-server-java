@@ -134,13 +134,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
-        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15, false));
+        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
-        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20, true));
+        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -153,7 +153,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
 
         privacyExtractor = new PrivacyExtractor(jacksonMapper);
@@ -760,7 +760,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(1, actionWithUserSync(true)), null)));
 
@@ -791,7 +791,7 @@ public class AuctionHandlerTest extends VertxTest {
         vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
         vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
         vendorToAction.put(20, actionWithUserSync(true)); // Appnexus bidder
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorToAction, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
@@ -820,7 +820,7 @@ public class AuctionHandlerTest extends VertxTest {
         final Map<Integer, PrivacyEnforcementAction> vendorToAction = new HashMap<>();
         vendorToAction.put(1, actionWithUserSync(false)); // host vendor id from app config
         vendorToAction.put(15, actionWithUserSync(false)); // Rubicon bidder
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorToAction, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
@@ -921,9 +921,9 @@ public class AuctionHandlerTest extends VertxTest {
         return mapper.readValue(preBidResponseCaptor.getValue(), PreBidResponse.class);
     }
 
-    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
+    private static BidderInfo givenBidderInfo(int gdprVendorId) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), false);
+                new BidderInfo.GdprInfo(gdprVendorId, true), true, false);
     }
 
     private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {

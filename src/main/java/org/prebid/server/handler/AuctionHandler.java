@@ -135,7 +135,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                         bidderResults.<AdapterResponse>list())))
 
                 .compose((Tuple3<PreBidRequestContext, Account, List<AdapterResponse>> result) ->
-                        resolveVendorsToGdpr(result.getLeft(), result.getRight())
+                        resolveVendorsToGdpr(result.getLeft(), result.getMiddle(), result.getRight())
                                 .map(vendorsToGdpr -> Tuple3.of(result.getLeft(), result.getMiddle(),
                                         composePreBidResponse(result.getLeft(), result.getRight(), vendorsToGdpr))))
 
@@ -234,6 +234,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Future<Map<Integer, Boolean>> resolveVendorsToGdpr(PreBidRequestContext preBidRequestContext,
+                                                               Account account,
                                                                List<AdapterResponse> adapterResponses) {
         // todo Process also but bidders name (not every bidder have GVL id)
         final Set<Integer> vendorIds = adapterResponses.stream()
@@ -256,6 +257,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 privacy.getGdpr(),
                 privacy.getConsent(),
                 ip,
+                account.getGdpr(),
                 preBidRequestContext.getTimeout())
                 .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getActions(), hostVendorIdIsMissing));
     }

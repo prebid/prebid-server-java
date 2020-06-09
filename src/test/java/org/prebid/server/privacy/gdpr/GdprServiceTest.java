@@ -152,7 +152,7 @@ public class GdprServiceTest extends VertxTest {
 
     private static PrivacyEnforcementAction action(boolean allowPrivateInfo, boolean allowUserSync) {
         return PrivacyEnforcementAction.builder()
-                .removeUserBuyerUid(!allowPrivateInfo)
+                .removeUserIds(!allowPrivateInfo)
                 .maskGeo(!allowPrivateInfo)
                 .maskDeviceIp(!allowPrivateInfo)
                 .maskDeviceInfo(!allowPrivateInfo)

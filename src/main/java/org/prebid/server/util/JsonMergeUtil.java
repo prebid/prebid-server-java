@@ -46,4 +46,19 @@ public class JsonMergeUtil {
                     String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
         }
     }
+
+    public <T> T merge(T originalObject, T mergingObject, Class<T> classToCast) {
+        final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
+        final JsonNode mergingObjectJsonNode = mapper.mapper().valueToTree(mergingObject);
+        try {
+            final JsonNode mergedNode = JsonMergePatch.fromJson(originJsonNode).apply(mergingObjectJsonNode);
+            return mapper.mapper().treeToValue(mergedNode, classToCast);
+        } catch (JsonPatchException e) {
+            throw new InvalidRequestException(String.format(
+                    "Couldn't create merge patch for objects with class %s", classToCast.getName()));
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(
+                    String.format("Can't convert merging result class %s", classToCast.getName()));
+        }
+    }
 }
