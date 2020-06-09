@@ -54,6 +54,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.JsonMergeUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -95,6 +96,7 @@ public class ExchangeService {
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
+    private final JsonMergeUtil jsonMergeUtil;
 
     public ExchangeService(long expectedCacheTime,
                            BidderCatalog bidderCatalog,
@@ -124,6 +126,8 @@ public class ExchangeService {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
@@ -396,7 +400,7 @@ public class ExchangeService {
                         firstPartyDataBidders, biddersToConfigs));
     }
 
-    private static Map<String, ExtBidderConfigFpd> getBiddersToConfigs(ExtBidRequest requestExt) {
+    private Map<String, ExtBidderConfigFpd> getBiddersToConfigs(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final List<ExtRequestPrebidBidderConfig> bidderConfigs = prebid == null ? null : prebid.getBidderconfig();
 
@@ -405,15 +409,30 @@ public class ExchangeService {
         }
 
         final Map<String, ExtBidderConfigFpd> bidderToConfig = new HashMap<>();
+
+        final ExtBidderConfigFpd allBiddersConfigFpd = bidderConfigs.stream()
+                .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
+                .map(prebidBidderConfig -> prebidBidderConfig.getConfig().getFpd())
+                .findFirst()
+                .orElse(null);
+
+        if (allBiddersConfigFpd != null) {
+            bidderToConfig.put(ALL_BIDDERS_CONFIG, allBiddersConfigFpd);
+        }
+
         for (ExtRequestPrebidBidderConfig config : bidderConfigs) {
-            if (config.getBidders().contains(ALL_BIDDERS_CONFIG)) {
-                bidderToConfig.putIfAbsent(ALL_BIDDERS_CONFIG, config.getConfig().getFpd());
-            }
             for (String bidder : config.getBidders()) {
-                bidderToConfig.putIfAbsent(bidder, config.getConfig().getFpd());
+                final ExtBidderConfigFpd concreteFpd = config.getConfig().getFpd();
+                bidderToConfig.putIfAbsent(bidder, mergeFpd(concreteFpd, allBiddersConfigFpd));
             }
         }
         return bidderToConfig;
+    }
+
+    private ExtBidderConfigFpd mergeFpd(ExtBidderConfigFpd concreteFpd, ExtBidderConfigFpd allBiddersConfigFpd) {
+        return allBiddersConfigFpd == null
+                ? concreteFpd
+                : jsonMergeUtil.merge(concreteFpd, allBiddersConfigFpd, ExtBidderConfigFpd.class);
     }
 
     /**
