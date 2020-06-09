@@ -407,7 +407,7 @@ public class ExchangeService {
         final Map<String, ExtBidderConfigFpd> bidderToConfig = new HashMap<>();
         for (ExtRequestPrebidBidderConfig config : bidderConfigs) {
             if (config.getBidders().contains(ALL_BIDDERS_CONFIG)) {
-                return Collections.singletonMap(ALL_BIDDERS_CONFIG, config.getConfig().getFpd());
+                bidderToConfig.putIfAbsent(ALL_BIDDERS_CONFIG, config.getConfig().getFpd());
             }
             for (String bidder : config.getBidders()) {
                 bidderToConfig.putIfAbsent(bidder, config.getConfig().getFpd());
@@ -461,8 +461,8 @@ public class ExchangeService {
 
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
-            final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(ALL_BIDDERS_CONFIG),
-                    biddersToConfigs.get(bidder));
+            final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
+                    biddersToConfigs.get(ALL_BIDDERS_CONFIG));
             final User fpdUser = fpdConfig != null ? fpdConfig.getUser() : null;
 
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
@@ -635,8 +635,8 @@ public class ExchangeService {
             return null;
         }
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
-        final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(ALL_BIDDERS_CONFIG),
-                biddersToConfigs.get(bidder));
+        final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
+                biddersToConfigs.get(ALL_BIDDERS_CONFIG));
         final boolean hasBidderConfig = fpdConfig != null;
 
         return BidderRequest.of(bidder, bidRequest.toBuilder()
