@@ -30,10 +30,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
@@ -97,8 +97,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void shouldMaskForCoppaWhenDeviceLmtIsOneAndRegsCoppaIsOneAndDoesNotCallTcfServices() {
         // given
-        final ExtUser extUser = ExtUser.builder().build();
-        final User user = notMaskedUser();
+        final ExtUser extUser = notMaskedExtUser();
+        final User user = notMaskedUser(extUser);
         final Device device = givenNotMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1));
         final Regs regs = Regs.of(1, mapper.valueToTree(ExtRegs.of(1, null)));
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -120,7 +120,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // then
         final BidderPrivacyResult expected = BidderPrivacyResult.builder()
                 .requestBidder(BIDDER_NAME)
-                .user(userCoppaMasked())
+                .user(userCoppaMasked(extUserIdsMasked()))
                 .device(givenCoppaMaskedDevice(deviceBuilder -> deviceBuilder.lmt(1)))
                 .build();
         assertThat(result).isEqualTo(singletonList(expected));
@@ -139,8 +139,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         given(bidderCatalog.bidderInfoByName(BIDDER_NAME)).willReturn(givenBidderInfo(1, true));
 
-        final ExtUser extUser = ExtUser.builder().build();
-        final User user = notMaskedUser();
+        final ExtUser extUser = notMaskedExtUser();
+        final User user = notMaskedUser(extUser);
         final Device device = notMaskedDevice();
         final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1YYY")));
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -162,7 +162,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // then
         final BidderPrivacyResult expected = BidderPrivacyResult.builder()
                 .requestBidder(BIDDER_NAME)
-                .user(userTcfMasked())
+                .user(userTcfMasked(extUserIdsMasked()))
                 .device(deviceTcfMasked())
                 .build();
         assertThat(result).isEqualTo(singletonList(expected));
@@ -374,7 +374,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // then
         final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
                 .user(givenNotMaskedUser(userBuilder -> userBuilder.buyeruid(null)
-                        .ext(mapper.valueToTree(extUserTcfMasked()))))
+                        .ext(mapper.valueToTree(extUserIdsMasked()))))
                 .device(notMaskedDevice())
                 .requestBidder(BIDDER_NAME)
                 .build();
@@ -684,8 +684,13 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Test
     public void shouldNotReturnUserIfMaskingAppliedAndUserBecameEmptyObject() {
         // given
+        final ExtUser extUser = ExtUser.builder()
+                .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
+                .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
+                .build();
         final User user = User.builder()
                 .buyeruid("buyeruid")
+                .ext(mapper.valueToTree(extUser))
                 .build();
         final Regs regs = Regs.of(1, null);
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -1038,7 +1043,13 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return ExtUser.builder()
                 .eids(singletonList(ExtUserEid.of("Test", "id", emptyList(), null)))
                 .digitrust(ExtUserDigiTrust.of("idDigit", 12, 23))
-                .prebid(ExtUserPrebid.of(emptyMap()))
+                .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
+                .build();
+    }
+
+    private static ExtUser extUserIdsMasked() {
+        return ExtUser.builder()
+                .prebid(ExtUserPrebid.of(singletonMap("key", "value")))
                 .build();
     }
 
@@ -1050,10 +1061,10 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
     }
 
-    private static User userCoppaMasked() {
+    private static User userCoppaMasked(ExtUser extUser) {
         return User.builder()
                 .geo(Geo.builder().country("US").build())
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                .ext(mapper.valueToTree(extUser))
                 .build();
     }
 
@@ -1078,12 +1089,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .buyeruid(null)
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).country("US").build())
                 .ext(mapper.valueToTree(extUser))
-                .build();
-    }
-
-    private static ExtUser extUserTcfMasked() {
-        return ExtUser.builder()
-                .prebid(ExtUserPrebid.of(emptyMap()))
                 .build();
     }
 
