@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: https://y.one.impact-ad.jp/hbs_imp
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
