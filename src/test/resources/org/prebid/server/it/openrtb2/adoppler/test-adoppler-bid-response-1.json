@@ -1,0 +1,29 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "imp1",
+          "price": 3.33,
+          "adid": "adid001",
+          "crid": "crid001",
+          "cid": "cid001",
+          "adm": "adm001",
+          "cat": [
+            "IAB1",
+            "IAB2"
+          ],
+          "ext": {
+            "ads": {
+              "video": {
+                "duration": 121
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
