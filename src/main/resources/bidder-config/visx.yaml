@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_standard
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
