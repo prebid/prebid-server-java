@@ -47,11 +47,11 @@ public class JsonMergeUtil {
         }
     }
 
-    public <T> T merge(T originalObject, T mergedObject, Class<T> classToCast) {
+    public <T> T merge(T originalObject, T mergingObject, Class<T> classToCast) {
         final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
-        final JsonNode storedRequestJsonNode = mapper.mapper().valueToTree(mergedObject);
+        final JsonNode mergingObjectJsonNode = mapper.mapper().valueToTree(mergingObject);
         try {
-            final JsonNode mergedNode = JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode);
+            final JsonNode mergedNode = JsonMergePatch.fromJson(originJsonNode).apply(mergingObjectJsonNode);
             return mapper.mapper().treeToValue(mergedNode, classToCast);
         } catch (JsonPatchException e) {
             throw new InvalidRequestException(String.format(
