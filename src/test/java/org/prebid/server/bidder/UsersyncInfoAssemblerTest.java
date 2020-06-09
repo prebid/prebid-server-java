@@ -53,7 +53,8 @@ public class UsersyncInfoAssemblerTest {
                 .withPrivacy(Privacy.of("1", "consent$1", Ccpa.of("1YNN"))).assemble();
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YNN");
+        assertThat(result.getUrl()).isEqualTo(
+                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1YNN");
     }
 
     @Test
@@ -63,7 +64,8 @@ public class UsersyncInfoAssemblerTest {
                 .from(new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}"
                         + "%26gdpr_consent%3D{{gdpr_consent}}"
                         + "%26us_privacy%3D{{us_privacy}}",
-                        null, null, null, false)).withPrivacy(Privacy.empty()).assemble();
+                        null, null, null, false))
+                .withPrivacy(Privacy.of(null, null, Ccpa.EMPTY)).assemble();
 
         // then
         assertThat(result.getUrl()).isEqualTo("http://url?redir=%26gdpr%3D%26gdpr_consent%3D%26us_privacy%3D");

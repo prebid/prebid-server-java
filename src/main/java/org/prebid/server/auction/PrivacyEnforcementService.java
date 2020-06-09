@@ -120,12 +120,6 @@ public class PrivacyEnforcementService {
                 .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
-    public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
-        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
-
-        return shouldEnforceCcpa && ccpa.isCCPAEnforced();
-    }
-
     private Map<String, BidderPrivacyResult> ccpaResult(BidRequest bidRequest,
                                                         Account account,
                                                         List<String> bidders,
@@ -139,6 +133,12 @@ public class PrivacyEnforcementService {
         }
 
         return Collections.emptyMap();
+    }
+
+    public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
+        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
+
+        return shouldEnforceCcpa && ccpa.isEnforced();
     }
 
     private Map<String, BidderPrivacyResult> maskCcpa(
@@ -309,7 +309,7 @@ public class PrivacyEnforcementService {
     }
 
     private void updateCcpaMetrics(Ccpa ccpa) {
-        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isCCPAEnforced());
+        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isEnforced());
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(

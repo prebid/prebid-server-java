@@ -151,6 +151,46 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
+    public void resultForVendorIdsShouldConsiderPresenceOfConsentStringAsInScope() {
+        // given
+        gdprConfig.setConsentStringMeansInScope(true);
+
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
+                geoLocationService, bidderCatalog, metrics);
+
+        // when
+        final String vendorConsent = "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA";
+        target.resultForVendorIds(singleton(1), null, vendorConsent, "ip", null, null);
+
+        // then
+        verify(gdprService).resultFor(any(), eq(vendorConsent));
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+    }
+
+    @Test
+    public void resultForBidderNamesShouldConsiderPresenceOfConsentStringAsInScope() {
+        // given
+        gdprConfig.setConsentStringMeansInScope(true);
+
+        target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService, tcf2Service,
+                geoLocationService, bidderCatalog, metrics);
+
+        // when
+        final String vendorConsent = "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA";
+        target.resultForBidderNames(singleton("b"), null, vendorConsent, "ip", null, null);
+
+        // then
+        verify(gdprService).resultFor(any(), eq(vendorConsent));
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+    }
+
+    @Test
     public void resultForVendorIdsShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
         // when
         target.resultForVendorIds(singleton(1), null, "consent", "ip", null, null);
@@ -370,27 +410,27 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnTrueWhenStringIsValid() {
+    public void isGdprConsentValidShouldReturnTrueWhenStringIsValid() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
+        final boolean result = TcfDefinerService.isGdprConsentValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
 
         // then
         Assertions.assertThat(result).isTrue();
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnFalseWhenStringIsNull() {
+    public void isGdprConsentValidShouldReturnFalseWhenStringIsNull() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid(null);
+        final boolean result = TcfDefinerService.isGdprConsentValid(null);
 
         // then
         Assertions.assertThat(result).isFalse();
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnFalseWhenStringNotValid() {
+    public void isGdprConsentValidShouldReturnFalseWhenStringNotValid() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid("invalid");
+        final boolean result = TcfDefinerService.isGdprConsentValid("invalid");
 
         // then
         Assertions.assertThat(result).isFalse();

@@ -50,6 +50,10 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -281,14 +285,32 @@ public class AuctionRequestFactory {
 
         if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
-            builder.ip(StringUtils.isNotBlank(ip) ? ip : paramsExtractor.ipFrom(request));
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
 
+            if (StringUtils.isBlank(ip)) {
+                final String ipFromRequest = paramsExtractor.ipFrom(request);
+                final InetAddress inetAddress = inetAddressByIp(ipFromRequest);
+
+                if (inetAddress instanceof Inet4Address) {
+                    builder.ip(ipFromRequest);
+                } else if (inetAddress instanceof Inet6Address) {
+                    builder.ipv6(ipFromRequest);
+                }
+            }
             result = builder.build();
         } else {
             result = null;
         }
         return result;
+    }
+
+    private InetAddress inetAddressByIp(String ip) {
+        try {
+            return InetAddress.getByName(ip);
+        } catch (UnknownHostException e) {
+            logger.debug("Error occurred while checking IP", e);
+            return null;
+        }
     }
 
     /**
@@ -736,7 +758,7 @@ public class AuctionRequestFactory {
     private Future<Account> responseForUnknownAccount(String accountId) {
         return enforceValidAccount
                 ? Future.failedFuture(new UnauthorizedAccountException(
-                String.format("Unauthorised account id %s", accountId), accountId))
+                String.format("Unauthorized account id: %s", accountId), accountId))
                 : Future.succeededFuture(Account.empty(accountId));
     }
 }

@@ -22,6 +22,7 @@ import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.TimeoutBidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookNative;
@@ -52,12 +53,14 @@ import java.util.stream.Collectors;
 /**
  * Facebook {@link Bidder} implementation.
  */
-public class FacebookBidder implements Bidder<BidRequest> {
+public class FacebookBidder implements TimeoutBidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String TIMEOUT_NOTIFICATION_URL =
+            "https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2";
 
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
@@ -352,5 +355,22 @@ public class FacebookBidder implements Bidder<BidRequest> {
     @Override
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
+    }
+
+    @Override
+    public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
+        final BidRequest bidRequest;
+        try {
+            bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
+        } catch (DecodeException e) {
+            return null; // never should happen
+        }
+
+        final String auctionId = bidRequest.getImp().get(0).getId();
+        final String url = String.format(TIMEOUT_NOTIFICATION_URL, platformId, platformId, auctionId);
+        return HttpRequest.<Void>builder()
+                .method(HttpMethod.GET)
+                .uri(url)
+                .build();
     }
 }
