@@ -426,19 +426,16 @@ public class AuctionRequestFactory {
      */
     private Source populateSource(Source source) {
         final String tid = source != null ? source.getTid() : null;
-        if (StringUtils.isNotEmpty(tid)) {
-            return null;
+        if (StringUtils.isEmpty(tid)) {
+            final String generatedId = idGenerator.generateId();
+            if (StringUtils.isNotEmpty(generatedId)) {
+                final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
+                return builder
+                        .tid(generatedId)
+                        .build();
+            }
         }
-
-        final String generatedId = idGenerator.generateId();
-        if (StringUtils.isEmpty(generatedId)) {
-            return null;
-        }
-
-        final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
-        return builder
-                .tid(generatedId)
-                .build();
+        return null;
     }
 
     /**
