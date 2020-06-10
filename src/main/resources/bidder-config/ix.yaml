@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://rubicon-us-east.lb.indexww.com/transbidder?p=189517
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names: indexExchange
     aliases:

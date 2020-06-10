@@ -294,8 +294,6 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (User-Agent, IP-address).
      */
     private Device populateDevice(Device device, HttpServerRequest request) {
-        final Device result;
-
         final String ip = device != null ? device.getIp() : null;
         final String ua = device != null ? device.getUa() : null;
 
@@ -305,19 +303,23 @@ public class AuctionRequestFactory {
 
             if (StringUtils.isBlank(ip)) {
                 final String ipFromRequest = paramsExtractor.ipFrom(request);
-                final InetAddress inetAddress = inetAddressByIp(ipFromRequest);
+                final InetAddress inetAddress = ipFromRequest != null ? inetAddressByIp(ipFromRequest) : null;
 
-                if (inetAddress instanceof Inet4Address) {
-                    builder.ip(ipFromRequest);
-                } else if (inetAddress instanceof Inet6Address) {
-                    builder.ipv6(ipFromRequest);
-                }
+                builder.ip(resolveDeviceIp(ip, ipFromRequest, inetAddress))
+                        .ipv6(resolveDeviceIpv6(ip, ipFromRequest, inetAddress));
             }
-            result = builder.build();
-        } else {
-            result = null;
+            return builder.build();
         }
-        return result;
+
+        return null;
+    }
+
+    private String resolveDeviceIp(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
+        return deviceIp == null && inetAddress instanceof Inet4Address ? ipFromRequest : deviceIp;
+    }
+
+    private String resolveDeviceIpv6(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
+        return deviceIp == null && inetAddress instanceof Inet6Address ? ipFromRequest : deviceIp;
     }
 
     private InetAddress inetAddressByIp(String ip) {
