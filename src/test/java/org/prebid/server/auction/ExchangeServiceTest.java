@@ -1446,7 +1446,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMergeUserAppAndSiteWithExtPrebidBidderConfigMergedWithAllBidderConfigMapping() {
+    public void shouldUseConcreteOverGeneralUserAppAndSiteWithExtPrebidBidderConfig() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1455,27 +1455,26 @@ public class ExchangeServiceTest extends VertxTest {
         final Publisher publisherWithId = Publisher.builder().id("testId").build();
         final App appWithPublisherId = App.builder().publisher(publisherWithId).build();
         final User bidderConfigUser = User.builder().id("userFromConfig").build();
-
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
                 ExtBidderConfigFpd.of(siteWithPage, appWithPublisherId, bidderConfigUser));
-        final ExtRequestPrebidBidderConfig extRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
+        final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
 
-        final Site siteWithDomain = Site.builder().domain("testDomain").build();
-        final Publisher publisherWithIdAndDomain = Publisher.builder().id("shouldNotBe").domain("domain").build();
+        final Site siteWithDomain = Site.builder().domain("notUsed").build();
+        final Publisher publisherWithIdAndDomain = Publisher.builder().id("notUsed").domain("notUsed").build();
         final App appWithUpdatedPublisher = App.builder().publisher(publisherWithIdAndDomain).build();
         final User emptyUser = User.builder().build();
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
                 ExtBidderConfigFpd.of(siteWithDomain, appWithUpdatedPublisher, emptyUser));
-        final ExtRequestPrebidBidderConfig allExtRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
-                singletonList("*"), allExtBidderConfig);
+        final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
+                allExtBidderConfig);
 
-        final Site requestSite = Site.builder().id("siteId").domain("erased").keywords("keyword").build();
+        final Site requestSite = Site.builder().id("siteId").page("erased").keywords("keyword").build();
         final App requestApp = App.builder().publisher(Publisher.builder().build()).build();
         final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
 
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
-                .bidderconfig(Arrays.asList(allExtRequestPrebidBidderConfig, extRequestPrebidBidderConfig))
+                .bidderconfig(Arrays.asList(allFpdConfig, concreteFpdConfig))
                 .build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.site(requestSite)
@@ -1494,10 +1493,9 @@ public class ExchangeServiceTest extends VertxTest {
         final Site mergedSite = Site.builder()
                 .id("siteId")
                 .page("testPage")
-                .domain("testDomain")
                 .keywords("keyword")
                 .build();
-        final Publisher mergedPublisher = Publisher.builder().id("testId").domain("domain").build();
+        final Publisher mergedPublisher = Publisher.builder().id("testId").build();
         final App mergedApp = App.builder().publisher(mergedPublisher).build();
         final User mergedUser = User.builder().id("userFromConfig").buyeruid("testBuyerId").build();
         assertThat(capturedBidRequests)

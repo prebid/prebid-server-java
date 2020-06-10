@@ -410,32 +410,21 @@ public class ExchangeService {
 
         final Map<String, ExtBidderConfigFpd> bidderToConfig = new HashMap<>();
 
-        final ExtBidderConfigFpd allBiddersConfigFpd = bidderConfigs.stream()
+        bidderConfigs.stream()
                 .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
                 .map(prebidBidderConfig -> prebidBidderConfig.getConfig().getFpd())
                 .findFirst()
-                .orElse(null);
-
-        if (allBiddersConfigFpd != null) {
-            bidderToConfig.put(ALL_BIDDERS_CONFIG, allBiddersConfigFpd);
-        }
+                .ifPresent(extBidderConfigFpd -> bidderToConfig.put(ALL_BIDDERS_CONFIG, extBidderConfigFpd));
 
         for (ExtRequestPrebidBidderConfig config : bidderConfigs) {
             for (String bidder : config.getBidders()) {
                 final ExtBidderConfigFpd concreteFpd = config.getConfig().getFpd();
-                bidderToConfig.putIfAbsent(bidder, mergeFpd(concreteFpd, allBiddersConfigFpd));
+                bidderToConfig.putIfAbsent(bidder, concreteFpd);
             }
         }
         return bidderToConfig;
     }
 
-    private ExtBidderConfigFpd mergeFpd(ExtBidderConfigFpd concreteFpd, ExtBidderConfigFpd allBiddersConfigFpd) {
-        return jsonMergeUtil.merge(concreteFpd, allBiddersConfigFpd, ExtBidderConfigFpd.class);
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
     private ExtUser extUser(User user) {
         final ObjectNode userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
