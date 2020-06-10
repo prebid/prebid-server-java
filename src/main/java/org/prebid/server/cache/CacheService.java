@@ -12,7 +12,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.CacheHttpCall;
+import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
@@ -347,11 +347,13 @@ public class CacheService {
                                                       int bidCount, List<CacheBid> bids, List<CacheBid> videoBids,
                                                       long startTime) {
         final CacheHttpResponse httpResponse = CacheHttpResponse.of(response.getStatusCode(), response.getBody());
-        final CacheHttpCall httpCall = CacheHttpCall.of(httpRequest, httpResponse, responseTime(startTime));
+        final int responseStatusCode = response.getStatusCode();
+        final DebugHttpCall httpCall = DebugHttpCall.of(httpRequest, httpResponse, endpointUrl.toString(),
+                responseTime(startTime));
 
         final BidCacheResponse bidCacheResponse;
         try {
-            bidCacheResponse = toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount, startTime);
+            bidCacheResponse = toBidCacheResponse(responseStatusCode, response.getBody(), bidCount, startTime);
         } catch (PreBidException e) {
             return CacheServiceResult.of(httpCall, e, Collections.emptyMap());
         }
@@ -367,7 +369,7 @@ public class CacheService {
         logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
-        final CacheHttpCall httpCall = CacheHttpCall.of(request, null, responseTime(startTime));
+        final DebugHttpCall httpCall = DebugHttpCall.of(request, null, endpointUrl.toString(), responseTime(startTime));
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
     }
 

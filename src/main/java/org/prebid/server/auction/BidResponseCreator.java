@@ -29,7 +29,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.CacheHttpCall;
+import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
@@ -365,7 +365,7 @@ public class BidResponseCreator {
                 .collect(Collectors.toMap(BidderResponse::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
 
-        final CacheHttpCall httpCall = cacheResult.getHttpCall();
+        final DebugHttpCall httpCall = cacheResult.getHttpCall();
         final ExtHttpCall cacheExtHttpCall = httpCall != null ? toExtHttpCall(httpCall) : null;
         final Map<String, List<ExtHttpCall>> cacheHttpCalls = cacheExtHttpCall != null
                 ? Collections.singletonMap(CACHE, Collections.singletonList(cacheExtHttpCall))
@@ -377,9 +377,9 @@ public class BidResponseCreator {
         return httpCalls.isEmpty() ? null : httpCalls;
     }
 
-    private static ExtHttpCall toExtHttpCall(CacheHttpCall cacheHttpCall) {
-        final CacheHttpRequest request = cacheHttpCall.getRequest();
-        final CacheHttpResponse response = cacheHttpCall.getResponse();
+    private static ExtHttpCall toExtHttpCall(DebugHttpCall debugHttpCall) {
+        final CacheHttpRequest request = debugHttpCall.getRequest();
+        final CacheHttpResponse response = debugHttpCall.getResponse();
 
         return ExtHttpCall.builder()
                 .uri(request.getUri())
@@ -509,8 +509,8 @@ public class BidResponseCreator {
         final Map<String, Integer> responseTimeMillis = bidderResponses.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
-        final CacheHttpCall cacheHttpCall = cacheResult.getHttpCall();
-        final Integer cacheResponseTime = cacheHttpCall != null ? cacheHttpCall.getResponseTimeMillis() : null;
+        final DebugHttpCall debugHttpCall = cacheResult.getHttpCall();
+        final Integer cacheResponseTime = debugHttpCall != null ? debugHttpCall.getResponseTimeMillis() : null;
         if (cacheResponseTime != null) {
             responseTimeMillis.put(CACHE, cacheResponseTime);
         }
