@@ -20,7 +20,7 @@ public class JsonMergeUtilTest extends VertxTest {
     }
 
     @Test
-    public void encodeUrlShouldReturnExpectedValue() {
+    public void mergeShouldReturnMergedObject() {
         // given
         final Site siteWithPage = Site.builder().page("testPage").build();
         final Publisher publisherWithId = Publisher.builder().id("testId").build();
@@ -44,6 +44,30 @@ public class JsonMergeUtilTest extends VertxTest {
         final ExtBidderConfigFpd mergedConfigFpd = ExtBidderConfigFpd.of(mergedSite, mergedApp, null);
 
         assertThat(result).isEqualTo(mergedConfigFpd);
+    }
+
+    @Test
+    public void mergeShouldReturnOriginalObjectWhenMergedObjectIsNull() {
+        // given
+        final Site site = Site.builder().build();
+
+        // when
+        final Site result = target.merge(site, null, Site.class);
+
+        // then
+        assertThat(result).isEqualTo(site);
+    }
+
+    @Test
+    public void mergeShouldReturnMergedObjectWhenOriginalObjectIsNull() {
+        // given
+        final Site site = Site.builder().build();
+
+        // when
+        final Site result = target.merge(null, site, Site.class);
+
+        // then
+        assertThat(result).isEqualTo(site);
     }
 
 }

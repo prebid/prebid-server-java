@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 
@@ -48,6 +49,10 @@ public class JsonMergeUtil {
     }
 
     public <T> T merge(T originalObject, T mergingObject, Class<T> classToCast) {
+        if (!ObjectUtils.allNotNull(originalObject, mergingObject)) {
+            return ObjectUtils.firstNonNull(originalObject, mergingObject);
+        }
+
         final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
         final JsonNode mergingObjectJsonNode = mapper.mapper().valueToTree(mergingObject);
         try {

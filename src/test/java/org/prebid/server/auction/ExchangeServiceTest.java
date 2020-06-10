@@ -1395,25 +1395,37 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReplaceUserAppAndSiteFromExtPrebidBidderConfig() {
+    public void shouldMergeUserAppAndSiteWithExtPrebidBidderConfig() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
         final Site bidderConfigSite = Site.builder().id("siteFromConfig").build();
         final App bidderConfigApp = App.builder().id("appFromConfig").build();
-        final User bidderConfigUser = User.builder().id("userFromConfig").build();
+        final User bidderConfigUser = User.builder()
+                .id("userFromConfig")
+                .geo(Geo.builder().country("GB").build())
+                .build();
 
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
                 ExtBidderConfigFpd.of(bidderConfigSite, bidderConfigApp, bidderConfigUser));
         final ExtRequestPrebidBidderConfig extRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
 
+        final Site requestSite = Site.builder().id("erased").domain("domain").build();
+        final User requestUser = User.builder()
+                .id("erased")
+                .geo(Geo.builder().country("erased").city("London").build())
+                .build();
+
+        final ExtBidRequest extBidRequest = ExtBidRequest.of(
+                ExtRequestPrebid.builder()
+                        .bidderconfig(singletonList(extRequestPrebidBidderConfig))
+                        .build());
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.builder()
-                                .bidderconfig(singletonList(extRequestPrebidBidderConfig))
-                                .build()))));
+                builder -> builder.site(requestSite)
+                        .user(requestUser)
+                        .ext(mapper.valueToTree(extBidRequest)));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1423,13 +1435,18 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
+        final Site mergedSite = Site.builder().id("siteFromConfig").domain("domain").build();
+        final User mergedUser = User.builder()
+                .id("userFromConfig")
+                .geo(Geo.builder().country("GB").city("London").build())
+                .build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
-                .containsOnly(tuple(bidderConfigSite, bidderConfigApp, bidderConfigUser));
+                .containsOnly(tuple(mergedSite, bidderConfigApp, mergedUser));
     }
 
     @Test
-    public void shouldReplaceUserAppAndSiteFromExtPrebidBidderConfigMergedWithAllBidderConfigMapping() {
+    public void shouldMergeUserAppAndSiteWithExtPrebidBidderConfigMergedWithAllBidderConfigMapping() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1453,12 +1470,18 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestPrebidBidderConfig allExtRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("*"), allExtBidderConfig);
 
+        final Site requestSite = Site.builder().id("siteId").domain("erased").keywords("keyword").build();
+        final App requestApp = App.builder().publisher(Publisher.builder().build()).build();
+        final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
+
+        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
+                .bidderconfig(Arrays.asList(allExtRequestPrebidBidderConfig, extRequestPrebidBidderConfig))
+                .build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.builder()
-                                .bidderconfig(
-                                        Arrays.asList(allExtRequestPrebidBidderConfig, extRequestPrebidBidderConfig))
-                                .build()))));
+                builder -> builder.site(requestSite)
+                        .app(requestApp)
+                        .user(requestUser)
+                        .ext(mapper.valueToTree(ExtBidRequest.of(extRequestPrebid))));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1468,10 +1491,15 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
-        final Site mergedSite = Site.builder().page("testPage").domain("testDomain").build();
+        final Site mergedSite = Site.builder()
+                .id("siteId")
+                .page("testPage")
+                .domain("testDomain")
+                .keywords("keyword")
+                .build();
         final Publisher mergedPublisher = Publisher.builder().id("testId").domain("domain").build();
         final App mergedApp = App.builder().publisher(mergedPublisher).build();
-        final User mergedUser = User.builder().id("userFromConfig").build();
+        final User mergedUser = User.builder().id("userFromConfig").buyeruid("testBuyerId").build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
                 .containsOnly(tuple(mergedSite, mergedApp, mergedUser));
