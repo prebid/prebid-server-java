@@ -89,24 +89,23 @@ public class BidResponseCreator {
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
     private final boolean generateBidId;
+    private final int truncateAttrChars;
     private final JacksonMapper mapper;
-    private final Integer truncateTargetingAttrMaxChars;
 
     private final String cacheHost;
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
 
     public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog,
-                              Integer truncateTargetingAttrMaxChars, EventsService eventsService,
-                              StoredRequestProcessor storedRequestProcessor,
-                              boolean generateBidId, JacksonMapper mapper) {
+                              EventsService eventsService, StoredRequestProcessor storedRequestProcessor,
+                              boolean generateBidId, int truncateAttrChars, JacksonMapper mapper) {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.generateBidId = generateBidId;
+        this.truncateAttrChars = truncateAttrChars;
         this.mapper = Objects.requireNonNull(mapper);
-        this.truncateTargetingAttrMaxChars = truncateTargetingAttrMaxChars;
 
         cacheHost = Objects.requireNonNull(cacheService.getEndpointHost());
         cachePath = Objects.requireNonNull(cacheService.getEndpointPath());
@@ -740,14 +739,26 @@ public class BidResponseCreator {
      * instance if it is present.
      */
     private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp, Account account) {
-        final Integer truncateTargetingAttrMaxChars = ObjectUtils.firstNonNull(targeting.getTruncateattrchars(),
-                account.getTruncateTargetAttr(), this.truncateTargetingAttrMaxChars);
-
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
                 ? null
                 : TargetingKeywordsCreator.create(parsePriceGranularity(priceGranularityNode),
-                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, truncateTargetingAttrMaxChars);
+                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp,
+                resolveTruncateAttrChars(targeting, account));
+    }
+
+    /**
+     * Returns max targeting keyword length.
+     */
+    private int resolveTruncateAttrChars(ExtRequestTargeting targeting, Account account) {
+        return ObjectUtils.firstNonNull(
+                truncateAttrCharsOrNull(targeting.getTruncateattrchars()),
+                truncateAttrCharsOrNull(account.getTruncateTargetAttr()),
+                truncateAttrChars);
+    }
+
+    private static Integer truncateAttrCharsOrNull(Integer value) {
+        return value != null && value >= 0 && value <= 255 ? value : null;
     }
 
     /**
@@ -763,29 +774,27 @@ public class BidResponseCreator {
         }
 
         final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
-
-        final Integer truncateTargetingAttr = ObjectUtils.firstNonNull(targeting.getTruncateattrchars(),
-                account.getTruncateTargetAttr(), this.truncateTargetingAttrMaxChars);
+        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
 
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
             result.put(BidType.banner, TargetingKeywordsCreator.create(parsePriceGranularity(banner),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, truncateTargetingAttr));
+                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, resolvedTruncateAttrChars));
         }
 
         final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
             result.put(BidType.video, TargetingKeywordsCreator.create(parsePriceGranularity(video),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, truncateTargetingAttr));
+                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, resolvedTruncateAttrChars));
         }
 
         final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
             result.put(BidType.xNative, TargetingKeywordsCreator.create(parsePriceGranularity(xNative),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, truncateTargetingAttr));
+                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, resolvedTruncateAttrChars));
         }
 
         return result;

@@ -125,8 +125,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
-        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, 0,
-                eventsService, storedRequestProcessor, false, jacksonMapper);
+        bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
+                false, 0, jacksonMapper);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -430,9 +430,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
 
-        final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, null,
-                eventsService,
-                storedRequestProcessor, true, jacksonMapper);
+        final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService,
+                storedRequestProcessor, true, 0, jacksonMapper);
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
@@ -647,7 +646,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldTruncateTargetingKeywordsIfConfigPresentsTruncateTargetAttrValue() {
+    public void shouldTruncateTargetingKeywordsByGlobalConfig() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final ExtRequestTargeting targeting = givenTargeting();
@@ -657,7 +656,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog,
-                20, eventsService, storedRequestProcessor, false, jacksonMapper);
+                eventsService, storedRequestProcessor, false, 20, jacksonMapper);
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
@@ -677,7 +676,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldTruncateTargetingKeywordsIfAccountPresentsTruncateTargetAttrValue() {
+    public void shouldTruncateTargetingKeywordsByAccountConfig() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final ExtRequestTargeting targeting = givenTargeting();
@@ -705,7 +704,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldTruncateTargetingKeywordsUsingRequestTruncateTargetAttrValueIfPresented() {
+    public void shouldTruncateTargetingKeywordsByRequestPassedValue() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
@@ -714,13 +713,13 @@ public class BidResponseCreatorTest extends VertxTest {
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
                 .includebidderkeys(true)
-                .truncateattrchars(15)
+                .truncateattrchars(20)
                 .build();
 
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
-        final Account account = Account.builder().id("accountId").truncateTargetAttr(20).build();
+        final Account account = Account.builder().id("accountId").truncateTargetAttr(25).build();
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
@@ -734,9 +733,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("hb_pb", "5.00"),
-                        tuple("hb_pb_someVeryL", "5.00"),
+                        tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someV", "someVeryLongBidderName"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
     }
 
     @Test

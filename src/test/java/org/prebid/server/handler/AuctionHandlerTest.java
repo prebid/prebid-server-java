@@ -170,8 +170,7 @@ public class AuctionHandlerTest extends VertxTest {
                 privacyExtractor,
                 jacksonMapper,
                 null,
-                false,
-                0);
+                false);
     }
 
     @Test
@@ -841,8 +840,7 @@ public class AuctionHandlerTest extends VertxTest {
                 privacyExtractor,
                 jacksonMapper,
                 1,
-                false,
-                0);
+                false);
 
         // when
         auctionHandler.handle(routingContext);

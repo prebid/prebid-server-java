@@ -368,36 +368,32 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
-    public void shouldTruncateTargetingAttributeIfTruncateAttrCharsIsNotNullOrNotZero() {
+    public void shouldTruncateTargetingKeywordsIfTruncateAttrCharsIsDefined() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
-        final int givenTruncateAttrChars = 20;
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                (String) null, false, true, false, givenTruncateAttrChars)
-                .makeFor(bid, "someVeryLongBidderName",
-                        true, null, null, null, null, null);
+                (String) null, false, true, false, 20)
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null, null);
 
         // then
-        assertThat(keywords).containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
-        keywords.keySet().forEach(
-                key -> assertThat(key.length()).isEqualTo(givenTruncateAttrChars)
-        );
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
     }
 
     @Test
-    public void shouldNotTruncateTargetingAttributeIfTruncateAttrCharsIsNot() {
+    public void shouldNotTruncateTargetingKeywordsIfTruncateAttrCharsIsNotDefined() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
-                (String) null, false, true, false, null)
-                .makeFor(bid, "someVeryLongBidderName",
-                        true, null, null, null, null, null);
+                (String) null, false, true, false, 0)
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null, null);
 
         // then
-        assertThat(keywords).containsKeys("hb_bidder_someVeryLongBidderName", "hb_pb_someVeryLongBidderName");
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidder_someVeryLongBidderName", "hb_pb_someVeryLongBidderName");
     }
 }

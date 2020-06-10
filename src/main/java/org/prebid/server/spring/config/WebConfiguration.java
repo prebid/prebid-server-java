@@ -224,14 +224,8 @@ public class WebConfiguration {
             PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${geolocation.enabled}") boolean useGeoLocation,
-            @Value("${settings.targeting.truncate-attr-chars}") Integer truncateTargetingAttrMaxChars) {
+            @Value("${geolocation.enabled}") boolean useGeoLocation) {
 
-        if (truncateTargetingAttrMaxChars != null
-                && (truncateTargetingAttrMaxChars < 0 || truncateTargetingAttrMaxChars > 255)) {
-            throw new IllegalArgumentException(
-                    "application.yaml settings.targeting.truncate-attr-chars value must be from 0 to 225 or null");
-        }
         return new AuctionHandler(
                 applicationSettings,
                 bidderCatalog,
@@ -244,8 +238,7 @@ public class WebConfiguration {
                 privacyExtractor,
                 mapper,
                 hostVendorId,
-                useGeoLocation,
-                truncateTargetingAttrMaxChars);
+                useGeoLocation);
     }
 
     @Bean
