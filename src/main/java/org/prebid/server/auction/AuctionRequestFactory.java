@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -29,6 +30,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -92,6 +94,7 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final IdGenerator idGenerator;
     private final JacksonMapper mapper;
 
     public AuctionRequestFactory(long maxRequestSize,
@@ -109,6 +112,7 @@ public class AuctionRequestFactory {
                                  TimeoutResolver timeoutResolver,
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
+                                 IdGenerator idGenerator,
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
@@ -126,6 +130,7 @@ public class AuctionRequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -226,37 +231,49 @@ public class AuctionRequestFactory {
         }
 
         final BidRequest result;
-
         final HttpServerRequest request = context.request();
+
+        final Device device = bidRequest.getDevice();
+        final Device populatedDevice = populateDevice(device, request);
+
+        final Site site = bidRequest.getSite();
+        final Site populatedSite = hasApp ? null : populateSite(site, request);
+
+        final User user = bidRequest.getUser();
+        final User populatedUser = populateUser(user);
+
+        final Source source = bidRequest.getSource();
+        final Source populatedSource = populateSource(source);
+
         final List<Imp> imps = bidRequest.getImp();
-
-        final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
-        final Site populatedSite = hasApp ? null : populateSite(bidRequest.getSite(), request);
-        final User populatedUser = populateUser(bidRequest.getUser());
         final List<Imp> populatedImps = populateImps(imps, request);
-        final Integer at = bidRequest.getAt();
-        final boolean updateAt = at == null || at == 0;
-        final ObjectNode ext = bidRequest.getExt();
-        final ObjectNode populatedExt = ext != null
-                ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
-                : null;
-        final boolean updateCurrency = CollectionUtils.isEmpty(bidRequest.getCur()) && adServerCurrency != null;
-        final Long resolvedTmax = resolveTmax(bidRequest.getTmax(), timeoutResolver);
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
-                || updateAt || populatedExt != null || updateCurrency || resolvedTmax != null) {
+        final Integer at = bidRequest.getAt();
+        final Integer resolvedAt = resolveAt(at);
+
+        final List<String> cur = bidRequest.getCur();
+        final List<String> resolvedCurrencies = resolveCurrencies(cur);
+
+        final Long tmax = bidRequest.getTmax();
+        final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
+
+        final ObjectNode ext = bidRequest.getExt();
+        final ObjectNode populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
+
+        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
+                || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
+                || populatedExt != null) {
 
             result = bidRequest.toBuilder()
-                    .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
-                    .site(populatedSite != null ? populatedSite : bidRequest.getSite())
-                    .user(populatedUser != null ? populatedUser : bidRequest.getUser())
+                    .device(populatedDevice != null ? populatedDevice : device)
+                    .site(populatedSite != null ? populatedSite : site)
+                    .user(populatedUser != null ? populatedUser : user)
+                    .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
-                    // set the auction type to 1 if it wasn't on the request,
-                    // since header bidding is generally a first-price auction.
-                    .at(updateAt ? Integer.valueOf(1) : at)
+                    .at(resolvedAt != null ? resolvedAt : at)
+                    .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
+                    .tmax(resolvedTmax != null ? resolvedTmax : tmax)
                     .ext(populatedExt != null ? populatedExt : ext)
-                    .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
-                    .tmax(resolvedTmax != null ? resolvedTmax : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;
@@ -266,10 +283,9 @@ public class AuctionRequestFactory {
 
     private void checkBlacklistedApp(App app) {
         final String appId = app.getId();
-        if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
-                && blacklistedApps.contains(appId)) {
-            throw new BlacklistedAppException(String.format(
-                    "Prebid-server does not process requests from App ID: %s", appId));
+        if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
+            throw new BlacklistedAppException(
+                    String.format("Prebid-server does not process requests from App ID: %s", appId));
         }
     }
 
@@ -406,6 +422,23 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Returns {@link Source} with updated source.tid or null if nothing changed.
+     */
+    private Source populateSource(Source source) {
+        final String tid = source != null ? source.getTid() : null;
+        if (StringUtils.isEmpty(tid)) {
+            final String generatedId = idGenerator.generateId();
+            if (StringUtils.isNotEmpty(generatedId)) {
+                final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
+                return builder
+                        .tid(generatedId)
+                        .build();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Updates imps with security 1, when secured request was received and imp security was not defined.
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
@@ -423,34 +456,33 @@ public class AuctionRequestFactory {
     /**
      * Returns updated {@link ExtBidRequest} if required or null otherwise.
      */
-    private ObjectNode populateBidRequestExtension(ObjectNode extNode, List<Imp> imps) {
-        final ExtBidRequest extBidRequest = extBidRequest(extNode);
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+    private ObjectNode populateRequestExt(ObjectNode extNode, List<Imp> imps) {
+        final ExtBidRequest ext = extBidRequest(extNode);
+        if (ext != null) {
+            final ExtRequestPrebid prebid = ext.getPrebid();
 
-        final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
-        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
+            final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
+            final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
 
-        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
-        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
+            final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+            final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
 
-        final ObjectNode result;
-        if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
-            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                    ? prebid.toBuilder()
-                    : ExtRequestPrebid.builder();
+            if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
+                final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                        ? prebid.toBuilder()
+                        : ExtRequestPrebid.builder();
 
-            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
-                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
-                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                    .cache(ObjectUtils.defaultIfNull(updatedCache,
-                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                    .build()));
-        } else {
-            result = null;
+                return mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
+                        .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                                getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                        .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                                getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                        .cache(ObjectUtils.defaultIfNull(updatedCache,
+                                getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                        .build()));
+            }
         }
-        return result;
+        return null;
     }
 
     /**
@@ -628,6 +660,24 @@ public class AuctionRequestFactory {
                     true);
         }
         return null;
+    }
+
+    /**
+     * Returns updated request.at or null if nothing changed.
+     * <p>
+     * Set the auction type to 1 if it wasn't on the request, since header bidding is generally a first-price auction.
+     */
+    private static Integer resolveAt(Integer at) {
+        return at == null || at == 0 ? 1 : null;
+    }
+
+    /**
+     * Returns default list of currencies if it wasn't on the request, otherwise null.
+     */
+    private List<String> resolveCurrencies(List<String> currencies) {
+        return CollectionUtils.isEmpty(currencies) && adServerCurrency != null
+                ? Collections.singletonList(adServerCurrency)
+                : null;
     }
 
     /**
