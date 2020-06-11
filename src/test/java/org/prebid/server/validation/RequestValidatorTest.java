@@ -25,6 +25,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -1856,6 +1857,23 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
+    }
+
+    @Test
+    public void validateShouldNotReturnErrorMessageWhenSourceExtIsNotValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .source(Source.builder()
+                        .ext(mapper.valueToTree(mapper.createObjectNode().put("schain", "not-valid")))
+                        .build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .first().asString().startsWith("request.source.ext is invalid: Cannot construct instance");
     }
 
     @Test
