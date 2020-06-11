@@ -410,34 +410,21 @@ public class ExchangeService {
 
         final Map<String, ExtBidderConfigFpd> bidderToConfig = new HashMap<>();
 
-        final ExtBidderConfigFpd allBiddersConfigFpd = bidderConfigs.stream()
+        bidderConfigs.stream()
                 .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
                 .map(prebidBidderConfig -> prebidBidderConfig.getConfig().getFpd())
                 .findFirst()
-                .orElse(null);
-
-        if (allBiddersConfigFpd != null) {
-            bidderToConfig.put(ALL_BIDDERS_CONFIG, allBiddersConfigFpd);
-        }
+                .ifPresent(extBidderConfigFpd -> bidderToConfig.put(ALL_BIDDERS_CONFIG, extBidderConfigFpd));
 
         for (ExtRequestPrebidBidderConfig config : bidderConfigs) {
             for (String bidder : config.getBidders()) {
                 final ExtBidderConfigFpd concreteFpd = config.getConfig().getFpd();
-                bidderToConfig.putIfAbsent(bidder, mergeFpd(concreteFpd, allBiddersConfigFpd));
+                bidderToConfig.putIfAbsent(bidder, concreteFpd);
             }
         }
         return bidderToConfig;
     }
 
-    private ExtBidderConfigFpd mergeFpd(ExtBidderConfigFpd concreteFpd, ExtBidderConfigFpd allBiddersConfigFpd) {
-        return allBiddersConfigFpd == null
-                ? concreteFpd
-                : jsonMergeUtil.merge(concreteFpd, allBiddersConfigFpd, ExtBidderConfigFpd.class);
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
     private ExtUser extUser(User user) {
         final ObjectNode userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
@@ -482,11 +469,10 @@ public class ExchangeService {
         for (String bidder : bidders) {
             final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
-            final User fpdUser = fpdConfig != null ? fpdConfig.getUser() : null;
 
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
             final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
-                    context.getUidsCookie(), useFirstPartyData, fpdUser);
+                    context.getUidsCookie(), useFirstPartyData, fpdConfig);
             bidderToUser.put(bidder, preparedUser);
         }
         return bidderToUser;
@@ -500,14 +486,12 @@ public class ExchangeService {
      */
     private User prepareUser(User user, ExtUser extUser, String bidder, BidderAliases aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData,
-                             User fpdUser) {
-        if (fpdUser != null) {
-            return fpdUser;
-        }
+                             ExtBidderConfigFpd fpdConfig) {
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
         final boolean shouldUpdateUserExt = extUser != null && extUser.getPrebid() != null;
         final boolean shouldRemoveUserFields = !useFirstPartyData && checkUserFieldsHavingValue(user);
 
+        User maskedUser = user;
         if (updatedBuyerUid != null || shouldRemoveUserFields || shouldUpdateUserExt) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedBuyerUid != null) {
@@ -525,9 +509,11 @@ public class ExchangeService {
                 userBuilder.ext(mapper.mapper().valueToTree(extUser.toBuilder().prebid(null).build()));
             }
 
-            return userBuilder.build();
+            maskedUser = userBuilder.build();
         }
-        return user;
+
+        final User fpdUser = fpdConfig == null ? null : fpdConfig.getUser();
+        return jsonMergeUtil.merge(fpdUser, maskedUser, User.class);
     }
 
     /**
@@ -656,14 +642,14 @@ public class ExchangeService {
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
         final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
-        final boolean hasBidderConfig = fpdConfig != null;
 
         return BidderRequest.of(bidder, bidRequest.toBuilder()
+                // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData))
-                .app(hasBidderConfig ? fpdConfig.getApp() : prepareApp(bidRequest.getApp(), useFirstPartyData))
-                .site(hasBidderConfig ? fpdConfig.getSite() : prepareSite(bidRequest.getSite(), useFirstPartyData))
+                .app(prepareApp(bidRequest.getApp(), fpdConfig, useFirstPartyData))
+                .site(prepareSite(bidRequest.getSite(), fpdConfig, useFirstPartyData))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, firstPartyDataBidders, bidderToPrebidBidders, requestExt, bidRequest.getExt()))
                 .build());
@@ -705,22 +691,30 @@ public class ExchangeService {
 
     /**
      * Checks whether to pass the app.keywords and ext depending on request having a first party data
-     * allowed for given bidder or not.
+     * allowed for given bidder or not. And merge masked app with fpd config.
      */
-    private static App prepareApp(App app, boolean useFirstPartyData) {
-        return app != null && !useFirstPartyData
+    private App prepareApp(App app, ExtBidderConfigFpd fpdConfig, boolean useFirstPartyData) {
+        final App maskedApp = app != null && !useFirstPartyData
                 ? app.toBuilder().keywords(null).ext(null).build()
                 : app;
+
+        final App fpdApp = fpdConfig == null ? null : fpdConfig.getApp();
+
+        return jsonMergeUtil.merge(fpdApp, maskedApp, App.class);
     }
 
     /**
      * Checks whether to pass the site.keywords, search and ext depending on request having a first party data
-     * allowed for given bidder or not.
+     * allowed for given bidder or not. And merge masked site with fpd config.
      */
-    private static Site prepareSite(Site site, boolean useFirstPartyData) {
-        return site != null && !useFirstPartyData
+    private Site prepareSite(Site site, ExtBidderConfigFpd fpdConfig, boolean useFirstPartyData) {
+        final Site maskedSite = site != null && !useFirstPartyData
                 ? site.toBuilder().keywords(null).search(null).ext(null).build()
                 : site;
+
+        final Site fpdSite = fpdConfig == null ? null : fpdConfig.getSite();
+
+        return jsonMergeUtil.merge(fpdSite, maskedSite, Site.class);
     }
 
     /**
