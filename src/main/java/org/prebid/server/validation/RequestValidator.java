@@ -37,9 +37,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -503,15 +501,6 @@ public class RequestValidator {
                 final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
                 if (gdpr != null && gdpr != 0 && gdpr != 1) {
                     throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
-                }
-
-                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
-                if (usPrivacy != null) {
-                    try {
-                        Ccpa.validateUsPrivacy(usPrivacy);
-                    } catch (PreBidException ex) {
-                        throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
-                    }
                 }
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
