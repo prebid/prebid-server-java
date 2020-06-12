@@ -36,7 +36,13 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Properties;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -94,7 +100,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     private static final String SELECT_ONE_COLUMN_RESPONSE_QUERY = "SELECT responseId FROM stored_responses"
             + " WHERE responseId IN (%RESPONSE_ID_LIST%)";
 
-    private static final String SELECT_ACCOUNTS_QUERY = "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
+    private static final String SELECT_ACCOUNTS_QUERY =
+            "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl,"
             + " events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr"
             + " FROM accounts_account where uuid = ? LIMIT 1";
 
@@ -122,20 +129,26 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
                 + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
                 + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT);");
-        connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
+        connection.createStatement().execute(
+                "CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
                 + "NOT NULL, config varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
+        connection.createStatement().execute(
+                "CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, reqid varchar(40) "
                 + "NOT NULL, requestData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, reqid varchar(40) "
+        connection.createStatement().execute(
+                "CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, reqid varchar(40) "
                 + "NOT NULL, requestData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_imps (id SERIAL PRIMARY KEY, impid varchar(40) "
+        connection.createStatement().execute(
+                "CREATE TABLE stored_imps (id SERIAL PRIMARY KEY, impid varchar(40) "
                 + "NOT NULL, impData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, impid varchar(40) "
+        connection.createStatement().execute(
+                "CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, impid varchar(40) "
                 + "NOT NULL, impData varchar(512));");
         connection.createStatement().execute(
                 "CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) NOT NULL,"
                         + " responseData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
+        connection.createStatement().execute(
+                "CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid varchar(40)"
                 + " NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
@@ -143,8 +156,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1, 0);");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
-        connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
-        connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('2','value2');");
+        connection.createStatement().execute(
+                "insert into stored_requests (reqid, requestData) values ('1','value1');");
+        connection.createStatement().execute(
+                "insert into stored_requests (reqid, requestData) values ('2','value2');");
         connection.createStatement().execute(
                 "insert into stored_requests2 (reqid, requestData) values ('3','value3');");
         connection.createStatement().execute("insert into stored_imps (impid, impData) values ('4','value4');");
@@ -424,7 +439,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(result.result(), requestIds, emptySet());
+                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(
+                        result.result(),
+                        requestIds,
+                        emptySet());
                 assertThat(storedDataResult)
                         .isEqualTo(StoredDataResult.of(expectedRequests,
                                 emptyMap(), singletonList("No stored request found for id: 3")));
@@ -464,7 +482,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(result.result(), requestIds, emptySet());
+                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(
+                        result.result(),
+                        requestIds,
+                        emptySet());
                 assertThat(storedDataResult)
                         .isEqualTo(StoredDataResult.of(expectedRequests,
                                 emptyMap(), singletonList("No stored request found for id: 3")));
@@ -483,7 +504,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(result.result(), requestIds, emptySet());
+                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(
+                        result.result(),
+                        requestIds,
+                        emptySet());
                 assertThat(storedDataResult)
                         .isEqualTo(StoredDataResult.of(emptyMap(),
                                 emptyMap(), singletonList("Result set column number is less than expected")));
@@ -502,7 +526,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(result.result(), requestIds, emptySet());
+                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(
+                        result.result(),
+                        requestIds,
+                        emptySet());
                 assertThat(storedDataResult)
                         .isEqualTo(StoredDataResult.of(emptyMap(),
                                 emptyMap(), singletonList("Result set column number is less than expected")));
@@ -528,7 +555,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                 emptyMap(),
                                 emptyMap(),
                                 singletonList(
-                                        "No stored requests for ids [3, 4] and stored imps for ids [6, 7] were found")));
+                                        "No stored requests for ids [3, 4] and stored imps for ids [6, 7] were found"
+                                )));
             } else {
                 fail("SQL query failed.");
             }
@@ -544,7 +572,10 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(result.result(), requestIds, emptySet());
+                StoredDataResult storedDataResult = JdbcStoredDataResultMapper.map(
+                        result.result(),
+                        requestIds,
+                        emptySet());
                 assertThat(storedDataResult)
                         .isEqualTo(StoredDataResult.of(
                                 emptyMap(),
@@ -591,7 +622,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(result.result(), responseIds);
+                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(
+                        result.result(),
+                        responseIds);
                 assertThat(storedDataResult)
                         .isEqualTo(StoredResponseDataResult.of(
                                 expectedResponses,
@@ -613,7 +646,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(result.result(), responseIds);
+                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(
+                        result.result(),
+                        responseIds);
                 assertThat(storedDataResult)
                         .isEqualTo(StoredResponseDataResult.of(
                                 expectedResponses,
@@ -633,7 +668,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(result.result(), responseIds);
+                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(
+                        result.result(),
+                        responseIds);
                 assertThat(storedDataResult)
                         .isEqualTo(StoredResponseDataResult.of(
                                 emptyMap(),
@@ -653,7 +690,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         Handler<AsyncResult<ResultSet>> handler = result -> {
             if (result.succeeded()) {
-                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(result.result(), responseIds);
+                StoredResponseDataResult storedDataResult = JdbcStoredResponseResultMapper.map(
+                        result.result(),
+                        responseIds);
                 assertThat(storedDataResult)
                         .isEqualTo(StoredResponseDataResult.of(
                                 emptyMap(),
@@ -712,7 +751,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     /**
      * Runs a process to get stored responses by a collection of ids from database.
      */
-    public void validateStoredResponses(String query, Set<String> responseIds, Handler<AsyncResult<ResultSet>> handler) {
+    public void validateStoredResponses(String query,
+                                        Set<String> responseIds,
+                                        Handler<AsyncResult<ResultSet>> handler) {
         final String queryResolvedWithParameters = query.replaceAll(RESPONSE_ID_PLACEHOLDER,
                 parameterHolders(responseIds.size()));
 
