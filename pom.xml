@@ -56,6 +56,7 @@
         <wiremock.version>2.11.0</wiremock.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
+        <spring-version>5.2.6.RELEASE</spring-version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
@@ -308,6 +309,12 @@
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${restassured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring-version}</version>
             <scope>test</scope>
         </dependency>
         <!-- for Mockito to be able to mock Vert.x-specific classes -->
