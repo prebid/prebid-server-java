@@ -373,7 +373,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // then
         final BidderPrivacyResult expectedBidderPrivacy = BidderPrivacyResult.builder()
-                .user(givenNotMaskedUser(userBuilder -> userBuilder.buyeruid(null)
+                .user(givenNotMaskedUser(userBuilder -> userBuilder
+                        .id(null)
+                        .buyeruid(null)
                         .ext(mapper.valueToTree(extUserIdsMasked()))))
                 .device(notMaskedDevice())
                 .requestBidder(BIDDER_NAME)
@@ -1025,6 +1027,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static User notMaskedUser() {
         return User.builder()
+                .id("id")
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
                 .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
@@ -1033,6 +1036,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static User notMaskedUser(ExtUser extUser) {
         return User.builder()
+                .id("id")
                 .buyeruid(BUYER_UID)
                 .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).country("US").build())
                 .ext(mapper.valueToTree(extUser))
