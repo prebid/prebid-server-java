@@ -7,11 +7,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -70,40 +70,18 @@ public class ImplicitParametersExtractor {
     }
 
     /**
-     * Determines IP-Address by checking "X-Forwarded-For", "X-Real-IP" http headers or remote host address
-     * if both are empty.
+     * Determines IP-Address candidates by checking "X-Forwarded-For", "X-Real-IP" http headers and remote host address.
      */
-    public String ipFrom(HttpServerRequest request) {
-        String ip = null;
+    public List<String> ipFrom(HttpServerRequest request) {
         final MultiMap headers = request.headers();
         final String xff = headers.get("X-Forwarded-For");
-        if (xff != null) {
-            ip = Stream.of(xff.split(","))
-                    .map(StringUtils::trimToNull)
-                    .filter(Objects::nonNull)
-                    .filter(ImplicitParametersExtractor::isIpPublic)
-                    .findFirst()
-                    .orElse(null);
-        }
-        if (ip == null) {
-            ip = StringUtils.trimToNull(headers.get("X-Real-IP"));
-        }
-        if (ip == null) {
-            ip = StringUtils.trimToNull(request.remoteAddress().host());
-        }
 
-        return ip;
-    }
-
-    /**
-     * Check if given IP address is a private IP.
-     */
-    private static boolean isIpPublic(String ip) {
-        try {
-            return !InetAddress.getByName(ip).isSiteLocalAddress();
-        } catch (UnknownHostException e) {
-            return false;
-        }
+        return Stream.concat(
+                xff != null ? Stream.of(xff.split(",")) : Stream.empty(),
+                Stream.of(headers.get("X-Real-IP"), request.remoteAddress().host()))
+                .map(StringUtils::trimToNull)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     /**

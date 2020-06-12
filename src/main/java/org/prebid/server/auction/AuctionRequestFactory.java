@@ -21,6 +21,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -294,41 +295,112 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (User-Agent, IP-address).
      */
     private Device populateDevice(Device device, HttpServerRequest request) {
-        final String ip = device != null ? device.getIp() : null;
+        final String deviceIp = device != null ? device.getIp() : null;
+        final String deviceIpv6 = device != null ? device.getIpv6() : null;
+
+        final IpAddress requestIp = resolveRequestIp(request);
+
+        if (requestIp == null) {
+            logger.warn("No IP address found in request headers. "
+                    + "Using the values provided in OpenRTB request device.ip or device.ipv6");
+        }
+
+        final String resolvedIp = resolveDeviceIp(deviceIp, IpAddress.IP.v4, requestIp);
+        final String resolvedIpv6 = resolveDeviceIp(deviceIpv6, IpAddress.IP.v6, requestIp);
+
         final String ua = device != null ? device.getUa() : null;
 
-        if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
+        if (!Objects.equals(deviceIp, resolvedIp)
+                || !Objects.equals(deviceIpv6, resolvedIpv6)
+                || StringUtils.isBlank(ua)) {
+
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
 
-            if (StringUtils.isBlank(ip)) {
-                final String ipFromRequest = paramsExtractor.ipFrom(request);
-                final InetAddress inetAddress = ipFromRequest != null ? inetAddressByIp(ipFromRequest) : null;
+            builder
+                    .ip(resolvedIp)
+                    .ipv6(resolvedIpv6);
 
-                builder.ip(resolveDeviceIp(ip, ipFromRequest, inetAddress))
-                        .ipv6(resolveDeviceIpv6(ip, ipFromRequest, inetAddress));
-            }
             return builder.build();
         }
 
         return null;
     }
 
-    private String resolveDeviceIp(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
-        return deviceIp == null && inetAddress instanceof Inet4Address ? ipFromRequest : deviceIp;
+    private IpAddress resolveRequestIp(HttpServerRequest request) {
+        final List<String> requestIps = paramsExtractor.ipFrom(request);
+        return (IpAddress) requestIps.stream()
+                .map(this::toIpAddress)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
-    private String resolveDeviceIpv6(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
-        return deviceIp == null && inetAddress instanceof Inet6Address ? ipFromRequest : deviceIp;
+    private IpAddress toIpAddress(String ip) {
+        final InetAddress inetAddress = inetAddressByIp(ip);
+
+        final IpAddress.IP version;
+        if (inetAddress instanceof Inet4Address) {
+            version = IpAddress.IP.v4;
+        } else if (inetAddress instanceof Inet6Address) {
+            version = IpAddress.IP.v6;
+        } else {
+            return null;
+        }
+
+        if (isIpPublic(inetAddress)) {
+            final String sanitizedIp = version == IpAddress.IP.v6 ? maskIpv6(ip) : ip;
+            return IpAddress.of(sanitizedIp, version);
+        }
+
+        return null;
     }
 
-    private InetAddress inetAddressByIp(String ip) {
+    private static InetAddress inetAddressByIp(String ip) {
         try {
             return InetAddress.getByName(ip);
         } catch (UnknownHostException e) {
-            logger.debug("Error occurred while checking IP", e);
             return null;
         }
+    }
+
+    /**
+     * Check if given IP address is a private IP.
+     */
+    private static boolean isIpPublic(InetAddress inetAddress) {
+        // FIXME
+        return inetAddress != null
+                && !inetAddress.isSiteLocalAddress()
+                && !inetAddress.isLinkLocalAddress()
+                && !inetAddress.isLoopbackAddress();
+    }
+
+    private String maskIpv6(String ip) {
+        // FIXME
+        return null;
+    }
+
+    private String resolveDeviceIp(String deviceIp, IpAddress.IP version, IpAddress requestIp) {
+        final String ipCandidate = requestIp != null && requestIp.getVersion() == version
+                ? requestIp.getIp()
+                : null;
+
+        final String sanitizedDeviceIp = sanitizeIp(deviceIp, version);
+
+        if (ipCandidate != null && sanitizedDeviceIp != null && !Objects.equals(ipCandidate, sanitizedDeviceIp)) {
+            logger.warn(
+                    "IP address resolved from request headers [{0}] is different from address found in "
+                            + "OpenRTB device object [{1}]",
+                    ipCandidate,
+                    sanitizedDeviceIp);
+        }
+
+        return ipCandidate != null ? ipCandidate : sanitizedDeviceIp;
+    }
+
+    private String sanitizeIp(String ip, IpAddress.IP version) {
+        final IpAddress ipAddress = ip != null ? toIpAddress(ip) : null;
+        return ipAddress != null && ipAddress.getVersion() == version ? ip : null;
     }
 
     /**
