@@ -35,6 +35,10 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
+import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.identity.IdGeneratorType;
+import org.prebid.server.identity.NoneIdGenerator;
+import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
@@ -168,6 +172,7 @@ public class ServiceConfiguration {
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${auction.id-generator-type}")IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
@@ -181,6 +186,9 @@ public class ServiceConfiguration {
 
         final List<String> blacklistedApps = splitCommaSeparatedString(blacklistedAppsString);
         final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
+        final IdGenerator idGenerator = idGeneratorType == IdGeneratorType.uuid
+                ? new UUIDIdGenerator()
+                : new NoneIdGenerator();
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -198,6 +206,7 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
+                idGenerator,
                 mapper);
     }
 
@@ -469,9 +478,16 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            @Value("${auction.generate-bid-id}") boolean generateBidId,
+            @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             JacksonMapper mapper) {
 
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, mapper);
+        if (truncateAttrChars < 0 || truncateAttrChars > 255) {
+            throw new IllegalArgumentException("settings.targeting.truncate-attr-chars must be between 0 and 255");
+        }
+        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, generateBidId,
+                truncateAttrChars,
+                mapper);
     }
 
     @Bean
