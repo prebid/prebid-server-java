@@ -18,11 +18,13 @@ public class IpAddressHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(IpAddressHelper.class);
 
-    private final IPAddress ipv6alwaysMaskAddress;
+    private final IPAddress ipv6AlwaysMaskAddress;
+    private final IPAddress ipv6AnonLeftMaskAddress;
     private final List<IPAddress> ipv6LocalNetworkMaskAddresses;
 
-    public IpAddressHelper(int ipv6AlwaysMaskBits, List<String> ipv6LocalNetworks) {
-        ipv6alwaysMaskAddress = toAddress(String.format("::/%d", ipv6AlwaysMaskBits)).getNetworkMask();
+    public IpAddressHelper(int ipv6AlwaysMaskBits, int ipv6AnonLeftMaskBits, List<String> ipv6LocalNetworks) {
+        ipv6AlwaysMaskAddress = toAddress(String.format("::/%d", ipv6AlwaysMaskBits)).getNetworkMask();
+        ipv6AnonLeftMaskAddress = toAddress(String.format("::/%d", ipv6AnonLeftMaskBits)).getNetworkMask();
         ipv6LocalNetworkMaskAddresses = ipv6LocalNetworks.stream()
                 .map(this::toAddress)
                 .collect(Collectors.toList());
@@ -30,10 +32,18 @@ public class IpAddressHelper {
 
     public String maskIpv6(String ip) {
         try {
-
-            return new IPAddressString(ip).toAddress().mask(ipv6alwaysMaskAddress).toCanonicalString();
+            return new IPAddressString(ip).toAddress().mask(ipv6AlwaysMaskAddress).toCanonicalString();
         } catch (AddressStringException e) {
             logger.debug("Exception occurred while masking IPv6 address: {0}", e.getMessage());
+            return null;
+        }
+    }
+
+    public String anonymizeIpv6(String ip) {
+        try {
+            return new IPAddressString(ip).toAddress().mask(ipv6AnonLeftMaskAddress).toCanonicalString();
+        } catch (AddressStringException e) {
+            logger.debug("Exception occurred while anonymizing IPv6 address: {0}", e.getMessage());
             return null;
         }
     }

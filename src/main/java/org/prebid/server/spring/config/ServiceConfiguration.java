@@ -122,11 +122,12 @@ public class ServiceConfiguration {
 
     @Bean
     IpAddressHelper ipAddressHelper(@Value("${ipv6.always-mask-right}") int ipv6AlwaysMaskBits,
+                                    @Value("${ipv6.anon-left-mask-bits}") int ipv6AnonLeftMaskBits,
                                     @Value("${ipv6.private-networks}") String ipv6PrivateNetworksAsString) {
 
         final List<String> ipv6LocalNetworks = Arrays.asList(ipv6PrivateNetworksAsString.trim().split(","));
 
-        return new IpAddressHelper(ipv6AlwaysMaskBits, ipv6LocalNetworks);
+        return new IpAddressHelper(ipv6AlwaysMaskBits, ipv6AnonLeftMaskBits, ipv6LocalNetworks);
     }
 
     @Bean
@@ -555,12 +556,13 @@ public class ServiceConfiguration {
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
             TcfDefinerService tcfDefinerService,
+            IpAddressHelper ipAddressHelper,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             JacksonMapper mapper) {
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, mapper, useGeoLocation, ccpaEnforce);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, mapper, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
