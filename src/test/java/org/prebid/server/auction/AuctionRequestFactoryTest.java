@@ -27,6 +27,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -303,7 +304,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", "UnitTest");
+        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -323,7 +324,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        givenImplicitParams("http://example.com", "example.com", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "UnitTest");
+        givenImplicitParams(
+                "http://example.com",
+                "example.com",
+                "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                IpAddress.IP.v6,
+                "UnitTest");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -406,7 +412,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         givenBidRequest(bidRequest);
 
-        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+        given(ipAddressHelper.toIpAddress(eq("56.76.12.3")))
+                .willReturn(IpAddress.of("56.76.12.3", IpAddress.IP.v4));
+
+        givenImplicitParams(
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -468,7 +478,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder().domain("test.com").page("http://test.com").build())
                 .build());
-        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+        givenImplicitParams(
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -486,7 +497,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .site(Site.builder().domain("test.com").page("http://test.com")
                         .ext(mapper.createObjectNode()).build())
                 .build());
-        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+        givenImplicitParams(
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -1368,10 +1380,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         verifyZeroInteractions(applicationSettings);
     }
 
-    private void givenImplicitParams(String referer, String domain, String ip, String ua) {
+    private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {
         given(paramsExtractor.refererFrom(any())).willReturn(referer);
         given(paramsExtractor.domainFrom(anyString())).willReturn(domain);
         given(paramsExtractor.ipFrom(any())).willReturn(singletonList(ip));
+        given(ipAddressHelper.toIpAddress(eq(ip))).willReturn(IpAddress.of(ip, ipVersion));
         given(paramsExtractor.uaFrom(any())).willReturn(ua);
     }
 

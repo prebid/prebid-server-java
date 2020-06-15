@@ -161,6 +161,7 @@ public class ServiceConfiguration {
     PreBidRequestContextFactory preBidRequestContextFactory(
             TimeoutResolver timeoutResolver,
             ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
             TimeoutFactory timeoutFactory,
@@ -169,6 +170,7 @@ public class ServiceConfiguration {
         return new PreBidRequestContextFactory(
                 timeoutResolver,
                 implicitParametersExtractor,
+                ipAddressHelper,
                 applicationSettings,
                 uidsCookieService,
                 timeoutFactory,
