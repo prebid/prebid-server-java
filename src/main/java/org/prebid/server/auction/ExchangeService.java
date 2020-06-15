@@ -482,7 +482,8 @@ public class ExchangeService {
      * Returns original {@link User} if user.buyeruid already contains uid value for bidder.
      * Otherwise, returns new {@link User} containing updated {@link ExtUser} and user.buyeruid.
      * <p>
-     * Also, removes user.keywords, gender, yob, geo and ext in case bidder does not use first party data.
+     * Also, removes user.keywords, gender, yob, geo and ext (except user.ext.eids and user.ext.digitrust)
+     * in case bidder does not use first party data.
      */
     private User prepareUser(User user, ExtUser extUser, String bidder, BidderAliases aliases,
                              Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData,
@@ -499,12 +500,19 @@ public class ExchangeService {
             }
 
             if (shouldRemoveUserFields) {
+                final ExtUser updatedExtUser = extUser == null
+                        ? null
+                        : ExtUser.builder()
+                        .eids(extUser.getEids())
+                        .digitrust(extUser.getDigitrust())
+                        .build();
+
                 userBuilder
                         .keywords(null)
                         .gender(null)
                         .yob(null)
                         .geo(null)
-                        .ext(null);
+                        .ext(mapper.mapper().valueToTree(updatedExtUser));
             } else if (shouldUpdateUserExt) {
                 userBuilder.ext(mapper.mapper().valueToTree(extUser.toBuilder().prebid(null).build()));
             }
