@@ -216,6 +216,9 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
 
+For targeting available next options:
+- `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
+
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
 - `host-cookie.optout-cookie.value` - set the cookie value for optout checking.
