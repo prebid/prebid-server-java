@@ -15,6 +15,7 @@ import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -172,9 +173,10 @@ public class ServiceConfiguration {
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
-            @Value("${auction.id-generator-type}")IdGeneratorType idGeneratorType,
+            @Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             RequestValidator requestValidator,
@@ -199,6 +201,7 @@ public class ServiceConfiguration {
                 blacklistedAccounts,
                 storedRequestProcessor,
                 implicitParametersExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,

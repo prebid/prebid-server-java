@@ -11,9 +11,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
-import inet.ipaddr.AddressStringException;
-import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressString;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -56,10 +53,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -91,6 +84,7 @@ public class AuctionRequestFactory {
     private final List<String> blacklistedAccounts;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
+    private final IpAddressHelper ipAddressHelper;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
@@ -109,6 +103,7 @@ public class AuctionRequestFactory {
                                  List<String> blacklistedAccounts,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
+                                 IpAddressHelper ipAddressHelper,
                                  UidsCookieService uidsCookieService,
                                  BidderCatalog bidderCatalog,
                                  RequestValidator requestValidator,
@@ -127,6 +122,7 @@ public class AuctionRequestFactory {
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -333,14 +329,14 @@ public class AuctionRequestFactory {
     }
 
     private String sanitizeIp(String ip, IpAddress.IP version) {
-        final IpAddress ipAddress = ip != null ? toIpAddress(ip) : null;
+        final IpAddress ipAddress = ip != null ? ipAddressHelper.toIpAddress(ip) : null;
         return ipAddress != null && ipAddress.getVersion() == version ? ip : null;
     }
 
     private IpAddress findIpFromRequest(HttpServerRequest request) {
         final List<String> requestIps = paramsExtractor.ipFrom(request);
         return requestIps.stream()
-                .map(this::toIpAddress)
+                .map(ipAddressHelper::toIpAddress)
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
@@ -348,85 +344,6 @@ public class AuctionRequestFactory {
 
     private static String getIpIfVersionIs(IpAddress requestIp, IpAddress.IP version) {
         return requestIp != null && requestIp.getVersion() == version ? requestIp.getIp() : null;
-    }
-
-    private IpAddress toIpAddress(String ip) {
-        final InetAddress inetAddress = inetAddressByIp(ip);
-
-        final IpAddress.IP version;
-        if (inetAddress instanceof Inet4Address) {
-            version = IpAddress.IP.v4;
-        } else if (inetAddress instanceof Inet6Address) {
-            version = IpAddress.IP.v6;
-        } else {
-            return null;
-        }
-
-        if (isIpPublic(inetAddress, ip, version)) {
-            final String sanitizedIp = version == IpAddress.IP.v6 ? maskIpv6(ip) : ip;
-            return IpAddress.of(sanitizedIp, version);
-        }
-
-        return null;
-    }
-
-    private static InetAddress inetAddressByIp(String ip) {
-        try {
-            return InetAddress.getByName(ip);
-        } catch (UnknownHostException e) {
-            return null;
-        }
-    }
-
-    /**
-     * Check if given IP address is a private IP.
-     */
-    private static boolean isIpPublic(InetAddress inetAddress, String ip, IpAddress.IP version) {
-        switch (version) {
-            case v4:
-                return inetAddress != null
-                        && !inetAddress.isSiteLocalAddress()
-                        && !inetAddress.isLinkLocalAddress()
-                        && !inetAddress.isLoopbackAddress();
-            case v6:
-                // FIXME
-                final List<IPAddress> localNetworks = Stream.of("::1/128", "fc00::/7", "fe80::/10")
-                        .map(network -> {
-                            try {
-                                return new IPAddressString(network).toAddress();
-                            } catch (AddressStringException e) {
-                                throw new IllegalArgumentException("Could not parse IPv6 network address");
-                            }
-                        })
-                        .collect(Collectors.toList());
-
-                try {
-                    final IPAddress ipAddress = new IPAddressString(ip).toAddress();
-                    return localNetworks.stream().noneMatch(network -> network.contains(ipAddress));
-                } catch (AddressStringException e) {
-                    logger.debug(
-                            "Exception occurred while checking IPv6 address belongs to a local network: {0}",
-                            e.getMessage());
-                    return false;
-                }
-            default:
-                return false;
-        }
-    }
-
-    private String maskIpv6(String ip) {
-        // FIXME
-        final int alwaysMaskBits = 64;
-
-        try {
-            final IPAddress maskAddress = new IPAddressString(String.format("::/%s", alwaysMaskBits))
-                    .toAddress()
-                    .getNetworkMask();
-            return new IPAddressString(ip).toAddress().mask(maskAddress).toCanonicalString();
-        } catch (AddressStringException e) {
-            logger.debug("Exception occurred while masking IPv6 address: {0}", e.getMessage());
-            return null;
-        }
     }
 
     private void logWarnIfNoIp(String resolvedIp, String resolvedIpv6) {

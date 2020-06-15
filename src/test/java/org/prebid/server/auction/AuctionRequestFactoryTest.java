@@ -94,6 +94,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
+    private IpAddressHelper ipAddressHelper;
+    @Mock
     private UidsCookieService uidsCookieService;
     @Mock
     private BidderCatalog bidderCatalog;
@@ -136,6 +138,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -174,6 +177,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -210,6 +214,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -255,6 +260,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -772,6 +778,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -813,6 +820,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -853,6 +861,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -893,6 +902,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -960,6 +970,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -1002,6 +1013,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -1359,7 +1371,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private void givenImplicitParams(String referer, String domain, String ip, String ua) {
         given(paramsExtractor.refererFrom(any())).willReturn(referer);
         given(paramsExtractor.domainFrom(anyString())).willReturn(domain);
-        given(paramsExtractor.ipFrom(any())).willReturn(ip);
+        given(paramsExtractor.ipFrom(any())).willReturn(singletonList(ip));
         given(paramsExtractor.uaFrom(any())).willReturn(ua);
     }
 
