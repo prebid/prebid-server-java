@@ -110,7 +110,8 @@ public class PreBidRequestContextFactory {
 
         builder
                 .preBidRequest(preBidRequest)
-                .ip(paramsExtractor.ipFrom(httpRequest))
+                // FIXME
+//                .ip(paramsExtractor.ipFrom(httpRequest))
                 .secure(paramsExtractor.secureFrom(httpRequest))
                 .isDebug(isDebug(preBidRequest, httpRequest))
                 .noLiveUids(false);

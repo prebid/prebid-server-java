@@ -118,7 +118,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         given(paramsExtractor.refererFrom(any())).willReturn("http://www.example.com");
         given(paramsExtractor.domainFrom(anyString())).willReturn("example.com");
-        given(paramsExtractor.ipFrom(any())).willReturn("192.168.244.1");
+        // FIXME
+//        given(paramsExtractor.ipFrom(any())).willReturn("192.168.244.1");
         given(paramsExtractor.uaFrom(any())).willReturn("userAgent");
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 

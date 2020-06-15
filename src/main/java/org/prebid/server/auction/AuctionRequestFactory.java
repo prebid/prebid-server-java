@@ -11,6 +11,9 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
+import inet.ipaddr.AddressStringException;
+import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressString;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -348,7 +351,7 @@ public class AuctionRequestFactory {
             return null;
         }
 
-        if (isIpPublic(inetAddress)) {
+        if (isIpPublic(inetAddress, ip, version)) {
             final String sanitizedIp = version == IpAddress.IP.v6 ? maskIpv6(ip) : ip;
             return IpAddress.of(sanitizedIp, version);
         }
@@ -367,17 +370,52 @@ public class AuctionRequestFactory {
     /**
      * Check if given IP address is a private IP.
      */
-    private static boolean isIpPublic(InetAddress inetAddress) {
-        // FIXME
-        return inetAddress != null
-                && !inetAddress.isSiteLocalAddress()
-                && !inetAddress.isLinkLocalAddress()
-                && !inetAddress.isLoopbackAddress();
+    private static boolean isIpPublic(InetAddress inetAddress, String ip, IpAddress.IP version) {
+        switch (version) {
+            case v4:
+                return inetAddress != null
+                        && !inetAddress.isSiteLocalAddress()
+                        && !inetAddress.isLinkLocalAddress()
+                        && !inetAddress.isLoopbackAddress();
+            case v6:
+                // FIXME
+                final List<IPAddress> localNetworks = Stream.of("::1/128", "fc00::/7", "fe80::/10")
+                        .map(network -> {
+                            try {
+                                return new IPAddressString(network).toAddress();
+                            } catch (AddressStringException e) {
+                                throw new IllegalArgumentException("Could not parse IPv6 network address");
+                            }
+                        })
+                        .collect(Collectors.toList());
+
+                try {
+                    final IPAddress ipAddress = new IPAddressString(ip).toAddress();
+                    return localNetworks.stream().noneMatch(network -> network.contains(ipAddress));
+                } catch (AddressStringException e) {
+                    logger.debug(
+                            "Exception occurred while checking IPv6 address belongs to a local network: {0}",
+                            e.getMessage());
+                    return false;
+                }
+            default:
+                return false;
+        }
     }
 
     private String maskIpv6(String ip) {
         // FIXME
-        return null;
+        final int alwaysMaskBits = 64;
+
+        try {
+            final IPAddress maskAddress = new IPAddressString(String.format("::/%s", alwaysMaskBits))
+                    .toAddress()
+                    .getNetworkMask();
+            return new IPAddressString(ip).toAddress().mask(maskAddress).toCanonicalString();
+        } catch (AddressStringException e) {
+            logger.debug("Exception occurred while masking IPv6 address: {0}", e.getMessage());
+            return null;
+        }
     }
 
     private String resolveDeviceIp(String deviceIp, IpAddress.IP version, IpAddress requestIp) {
