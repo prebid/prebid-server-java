@@ -73,6 +73,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -1209,6 +1211,10 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final ExtUserDigiTrust extUserDigiTrust = ExtUserDigiTrust.of("dId", 23, 222);
+        final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
+        final ObjectNode extUser = mapper.valueToTree(
+                ExtUser.builder().data(dataNode).digitrust(extUserDigiTrust).eids(eids).build());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -1220,7 +1226,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .gender("male")
                                 .yob(133)
                                 .geo(Geo.EMPTY)
-                                .ext(mapper.valueToTree(ExtUser.builder().data(dataNode).build()))
+                                .ext(extUser)
                                 .build()));
 
         // when
@@ -1231,13 +1237,13 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
+        final ExtUser maskedExtUser = ExtUser.builder().digitrust(extUserDigiTrust).eids(eids).build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
                 .containsOnly(
-                        tuple("keyword", "male", 133, Geo.EMPTY,
-                                mapper.valueToTree(ExtUser.builder().data(dataNode).build())),
-                        tuple(null, null, null, null, null));
+                        tuple("keyword", "male", 133, Geo.EMPTY, extUser),
+                        tuple(null, null, null, null, mapper.valueToTree(maskedExtUser)));
     }
 
     @Test
@@ -1249,6 +1255,10 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
+        final ExtUserDigiTrust extUserDigiTrust = ExtUserDigiTrust.of("dId", 23, 222);
+        final List<ExtUserEid> eids = singletonList(ExtUserEid.of("eId", "id", emptyList(), null));
+        final ObjectNode extUser = mapper.valueToTree(
+                ExtUser.builder().data(dataNode).digitrust(extUserDigiTrust).eids(eids).build());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder
@@ -1259,7 +1269,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .gender("male")
                                 .yob(133)
                                 .geo(Geo.EMPTY)
-                                .ext(mapper.valueToTree(ExtUser.builder().data(dataNode).build()))
+                                .ext(extUser)
                                 .build()));
 
         // when
@@ -1270,12 +1280,14 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester, times(2)).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
+        final ObjectNode expectedExtUser = mapper.valueToTree(
+                ExtUser.builder().digitrust(extUserDigiTrust).eids(eids).build());
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
                 .containsOnly(
-                        tuple(null, null, null, null, null),
-                        tuple(null, null, null, null, null));
+                        tuple(null, null, null, null, expectedExtUser),
+                        tuple(null, null, null, null, expectedExtUser));
     }
 
     @Test
