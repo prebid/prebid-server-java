@@ -13,21 +13,25 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class IpAddressHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(IpAddressHelper.class);
 
-    public String maskIpv6(String ip) {
-        // FIXME
-        final int alwaysMaskBits = 64;
+    private final IPAddress ipv6alwaysMaskAddress;
+    private final List<IPAddress> ipv6LocalNetworkMaskAddresses;
 
+    public IpAddressHelper(int ipv6AlwaysMaskBits, List<String> ipv6LocalNetworks) {
+        ipv6alwaysMaskAddress = toAddress(String.format("::/%d", ipv6AlwaysMaskBits)).getNetworkMask();
+        ipv6LocalNetworkMaskAddresses = ipv6LocalNetworks.stream()
+                .map(this::toAddress)
+                .collect(Collectors.toList());
+    }
+
+    public String maskIpv6(String ip) {
         try {
-            final IPAddress maskAddress = new IPAddressString(String.format("::/%s", alwaysMaskBits))
-                    .toAddress()
-                    .getNetworkMask();
-            return new IPAddressString(ip).toAddress().mask(maskAddress).toCanonicalString();
+
+            return new IPAddressString(ip).toAddress().mask(ipv6alwaysMaskAddress).toCanonicalString();
         } catch (AddressStringException e) {
             logger.debug("Exception occurred while masking IPv6 address: {0}", e.getMessage());
             return null;
@@ -54,6 +58,14 @@ public class IpAddressHelper {
         return null;
     }
 
+    private IPAddress toAddress(String address) {
+        try {
+            return new IPAddressString(address).toAddress();
+        } catch (AddressStringException e) {
+            throw new IllegalArgumentException("Unable to process IPv6-related configuration");
+        }
+    }
+
     private static InetAddress inetAddressByIp(String ip) {
         try {
             return InetAddress.getByName(ip);
@@ -70,20 +82,9 @@ public class IpAddressHelper {
                         && !inetAddress.isLinkLocalAddress()
                         && !inetAddress.isLoopbackAddress();
             case v6:
-                // FIXME
-                final List<IPAddress> localNetworks = Stream.of("::1/128", "fc00::/7", "fe80::/10")
-                        .map(network -> {
-                            try {
-                                return new IPAddressString(network).toAddress();
-                            } catch (AddressStringException e) {
-                                throw new IllegalArgumentException("Could not parse IPv6 network address");
-                            }
-                        })
-                        .collect(Collectors.toList());
-
                 try {
                     final IPAddress ipAddress = new IPAddressString(ip).toAddress();
-                    return localNetworks.stream().noneMatch(network -> network.contains(ipAddress));
+                    return ipv6LocalNetworkMaskAddresses.stream().noneMatch(network -> network.contains(ipAddress));
                 } catch (AddressStringException e) {
                     logger.debug(
                             "Exception occurred while checking IPv6 address belongs to a local network: {0}",

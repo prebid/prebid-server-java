@@ -121,6 +121,15 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    IpAddressHelper ipAddressHelper(@Value("${ipv6.always-mask-right}") int ipv6AlwaysMaskBits,
+                                    @Value("${ipv6.private-networks}") String ipv6PrivateNetworksAsString) {
+
+        final List<String> ipv6LocalNetworks = Arrays.asList(ipv6PrivateNetworksAsString.trim().split(","));
+
+        return new IpAddressHelper(ipv6AlwaysMaskBits, ipv6LocalNetworks);
+    }
+
+    @Bean
     TimeoutResolver timeoutResolver(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,

@@ -157,3 +157,7 @@ health-check:
     enabled: false
   geolocation:
     enabled: false
+
+ipv6:
+  always-mask-right: 64
+  private-networks: ::1/128, fc00::/7, fe80::/10
