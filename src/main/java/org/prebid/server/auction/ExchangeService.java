@@ -15,6 +15,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -75,6 +77,8 @@ import java.util.stream.StreamSupport;
  * Executes an OpenRTB v2.5 Auction.
  */
 public class ExchangeService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
@@ -616,9 +620,16 @@ public class ExchangeService {
 
         final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = new HashMap<>();
         for (ExtRequestPrebidSchain schain : schains) {
-            final List<String> schainBidders = schain.getBidders();
-            if (CollectionUtils.isNotEmpty(schainBidders)) {
-                schainBidders.forEach(bidder -> bidderToPrebidSchains.put(bidder, schain.getSchain()));
+            final List<String> bidders = schain.getBidders();
+            if (CollectionUtils.isNotEmpty(bidders)) {
+                for (String bidder : bidders) {
+                    if (bidderToPrebidSchains.containsKey(bidder)) {
+                        bidderToPrebidSchains.remove(bidder);
+                        logger.debug("Schain bidder {0} is rejected since it was defined more than once", bidder);
+                        continue;
+                    }
+                    bidderToPrebidSchains.put(bidder, schain.getSchain());
+                }
             }
         }
         return bidderToPrebidSchains;
