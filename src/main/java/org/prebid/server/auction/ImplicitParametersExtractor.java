@@ -9,10 +9,11 @@ import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Convenient place to keep utilities for extracting parameters from HTTP request with intention to use them in auction.
@@ -70,15 +71,21 @@ public class ImplicitParametersExtractor {
     }
 
     /**
-     * Determines IP-Address candidates by checking "X-Forwarded-For", "X-Real-IP" http headers and remote host address.
+     * Determines IP-Address candidates by checking http headers and remote host address.
      */
     public List<String> ipFrom(HttpServerRequest request) {
         final MultiMap headers = request.headers();
-        final String xff = headers.get("X-Forwarded-For");
 
-        return Stream.concat(
-                xff != null ? Stream.of(xff.split(",")) : Stream.empty(),
-                Stream.of(headers.get("X-Real-IP"), request.remoteAddress().host()))
+        final List<String> candidates = new ArrayList<>();
+        candidates.add(headers.get("True-Client-IP"));
+        final String xff = headers.get("X-Forwarded-For");
+        if (xff != null) {
+            candidates.addAll(Arrays.asList(xff.split(",")));
+        }
+        candidates.add(headers.get("X-Real-IP"));
+        candidates.add(request.remoteAddress().host());
+
+        return candidates.stream()
                 .map(StringUtils::trimToNull)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());

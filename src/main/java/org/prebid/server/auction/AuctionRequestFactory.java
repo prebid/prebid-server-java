@@ -301,15 +301,17 @@ public class AuctionRequestFactory {
         final String deviceIp = device != null ? device.getIp() : null;
         final String deviceIpv6 = device != null ? device.getIpv6() : null;
 
-        final IpAddress requestIp = resolveRequestIp(request);
+        String resolvedIp = sanitizeIp(deviceIp, IpAddress.IP.v4);
+        String resolvedIpv6 = sanitizeIp(deviceIpv6, IpAddress.IP.v6);
 
-        if (requestIp == null) {
-            logger.warn("No IP address found in request headers. "
-                    + "Using the values provided in OpenRTB request device.ip or device.ipv6");
+        if (resolvedIp == null && resolvedIpv6 == null) {
+            final IpAddress requestIp = findIpFromRequest(request);
+
+            resolvedIp = getIpIfVersionIs(requestIp, IpAddress.IP.v4);
+            resolvedIpv6 = getIpIfVersionIs(requestIp, IpAddress.IP.v6);
         }
 
-        final String resolvedIp = resolveDeviceIp(deviceIp, IpAddress.IP.v4, requestIp);
-        final String resolvedIpv6 = resolveDeviceIp(deviceIpv6, IpAddress.IP.v6, requestIp);
+        logWarnIfNoIp(resolvedIp, resolvedIpv6);
 
         final String ua = device != null ? device.getUa() : null;
 
@@ -330,13 +332,22 @@ public class AuctionRequestFactory {
         return null;
     }
 
-    private IpAddress resolveRequestIp(HttpServerRequest request) {
+    private String sanitizeIp(String ip, IpAddress.IP version) {
+        final IpAddress ipAddress = ip != null ? toIpAddress(ip) : null;
+        return ipAddress != null && ipAddress.getVersion() == version ? ip : null;
+    }
+
+    private IpAddress findIpFromRequest(HttpServerRequest request) {
         final List<String> requestIps = paramsExtractor.ipFrom(request);
-        return (IpAddress) requestIps.stream()
+        return requestIps.stream()
                 .map(this::toIpAddress)
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private static String getIpIfVersionIs(IpAddress requestIp, IpAddress.IP version) {
+        return requestIp != null && requestIp.getVersion() == version ? requestIp.getIp() : null;
     }
 
     private IpAddress toIpAddress(String ip) {
@@ -418,27 +429,10 @@ public class AuctionRequestFactory {
         }
     }
 
-    private String resolveDeviceIp(String deviceIp, IpAddress.IP version, IpAddress requestIp) {
-        final String ipCandidate = requestIp != null && requestIp.getVersion() == version
-                ? requestIp.getIp()
-                : null;
-
-        final String sanitizedDeviceIp = sanitizeIp(deviceIp, version);
-
-        if (ipCandidate != null && sanitizedDeviceIp != null && !Objects.equals(ipCandidate, sanitizedDeviceIp)) {
-            logger.warn(
-                    "IP address resolved from request headers [{0}] is different from address found in "
-                            + "OpenRTB device object [{1}]",
-                    ipCandidate,
-                    sanitizedDeviceIp);
+    private void logWarnIfNoIp(String resolvedIp, String resolvedIpv6) {
+        if (resolvedIp == null && resolvedIpv6 == null) {
+            logger.warn("No IP address found in OpenRTB request and HTTP request headers.");
         }
-
-        return ipCandidate != null ? ipCandidate : sanitizedDeviceIp;
-    }
-
-    private String sanitizeIp(String ip, IpAddress.IP version) {
-        final IpAddress ipAddress = ip != null ? toIpAddress(ip) : null;
-        return ipAddress != null && ipAddress.getVersion() == version ? ip : null;
     }
 
     /**
