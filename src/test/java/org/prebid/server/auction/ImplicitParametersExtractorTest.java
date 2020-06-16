@@ -126,6 +126,16 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
+    public void ipFromShouldNotReturnNullsAndEmptyValues() {
+        // given
+        httpRequest.headers().set("X-Real-IP", " ");
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.144.5"));
+
+        // when and then
+        assertThat(extractor.ipFrom(httpRequest)).containsExactly("192.168.144.5");
+    }
+
+    @Test
     public void uaFromShouldReturnUaFromUserAgentHeader() {
         // given
         httpRequest.headers().set(HttpUtil.USER_AGENT_HEADER, " user agent ");
