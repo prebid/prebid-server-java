@@ -39,7 +39,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -1193,12 +1195,31 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameter() {
+    public void shouldReturnBidRequestWithInjectedAndMergedParametersFromTargetingParameter()
+            throws UnsupportedEncodingException {
         // given
-        given(httpRequest.getParam("targeting")).willReturn(
-                "%7B%22bidders%22%3A%20%5B%20%22rubicon%22%2C%20%22appnexus%22%20%5D%2C%20%22site%22%3A%20%7B%22"
-                        + "tags%22%3A%22autoestima%22%2C%22tagsId%22%3A%221357%22%2C%22parametro%22%3A%22%22%2C%22"
-                        + "device%22%3A%22celular%22%7D%2C%20%22user%22%3A%7B%22ID%22%3A%2233559%22%7D%7D%0A");
+        final ObjectNode targetingParams = mapper.createObjectNode();
+        targetingParams.putArray("bidders").add("rubicon").add("appnexus");
+
+        final ObjectNode siteParams = mapper.createObjectNode();
+        final String fpdSitePage = "testPage";
+        final String fpdSiteCat = "catTest";
+        siteParams.put("id", "123")
+                .put("tagsId", 1357)
+                .put("parametro", "")
+                .put("device", "celular")
+                .put("page", fpdSitePage)
+                .putArray("cat").add(fpdSiteCat);
+        targetingParams.set("site", siteParams);
+
+        final ObjectNode userParams = mapper.createObjectNode();
+        final String fpdUserGender = "F";
+        userParams.put("id", "testId")
+                .put("gender", fpdUserGender);
+        targetingParams.set("user", userParams);
+
+        final String encodedValue = URLEncoder.encode(targetingParams.toString(), "UTF-8");
+        given(httpRequest.getParam("targeting")).willReturn(encodedValue);
 
         givenBidRequest(
                 builder -> builder
@@ -1218,35 +1239,43 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsOnly(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus")));
 
         final ObjectNode expectedExtDataSite = mapper.createObjectNode()
-                .put("tags", "autoestima")
-                .put("tagsId", "1357")
+                .put("id", "123")
+                .put("tagsId", 1357)
                 .put("parametro", "")
                 .put("device", "celular");
+        final Site expectedSite = Site.builder()
+                .page(fpdSitePage)
+                .cat(singletonList(fpdSiteCat))
+                .ext(mapper.valueToTree(ExtSite.of(1, expectedExtDataSite)))
+                .build();
+
         assertThat(singletonList(result))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtSite.class)).isNotNull()
-                .containsOnly(ExtSite.of(1, expectedExtDataSite));
+                .containsOnly(expectedSite);
 
         final ObjectNode expectedExtDataUser = mapper.createObjectNode()
-                .put("ID", "33559");
+                .put("id", "testId");
+        final User expectedUser = User.builder()
+                .gender(fpdUserGender)
+                .ext(mapper.valueToTree(ExtUser.builder().data(expectedExtDataUser).build()))
+                .build();
         assertThat(singletonList(result))
                 .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtUser.class)).isNotNull()
-                .containsOnly(ExtUser.builder().data(expectedExtDataUser).build());
+                .containsOnly(expectedUser);
     }
 
     @Test
     public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameterWhenParametersAreEmpty()
-            throws JsonProcessingException {
+            throws UnsupportedEncodingException {
         // given
-        given(httpRequest.getParam("targeting")).willReturn(
-                "%7B%22bidders%22%3A%20%5B%20%5D%2C%20%22site%22%3A%20%7B%7D%2C%20%22user%22%3A%7B%7D%7D%0A");
+        final String encodedValue = URLEncoder.encode("{\"bidders\": [ ], \"site\": {}, \"user\":{}}", "UTF-8");
+        given(httpRequest.getParam("targeting")).willReturn(encodedValue);
 
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
+        final User requestUser = User.builder().id("testId").yob(2).build();
+        final Site requestSite = Site.builder().id("testId").page("page").build();
+        givenBidRequest(builder -> builder
+                        .site(requestSite)
+                        .user(requestUser)
                         .ext(mapper.valueToTree(ExtBidRequest.of(null))),
                 Imp.builder().build());
 
@@ -1263,15 +1292,11 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         assertThat(singletonList(result))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtSite.class)).isNotNull()
-                .containsOnly(ExtSite.of(1, mapper.createObjectNode()));
+                .containsOnly(requestSite.toBuilder().ext(mapper.valueToTree(ExtSite.of(1, null))).build());
 
         assertThat(singletonList(result))
                 .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtUser.class)).isNotNull()
-                .containsOnly(ExtUser.builder().data(mapper.createObjectNode()).build());
+                .containsOnly(requestUser);
     }
 
     @Test

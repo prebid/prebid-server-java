@@ -11,7 +11,6 @@ import org.prebid.server.json.JacksonMapper;
 import java.io.IOException;
 import java.util.Objects;
 
-// TODO: refactor to be instance instead of util
 public class JsonMergeUtil {
 
     private final JacksonMapper mapper;
@@ -27,24 +26,19 @@ public class JsonMergeUtil {
      */
     public <T> T merge(T originalObject, String storedData, String id, Class<T> classToCast) {
         final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
-        final JsonNode storedRequestJsonNode;
+        final JsonNode mergingObject;
         try {
-            storedRequestJsonNode = mapper.mapper().readTree(storedData);
+            mergingObject = mapper.mapper().readTree(storedData);
         } catch (IOException e) {
             throw new InvalidRequestException(
                     String.format("Can't parse Json for stored request with id %s", id));
         }
+
         try {
-            // Http request fields have higher priority and will override fields from stored requests
-            // in case they have different values
-            return mapper.mapper().treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
-                    classToCast);
-        } catch (JsonPatchException e) {
+            return mergeJsons(originJsonNode, mergingObject, classToCast);
+        } catch (InvalidRequestException e) {
             throw new InvalidRequestException(String.format(
                     "Couldn't create merge patch from origin object node for id %s: %s", id, e.getMessage()));
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
         }
     }
 
@@ -52,18 +46,44 @@ public class JsonMergeUtil {
         if (!ObjectUtils.allNotNull(originalObject, mergingObject)) {
             return ObjectUtils.firstNonNull(originalObject, mergingObject);
         }
-
         final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
         final JsonNode mergingObjectJsonNode = mapper.mapper().valueToTree(mergingObject);
+        return mergeJsons(originJsonNode, mergingObjectJsonNode, classToCast);
+    }
+
+    public <T, V> T mergeFamiliar(V originalObject, T mergingObject, Class<T> classToCast) {
+        if (originalObject == null) {
+            return mergingObject;
+        }
+        final JsonNode originJsonNode = mapper.mapper().valueToTree(originalObject);
+        final JsonNode mergingObjectJsonNode = mapper.mapper().valueToTree(mergingObject);
+        return mergeJsons(originJsonNode, mergingObjectJsonNode, classToCast);
+    }
+
+    private <T> T mergeJsons(JsonNode originJsonNode, JsonNode mergingObjectJsonNode, Class<T> classToCast) {
         try {
-            final JsonNode mergedNode = JsonMergePatch.fromJson(originJsonNode).apply(mergingObjectJsonNode);
+            final JsonNode mergedNode = mergeJsons(originJsonNode, mergingObjectJsonNode);
             return mapper.mapper().treeToValue(mergedNode, classToCast);
-        } catch (JsonPatchException e) {
+        } catch (InvalidRequestException e) {
             throw new InvalidRequestException(String.format(
                     "Couldn't create merge patch for objects with class %s", classToCast.getName()));
         } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't convert merging result class %s", classToCast.getName()));
+            throw new InvalidRequestException(String.format(
+                    "Can't convert merging result class %s", classToCast.getName()));
+        }
+    }
+
+    public JsonNode mergeJsons(JsonNode originJsonNode, JsonNode mergingObjectJsonNode) {
+        if (!ObjectUtils.allNotNull(originJsonNode, mergingObjectJsonNode)) {
+            return ObjectUtils.firstNonNull(originJsonNode, mergingObjectJsonNode);
+        }
+        try {
+            // Http request fields have higher priority and will override fields from stored requests
+            // in case they have different values
+            return JsonMergePatch.fromJson(originJsonNode).apply(mergingObjectJsonNode);
+        } catch (JsonPatchException e) {
+            throw new InvalidRequestException(String.format(
+                    "Couldn't create merge patch for objects %s", originJsonNode));
         }
     }
 }

@@ -216,7 +216,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Couldn't create merge patch from origin object node for id 123: ");
     }
 
     @Test
@@ -483,7 +483,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Couldn't create merge patch from origin object node for id 123:");
     }
 
     @Test

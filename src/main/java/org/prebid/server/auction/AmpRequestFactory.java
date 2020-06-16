@@ -20,6 +20,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.SiteFpd;
+import org.prebid.server.auction.model.UserFpd;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -39,8 +41,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -65,11 +69,15 @@ public class AmpRequestFactory {
     private static final String GDPR_CONSENT_PARAM = "gdpr_consent";
     private static final String CONSENT_PARAM = "consent_string";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
+    private static final List<String> FPD_SITE_FIELDS = Arrays.asList("domain", "cat", "sectioncat", "pagecat",
+            "page", "ref", "search", "content", "keywords");
+    private static final List<String> FPD_USER_FIELDS = Arrays.asList("yob", "gender", "keywords");
 
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
+    private final JsonMergeUtil jsonMergeUtil;
 
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor, AuctionRequestFactory auctionRequestFactory,
                              TimeoutResolver timeoutResolver, JacksonMapper mapper) {
@@ -78,6 +86,8 @@ public class AmpRequestFactory {
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
@@ -272,34 +282,62 @@ public class AmpRequestFactory {
         final String canonicalUrl = canonicalUrl(request);
         final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
-        final boolean hasSite = site != null;
-        final ObjectNode siteExt = hasSite ? site.getExt() : null;
+        Site.SiteBuilder siteBuilder = null;
+        Site currentSite = site;
+        ObjectNode extSiteNode = currentSite != null ? currentSite.getExt() : null;
+
         final ObjectNode targetingSite = targeting.getSite();
-        final boolean shouldSetExtAmp = targetingSite != null || siteExt == null || siteExt.get("amp") == null;
+        if (targetingSite != null) {
+            SiteFpd siteFpd = mapper.mapper().convertValue(targetingSite, SiteFpd.class);
+            siteFpd = Objects.equals(siteFpd, SiteFpd.EMPTY) ? null : siteFpd;
+            final Site mergedSite = jsonMergeUtil.mergeFamiliar(siteFpd, site, Site.class);
 
-        if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp) {
-            final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
-            if (StringUtils.isNotBlank(canonicalUrl)) {
-                siteBuilder.page(canonicalUrl);
-            }
-            if (StringUtils.isNotBlank(accountId)) {
-                final Publisher publisher = hasSite ? site.getPublisher() : null;
-                final Publisher.PublisherBuilder publisherBuilder = publisher != null
-                        ? publisher.toBuilder() : Publisher.builder();
+            currentSite = mergedSite;
+            siteBuilder = mergedSite != null ? mergedSite.toBuilder() : Site.builder();
 
-                siteBuilder.publisher(publisherBuilder.id(accountId).build());
+            final ObjectNode notOpenrtbValues = targetingSite.remove(FPD_SITE_FIELDS);
+            if (!notOpenrtbValues.isEmpty()) {
+                final ObjectNode siteExtData = extSiteNode != null ? (ObjectNode) extSiteNode.get("data") : null;
+                final ObjectNode mergedSiteExtData = (ObjectNode) jsonMergeUtil.mergeJsons(notOpenrtbValues,
+                        siteExtData);
+
+                extSiteNode = mapper.mapper().valueToTree(ExtSite.of(1, mergedSiteExtData));
+                siteBuilder.ext(extSiteNode);
             }
-            if (shouldSetExtAmp) {
-                if (targetingSite != null) {
-                    siteBuilder.ext(mapper.mapper().valueToTree(ExtSite.of(1, targetingSite)));
-                } else {
-                    final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
-                    siteBuilder.ext(mapper.mapper().valueToTree(ExtSite.of(1, data)));
-                }
-            }
-            return siteBuilder.build();
         }
-        return null;
+
+        if (StringUtils.isNotBlank(canonicalUrl)) {
+            siteBuilder = siteBuilder != null
+                    ? siteBuilder
+                    : currentSite != null ? currentSite.toBuilder() : Site.builder();
+
+            siteBuilder.page(canonicalUrl);
+        }
+
+        if (StringUtils.isNotBlank(accountId)) {
+            siteBuilder = siteBuilder != null
+                    ? siteBuilder
+                    : currentSite != null ? currentSite.toBuilder() : Site.builder();
+
+            final Publisher publisher = currentSite != null ? currentSite.getPublisher() : null;
+            final Publisher.PublisherBuilder publisherBuilder = publisher != null
+                    ? publisher.toBuilder()
+                    : Publisher.builder();
+
+            siteBuilder.publisher(publisherBuilder.id(accountId).build());
+        }
+
+        if (extSiteNode == null || extSiteNode.get("amp") == null) {
+            siteBuilder = siteBuilder != null
+                    ? siteBuilder
+                    : currentSite != null ? currentSite.toBuilder() : Site.builder();
+
+            final ObjectNode data = extSiteNode != null ? (ObjectNode) extSiteNode.get("data") : null;
+
+            siteBuilder.ext(mapper.mapper().valueToTree(ExtSite.of(1, data)));
+        }
+
+        return siteBuilder == null ? null : siteBuilder.build();
     }
 
     private static String canonicalUrl(HttpServerRequest request) {
@@ -430,26 +468,48 @@ public class AmpRequestFactory {
             return null;
         }
 
-        final boolean hasUser = user != null;
-        final ObjectNode extUserNode = hasUser ? user.getExt() : null;
+        User currentUser = user;
+        User.UserBuilder userBuilder = currentUser != null ? currentUser.toBuilder() : User.builder();
+        ExtUser.ExtUserBuilder extUserBuilder = null;
 
-        final ExtUser.ExtUserBuilder extUserBuilder = extUserNode != null
-                ? extractExtUser(extUserNode).toBuilder()
-                : ExtUser.builder();
+        if (targetingUser != null) {
+            UserFpd userFpd = mapper.mapper().convertValue(targetingUser, UserFpd.class);
+            userFpd = Objects.equals(userFpd, UserFpd.EMPTY) ? null : userFpd;
+            final User mergedUser = jsonMergeUtil.mergeFamiliar(userFpd, user, User.class);
+
+            currentUser = mergedUser;
+            userBuilder = mergedUser != null ? mergedUser.toBuilder() : User.builder();
+
+            final ObjectNode notOpenrtbValues = targetingUser.remove(FPD_USER_FIELDS);
+            if (!notOpenrtbValues.isEmpty()) {
+                final ObjectNode extUserNode = currentUser != null ? currentUser.getExt() : null;
+                final ExtUser extUser = extractExtUser(extUserNode);
+                extUserBuilder = extUser != null ? extUser.toBuilder() : ExtUser.builder();
+
+                final ObjectNode extUserData = extUser != null ? extUser.getData() : null;
+                final ObjectNode mergedUserExtData = (ObjectNode) jsonMergeUtil.mergeJsons(notOpenrtbValues,
+                        extUserData);
+
+                extUserBuilder.data(mergedUserExtData);
+            }
+        }
 
         if (StringUtils.isNotBlank(gdprConsent)) {
+            if (extUserBuilder == null) {
+                final ObjectNode extUserNode = currentUser != null ? currentUser.getExt() : null;
+                final ExtUser extUser = extractExtUser(extUserNode);
+                extUserBuilder = extUser != null ? extUser.toBuilder() : ExtUser.builder();
+            }
+
             extUserBuilder.consent(gdprConsent);
         }
 
-        if (targetingUser != null) {
-            extUserBuilder.data(targetingUser);
-        }
+        final ObjectNode userExt = currentUser != null ? currentUser.getExt() : null;
+        final ObjectNode finalUserExt = extUserBuilder != null
+                ? mapper.mapper().valueToTree(extUserBuilder.build())
+                : userExt;
 
-        final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
-
-        return userBuilder
-                .ext(mapper.mapper().valueToTree(extUserBuilder.build()))
-                .build();
+        return userBuilder.ext(finalUserExt).build();
     }
 
     /**
