@@ -312,8 +312,12 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
-                adminManager.accept(AdminManager.COUNTER_KEY, logger,
-                        logMessageFrom(invalidRequestException, message, context));
+
+                // TODO adminManager: enable when admin endpoints can be bound on application port
+                //adminManager.accept(AdminManager.COUNTER_KEY, logger,
+                //        logMessageFrom(invalidRequestException, message, context));
+                conditionalLogger.info(String.format("%s, Referer: %s", message,
+                        context.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = message;

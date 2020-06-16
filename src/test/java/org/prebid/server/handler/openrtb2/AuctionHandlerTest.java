@@ -568,7 +568,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+        // TODO adminManager: enable when admin endpoints can be bound on application port
+        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()

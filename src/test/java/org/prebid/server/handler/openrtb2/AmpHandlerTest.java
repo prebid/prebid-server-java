@@ -206,7 +206,10 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+
+        // TODO adminManager: enable when admin endpoints can be bound on application port
+        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
