@@ -5,7 +5,10 @@ import org.junit.Test;
 import org.prebid.server.auction.model.IpAddress;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 public class IpAddressHelperTest {
 
@@ -14,6 +17,36 @@ public class IpAddressHelperTest {
     @Before
     public void setUp() {
         ipAddressHelper = new IpAddressHelper(64, 56, asList("::1/128", "fc00::/7", "fe80::/10"));
+    }
+
+    @Test
+    public void creationShouldFailIfIpv6AlwaysMaskBitsIsNotValid() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new IpAddressHelper(-1, 56, emptyList()))
+                .withMessage("IPv6 always mask bits should be between 1 and 128 inclusive");
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new IpAddressHelper(129, 56, emptyList()))
+                .withMessage("IPv6 always mask bits should be between 1 and 128 inclusive");
+    }
+
+    @Test
+    public void creationShouldFailIfIpv6AnonLeftMaskBitsIsNotValid() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new IpAddressHelper(64, -1, emptyList()))
+                .withMessage("IPv6 anonymize mask bits should be between 1 and 32 or 56 and 128 inclusive");
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new IpAddressHelper(64, 129, emptyList()))
+                .withMessage("IPv6 anonymize mask bits should be between 1 and 32 or 56 and 128 inclusive");
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new IpAddressHelper(64, 33, emptyList()))
+                .withMessage("IPv6 anonymize mask bits should be between 1 and 32 or 56 and 128 inclusive");
+    }
+
+    @Test
+    public void creationShouldFailIfIpv6LocalNetworksIsNotValid() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new IpAddressHelper(64, 56, singletonList("abc")))
+                .withMessage("Unable to process IPv6-related configuration");
     }
 
     @Test

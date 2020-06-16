@@ -23,8 +23,10 @@ public class IpAddressHelper {
     private final List<IPAddress> ipv6LocalNetworkMaskAddresses;
 
     public IpAddressHelper(int ipv6AlwaysMaskBits, int ipv6AnonLeftMaskBits, List<String> ipv6LocalNetworks) {
-        ipv6AlwaysMaskAddress = toAddress(String.format("::/%d", ipv6AlwaysMaskBits)).getNetworkMask();
-        ipv6AnonLeftMaskAddress = toAddress(String.format("::/%d", ipv6AnonLeftMaskBits)).getNetworkMask();
+        ipv6AlwaysMaskAddress =
+                toAddress(String.format("::/%d", validateIpv6AlwaysMaskBits(ipv6AlwaysMaskBits))).getNetworkMask();
+        ipv6AnonLeftMaskAddress =
+                toAddress(String.format("::/%d", validateIpv6AnonLeftMaskBits(ipv6AnonLeftMaskBits))).getNetworkMask();
         ipv6LocalNetworkMaskAddresses = ipv6LocalNetworks.stream()
                 .map(this::toAddress)
                 .collect(Collectors.toList());
@@ -68,11 +70,31 @@ public class IpAddressHelper {
         return null;
     }
 
+    private static int validateIpv6AlwaysMaskBits(int ipv6AlwaysMaskBits) {
+        if (ipv6AlwaysMaskBits < 1 || ipv6AlwaysMaskBits > 128) {
+            throw new IllegalArgumentException("IPv6 always mask bits should be between 1 and 128 inclusive");
+        }
+
+        return ipv6AlwaysMaskBits;
+    }
+
+    private static int validateIpv6AnonLeftMaskBits(int ipv6AnonLeftMaskBits) {
+            if (ipv6AnonLeftMaskBits < 1
+                || ipv6AnonLeftMaskBits > 128
+                || (ipv6AnonLeftMaskBits > 32 && ipv6AnonLeftMaskBits < 56)) {
+
+            throw new IllegalArgumentException(
+                    "IPv6 anonymize mask bits should be between 1 and 32 or 56 and 128 inclusive");
+        }
+
+        return ipv6AnonLeftMaskBits;
+    }
+
     private IPAddress toAddress(String address) {
         try {
             return new IPAddressString(address).toAddress();
         } catch (AddressStringException e) {
-            throw new IllegalArgumentException("Unable to process IPv6-related configuration");
+            throw new IllegalArgumentException("Unable to process IPv6-related configuration", e);
         }
     }
 
