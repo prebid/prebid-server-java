@@ -79,7 +79,7 @@ public class IpAddressHelper {
     }
 
     private static int validateIpv6AnonLeftMaskBits(int ipv6AnonLeftMaskBits) {
-            if (ipv6AnonLeftMaskBits < 1
+        if (ipv6AnonLeftMaskBits < 1
                 || ipv6AnonLeftMaskBits > 128
                 || (ipv6AnonLeftMaskBits > 32 && ipv6AnonLeftMaskBits < 56)) {
 
