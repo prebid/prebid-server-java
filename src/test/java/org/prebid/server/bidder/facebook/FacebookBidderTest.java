@@ -49,28 +49,33 @@ public class FacebookBidderTest extends VertxTest {
     private static final String PLATFORM_ID = "101";
     private static final String APP_SECRET = "6237";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    public static final String TIMEOUT_NOTIFICATION_URL_TEMPLATE = "https://url/?p=%s&a=%s&auction=%s&ortb_loss_code=2";
 
     private FacebookBidder facebookBidder;
 
     @Before
     public void setUp() {
-        facebookBidder = new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, APP_SECRET, jacksonMapper);
+        facebookBidder = new FacebookBidder(
+                ENDPOINT_URL, PLATFORM_ID, APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnBlankArguments() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, " ", APP_SECRET, jacksonMapper))
+                () -> new FacebookBidder(
+                        ENDPOINT_URL, " ", APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook platform-id specified.");
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(ENDPOINT_URL, PLATFORM_ID, " ", jacksonMapper))
+                () -> new FacebookBidder(
+                        ENDPOINT_URL, PLATFORM_ID, " ", TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder("invalid_url", PLATFORM_ID, APP_SECRET, jacksonMapper))
+                .isThrownBy(() -> new FacebookBidder(
+                        "invalid_url", PLATFORM_ID, APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -714,8 +719,7 @@ public class FacebookBidderTest extends VertxTest {
         final HttpRequest<Void> notification = facebookBidder.makeTimeoutNotification(httpRequest);
 
         // then
-        assertThat(notification.getUri()).isEqualTo(
-                "https://www.facebook.com/audiencenetwork/nurl/?partner=101&app=test&auction=req1&ortb_loss_code=2");
+        assertThat(notification.getUri()).isEqualTo("https://url/?p=101&a=test&auction=req1&ortb_loss_code=2");
     }
 
     private static BidRequest givenBidRequest(

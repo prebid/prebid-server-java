@@ -457,10 +457,11 @@ public class ServiceConfiguration {
 
     @Bean
     HttpBidderRequester httpBidderRequester(
+            @Value("${auction.timeout-notification-timeout-ms}") int timeoutNotificationTimeoutMs,
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory) {
 
-        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory);
+        return new HttpBidderRequester(timeoutNotificationTimeoutMs, httpClient, bidderRequestCompletionTrackerFactory);
     }
 
     @Bean

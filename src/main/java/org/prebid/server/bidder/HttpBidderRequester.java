@@ -43,14 +43,16 @@ import java.util.stream.Stream;
 public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
-    private static final int NOTIFICATION_TIMEOUT_MS = 200;
 
+    private final int timeoutNotificationTimeoutMs;
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
 
-    public HttpBidderRequester(HttpClient httpClient,
+    public HttpBidderRequester(int timeoutNotificationTimeoutMs,
+                               HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory) {
 
+        this.timeoutNotificationTimeoutMs = timeoutNotificationTimeoutMs;
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
     }
@@ -169,7 +171,7 @@ public class HttpBidderRequester {
                         timeoutNotification.getUri(),
                         timeoutNotification.getHeaders(),
                         timeoutNotification.getBody(),
-                        NOTIFICATION_TIMEOUT_MS);
+                        timeoutNotificationTimeoutMs);
             }
         }
 
@@ -195,7 +197,7 @@ public class HttpBidderRequester {
     /**
      * Returns true if response HTTP status code is equal to 200 or 204, otherwise false.
      */
-    private static boolean isOkOrNoContent(HttpCall httpCall) {
+    private static <T> boolean isOkOrNoContent(HttpCall<T> httpCall) {
         final int statusCode = httpCall.getResponse().getStatusCode();
         return statusCode == HttpResponseStatus.OK.code() || statusCode == HttpResponseStatus.NO_CONTENT.code();
     }

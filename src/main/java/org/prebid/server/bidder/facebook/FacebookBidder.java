@@ -59,20 +59,25 @@ public class FacebookBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String TIMEOUT_NOTIFICATION_URL =
-            "https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2";
-
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
     private final String endpointUrl;
     private final String platformId;
     private final String appSecret;
+    private final String timeoutNotificationUrlTemplate;
     private final JacksonMapper mapper;
 
-    public FacebookBidder(String endpointUrl, String platformId, String appSecret, JacksonMapper mapper) {
+    public FacebookBidder(String endpointUrl,
+                          String platformId,
+                          String appSecret,
+                          String timeoutNotificationUrlTemplate,
+                          JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");
+        this.timeoutNotificationUrlTemplate = HttpUtil.validateUrl(
+                Objects.requireNonNull(timeoutNotificationUrlTemplate));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -377,7 +382,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        final String url = String.format(TIMEOUT_NOTIFICATION_URL, this.platformId, publisherId, requestId);
+        final String url = String.format(timeoutNotificationUrlTemplate, this.platformId, publisherId, requestId);
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)

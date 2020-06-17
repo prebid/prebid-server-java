@@ -68,7 +68,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        bidderHttpConnector = new HttpBidderRequester(httpClient, null);
+        bidderHttpConnector = new HttpBidderRequester(200, httpClient, null);
     }
 
     @Test
