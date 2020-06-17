@@ -35,4 +35,16 @@ public interface Bidder<T> {
      * Extracts targeting from bidder-specific extension. It is safe to assume that {@code ext} is not null.
      */
     Map<String, String> extractTargeting(ObjectNode ext);
+
+    /**
+     * This method is much the same as makeRequests, except it is fed the bidder request that timed out,
+     * and expects that only one notification "request" will be generated. A use case for multiple timeout notifications
+     * has not been anticipated.
+     * <p>
+     * Do note that if makeRequests returns multiple requests, and more than one of these times out,
+     * makeTimeoutNotification will be called once for each timed out request.
+     */
+    default HttpRequest<Void> makeTimeoutNotification(HttpRequest<T> httpRequest) {
+        return null;
+    }
 }

@@ -5,8 +5,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -77,8 +75,9 @@ public class HttpBidderRequester {
         final ResultBuilder<T> resultBuilder = new ResultBuilder<>(httpRequests, bidderErrors, completionTracker);
 
         final List<Future<Void>> httpRequestFutures = httpRequests.stream()
-                .map(httpRequest -> doRequest(httpRequest, timeout, bidder))
+                .map(httpRequest -> doRequest(httpRequest, timeout))
                 .map(httpCallFuture -> httpCallFuture
+                        .map(httpCall -> processTimeout(httpCall, bidder))
                         .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
                 .collect(Collectors.toList());
 
@@ -106,23 +105,22 @@ public class HttpBidderRequester {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private <T> Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout, Bidder<T> bidder) {
+    private <T> Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout) {
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failResponse(new TimeoutException("Timeout has been exceeded"), httpRequest, bidder);
+            return failResponse(new TimeoutException("Timeout has been exceeded"), httpRequest);
         }
 
         return httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
                 httpRequest.getBody(), remainingTimeout)
                 .compose(response -> processResponse(response, httpRequest))
-                .recover(exception -> failResponse(exception, httpRequest, bidder));
+                .recover(exception -> failResponse(exception, httpRequest));
     }
 
     /**
      * Produces {@link Future} with {@link HttpCall} containing request and error description.
      */
-    private <T> Future<HttpCall<T>> failResponse(Throwable exception,
-                                                 HttpRequest<T> httpRequest, Bidder<T> bidder) {
+    private <T> Future<HttpCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder url: {0} with message: {1}",
                 httpRequest.getUri(), exception.getMessage());
         logger.debug("Error occurred while sending HTTP request to a bidder url: {0}", exception, httpRequest.getUri());
@@ -132,30 +130,8 @@ public class HttpBidderRequester {
                         ? BidderError.Type.timeout
                         : BidderError.Type.generic;
 
-        if (errorType == BidderError.Type.timeout) {
-            if (bidder instanceof TimeoutBidder) {
-                final TimeoutBidder<T> timeoutBidder = (TimeoutBidder<T>) bidder;
-                doTimeoutNotificationRequest(httpRequest, timeoutBidder);
-            }
-        }
-
         return Future.succeededFuture(
                 HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
-    }
-
-    /**
-     *  doTimeoutNotificationRequest shoots on {@link TimeoutException} or {@link ConnectTimeoutException},
-     *  if Bidder supports Timeout notifications
-     */
-    private <T> void doTimeoutNotificationRequest(HttpRequest<T> httpRequest, TimeoutBidder<T> bidder) {
-        final HttpRequest<Void> timeoutNotification = bidder.makeTimeoutNotification(httpRequest);
-        if (timeoutNotification != null) {
-            final HttpMethod method = timeoutNotification.getMethod();
-            final String uri = timeoutNotification.getUri();
-            final MultiMap headers = timeoutNotification.getHeaders();
-            final String body = timeoutNotification.getBody();
-            httpClient.request(method, uri, headers, body, NOTIFICATION_TIMEOUT_MS);
-        }
     }
 
     /**
@@ -180,6 +156,24 @@ public class HttpBidderRequester {
                             : BidderError.Type.bad_server_response);
         }
         return null;
+    }
+
+    private <T> HttpCall<T> processTimeout(HttpCall<T> httpCall, Bidder<T> bidder) {
+        final BidderError error = httpCall.getError();
+
+        if (error != null && error.getType() == BidderError.Type.timeout) {
+            final HttpRequest<Void> timeoutNotification = bidder.makeTimeoutNotification(httpCall.getRequest());
+            if (timeoutNotification != null) {
+                httpClient.request(
+                        timeoutNotification.getMethod(),
+                        timeoutNotification.getUri(),
+                        timeoutNotification.getHeaders(),
+                        timeoutNotification.getBody(),
+                        NOTIFICATION_TIMEOUT_MS);
+            }
+        }
+
+        return httpCall;
     }
 
     private <T> Void processHttpCall(Bidder<T> bidder,

@@ -27,7 +27,6 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -54,8 +53,6 @@ public class HttpBidderRequesterTest extends VertxTest {
 
     @Mock
     private Bidder<BidRequest> bidder;
-    @Mock
-    private TimeoutBidder<BidRequest> timeoutBidder;
     @Mock
     private HttpClient httpClient;
 
@@ -336,26 +333,32 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldSendTimeoutNotificationIfTimeoutBidder() {
         // given
-        final BidRequest request = BidRequest.builder().build();
-        given(timeoutBidder.makeHttpRequests(request)).willReturn(Result.of(
-                Collections.singletonList(HttpRequest.<BidRequest>builder().build()),
-                null
-        ));
-        final HttpRequest<Void> timeoutRequest = HttpRequest.<Void>builder()
+        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(EMPTY)
+                .body(EMPTY)
+                .build();
+
+        given(bidder.makeHttpRequests(any()))
+                .willReturn(Result.of(
+                        singletonList(httpRequest),
+                        null));
+
+        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
+
+        given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
                 .uri("url")
                 .method(HttpMethod.POST)
                 .body("{}")
-                .build();
-        given(timeoutBidder.makeTimeoutNotification(any())).willReturn(timeoutRequest);
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        final Timeout timeout = timeoutFactory.create(clock.instant().minusMillis(1L).toEpochMilli(), 1L);
+                .build());
 
         // when
-        bidderHttpConnector.requestBids(timeoutBidder, request, timeout, false);
+        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
 
         // then
-        verify(timeoutBidder).makeTimeoutNotification(any());
+        verify(bidder).makeTimeoutNotification(eq(httpRequest));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
     }
 
     @Test

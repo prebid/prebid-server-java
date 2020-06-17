@@ -23,7 +23,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.TimeoutBidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookNative;
@@ -54,7 +53,7 @@ import java.util.stream.Collectors;
 /**
  * Facebook {@link Bidder} implementation.
  */
-public class FacebookBidder implements TimeoutBidder<BidRequest> {
+public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {

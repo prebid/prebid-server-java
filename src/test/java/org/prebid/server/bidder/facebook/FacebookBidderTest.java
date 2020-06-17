@@ -681,26 +681,6 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeTimeoutNotificationShouldGenerateRequest() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity(), identity()).toBuilder()
-                .site(Site.builder().publisher(Publisher.builder().id("test").build()).build())
-                .build();
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
-                .body(mapper.writeValueAsString(bidRequest))
-                .build();
-
-        // when
-        final HttpRequest<Void> notification = facebookBidder.makeTimeoutNotification(httpRequest);
-
-        // then
-        final String expectedUrl =
-                "https://www.facebook.com/audiencenetwork/nurl/?partner=101&app=test&auction=req1&ortb_loss_code=2";
-        assertThat(notification.getUri())
-                .isEqualTo(expectedUrl);
-    }
-
-    @Test
     public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -717,6 +697,25 @@ public class FacebookBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
                 .containsOnly(BidType.audio);
+    }
+
+    @Test
+    public void makeTimeoutNotificationShouldGenerateRequest() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(), identity()).toBuilder()
+                .site(Site.builder().publisher(Publisher.builder().id("test").build()).build())
+                .build();
+        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+                .body(mapper.writeValueAsString(bidRequest))
+                .payload(bidRequest)
+                .build();
+
+        // when
+        final HttpRequest<Void> notification = facebookBidder.makeTimeoutNotification(httpRequest);
+
+        // then
+        assertThat(notification.getUri()).isEqualTo(
+                "https://www.facebook.com/audiencenetwork/nurl/?partner=101&app=test&auction=req1&ortb_loss_code=2");
     }
 
     private static BidRequest givenBidRequest(
