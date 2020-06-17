@@ -25,6 +25,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -1831,17 +1832,20 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid() {
+    public void validateShouldNotReturnErrorMessageWhenSourceExtIsNotValid() {
         // given
-        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .source(Source.builder()
+                        .ext(mapper.valueToTree(mapper.createObjectNode().put("schain", "not-valid")))
+                        .build())
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
+                .first().asString().startsWith("request.source.ext is invalid: Cannot construct instance");
     }
 
     @Test

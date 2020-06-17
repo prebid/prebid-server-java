@@ -38,6 +38,8 @@ auction:
   stored-requests-timeout-ms: 50
   timeout-notification-timeout-ms: 200
   max-request-size: 262144
+  id-generator-type: uuid
+  generate-bid-id: false
   cache:
     expected-request-time-ms: 10
     only-winning-bids: false
@@ -77,6 +79,8 @@ settings:
     ttl-seconds: 360
     notification-endpoints-enabled: false
     account-invalidation-enabled: true
+  targeting:
+    truncate-attr-chars: 20
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:

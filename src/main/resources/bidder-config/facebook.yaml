@@ -6,6 +6,7 @@ adapters:
     app-secret:
     timeout-notification-url-template: https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:

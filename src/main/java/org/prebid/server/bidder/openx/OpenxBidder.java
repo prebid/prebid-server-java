@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -41,6 +42,7 @@ import java.util.stream.Collectors;
 public class OpenxBidder implements Bidder<BidRequest> {
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
+    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private static final TypeReference<ExtPrebid<?, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpOpenx>>() {
@@ -198,12 +200,16 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final Map<String, BidType> impIdToBidType = impIdToBidType(bidRequest);
 
+        final String bidCurrency = StringUtils.isNotBlank(bidResponse.getCur())
+                ? bidResponse.getCur()
+                : DEFAULT_BID_CURRENCY;
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType), null))
+                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType), bidCurrency))
                 .collect(Collectors.toList());
     }
 
