@@ -44,10 +44,8 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
@@ -56,7 +54,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.JsonMergeUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -83,7 +80,6 @@ public class ExchangeService {
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
 
-    private static final String ALL_BIDDERS_CONFIG = "*";
     private static final String GENERIC_SCHAIN_KEY = "*";
 
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
@@ -100,7 +96,6 @@ public class ExchangeService {
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
-    private final JsonMergeUtil jsonMergeUtil;
 
     public ExchangeService(long expectedCacheTime,
                            BidderCatalog bidderCatalog,
@@ -130,8 +125,6 @@ public class ExchangeService {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
-
-        this.jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
@@ -393,40 +386,14 @@ public class ExchangeService {
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
         final List<String> firstPartyDataBidders = firstPartyDataBidders(requestExt);
-        final Map<String, ExtBidderConfigFpd> biddersToConfigs = getBiddersToConfigs(requestExt);
 
         final Map<String, User> bidderToUser = prepareUsers(
-                bidders, context, aliases, bidRequest, extUser, uidsBody, firstPartyDataBidders, biddersToConfigs);
+                bidders, context, aliases, bidRequest, extUser, uidsBody, firstPartyDataBidders);
 
         return privacyEnforcementService
                 .mask(context, bidderToUser, extUser, bidders, aliases)
                 .map(bidderToPrivacyResult -> getBidderRequests(bidderToPrivacyResult, bidRequest, requestExt, imps,
-                        firstPartyDataBidders, biddersToConfigs));
-    }
-
-    private Map<String, ExtBidderConfigFpd> getBiddersToConfigs(ExtBidRequest requestExt) {
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
-        final List<ExtRequestPrebidBidderConfig> bidderConfigs = prebid == null ? null : prebid.getBidderconfig();
-
-        if (CollectionUtils.isEmpty(bidderConfigs)) {
-            return Collections.emptyMap();
-        }
-
-        final Map<String, ExtBidderConfigFpd> bidderToConfig = new HashMap<>();
-
-        bidderConfigs.stream()
-                .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
-                .map(prebidBidderConfig -> prebidBidderConfig.getConfig().getFpd())
-                .findFirst()
-                .ifPresent(extBidderConfigFpd -> bidderToConfig.put(ALL_BIDDERS_CONFIG, extBidderConfigFpd));
-
-        for (ExtRequestPrebidBidderConfig config : bidderConfigs) {
-            for (String bidder : config.getBidders()) {
-                final ExtBidderConfigFpd concreteFpd = config.getConfig().getFpd();
-                bidderToConfig.putIfAbsent(bidder, concreteFpd);
-            }
-        }
-        return bidderToConfig;
+                        firstPartyDataBidders));
     }
 
     private ExtUser extUser(User user) {
@@ -466,17 +433,13 @@ public class ExchangeService {
                                            BidRequest bidRequest,
                                            ExtUser extUser,
                                            Map<String, String> uidsBody,
-                                           List<String> firstPartyDataBidders,
-                                           Map<String, ExtBidderConfigFpd> biddersToConfigs) {
+                                           List<String> firstPartyDataBidders) {
 
         final Map<String, User> bidderToUser = new HashMap<>();
         for (String bidder : bidders) {
-            final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
-                    biddersToConfigs.get(ALL_BIDDERS_CONFIG));
-
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
             final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
-                    context.getUidsCookie(), useFirstPartyData, fpdConfig);
+                    context.getUidsCookie(), useFirstPartyData);
             bidderToUser.put(bidder, preparedUser);
         }
         return bidderToUser;
@@ -490,13 +453,11 @@ public class ExchangeService {
      * in case bidder does not use first party data.
      */
     private User prepareUser(User user, ExtUser extUser, String bidder, BidderAliases aliases,
-                             Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData,
-                             ExtBidderConfigFpd fpdConfig) {
+                             Map<String, String> uidsBody, UidsCookie uidsCookie, boolean useFirstPartyData) {
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
         final boolean shouldUpdateUserExt = extUser != null && extUser.getPrebid() != null;
         final boolean shouldRemoveUserFields = !useFirstPartyData && checkUserFieldsHavingValue(user);
 
-        User maskedUser = user;
         if (updatedBuyerUid != null || shouldRemoveUserFields || shouldUpdateUserExt) {
             final User.UserBuilder userBuilder = user == null ? User.builder() : user.toBuilder();
             if (updatedBuyerUid != null) {
@@ -521,11 +482,10 @@ public class ExchangeService {
                 userBuilder.ext(mapper.mapper().valueToTree(extUser.toBuilder().prebid(null).build()));
             }
 
-            maskedUser = userBuilder.build();
+            return userBuilder.build();
         }
 
-        final User fpdUser = fpdConfig == null ? null : fpdConfig.getUser();
-        return jsonMergeUtil.merge(fpdUser, maskedUser, User.class);
+        return user;
     }
 
     /**
@@ -576,8 +536,7 @@ public class ExchangeService {
                                                   BidRequest bidRequest,
                                                   ExtBidRequest requestExt,
                                                   List<Imp> imps,
-                                                  List<String> firstPartyDataBidders,
-                                                  Map<String, ExtBidderConfigFpd> biddersToConfigs) {
+                                                  List<String> firstPartyDataBidders) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(requestExt);
         final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = bidderToPrebidSchains(requestExt);
@@ -586,7 +545,7 @@ public class ExchangeService {
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(bidderPrivacyResult -> createBidderRequest(bidderPrivacyResult, bidRequest, requestExt, imps,
-                        firstPartyDataBidders, biddersToConfigs, bidderToPrebidBidders, bidderToPrebidSchains))
+                        firstPartyDataBidders, bidderToPrebidBidders, bidderToPrebidSchains))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -651,7 +610,6 @@ public class ExchangeService {
                                               ExtBidRequest requestExt,
                                               List<Imp> imps,
                                               List<String> firstPartyDataBidders,
-                                              Map<String, ExtBidderConfigFpd> biddersToConfigs,
                                               Map<String, JsonNode> bidderToPrebidBidders,
                                               Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains) {
         final String bidder = bidderPrivacyResult.getRequestBidder();
@@ -659,16 +617,14 @@ public class ExchangeService {
             return null;
         }
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
-        final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
-                biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
         return BidderRequest.of(bidder, bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData))
-                .app(prepareApp(bidRequest.getApp(), fpdConfig, useFirstPartyData))
-                .site(prepareSite(bidRequest.getSite(), fpdConfig, useFirstPartyData))
+                .app(prepareApp(bidRequest.getApp(), useFirstPartyData))
+                .site(prepareSite(bidRequest.getSite(), useFirstPartyData))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, firstPartyDataBidders, bidderToPrebidBidders, requestExt, bidRequest.getExt()))
                 .build());
@@ -712,28 +668,20 @@ public class ExchangeService {
      * Checks whether to pass the app.keywords and ext depending on request having a first party data
      * allowed for given bidder or not. And merge masked app with fpd config.
      */
-    private App prepareApp(App app, ExtBidderConfigFpd fpdConfig, boolean useFirstPartyData) {
-        final App maskedApp = app != null && !useFirstPartyData
+    private App prepareApp(App app, boolean useFirstPartyData) {
+        return app != null && !useFirstPartyData
                 ? app.toBuilder().keywords(null).ext(null).build()
                 : app;
-
-        final App fpdApp = fpdConfig == null ? null : fpdConfig.getApp();
-
-        return jsonMergeUtil.merge(fpdApp, maskedApp, App.class);
     }
 
     /**
      * Checks whether to pass the site.keywords, search and ext depending on request having a first party data
      * allowed for given bidder or not. And merge masked site with fpd config.
      */
-    private Site prepareSite(Site site, ExtBidderConfigFpd fpdConfig, boolean useFirstPartyData) {
-        final Site maskedSite = site != null && !useFirstPartyData
+    private Site prepareSite(Site site, boolean useFirstPartyData) {
+        return site != null && !useFirstPartyData
                 ? site.toBuilder().keywords(null).search(null).ext(null).build()
                 : site;
-
-        final Site fpdSite = fpdConfig == null ? null : fpdConfig.getSite();
-
-        return jsonMergeUtil.merge(fpdSite, maskedSite, Site.class);
     }
 
     /**
@@ -765,12 +713,10 @@ public class ExchangeService {
                                   ObjectNode requestExtNode) {
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
         final List<ExtRequestPrebidSchain> extPrebidSchains = extPrebid != null ? extPrebid.getSchains() : null;
-        final List<ExtRequestPrebidBidderConfig> extConfig = extPrebid != null ? extPrebid.getBidderconfig() : null;
         final boolean suppressSchains = extPrebidSchains != null;
-        final boolean suppressBidderConfig = extConfig != null;
         final boolean suppressPrebidData = firstPartyDataBidders != null;
 
-        if (!suppressPrebidData && bidderToPrebidBidders.isEmpty() && !suppressSchains && !suppressBidderConfig) {
+        if (!suppressPrebidData && bidderToPrebidBidders.isEmpty() && !suppressSchains) {
             return requestExtNode;
         }
 
@@ -790,7 +736,6 @@ public class ExchangeService {
         return mapper.mapper().valueToTree(ExtBidRequest.of(extPrebidBuilder
                 .data(prebidData)
                 .bidders(bidders)
-                .bidderconfig(null)
                 .schains(null)
                 .build()));
     }
