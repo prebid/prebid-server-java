@@ -270,19 +270,23 @@ public class StoredRequestProcessor {
     private ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
         final ObjectNode ext = bidRequest.getExt();
         if (ext != null) {
-            try {
-                final ExtBidRequest extBidRequest = mapper.mapper().treeToValue(ext, ExtBidRequest.class);
-                final ExtRequestPrebid prebid = extBidRequest.getPrebid();
-                if (prebid != null) {
-                    return prebid.getStoredrequest();
-                }
-            } catch (JsonProcessingException e) {
-                throw new InvalidRequestException(
-                        String.format("Incorrect bid request extension format for bidRequest with id %s",
-                                bidRequest.getId()));
+            final ExtBidRequest extBidRequest = extBidRequest(ext, bidRequest.getId());
+            final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+            if (prebid != null) {
+                return prebid.getStoredrequest();
             }
         }
         return null;
+    }
+
+    private ExtBidRequest extBidRequest(ObjectNode ext, String bidRequestId) {
+        try {
+            return mapper.mapper().treeToValue(ext, ExtBidRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(
+                    String.format("Incorrect extension format for bid request with id: %s, error: %s",
+                            bidRequestId, e.getMessage()));
+        }
     }
 
     /**

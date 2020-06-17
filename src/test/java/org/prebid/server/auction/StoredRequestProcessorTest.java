@@ -253,7 +253,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Incorrect bid request extension format for bidRequest with id test-id");
+                .hasMessageStartingWith("Incorrect extension format for bid request with id: test-id, error: "
+                        + "Cannot deserialize instance");
     }
 
     @Test
