@@ -54,7 +54,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.JsonMergeUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -97,7 +96,6 @@ public class ExchangeService {
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
-    private final JsonMergeUtil jsonMergeUtil;
 
     public ExchangeService(long expectedCacheTime,
                            BidderCatalog bidderCatalog,
@@ -127,8 +125,6 @@ public class ExchangeService {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
-
-        this.jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
