@@ -353,40 +353,35 @@ public class FacebookBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
-        try {
-            final BidRequest bidRequest = mapper.decodeValue(httpRequest.getBody(), BidRequest.class);
-            final String requestId = bidRequest.getId();
-            if (StringUtils.isEmpty(requestId)) {
-                return null;
-            }
-
-            final App app = bidRequest.getApp();
-            final Publisher appPublisher = app != null ? app.getPublisher() : null;
-            final Site site = bidRequest.getSite();
-            final Publisher sitePublisher = site != null ? site.getPublisher() : null;
-
-            final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
-            final String publisherId = publisher != null ? publisher.getId() : null;
-
-            if (StringUtils.isEmpty(publisherId)) {
-                return null;
-            }
-
-            final String url = String.format(
-                    TIMEOUT_NOTIFICATION_URL, this.platformId, publisherId, requestId
-            );
-            return HttpRequest.<Void>builder()
-                    .method(HttpMethod.GET)
-                    .uri(url)
-                    .build();
-        } catch (Exception e) {
-            return null;
-        }
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
     }
 
     @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+    public HttpRequest<Void> makeTimeoutNotification(HttpRequest<BidRequest> httpRequest) {
+        final BidRequest bidRequest = httpRequest.getPayload();
+        final String requestId = bidRequest.getId();
+        if (StringUtils.isEmpty(requestId)) {
+            return null;
+        }
+
+        final App app = bidRequest.getApp();
+        final Publisher appPublisher = app != null ? app.getPublisher() : null;
+        final Site site = bidRequest.getSite();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final String publisherId = publisher != null ? publisher.getId() : null;
+
+        if (StringUtils.isEmpty(publisherId)) {
+            return null;
+        }
+
+        final String url = String.format(TIMEOUT_NOTIFICATION_URL, this.platformId, publisherId, requestId);
+
+        return HttpRequest.<Void>builder()
+                .method(HttpMethod.GET)
+                .uri(url)
+                .build();
     }
 }
