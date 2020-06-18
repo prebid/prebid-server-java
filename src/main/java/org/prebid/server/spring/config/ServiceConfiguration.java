@@ -475,11 +475,20 @@ public class ServiceConfiguration {
 
     @Bean
     BidderErrorNotifier bidderErrorNotifier(
-            @Value("${auction.timeout-notification-timeout-ms}") int timeoutNotificationTimeoutMs,
+            @Value("${auction.timeout-notification.timeout-ms}") int timeoutNotificationTimeoutMs,
+            @Value("${auction.timeout-notification.log-result}") boolean logTimeoutNotificationResult,
+            @Value("${auction.timeout-notification.log-failure-only}") boolean logTimeoutNotificationFailureOnly,
+            @Value("${auction.timeout-notification.log-sampling-rate}") double logTimeoutNotificationSamplingRate,
             HttpClient httpClient,
             Metrics metrics) {
 
-        return new BidderErrorNotifier(timeoutNotificationTimeoutMs, httpClient, metrics);
+        return new BidderErrorNotifier(
+                timeoutNotificationTimeoutMs,
+                logTimeoutNotificationResult,
+                logTimeoutNotificationFailureOnly,
+                logTimeoutNotificationSamplingRate,
+                httpClient,
+                metrics);
     }
 
     @Bean

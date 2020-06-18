@@ -68,6 +68,12 @@ Removes and downloads file again if depending service cant process probably corr
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Timeout notification
+- `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
+- `auction.timeout-notification.log-result` - causes bidder timeout notification result to be logged
+- `auction.timeout-notification.log-failure-only` - causes only bidder timeout notification failures to be logged
+- `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
+
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.

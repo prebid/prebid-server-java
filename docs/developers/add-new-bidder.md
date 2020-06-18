@@ -36,6 +36,18 @@ Bidder implementations are scattered throughout several files:
 
 Bidder implementations may assume that any params have already been validated against the defined json-schema.
 
+### Timeout notification support
+This is an optional feature. If you wish to get timeout notifications when a bid request from PBS times out, you can implement the
+`org.prebid.server.bidder.Bidder.makeTimeoutNotification` method in your bidder implementation. If you do not wish 
+timeout notification, do not implement the method.
+
+`HttpRequest<Void> makeTimeoutNotification(HttpRequest<T> httpRequest)`
+
+Here the `HttpRequest` supplied as an argument is the request returned from `makeHttpRequests` that timed out. If a bidder generates
+multiple requests, and more than one of them times out, then there will be a call to `makeTimeoutNotification` for each failed
+request. The method should then return a `HttpRequest` object that will be the timeout notification to be sent to the bidder. 
+Timeout notifications will not generate subsequent timeout notifications if they time out or fail.
+
 ### Generic OpenRTB Bidder
 
 There's an option to implement a bidder by using a pre-existing template.

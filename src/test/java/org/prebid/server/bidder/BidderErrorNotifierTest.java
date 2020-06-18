@@ -45,7 +45,7 @@ public class BidderErrorNotifierTest {
 
     @Before
     public void setUp() {
-        bidderErrorNotifier = new BidderErrorNotifier(200, httpClient, metrics);
+        bidderErrorNotifier = new BidderErrorNotifier(200, true, false, 1d, httpClient, metrics);
     }
 
     @Test

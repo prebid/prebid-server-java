@@ -77,7 +77,7 @@ public class ConditionalLogger {
     }
 
     public void warn(String message, double samplingRate) {
-        if (samplingRate >= 1.0 || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
             logger.warn(message);
         }
     }

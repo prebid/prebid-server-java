@@ -36,7 +36,11 @@ auction:
   max-timeout-ms: 5000
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
-  timeout-notification-timeout-ms: 200
+  timeout-notification:
+    timeout-ms: 200
+    log-result: false
+    log-failure-only: false
+    log-sampling-rate: 0.0
   max-request-size: 262144
   id-generator-type: uuid
   generate-bid-id: false
