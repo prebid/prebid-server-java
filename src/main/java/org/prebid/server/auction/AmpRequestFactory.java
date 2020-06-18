@@ -236,7 +236,7 @@ public class AmpRequestFactory {
         final Site updatedSite = overrideSite(bidRequest.getSite(), targeting, request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
-        final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent, targeting, request);
+        final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent, targeting);
         final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), ccpaConsent);
         final ObjectNode updatedExt = overrideExt(bidRequest.getExt(), targeting);
 
@@ -424,7 +424,7 @@ public class AmpRequestFactory {
         return timeout > 0 && !Objects.equals(timeout, tmax) ? timeout : null;
     }
 
-    private User overrideUser(User user, String gdprConsent, Targeting targeting, HttpServerRequest request) {
+    private User overrideUser(User user, String gdprConsent, Targeting targeting) {
         final ObjectNode targetingUser = targeting.getUser();
         if (StringUtils.isBlank(gdprConsent) && targetingUser == null) {
             return null;

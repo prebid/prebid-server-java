@@ -20,6 +20,7 @@ import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -36,9 +37,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -51,6 +50,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -172,6 +172,7 @@ public class RequestValidator {
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
+            validateSource(bidRequest.getSource());
         } catch (ValidationException ex) {
             return ValidationResult.error(ex.getMessage());
         }
@@ -501,17 +502,18 @@ public class RequestValidator {
                 if (gdpr != null && gdpr != 0 && gdpr != 1) {
                     throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
                 }
-
-                final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
-                if (usPrivacy != null) {
-                    try {
-                        Ccpa.validateUsPrivacy(usPrivacy);
-                    } catch (PreBidException ex) {
-                        throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
-                    }
-                }
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
+            }
+        }
+    }
+
+    private void validateSource(Source source) throws ValidationException {
+        if (source != null && source.getExt() != null) {
+            try {
+                mapper.mapper().treeToValue(source.getExt(), ExtSource.class);
+            } catch (JsonProcessingException e) {
+                throw new ValidationException("request.source.ext is invalid: %s", e.getMessage());
             }
         }
     }

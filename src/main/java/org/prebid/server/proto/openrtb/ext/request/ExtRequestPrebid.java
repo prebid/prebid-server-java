@@ -61,11 +61,6 @@ public class ExtRequestPrebid {
     ExtRequestPrebidData data;
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.bidderconfig
-     */
-    List<ExtRequestPrebidBidderConfig> bidderconfig;
-
-    /**
      * Defines the contract for bidrequest.ext.prebid.events
      */
     ObjectNode events;
@@ -74,6 +69,11 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.schains
      */
     List<ExtRequestPrebidSchain> schains;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.nosale
+     */
+    List<String> nosale;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.auctiontimestamp
