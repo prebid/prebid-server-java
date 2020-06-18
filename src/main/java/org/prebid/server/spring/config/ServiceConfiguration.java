@@ -25,6 +25,7 @@ import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -465,13 +466,20 @@ public class ServiceConfiguration {
 
     @Bean
     HttpBidderRequester httpBidderRequester(
-            @Value("${auction.timeout-notification-timeout-ms}") int timeoutNotificationTimeoutMs,
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
+            BidderErrorNotifier bidderErrorNotifier) {
+
+        return new HttpBidderRequester(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier);
+    }
+
+    @Bean
+    BidderErrorNotifier bidderErrorNotifier(
+            @Value("${auction.timeout-notification-timeout-ms}") int timeoutNotificationTimeoutMs,
+            HttpClient httpClient,
             Metrics metrics) {
 
-        return new HttpBidderRequester(
-                timeoutNotificationTimeoutMs, httpClient, bidderRequestCompletionTrackerFactory, metrics);
+        return new BidderErrorNotifier(timeoutNotificationTimeoutMs, httpClient, metrics);
     }
 
     @Bean

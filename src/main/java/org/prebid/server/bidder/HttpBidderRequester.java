@@ -17,7 +17,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -45,20 +44,17 @@ public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private final int timeoutNotificationTimeoutMs;
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
-    private final Metrics metrics;
+    private final BidderErrorNotifier bidderErrorNotifier;
 
-    public HttpBidderRequester(int timeoutNotificationTimeoutMs,
-                               HttpClient httpClient,
+    public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
-                               Metrics metrics) {
+                               BidderErrorNotifier bidderErrorNotifier) {
 
-        this.timeoutNotificationTimeoutMs = timeoutNotificationTimeoutMs;
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
-        this.metrics = Objects.requireNonNull(metrics);
+        this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
     }
 
     /**
@@ -83,7 +79,7 @@ public class HttpBidderRequester {
         final List<Future<Void>> httpRequestFutures = httpRequests.stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .map(httpCallFuture -> httpCallFuture
-                        .map(httpCall -> processTimeout(httpCall, bidder))
+                        .map(httpCall -> bidderErrorNotifier.processTimeout(httpCall, bidder))
                         .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
                 .collect(Collectors.toList());
 
@@ -161,42 +157,6 @@ public class HttpBidderRequester {
                             ? BidderError.Type.bad_input
                             : BidderError.Type.bad_server_response);
         }
-        return null;
-    }
-
-    private <T> HttpCall<T> processTimeout(HttpCall<T> httpCall, Bidder<T> bidder) {
-        final BidderError error = httpCall.getError();
-
-        if (error != null && error.getType() == BidderError.Type.timeout) {
-            final HttpRequest<Void> timeoutNotification = bidder.makeTimeoutNotification(httpCall.getRequest());
-            if (timeoutNotification != null) {
-                httpClient.request(
-                        timeoutNotification.getMethod(),
-                        timeoutNotification.getUri(),
-                        timeoutNotification.getHeaders(),
-                        timeoutNotification.getBody(),
-                        timeoutNotificationTimeoutMs)
-                        .map(this::handleTimeoutNotificationSuccess)
-                        .otherwise(this::handleTimeoutNotificationFailure);
-            }
-        }
-
-        return httpCall;
-    }
-
-    private Void handleTimeoutNotificationSuccess(HttpClientResponse response) {
-        if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-            metrics.updateTimeoutNotificationMetric(true);
-        } else {
-            metrics.updateTimeoutNotificationMetric(false);
-        }
-
-        return null;
-    }
-
-    private Void handleTimeoutNotificationFailure(Throwable exception) {
-        metrics.updateTimeoutNotificationMetric(false);
-
         return null;
     }
 

@@ -20,7 +20,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -39,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
@@ -57,21 +57,23 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Mock
     private HttpClient httpClient;
     @Mock
-    private Metrics metrics;
+    private BidderErrorNotifier bidderErrorNotifier;
 
-    private HttpBidderRequester bidderHttpConnector;
+    private HttpBidderRequester httpBidderRequester;
 
     private Timeout timeout;
     private Timeout expiredTimeout;
 
     @Before
     public void setUp() {
+        given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        bidderHttpConnector = new HttpBidderRequester(200, httpClient, null, metrics);
+        httpBidderRequester = new HttpBidderRequester(httpClient, null, bidderErrorNotifier);
     }
 
     @Test
@@ -81,7 +83,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false).result();
 
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();
@@ -99,7 +101,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false).result();
 
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();
@@ -126,7 +128,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         headers.add("header2", "value2");
 
         // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
+        httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false);
 
         // then
         verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), eq(headers), eq("requestBody"), eq(500L));
@@ -145,7 +147,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
+        httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false);
 
         // then
         verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong());
@@ -172,7 +174,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
+        httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false);
 
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong());
@@ -197,7 +199,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false).result();
 
         // then
         assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
@@ -229,7 +231,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, true).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, true).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
@@ -253,7 +255,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), expiredTimeout, true).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), expiredTimeout, true).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -276,7 +278,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, true).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, true).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -299,7 +301,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, true).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, true).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -324,7 +326,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), expiredTimeout, false).result();
+                httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), expiredTimeout, false).result();
 
         // then
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
@@ -334,7 +336,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendTimeoutNotificationAndUpdateSuccessMetric() {
+    public void shouldNotifyBidderOfTimeout() {
         // given
         final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -346,85 +348,13 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
                 // bidder request
-                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
-                // timeout notification request
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
-
-        given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
-                .uri("url")
-                .method(HttpMethod.POST)
-                .body("{}")
-                .build());
-
-        // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
-
-        // then
-        verify(bidder).makeTimeoutNotification(eq(httpRequest));
-        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
-        verify(metrics).updateTimeoutNotificationMetric(eq(true));
-    }
-
-    @Test
-    public void shouldSendTimeoutNotificationAndUpdateFailedMetricWhenResponseCodeNonSuccess() {
-        // given
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(EMPTY)
-                .body(EMPTY)
-                .build();
-
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
-
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
-                // bidder request
-                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
-                // timeout notification request
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
-
-        given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
-                .uri("url")
-                .method(HttpMethod.POST)
-                .body("{}")
-                .build());
-
-        // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
-
-        // then
-        verify(bidder).makeTimeoutNotification(eq(httpRequest));
-        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
-        verify(metrics).updateTimeoutNotificationMetric(eq(false));
-    }
-
-    @Test
-    public void shouldSendTimeoutNotificationAndUpdateFailedMetricWhenResponseTimedOut() {
-        // given
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(EMPTY)
-                .body(EMPTY)
-                .build();
-
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
-
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
-                // bidder request and timeout notification request
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
-        given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
-                .uri("url")
-                .method(HttpMethod.POST)
-                .body("{}")
-                .build());
-
         // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
+        httpBidderRequester.requestBids(bidder, BidRequest.builder().build(), timeout, false);
 
         // then
-        verify(bidder).makeTimeoutNotification(eq(httpRequest));
-        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
-        verify(metrics).updateTimeoutNotificationMetric(eq(false));
+        verify(bidderErrorNotifier).processTimeout(any(), same(bidder));
     }
 
     @Test
@@ -494,7 +424,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         singletonList(BidderError.badServerResponse("makeBidsError"))));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector
+        final BidderSeatBid bidderSeatBid = httpBidderRequester
                 .requestBids(bidder, BidRequest.builder().test(1).build(), timeout, false)
                 .result();
 
@@ -526,7 +456,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         givenHttpClientReturnsResponse(204, EMPTY);
 
         // when
-        bidderHttpConnector.requestBids(bidder, BidRequest.builder().test(1).build(), timeout, false);
+        httpBidderRequester.requestBids(bidder, BidRequest.builder().test(1).build(), timeout, false);
 
         // then
         verify(bidder).makeBids(argThat(httpCall -> httpCall.getResponse().getBody().equals("{}")), any());
