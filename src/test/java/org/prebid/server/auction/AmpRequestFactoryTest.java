@@ -34,18 +34,15 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1190,88 +1187,6 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .isEqualTo(User.builder().build());
         assertThat(result.getRegs())
                 .isEqualTo(Regs.of(1, mapper.valueToTree(ExtRegs.of(1, "1Y-N"))));
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameter() {
-        // given
-        given(httpRequest.getParam("targeting")).willReturn(
-                "%7B%22bidders%22%3A%20%5B%20%22rubicon%22%2C%20%22appnexus%22%20%5D%2C%20%22site%22%3A%20%7B%22"
-                        + "tags%22%3A%22autoestima%22%2C%22tagsId%22%3A%221357%22%2C%22parametro%22%3A%22%22%2C%22"
-                        + "device%22%3A%22celular%22%7D%2C%20%22user%22%3A%7B%22ID%22%3A%2233559%22%7D%7D%0A");
-
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
-                Imp.builder().build());
-
-        // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
-                .extracting(ExtBidRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getData)
-                .containsOnly(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus")));
-
-        final ObjectNode expectedExtDataSite = mapper.createObjectNode()
-                .put("tags", "autoestima")
-                .put("tagsId", "1357")
-                .put("parametro", "")
-                .put("device", "celular");
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtSite.class)).isNotNull()
-                .containsOnly(ExtSite.of(1, expectedExtDataSite));
-
-        final ObjectNode expectedExtDataUser = mapper.createObjectNode()
-                .put("ID", "33559");
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtUser.class)).isNotNull()
-                .containsOnly(ExtUser.builder().data(expectedExtDataUser).build());
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithInjectedParametersFromTargetingParameterWhenParametersAreEmpty()
-            throws JsonProcessingException {
-        // given
-        given(httpRequest.getParam("targeting")).willReturn(
-                "%7B%22bidders%22%3A%20%5B%20%5D%2C%20%22site%22%3A%20%7B%7D%2C%20%22user%22%3A%7B%7D%7D%0A");
-
-        givenBidRequest(
-                builder -> builder
-                        .user(User.builder().build())
-                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
-                Imp.builder().build());
-
-        // when
-        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
-                .extracting(ExtBidRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getData)
-                .containsOnly(ExtRequestPrebidData.of(emptyList()));
-
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtSite.class)).isNotNull()
-                .containsOnly(ExtSite.of(1, mapper.createObjectNode()));
-
-        assertThat(singletonList(result))
-                .extracting(BidRequest::getUser)
-                .extracting(User::getExt)
-                .extracting(ext -> mapper.treeToValue(ext, ExtUser.class)).isNotNull()
-                .containsOnly(ExtUser.builder().data(mapper.createObjectNode()).build());
     }
 
     @Test
