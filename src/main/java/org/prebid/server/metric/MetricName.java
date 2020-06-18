@@ -46,6 +46,7 @@ public enum MetricName {
 
     // request and adapter statuses
     ok,
+    failed,
     nobid,
     gotbids,
     badinput,

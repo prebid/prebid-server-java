@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -47,14 +48,17 @@ public class HttpBidderRequester {
     private final int timeoutNotificationTimeoutMs;
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
+    private final Metrics metrics;
 
     public HttpBidderRequester(int timeoutNotificationTimeoutMs,
                                HttpClient httpClient,
-                               BidderRequestCompletionTrackerFactory completionTrackerFactory) {
+                               BidderRequestCompletionTrackerFactory completionTrackerFactory,
+                               Metrics metrics) {
 
         this.timeoutNotificationTimeoutMs = timeoutNotificationTimeoutMs;
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     /**
@@ -171,11 +175,29 @@ public class HttpBidderRequester {
                         timeoutNotification.getUri(),
                         timeoutNotification.getHeaders(),
                         timeoutNotification.getBody(),
-                        timeoutNotificationTimeoutMs);
+                        timeoutNotificationTimeoutMs)
+                        .map(this::handleTimeoutNotificationSuccess)
+                        .otherwise(this::handleTimeoutNotificationFailure);
             }
         }
 
         return httpCall;
+    }
+
+    private Void handleTimeoutNotificationSuccess(HttpClientResponse response) {
+        if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+            metrics.updateTimeoutNotificationMetric(true);
+        } else {
+            metrics.updateTimeoutNotificationMetric(false);
+        }
+
+        return null;
+    }
+
+    private Void handleTimeoutNotificationFailure(Throwable exception) {
+        metrics.updateTimeoutNotificationMetric(false);
+
+        return null;
     }
 
     private <T> Void processHttpCall(Bidder<T> bidder,

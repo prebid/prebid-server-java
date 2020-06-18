@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -55,6 +56,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     private Bidder<BidRequest> bidder;
     @Mock
     private HttpClient httpClient;
+    @Mock
+    private Metrics metrics;
 
     private HttpBidderRequester bidderHttpConnector;
 
@@ -68,7 +71,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        bidderHttpConnector = new HttpBidderRequester(200, httpClient, null);
+        bidderHttpConnector = new HttpBidderRequester(200, httpClient, null, metrics);
     }
 
     @Test
@@ -331,7 +334,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendTimeoutNotificationIfTimeoutBidder() {
+    public void shouldSendTimeoutNotificationAndUpdateSuccessMetric() {
         // given
         final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -339,12 +342,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .body(EMPTY)
                 .build();
 
-        given(bidder.makeHttpRequests(any()))
-                .willReturn(Result.of(
-                        singletonList(httpRequest),
-                        null));
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
 
-        givenHttpClientProducesException(new TimeoutException("Timeout exception"));
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                // bidder request
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
+                // timeout notification request
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
 
         given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
                 .uri("url")
@@ -358,6 +362,69 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         verify(bidder).makeTimeoutNotification(eq(httpRequest));
         verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
+        verify(metrics).updateTimeoutNotificationMetric(eq(true));
+    }
+
+    @Test
+    public void shouldSendTimeoutNotificationAndUpdateFailedMetricWhenResponseCodeNonSuccess() {
+        // given
+        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(EMPTY)
+                .body(EMPTY)
+                .build();
+
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
+
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                // bidder request
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
+                // timeout notification request
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
+
+        given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
+                .uri("url")
+                .method(HttpMethod.POST)
+                .body("{}")
+                .build());
+
+        // when
+        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
+
+        // then
+        verify(bidder).makeTimeoutNotification(eq(httpRequest));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
+        verify(metrics).updateTimeoutNotificationMetric(eq(false));
+    }
+
+    @Test
+    public void shouldSendTimeoutNotificationAndUpdateFailedMetricWhenResponseTimedOut() {
+        // given
+        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(EMPTY)
+                .body(EMPTY)
+                .build();
+
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(httpRequest), null));
+
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                // bidder request and timeout notification request
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
+
+        given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
+                .uri("url")
+                .method(HttpMethod.POST)
+                .body("{}")
+                .build());
+
+        // when
+        bidderHttpConnector.requestBids(bidder, BidRequest.builder().build(), timeout, false);
+
+        // then
+        verify(bidder).makeTimeoutNotification(eq(httpRequest));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
+        verify(metrics).updateTimeoutNotificationMetric(eq(false));
     }
 
     @Test

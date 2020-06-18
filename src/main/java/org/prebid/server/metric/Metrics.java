@@ -39,6 +39,7 @@ public class Metrics extends UpdatableMetrics {
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
     private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final TimeoutNotificationMetrics timeoutNotificationMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -58,6 +59,7 @@ public class Metrics extends UpdatableMetrics {
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
+        timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -400,5 +402,13 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateCacheRequestFailedTime(long timeElapsed) {
         updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
+    }
+
+    public void updateTimeoutNotificationMetric(boolean success) {
+        if (success) {
+            timeoutNotificationMetrics.incCounter(MetricName.ok);
+        } else {
+            timeoutNotificationMetrics.incCounter(MetricName.failed);
+        }
     }
 }
