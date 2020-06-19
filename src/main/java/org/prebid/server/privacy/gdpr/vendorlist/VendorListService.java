@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -43,22 +44,26 @@ import java.util.stream.Collectors;
 public abstract class VendorListService<T, V> {
 
     private static final Logger logger = LoggerFactory.getLogger(VendorListService.class);
+
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
     private static final Integer EXPIRE_DAY_CACHE_DURATION = 5;
+
+    private final String cacheDir;
+    private final String endpointTemplate;
+    private final int defaultTimeoutMs;
+    private final FileSystem fileSystem;
+    private final HttpClient httpClient;
+    private final Metrics metrics;
+    protected final JacksonMapper mapper;
+
+    protected final Set<Integer> knownVendorIds;
 
     /**
      * This is memory/performance optimized model slice:
      * map of vendor list version -> map of vendor ID -> Vendors
      */
     protected final Map<Integer, Map<Integer, V>> cache;
-    private final FileSystem fileSystem;
-    private final HttpClient httpClient;
-    private final String endpointTemplate;
-    private final int defaultTimeoutMs;
-    private final String cacheDir;
-    protected Set<Integer> knownVendorIds;
-    protected JacksonMapper mapper;
 
     public VendorListService(String cacheDir,
                              String endpointTemplate,
@@ -67,6 +72,7 @@ public abstract class VendorListService<T, V> {
                              BidderCatalog bidderCatalog,
                              FileSystem fileSystem,
                              HttpClient httpClient,
+                             Metrics metrics,
                              JacksonMapper mapper) {
 
         this.cacheDir = Objects.requireNonNull(cacheDir);
@@ -74,12 +80,13 @@ public abstract class VendorListService<T, V> {
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.fileSystem = Objects.requireNonNull(fileSystem);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
 
-        createAndCheckWritePermissionsFor(fileSystem, cacheDir);
+        knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
 
-        this.knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
-        this.cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
+        createAndCheckWritePermissionsFor(fileSystem, cacheDir);
+        cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
     }
 
     /**
@@ -112,6 +119,11 @@ public abstract class VendorListService<T, V> {
      * Verifies all significant fields of given {@link T} object.
      */
     protected abstract boolean isValid(T vendorList);
+
+    /**
+     * Returns the version of TCF which {@link VendorListService} implementation deals with.
+     */
+    protected abstract int getTcfVersion();
 
     private static Set<Integer> knownVendorIds(Integer gdprHostVendorId, BidderCatalog bidderCatalog) {
         final Set<Integer> knownVendorIds = bidderCatalog.knownVendorIds();
@@ -160,18 +172,22 @@ public abstract class VendorListService<T, V> {
      */
     public Future<Map<Integer, V>> forVersion(int version) {
         if (version <= 0) {
-            return Future.failedFuture(String.format("Vendor list for version %s not valid.", version));
+            return Future.failedFuture(
+                    String.format("TCF %d vendor list for version %d not valid.", getTcfVersion(), version));
         }
 
         final Map<Integer, V> idToVendor = cache.get(version);
         if (idToVendor != null) {
             return Future.succeededFuture(idToVendor);
         } else {
-            logger.info("Vendor list for version {0} not found, started downloading.", version);
+            final int tcf = getTcfVersion();
+            metrics.updatePrivacyTcfVendorListMissingMetric(tcf, version);
+
+            logger.info("TCF {0} vendor list for version {1} not found, started downloading.", tcf, version);
             fetchNewVendorListFor(version);
 
             return Future.failedFuture(
-                    String.format("Vendor list for version %d not fetched yet, try again later.", version));
+                    String.format("TCF %d vendor list for version %d not fetched yet, try again later.", tcf, version));
         }
     }
 
@@ -182,9 +198,9 @@ public abstract class VendorListService<T, V> {
         final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
 
         httpClient.get(url, defaultTimeoutMs)
-                .compose(response -> processResponse(response, version))
-                .compose(vendorListResult -> saveToFileAndUpdateCache(vendorListResult, version))
-                .recover(exception -> failResponse(exception, version));
+                .map(response -> processResponse(response, version))
+                .recover(exception -> failResponse(exception, version))
+                .compose(vendorListResult -> saveToFileAndUpdateCache(vendorListResult, version));
     }
 
     /**
@@ -192,7 +208,7 @@ public abstract class VendorListService<T, V> {
      * and creates {@link Future} with {@link VendorListResult} from body content
      * or throws {@link PreBidException} in case of errors.
      */
-    private Future<VendorListResult<T>> processResponse(HttpClientResponse response, int version) {
+    private VendorListResult<T> processResponse(HttpClientResponse response, int version) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -207,7 +223,7 @@ public abstract class VendorListService<T, V> {
             throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
         }
 
-        return Future.succeededFuture(VendorListResult.of(version, body, vendorList));
+        return VendorListResult.of(version, body, vendorList);
     }
 
     private Future<Void> saveToFileAndUpdateCache(VendorListResult<T> vendorListResult, int version) {
@@ -229,9 +245,13 @@ public abstract class VendorListService<T, V> {
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
+                metrics.updatePrivacyTcfVendorListOkMetric(getTcfVersion(), version);
+
                 logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
                 promise.complete();
             } else {
+                metrics.updatePrivacyTcfVendorListErrorMetric(getTcfVersion(), version);
+
                 logger.error("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
                         filepath);
                 promise.fail(result.cause());
@@ -244,10 +264,15 @@ public abstract class VendorListService<T, V> {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<Void> failResponse(Throwable exception, int version) {
-        logger.warn("Error fetching vendor list via HTTP for version {0} with message: {1}",
-                version, exception.getMessage());
-        logger.debug("Error fetching vendor list via HTTP for version {0}", exception, version);
+    private Future<VendorListResult<T>> failResponse(Throwable exception, int version) {
+        final int tcf = getTcfVersion();
+        metrics.updatePrivacyTcfVendorListErrorMetric(tcf, version);
+
+        logger.warn("Error fetching TCF {0} vendor list via HTTP for version {1} with message: {2}",
+                tcf, version, exception.getMessage());
+        logger.debug("Error fetching TCF {0} vendor list via HTTP for version {0}",
+                tcf, exception, version);
+
         return Future.failedFuture(exception);
     }
 

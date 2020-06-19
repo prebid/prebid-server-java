@@ -73,3 +73,6 @@ Following metrics are collected and submitted if account is configured with `det
 - `usersync.bad_requests` - number of requests received with bidder not specified
 - `usersync.<bidder-name>.sets` - number of requests received resulted in `uid` cookie update for `<bidder-name>`
 - `usersync.<bidder-name>.gdpr_prevent` - number of requests received that didn't result in `uid` cookie update for `<bidder-name>` because of lack of user consent for this action according to GDPR
+
+## Privacy metrics
+- `privacy.tcf.(v1,v2).vendorlist.{VERSION}.(missing|ok|err)` - number of processed vendor lists of particular version
