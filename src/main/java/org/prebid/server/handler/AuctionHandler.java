@@ -255,7 +255,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 privacy.getConsent(),
                 ip,
                 account.getGdpr(),
-                MetricName.legacy,
                 preBidRequestContext.getTimeout())
                 .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getActions(), hostVendorIdIsMissing));
     }

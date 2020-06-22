@@ -81,13 +81,12 @@ public class FileApplicationSettingsTest {
                         + "eventsEnabled: 'true',"
                         + "enforceCcpa: 'true',"
                         + "gdpr: {"
-                        + "enabled: {"
+                        + "enabled: 'true',"
+                        + "integration-enabled: {"
                         + "amp: 'true',"
                         + "web: 'true',"
                         + "video: 'true',"
-                        + "app: 'true',"
-                        + "cookie-sync: 'true',"
-                        + "set-uid: 'true'"
+                        + "app: 'true'"
                         + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
@@ -119,7 +118,8 @@ public class FileApplicationSettingsTest {
                 .eventsEnabled(true)
                 .enforceCcpa(true)
                 .gdpr(AccountGdprConfig.builder()
-                        .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true, true))
+                        .enabled(true)
+                        .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                         .purposes(Purposes.builder()
                                 .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
                                 .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))

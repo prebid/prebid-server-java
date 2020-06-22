@@ -73,14 +73,13 @@ public class TcfDefinerService {
                                                            String gdprConsent,
                                                            String ipAddress,
                                                            AccountGdprConfig accountGdprConfig,
-                                                           MetricName requestType,
                                                            Timeout timeout) {
         return resultForInternal(
                 gdpr,
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
-                requestType,
+                null,
                 timeout,
                 country -> createAllowAllTcfResponse(vendorIds, country),
                 (consentString, country) -> tcf2Service.permissionsFor(vendorIds, consentString)
@@ -152,6 +151,11 @@ public class TcfDefinerService {
     }
 
     private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig, MetricName requestType) {
+        if (requestType == null) {
+            return accountGdprConfig != null && accountGdprConfig.getEnabled() != null
+                    ? accountGdprConfig.getEnabled()
+                    : gdprEnabled;
+        }
         final EnabledForRequestType enabledForRequestType = accountGdprConfig != null
                 ? accountGdprConfig.getEnabledForRequestType()
                 : null;
