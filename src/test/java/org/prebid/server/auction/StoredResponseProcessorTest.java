@@ -41,7 +41,6 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -90,7 +89,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -108,7 +107,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -121,20 +120,20 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldAddImpToRequiredRequestWhenItsStoredBidResponseIsEmpty() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("impId1")
-                .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder().
-                        storedBidResponse(emptyList())
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                        .storedBidResponse(emptyList())
                         .build(), null)))
                 .build());
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
                 singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder().
-                                storedBidResponse(emptyList())
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
+                                .storedBidResponse(emptyList())
                                 .build(), null)))
                         .build()),
                 emptyList()));
@@ -155,7 +154,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -171,8 +170,8 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
                                 .storedBidResponse(asList(ExtStoredBidResponse.of("rubicon", "storedBidResponseId1"),
                                         ExtStoredBidResponse.of("appnexus", "storedBidResponseId2")))
-                                .build()
-                        , null)))
+                                .build(),
+                        null)))
                 .build());
 
         final Map<String, String> storedResponse = new HashMap<>();
@@ -183,13 +182,12 @@ public class StoredResponseProcessorTest extends VertxTest {
                 SeatBid.builder().seat("appnexus").bid(singletonList(Bid.builder().id("id2").build()))
                         .build())));
 
-
         given(applicationSettings.getStoredResponses(any(), any())).willReturn(
                 Future.succeededFuture(StoredResponseDataResult.of(storedResponse, emptyList())));
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -230,7 +228,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -263,7 +261,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
@@ -308,7 +306,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(emptyList(),
@@ -342,7 +340,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                singletonMap("appnexusAlias", "appnexus"), timeout);
+                BidderAliases.of(singletonMap("appnexusAlias", "appnexus"), singletonMap("appnexusAlias", 1)), timeout);
 
         // then
         final ObjectNode impExtResult = mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
@@ -364,7 +362,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -382,7 +380,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -399,7 +397,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -425,7 +423,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -447,7 +445,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps,
-                emptyMap(), timeout);
+                BidderAliases.of(null, null), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -553,7 +551,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
                 emptyList()), 100));
 
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(BidType.video, null, null, null, null, null);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.of(null, BidType.video, null, null, null, null, null);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("rubicon").bid(singletonList(Bid.builder().ext(mapper.createObjectNode()

@@ -144,7 +144,7 @@ public class BidderCatalogTest {
     public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
-                singletonList("banner"), singletonList("video"), null, 99, true, false);
+                singletonList("banner"), singletonList("video"), null, 99, true, true, false);
 
         bidderDeps = BidderDeps.builder()
                 .name(BIDDER)
@@ -204,6 +204,26 @@ public class BidderCatalogTest {
 
         // when and then
         assertThat(bidderCatalog.bidderByName(BIDDER)).isSameAs(bidder);
+    }
+
+    @Test
+    public void nameByVendorIdShouldReturnBidderNameForVendorId() {
+        // given
+        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
+                singletonList("banner"), singletonList("video"), null, 99, true, true, false);
+
+        bidderDeps = BidderDeps.builder()
+                .name(BIDDER)
+                .deprecatedNames(emptyList())
+                .aliases(emptyList())
+                .bidder(bidder)
+                .bidderInfo(bidderInfo)
+                .build();
+
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.nameByVendorId(99)).isEqualTo(BIDDER);
     }
 
     @Test

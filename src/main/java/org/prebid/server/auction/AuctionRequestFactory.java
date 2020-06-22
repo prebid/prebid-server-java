@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -29,8 +30,10 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -45,9 +48,14 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -68,6 +76,8 @@ import java.util.stream.StreamSupport;
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
+    private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
+    private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -84,6 +94,7 @@ public class AuctionRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final IdGenerator idGenerator;
     private final JacksonMapper mapper;
 
     public AuctionRequestFactory(long maxRequestSize,
@@ -101,6 +112,7 @@ public class AuctionRequestFactory {
                                  TimeoutResolver timeoutResolver,
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
+                                 IdGenerator idGenerator,
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
@@ -118,6 +130,7 @@ public class AuctionRequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -161,7 +174,7 @@ public class AuctionRequestFactory {
                                             long startTime, TimeoutResolver timeoutResolver) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
-        return accountFrom(bidRequest, timeout)
+        return accountFrom(bidRequest, timeout, routingContext)
                 .map(account -> AuctionContext.builder()
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
@@ -218,37 +231,49 @@ public class AuctionRequestFactory {
         }
 
         final BidRequest result;
-
         final HttpServerRequest request = context.request();
+
+        final Device device = bidRequest.getDevice();
+        final Device populatedDevice = populateDevice(device, request);
+
+        final Site site = bidRequest.getSite();
+        final Site populatedSite = hasApp ? null : populateSite(site, request);
+
+        final User user = bidRequest.getUser();
+        final User populatedUser = populateUser(user);
+
+        final Source source = bidRequest.getSource();
+        final Source populatedSource = populateSource(source);
+
         final List<Imp> imps = bidRequest.getImp();
-
-        final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
-        final Site populatedSite = hasApp ? null : populateSite(bidRequest.getSite(), request);
-        final User populatedUser = populateUser(bidRequest.getUser());
         final List<Imp> populatedImps = populateImps(imps, request);
-        final Integer at = bidRequest.getAt();
-        final boolean updateAt = at == null || at == 0;
-        final ObjectNode ext = bidRequest.getExt();
-        final ObjectNode populatedExt = ext != null
-                ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
-                : null;
-        final boolean updateCurrency = CollectionUtils.isEmpty(bidRequest.getCur()) && adServerCurrency != null;
-        final Long resolvedTmax = resolveTmax(bidRequest.getTmax(), timeoutResolver);
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
-                || updateAt || populatedExt != null || updateCurrency || resolvedTmax != null) {
+        final Integer at = bidRequest.getAt();
+        final Integer resolvedAt = resolveAt(at);
+
+        final List<String> cur = bidRequest.getCur();
+        final List<String> resolvedCurrencies = resolveCurrencies(cur);
+
+        final Long tmax = bidRequest.getTmax();
+        final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
+
+        final ObjectNode ext = bidRequest.getExt();
+        final ObjectNode populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
+
+        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
+                || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
+                || populatedExt != null) {
 
             result = bidRequest.toBuilder()
-                    .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
-                    .site(populatedSite != null ? populatedSite : bidRequest.getSite())
-                    .user(populatedUser != null ? populatedUser : bidRequest.getUser())
+                    .device(populatedDevice != null ? populatedDevice : device)
+                    .site(populatedSite != null ? populatedSite : site)
+                    .user(populatedUser != null ? populatedUser : user)
+                    .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
-                    // set the auction type to 1 if it wasn't on the request,
-                    // since header bidding is generally a first-price auction.
-                    .at(updateAt ? Integer.valueOf(1) : at)
+                    .at(resolvedAt != null ? resolvedAt : at)
+                    .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
+                    .tmax(resolvedTmax != null ? resolvedTmax : tmax)
                     .ext(populatedExt != null ? populatedExt : ext)
-                    .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
-                    .tmax(resolvedTmax != null ? resolvedTmax : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;
@@ -258,10 +283,9 @@ public class AuctionRequestFactory {
 
     private void checkBlacklistedApp(App app) {
         final String appId = app.getId();
-        if (CollectionUtils.isNotEmpty(blacklistedApps) && StringUtils.isNotBlank(appId)
-                && blacklistedApps.contains(appId)) {
-            throw new BlacklistedAppException(String.format(
-                    "Prebid-server does not process requests from App ID: %s", appId));
+        if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
+            throw new BlacklistedAppException(
+                    String.format("Prebid-server does not process requests from App ID: %s", appId));
         }
     }
 
@@ -270,21 +294,41 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (User-Agent, IP-address).
      */
     private Device populateDevice(Device device, HttpServerRequest request) {
-        final Device result;
-
         final String ip = device != null ? device.getIp() : null;
         final String ua = device != null ? device.getUa() : null;
 
         if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
-            builder.ip(StringUtils.isNotBlank(ip) ? ip : paramsExtractor.ipFrom(request));
             builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
 
-            result = builder.build();
-        } else {
-            result = null;
+            if (StringUtils.isBlank(ip)) {
+                final String ipFromRequest = paramsExtractor.ipFrom(request);
+                final InetAddress inetAddress = ipFromRequest != null ? inetAddressByIp(ipFromRequest) : null;
+
+                builder.ip(resolveDeviceIp(ip, ipFromRequest, inetAddress))
+                        .ipv6(resolveDeviceIpv6(ip, ipFromRequest, inetAddress));
+            }
+            return builder.build();
         }
-        return result;
+
+        return null;
+    }
+
+    private String resolveDeviceIp(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
+        return deviceIp == null && inetAddress instanceof Inet4Address ? ipFromRequest : deviceIp;
+    }
+
+    private String resolveDeviceIpv6(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
+        return deviceIp == null && inetAddress instanceof Inet6Address ? ipFromRequest : deviceIp;
+    }
+
+    private InetAddress inetAddressByIp(String ip) {
+        try {
+            return InetAddress.getByName(ip);
+        } catch (UnknownHostException e) {
+            logger.debug("Error occurred while checking IP", e);
+            return null;
+        }
     }
 
     /**
@@ -378,6 +422,23 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Returns {@link Source} with updated source.tid or null if nothing changed.
+     */
+    private Source populateSource(Source source) {
+        final String tid = source != null ? source.getTid() : null;
+        if (StringUtils.isEmpty(tid)) {
+            final String generatedId = idGenerator.generateId();
+            if (StringUtils.isNotEmpty(generatedId)) {
+                final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
+                return builder
+                        .tid(generatedId)
+                        .build();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Updates imps with security 1, when secured request was received and imp security was not defined.
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
@@ -395,34 +456,33 @@ public class AuctionRequestFactory {
     /**
      * Returns updated {@link ExtBidRequest} if required or null otherwise.
      */
-    private ObjectNode populateBidRequestExtension(ObjectNode extNode, List<Imp> imps) {
-        final ExtBidRequest extBidRequest = extBidRequest(extNode);
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+    private ObjectNode populateRequestExt(ObjectNode extNode, List<Imp> imps) {
+        final ExtBidRequest ext = extBidRequest(extNode);
+        if (ext != null) {
+            final ExtRequestPrebid prebid = ext.getPrebid();
 
-        final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
-        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
+            final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
+            final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
 
-        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
-        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
+            final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+            final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
 
-        final ObjectNode result;
-        if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
-            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                    ? prebid.toBuilder()
-                    : ExtRequestPrebid.builder();
+            if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
+                final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                        ? prebid.toBuilder()
+                        : ExtRequestPrebid.builder();
 
-            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
-                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
-                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                    .cache(ObjectUtils.defaultIfNull(updatedCache,
-                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                    .build()));
-        } else {
-            result = null;
+                return mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
+                        .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                                getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                        .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                                getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                        .cache(ObjectUtils.defaultIfNull(updatedCache,
+                                getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                        .build()));
+            }
         }
-        return result;
+        return null;
     }
 
     /**
@@ -487,7 +547,6 @@ public class AuctionRequestFactory {
                     .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
                     .mediatypepricegranularity(targeting.getMediatypepricegranularity())
-                    .currency(targeting.getCurrency())
                     .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
@@ -604,6 +663,24 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Returns updated request.at or null if nothing changed.
+     * <p>
+     * Set the auction type to 1 if it wasn't on the request, since header bidding is generally a first-price auction.
+     */
+    private static Integer resolveAt(Integer at) {
+        return at == null || at == 0 ? 1 : null;
+    }
+
+    /**
+     * Returns default list of currencies if it wasn't on the request, otherwise null.
+     */
+    private List<String> resolveCurrencies(List<String> currencies) {
+        return CollectionUtils.isEmpty(currencies) && adServerCurrency != null
+                ? Collections.singletonList(adServerCurrency)
+                : null;
+    }
+
+    /**
      * Determines request timeout with the help of {@link TimeoutResolver}.
      * Returns resolved new value or null if existing request timeout doesn't need to update.
      */
@@ -647,7 +724,7 @@ public class AuctionRequestFactory {
     /**
      * Returns {@link Account} fetched by {@link ApplicationSettings}.
      */
-    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout) {
+    private Future<Account> accountFrom(BidRequest bidRequest, Timeout timeout, RoutingContext routingContext) {
         final String accountId = accountIdFrom(bidRequest);
         final boolean blankAccountId = StringUtils.isBlank(accountId);
 
@@ -658,19 +735,9 @@ public class AuctionRequestFactory {
         }
 
         return blankAccountId
-                ? responseToMissingAccount(accountId)
+                ? responseForEmptyAccount(routingContext)
                 : applicationSettings.getAccountById(accountId, timeout)
-                .recover(exception -> accountFallback(exception, responseToMissingAccount(accountId)));
-    }
-
-    /**
-     * Returns response depending on enforceValidAccount flag.
-     */
-    private Future<Account> responseToMissingAccount(String accountId) {
-        return enforceValidAccount
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                        String.format("Unauthorised account id %s", accountId), accountId))
-                : Future.succeededFuture(emptyAccount(accountId));
+                .recover(exception -> accountFallback(exception, accountId, routingContext));
     }
 
     /**
@@ -683,7 +750,7 @@ public class AuctionRequestFactory {
         final Site site = bidRequest.getSite();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
+        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
@@ -716,21 +783,34 @@ public class AuctionRequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    /**
-     * Log any not {@link PreBidException} errors. Returns response provided in method parameters.
-     */
-    private static Future<Account> accountFallback(Throwable exception, Future<Account> response) {
-        if (!(exception instanceof PreBidException)) {
+    private Future<Account> responseForEmptyAccount(RoutingContext routingContext) {
+        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", routingContext), 100);
+        return responseForUnknownAccount(StringUtils.EMPTY);
+    }
+
+    private static String accountErrorMessage(String message, RoutingContext routingContext) {
+        final HttpServerRequest request = routingContext.request();
+        return String.format("%s, Url: %s and Referer: %s", message, request.absoluteURI(),
+                request.headers().get(HttpUtil.REFERER_HEADER));
+    }
+
+    private Future<Account> accountFallback(Throwable exception, String accountId,
+                                            RoutingContext routingContext) {
+        if (exception instanceof PreBidException) {
+            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), routingContext), 100);
+        } else {
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
-        return response;
+
+        // hide all errors occurred while fetching account
+        return responseForUnknownAccount(accountId);
     }
 
-    /**
-     * Creates {@link Account} instance with filled out ID field only.
-     */
-    private static Account emptyAccount(String accountId) {
-        return Account.builder().id(accountId).build();
+    private Future<Account> responseForUnknownAccount(String accountId) {
+        return enforceValidAccount
+                ? Future.failedFuture(new UnauthorizedAccountException(
+                String.format("Unauthorized account id: %s", accountId), accountId))
+                : Future.succeededFuture(Account.empty(accountId));
     }
 }

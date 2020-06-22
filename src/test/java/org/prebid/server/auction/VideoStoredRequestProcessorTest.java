@@ -11,10 +11,7 @@ import com.iab.openrtb.request.video.CacheConfig;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
-import com.iab.openrtb.request.video.VideoUser;
-import com.iab.openrtb.request.video.VideoVideo;
 import io.vertx.core.Future;
-import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,7 +34,6 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.validation.VideoRequestValidator;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
@@ -56,7 +52,6 @@ import static org.mockito.Mockito.verify;
 
 public class VideoStoredRequestProcessorTest extends VertxTest {
 
-    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
     private static final String STORED_REQUEST_ID = "storedReqId";
     private static final String STORED_POD_ID = "storedPodId";
     @Rule
@@ -97,9 +92,9 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFutureWithMergedStoredAndDefaultRequest() {
         // given
-        final VideoUser user = VideoUser.builder()
+        final User user = User.builder()
                 .yob(123)
-                .buyeruids(singletonMap("key", "value"))
+                .buyeruid("value")
                 .gender("gender")
                 .keywords("keywords")
                 .build();
@@ -121,7 +116,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 podconfigBuilder -> podconfigBuilder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, Json.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
@@ -156,7 +151,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
                 .cache(ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null))
                 .targeting(ExtRequestTargeting.builder()
-                        .pricegranularity(Json.mapper.valueToTree(PriceGranularity.createFromString("med")))
+                        .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("med")))
                         .includebidderkeys(true)
                         .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false))
                         .build())
@@ -170,7 +165,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .badv(singletonList("badv"))
                 .cur(singletonList("USD"))
                 .tmax(0L)
-                .ext(Json.mapper.valueToTree(ExtBidRequest.of(ext)))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ext)))
                 .build();
 
         assertThat(result.result()).isEqualTo(WithPodErrors.of(expectedMergedRequest, emptyList()));
@@ -227,7 +222,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                         .durationRangeSec(Arrays.asList(200, 100)))
                         .build())
                 .site(Site.builder().id("siteId").build())
-                .video(VideoVideo.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
     }
 }

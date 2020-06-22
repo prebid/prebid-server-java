@@ -54,6 +54,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Mock
     private Bidder<BidRequest> bidder;
     @Mock
+    private TimeoutBidder<BidRequest> timeoutBidder;
+    @Mock
     private HttpClient httpClient;
 
     private HttpBidderRequester bidderHttpConnector;
@@ -84,8 +86,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getBids()).isEmpty();
         assertThat(bidderSeatBid.getHttpCalls()).isEmpty();
         assertThat(bidderSeatBid.getErrors())
-                .containsOnly(BidderError.failedToRequestBids("The bidder failed to generate any bid " +
-                        "requests, but also failed to generate an error"));
+                .containsOnly(BidderError.failedToRequestBids(
+                        "The bidder failed to generate any bid requests, but also failed to generate an error"));
     }
 
     @Test
@@ -331,6 +333,27 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
+    public void shouldSendTimeoutNotificationIfTimeoutBidder() {
+        // given
+        given(timeoutBidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
+                emptyList()));
+
+        givenHttpClientProducesException(new TimeoutException("Timeout error"));
+
+        // when
+        bidderHttpConnector.requestBids(timeoutBidder, BidRequest.builder().build(), timeout, false);
+
+        // then
+        verify(timeoutBidder).makeTimeoutNotification(any());
+    }
+
+    @Test
     public void shouldTolerateMultipleErrors() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
@@ -377,7 +400,6 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .headers(new CaseInsensitiveHeaders())
                         .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
-
 
         given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
                 // simulate response error for the first request

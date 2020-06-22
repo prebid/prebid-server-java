@@ -37,6 +37,8 @@ auction:
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
   max-request-size: 262144
+  id-generator-type: uuid
+  generate-bid-id: false
   cache:
     expected-request-time-ms: 10
     only-winning-bids: false
@@ -75,6 +77,9 @@ settings:
     cache-size: 10000
     ttl-seconds: 360
     notification-endpoints-enabled: false
+    account-invalidation-enabled: true
+  targeting:
+    truncate-attr-chars: 20
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
@@ -83,13 +88,55 @@ host-cookie:
   ttl-days: 90
   max-cookie-size-bytes: 0
 gdpr:
+  enabled: true
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
-    http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
-    http-default-timeout-ms: 2000
+    v1:
+      http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
+      http-default-timeout-ms: 2000
+    v2:
+      http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
+      http-default-timeout-ms: 2000
+  purposes:
+    p1:
+      enforce-purpose: full
+      enforce-vendors: true
+    p2:
+      enforce-purpose: full
+      enforce-vendors: true
+    p3:
+      enforce-purpose: full
+      enforce-vendors: true
+    p4:
+      enforce-purpose: full
+      enforce-vendors: true
+    p5:
+      enforce-purpose: full
+      enforce-vendors: true
+    p6:
+      enforce-purpose: full
+      enforce-vendors: true
+    p7:
+      enforce-purpose: full
+      enforce-vendors: true
+    p8:
+      enforce-purpose: full
+      enforce-vendors: true
+    p9:
+      enforce-purpose: full
+      enforce-vendors: true
+    p10:
+      enforce-purpose: full
+      enforce-vendors: true
+  special-features:
+    sf1:
+      enforce: true
+    sf2:
+      enforce: true
+  purpose-one-treatment-interpretation: ignore
 ccpa:
-  enforce: false
+  enforce: true
 geolocation:
   enabled: true
   type: maxmind

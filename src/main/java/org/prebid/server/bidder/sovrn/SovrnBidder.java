@@ -10,8 +10,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.Cookie;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -111,7 +111,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
                 .bidfloor(sovrnExt.getBidfloor())
-                .tagid(ObjectUtils.firstNonNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
+                .tagid(ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
 
@@ -160,7 +160,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, null))
+                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

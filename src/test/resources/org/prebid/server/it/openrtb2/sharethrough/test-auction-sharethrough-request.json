@@ -33,7 +33,7 @@
     "language": "en",
     "ifa": "ifaId",
     "ua": "Android Chrome/60",
-    "ip" : "127.0.0.1"
+    "ip": "127.0.0.1"
   },
   "site": {
     "page": "http://www.example.com",
@@ -57,6 +57,16 @@
   "ext": {
     "prebid": {
       "debug": 1,
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      },
       "aliases": {
         "appnexusAlias": "appnexus",
         "conversantAlias": "conversant"
@@ -70,16 +80,6 @@
               "increment": 0.1
             }
           ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
         }
       },
       "cache": {
@@ -87,7 +87,8 @@
         "vastxml": {
           "ttlseconds": 120
         }
-      }
+      },
+      "auctiontimestamp": 1000
     }
   },
   "user": {

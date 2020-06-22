@@ -27,12 +27,12 @@ public class PubmaticTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromPubmatic() throws IOException, JSONException {
         // given
         // pubmatic bid response for imp 9
-        wireMockRule.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-pubmatic-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubmatic/test-pubmatic-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-request.json"), true,
                         false))
                 .willReturn(aResponse()
@@ -41,7 +41,7 @@ public class PubmaticTest extends IntegrationTest {
                                 "openrtb2/pubmatic/test-cache-matcher-pubmatic.json")));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -63,17 +63,17 @@ public class PubmaticTest extends IntegrationTest {
     public void auctionShouldRespondWithBidsFromPubmatic() throws IOException {
         // given
         // pubmatic bid response for ad unit 9
-        wireMockRule.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/pubmatic/test-pubmatic-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/pubmatic/test-pubmatic-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/pubmatic/test-cache-pubmatic-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/pubmatic/test-cache-pubmatic-response.json"))));
 
         // when
-        final Response response = given(spec)
+        final Response response = given(SPEC)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")

@@ -26,9 +26,19 @@ public class ExtRequestPrebid {
     Map<String, String> aliases;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.aliasgvlids
+     */
+    Map<String, Integer> aliasgvlids;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
      */
     Map<String, BigDecimal> bidadjustmentfactors;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.currency
+     */
+    ExtRequestCurrency currency;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting
@@ -51,13 +61,27 @@ public class ExtRequestPrebid {
     ExtRequestPrebidData data;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.events
+     */
+    ObjectNode events;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.schains
      */
     List<ExtRequestPrebidSchain> schains;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.nosale
+     */
+    List<String> nosale;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.auctiontimestamp
+     */
+    Long auctiontimestamp;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.bidders
      */
     ObjectNode bidders;
 }
-

@@ -25,6 +25,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -1315,9 +1316,12 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("pricegranularity")).build())
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(new TextNode("pricegranularity"))
+                                .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1336,6 +1340,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1356,6 +1361,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1370,8 +1376,10 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
-                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2,
-                                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))))
+                                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(
+                                        2,
+                                        singletonList(ExtGranularityRange.of(
+                                                BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))))
                                 .build())
                         .build())))
                 .build();
@@ -1416,6 +1424,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1430,8 +1439,11 @@ public class RequestValidatorTest extends VertxTest {
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
                 ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
         final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(
-                mapper.valueToTree(ExtPriceGranularity.of(-1, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(1))))), null, null);
+                mapper.valueToTree(ExtPriceGranularity.of(
+                        -1,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(1))))),
+                null,
+                null);
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
@@ -1440,6 +1452,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1462,6 +1475,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1663,7 +1677,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].source missing required field: \"source\"");
+                .containsOnly("request.user.ext.eids[0] missing required field: \"source\"");
     }
 
     @Test
@@ -1818,17 +1832,20 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid(){
+    public void validateShouldNotReturnErrorMessageWhenSourceExtIsNotValid() {
         // given
-        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .source(Source.builder()
+                        .ext(mapper.valueToTree(mapper.createObjectNode().put("schain", "not-valid")))
+                        .build())
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
+                .first().asString().startsWith("request.source.ext is invalid: Cannot construct instance");
     }
 
     @Test
@@ -1892,7 +1909,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorWhenContextSubTypeAndContextTypeOutOfPossibleContentValuesRange()
+    public void validateShouldReturnErrorWhenContextSubTypeAndContextTypeOutOfPossibleContentValuesRange()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
@@ -1909,7 +1926,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorWhenContextSubTypeAndContextTypeOutOfPossibleSocialValuesRange()
+    public void validateShouldReturnErrorWhenContextSubTypeAndContextTypeOutOfPossibleSocialValuesRange()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
@@ -1926,7 +1943,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorWhenContextSubTypeAndContextTypeOutOfPossibleProductValuesRange()
+    public void validateShouldReturnErrorWhenContextSubTypeAndContextTypeOutOfPossibleProductValuesRange()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
@@ -2142,7 +2159,6 @@ public class RequestValidatorTest extends VertxTest {
                         + " {title, img, video, data}");
     }
 
-
     @Test
     public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasTitleAndData()
             throws JsonProcessingException {
@@ -2200,7 +2216,6 @@ public class RequestValidatorTest extends VertxTest {
                 .containsOnly(
                         "request.imp[0].native.request.assets[0] must define at most one of {title, img, video, data}");
     }
-
 
     @Test
     public void validateShouldReturnValidationResultWithErrorWhenHasZeroTitleLen() throws JsonProcessingException {
@@ -2413,8 +2428,8 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
-                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got" +
-                                " 0");
+                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]."
+                                + " Got 0");
     }
 
     @Test
@@ -2484,7 +2499,6 @@ public class RequestValidatorTest extends VertxTest {
                 .containsOnly(
                         "request.ext.prebid.bidadjustmentfactors.rubicon must be a positive number. Got -1.100000");
     }
-
 
     @Test
     public void validateShouldReturnValidationMessageWhenBidderUnknown() {
@@ -2558,14 +2572,14 @@ public class RequestValidatorTest extends VertxTest {
                 .containsOnly("request.imp[0].id and request.imp[1].id are both \"11\". Imp IDs must be unique.");
     }
 
-    private BidRequest givenBidRequest(
+    private static BidRequest givenBidRequest(
             Function<Native.NativeBuilder, Native.NativeBuilder> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
     }
 
-    private BidRequest givenBidRequestWithNativeRequest(
+    private static BidRequest givenBidRequestWithNativeRequest(
             Function<Request.RequestBuilder, Request.RequestBuilder> nativeRequestCustomizer)
             throws JsonProcessingException {
         return validBidRequestBuilder()
