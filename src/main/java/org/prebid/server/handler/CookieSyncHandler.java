@@ -25,6 +25,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -172,7 +173,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         accountById(requestAccount, timeout)
                 .compose(account -> tcfDefinerService.resultForVendorIds(
-                        vendorIds, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout)
+                        vendorIds, gdprAsString, gdprConsent, ip, account.getGdpr(), MetricName.cookie_sync, timeout)
                         .compose(this::handleVendorIdResult)
                         .compose(ignored -> tcfDefinerService.resultForBidderNames(
                                 biddersToSync, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout))

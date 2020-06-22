@@ -19,6 +19,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -109,7 +110,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         accountById(requestAccount, timeout)
                 .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip,
-                        account.getGdpr(), timeout))
+                        account.getGdpr(), MetricName.setuid, timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 

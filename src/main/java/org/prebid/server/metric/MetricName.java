@@ -43,6 +43,8 @@ public enum MetricName {
     amp,
     video,
     legacy,
+    setuid,
+    cookie_sync,
 
     // request and adapter statuses
     ok,

@@ -36,6 +36,7 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -234,7 +235,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(
                 givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, "account")));
 
-        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder().enabled(true).build();
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true, true)).build();
         final Account account = Account.builder().gdpr(accountGdprConfig).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -246,7 +248,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
 
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any(),
+                any());
         verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
     }
 
@@ -266,7 +269,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
 
-        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any(), any());
         verify(tcfDefinerService).resultForBidderNames(anySet(), any(), any(), any(), isNull(), any());
     }
 
@@ -1130,7 +1133,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     private void givenTcfServiceReturningVendorIdResult(Set<Integer> vendorIds) {
-        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, actions(vendorIds), null)));
     }
 

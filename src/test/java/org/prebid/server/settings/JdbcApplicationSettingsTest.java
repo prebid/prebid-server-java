@@ -24,6 +24,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -118,7 +119,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
                 + "tcf_config, analytics_sampling_factor, truncate_target_attr) "
-                + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1, 0);");
+                + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": {\"amp\": true, \"app\": true,"
+                + " \"video\": true, \"web\": true, \"cookie-sync\": true, \"set-uid\": true}}', 1, 0);");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
@@ -171,7 +173,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .eventsEnabled(true)
                     .enforceCcpa(true)
                     .gdpr(AccountGdprConfig.builder()
-                            .enabled(true)
+                            .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true, true))
                             .build())
                     .truncateTargetAttr(0)
                     .build());

@@ -12,7 +12,8 @@ import lombok.NoArgsConstructor;
 @Data
 public class AccountGdprConfig {
 
-    Boolean enabled;
+    @JsonProperty("enabled")
+    EnabledForRequestType enabledForRequestType;
 
     Purposes purposes;
 
