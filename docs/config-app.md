@@ -102,9 +102,6 @@ There are several typical keys:
 
 But feel free to add additional bidder's specific options.
 
-## Admin
-- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
-
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
 

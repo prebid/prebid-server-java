@@ -39,7 +39,6 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -83,7 +82,6 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final BidderCatalog bidderCatalog;
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
-    private final AdminManager adminManager;
     private final HttpInteractionLogger httpInteractionLogger;
     private final JacksonMapper mapper;
 
@@ -95,7 +93,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                       BidderCatalog bidderCatalog,
                       Set<String> biddersSupportingCustomTargeting,
                       AmpResponsePostProcessor ampResponsePostProcessor,
-                      AdminManager adminManager,
                       HttpInteractionLogger httpInteractionLogger,
                       JacksonMapper mapper) {
 
@@ -107,7 +104,6 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
-        this.adminManager = Objects.requireNonNull(adminManager);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -333,9 +329,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
 
-                // TODO adminManager: enable when admin endpoints can be bound on application port
-                //adminManager.accept(AdminManager.COUNTER_KEY, logger,
-                //        logMessageFrom(invalidRequestException, message, context));
                 conditionalLogger.info(String.format("%s, Referer: %s", message,
                         routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
 
@@ -391,12 +384,6 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
-    }
-
-    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
-        return exception.isNeedEnhancedLogging()
-                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
-                : message;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime,

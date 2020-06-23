@@ -29,7 +29,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.AccountCacheInvalidationHandler;
-import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -53,7 +52,6 @@ import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -250,7 +248,6 @@ public class WebConfiguration {
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
-            AdminManager adminManager,
             HttpInteractionLogger httpInteractionLogger,
             JacksonMapper mapper) {
 
@@ -260,7 +257,6 @@ public class WebConfiguration {
                 analyticsReporter,
                 metrics,
                 clock,
-                adminManager,
                 httpInteractionLogger,
                 mapper);
     }
@@ -275,7 +271,6 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
-            AdminManager adminManager,
             HttpInteractionLogger httpInteractionLogger,
             JacksonMapper mapper) {
 
@@ -288,7 +283,6 @@ public class WebConfiguration {
                 bidderCatalog,
                 ampProperties.getCustomTargetingSet(),
                 ampResponsePostProcessor,
-                adminManager,
                 httpInteractionLogger,
                 mapper);
     }
@@ -456,9 +450,6 @@ public class WebConfiguration {
         private VersionHandler versionHandler;
 
         @Autowired
-        private AdminHandler adminHandler;
-
-        @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
 
         @Autowired
@@ -506,11 +497,6 @@ public class WebConfiguration {
         }
 
         @Bean
-        AdminHandler adminHandler(AdminManager adminManager) {
-            return new AdminHandler(adminManager);
-        }
-
-        @Bean
         @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(
                 CurrencyConversionService currencyConversionRates, JacksonMapper mapper) {
@@ -534,9 +520,6 @@ public class WebConfiguration {
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
             router.route("/logging/httpinteraction").handler(httpInteractionLogHandler);
-            if (adminHandler != null) {
-                router.route("/admin").handler(adminHandler);
-            }
             if (currencyRatesHandler != null) {
                 router.route("/currency-rates").handler(currencyRatesHandler);
             }

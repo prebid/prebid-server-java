@@ -33,7 +33,6 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -88,8 +87,6 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private AdminManager adminManager;
-    @Mock
     private HttpInteractionLogger httpInteractionLogger;
 
     private AuctionHandler auctionHandler;
@@ -125,7 +122,6 @@ public class AuctionHandlerTest extends VertxTest {
                 analyticsReporter,
                 metrics,
                 clock,
-                adminManager,
                 httpInteractionLogger,
                 jacksonMapper);
     }
