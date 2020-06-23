@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
@@ -151,16 +152,19 @@ public class TcfDefinerService {
     }
 
     private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig, MetricName requestType) {
+        final Boolean accountGdprEnabled = accountGdprConfig != null ? accountGdprConfig.getEnabled() : null;
         if (requestType == null) {
-            return accountGdprConfig != null && accountGdprConfig.getEnabled() != null
-                    ? accountGdprConfig.getEnabled()
-                    : gdprEnabled;
+            return ObjectUtils.firstNonNull(accountGdprEnabled, gdprEnabled);
         }
+
         final EnabledForRequestType enabledForRequestType = accountGdprConfig != null
                 ? accountGdprConfig.getEnabledForRequestType()
                 : null;
-        final Boolean enabled = enabledForRequestType != null ? enabledForRequestType.isEnabledFor(requestType) : null;
-        return enabled != null ? enabled : gdprEnabled;
+
+        final Boolean enabledForType = enabledForRequestType != null
+                ? enabledForRequestType.isEnabledFor(requestType)
+                : null;
+        return ObjectUtils.firstNonNull(enabledForType, accountGdprEnabled, gdprEnabled);
     }
 
     private Future<GdprInfoWithCountry<String>> toGdprInfo(String gdpr,

@@ -155,18 +155,10 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resultForBidderNamesShouldAllowAllWhenGdprIsNotDefinedForRequestTypeAndPBSGdprIsDisabled() {
+    public void resultForBidderNamesShouldCheckAccountEnabledWhenPerRequestConfigNotDefined() {
         // given
-        final GdprConfig gdprConfig = GdprConfig.builder()
-                .defaultValue("1")
-                .enabled(false)
-                .purposes(purposes)
-                .build();
-        final TcfDefinerService target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService,
-                tcf2Service, geoLocationService, bidderCatalog, metrics);
-
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(null, null, null, null))
+                .enabled(false)
                 .build();
 
         // when
@@ -184,7 +176,7 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resultForBidderNamesShouldIgnoreUnknownRequestTypeAndDecideByPbsGdprDisabledProperty() {
+    public void resultForBidderNamesShouldCheckPbsEnabledWhenAccountLevelAndPerRequestLevelNotDefined() {
         // given
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .defaultValue("1")
@@ -195,7 +187,58 @@ public class TcfDefinerServiceTest {
                 tcf2Service, geoLocationService, bidderCatalog, metrics);
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(null, null, null, null))
+                .build();
+
+        // when
+        final Future<TcfResponse<String>> result = target.resultForBidderNames(
+                singleton("b"), null, null, null, null, accountGdprConfig, MetricName.amp, null);
+
+        // then
+        assertThat(result).succeededWith(
+                TcfResponse.of(false, singletonMap("b", PrivacyEnforcementAction.allowAll()), null));
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+        verifyZeroInteractions(metrics);
+    }
+
+    @Test
+    public void resultForBidderNamesShouldCheckAccountLevelEnabledConfigWhenRequestTypeIsUnknown() {
+        // given
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
+                .enabled(false)
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .build();
+
+        // when
+        final Future<TcfResponse<String>> result = target.resultForBidderNames(
+                singleton("b"), null, null, null, null, accountGdprConfig, MetricName.legacy, null);
+
+        // then
+        assertThat(result).succeededWith(
+                TcfResponse.of(false, singletonMap("b", PrivacyEnforcementAction.allowAll()), null));
+
+        verifyZeroInteractions(gdprService);
+        verifyZeroInteractions(tcf2Service);
+        verifyZeroInteractions(geoLocationService);
+        verifyZeroInteractions(metrics);
+    }
+
+    @Test
+    public void resultForBidderNamesShouldCheckPBSLevelEnabledConfigWhenAccountLevelConfigIsNotDefined() {
+        // given
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .defaultValue("1")
+                .enabled(false)
+                .purposes(purposes)
+                .build();
+
+        final TcfDefinerService target = new TcfDefinerService(gdprConfig, singleton(EEA_COUNTRY), gdprService,
+                tcf2Service, geoLocationService, bidderCatalog, metrics);
+
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                 .build();
 
         // when
