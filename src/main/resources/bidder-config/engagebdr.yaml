@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://dsp.bnmla.com/hb
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
