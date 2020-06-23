@@ -1,0 +1,65 @@
+{
+  "id": "req1-unit1",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "imp1",
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "cat": [
+            "IAB1",
+            "IAB2"
+          ],
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "3.30",
+                "hb_bidder_adoppler": "adoppler",
+                "hb_cache_id_adoppler": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_cache_path_adoppler": "{{ cache.path }}",
+                "hb_cache_host_adoppler": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_bidder": "adoppler",
+                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_adoppler": "3.30"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
+                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
+                }
+              }
+            },
+            "bidder": {
+              "ads": {
+                "video": {
+                  "duration": 121
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "adoppler",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adoppler": "{{ adoppler.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 3000
+  }
+}

@@ -18,7 +18,7 @@ import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class GungumTest extends IntegrationTest {
+public class GumgumTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromGumGum() throws IOException, JSONException {
