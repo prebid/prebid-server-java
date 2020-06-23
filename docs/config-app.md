@@ -105,6 +105,9 @@ But feel free to add additional bidder's specific options.
 ## Admin
 - `logger-level-modifier.enabled` - enable the `/admin` endpoint.
 
+## Logging
+- `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
+
 ## Currency Converter
 - `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
