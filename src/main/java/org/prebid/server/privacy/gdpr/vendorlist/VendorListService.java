@@ -160,7 +160,7 @@ public abstract class VendorListService<T, V> {
      * Reads files with .json extension in configured directory and
      * returns a {@link Map} where key is a file name without .json extension and value is file content.
      */
-    protected Map<String, String> readFileSystemCache(FileSystem fileSystem, String dir) {
+    private Map<String, String> readFileSystemCache(FileSystem fileSystem, String dir) {
         return fileSystem.readDirBlocking(dir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
@@ -199,8 +199,9 @@ public abstract class VendorListService<T, V> {
 
         httpClient.get(url, defaultTimeoutMs)
                 .map(response -> processResponse(response, version))
-                .recover(exception -> failResponse(exception, version))
-                .compose(vendorListResult -> saveToFileAndUpdateCache(vendorListResult, version));
+                .compose(this::saveToFile)
+                .map(this::updateCache)
+                .otherwise(exception -> handleError(exception, version));
     }
 
     /**
@@ -226,32 +227,18 @@ public abstract class VendorListService<T, V> {
         return VendorListResult.of(version, body, vendorList);
     }
 
-    private Future<Void> saveToFileAndUpdateCache(VendorListResult<T> vendorListResult, int version) {
-        final T vendorList = vendorListResult.getVendorList();
-
-        saveToFile(vendorListResult.getVendorListAsString(), version)
-                // add new entry to in-memory cache
-                .map(ignored -> cache.put(version, filterVendorIdToVendors(vendorList)));
-
-        return Future.succeededFuture();
-    }
-
     /**
-     * Saves on file system given content as vendor list of specified version.
+     * Saves given vendor list on file system.
      */
-    private Future<Void> saveToFile(String content, int version) {
-        final Promise<Void> promise = Promise.promise();
+    private Future<VendorListResult<T>> saveToFile(VendorListResult<T> vendorListResult) {
+        final Promise<VendorListResult<T>> promise = Promise.promise();
+        final int version = vendorListResult.getVersion();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
-        fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
+        fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()), result -> {
             if (result.succeeded()) {
-                metrics.updatePrivacyTcfVendorListOkMetric(getTcfVersion(), version);
-
-                logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
-                promise.complete();
+                promise.complete(vendorListResult);
             } else {
-                metrics.updatePrivacyTcfVendorListErrorMetric(getTcfVersion(), version);
-
                 logger.error("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
                         filepath);
                 promise.fail(result.cause());
@@ -261,19 +248,34 @@ public abstract class VendorListService<T, V> {
         return promise.future();
     }
 
+    private Void updateCache(VendorListResult<T> vendorListResult) {
+        final int version = vendorListResult.getVersion();
+
+        cache.put(version, filterVendorIdToVendors(vendorListResult.getVendorList()));
+
+        final int tcf = getTcfVersion();
+        metrics.updatePrivacyTcfVendorListOkMetric(tcf, version);
+
+        logger.info("Created new TCF {0} vendor list for version {0}", tcf, version);
+        return null;
+    }
+
     /**
-     * Handles errors occurred while HTTP request or response processing.
+     * Handles errors occurred while HTTP or File System processing.
      */
-    private Future<VendorListResult<T>> failResponse(Throwable exception, int version) {
+    private Void handleError(Throwable exception, int version) {
         final int tcf = getTcfVersion();
         metrics.updatePrivacyTcfVendorListErrorMetric(tcf, version);
 
-        logger.warn("Error fetching TCF {0} vendor list via HTTP for version {1} with message: {2}",
-                tcf, version, exception.getMessage());
-        logger.debug("Error fetching TCF {0} vendor list via HTTP for version {0}",
-                tcf, exception, version);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Error while obtaining TCF {0} vendor list for version {1}",
+                    exception, tcf, version);
+        } else {
+            logger.warn("Error while obtaining TCF {0} vendor list for version {1}: {2}",
+                    tcf, version, exception.getMessage());
+        }
 
-        return Future.failedFuture(exception);
+        return null;
     }
 
     @AllArgsConstructor(staticName = "of")
