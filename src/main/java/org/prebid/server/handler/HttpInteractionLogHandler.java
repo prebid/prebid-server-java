@@ -60,7 +60,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
         final Integer statusCode = getIntParameter(STATUS_CODE_PARAMETER, parameters);
         if (statusCode != null && (statusCode < 200 || statusCode > 500)) {
             throw new InvalidRequestException(String.format(
-                    "Parameter '%s' must be between %d and %d ", STATUS_CODE_PARAMETER, 200, 500));
+                    "Parameter '%s' must be between %d and %d", STATUS_CODE_PARAMETER, 200, 500));
         }
 
         return statusCode;
@@ -79,7 +79,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
         if (limit < 1 || limit > maxLimit) {
             throw new InvalidRequestException(String.format(
-                    "Parameter '%s' must be between %d and %d ", LIMIT_PARAMETER, 0, maxLimit));
+                    "Parameter '%s' must be between %d and %d", LIMIT_PARAMETER, 0, maxLimit));
         }
 
         return limit;
