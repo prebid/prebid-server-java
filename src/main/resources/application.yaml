@@ -59,6 +59,9 @@ cookie-sync:
   default-timeout-ms: 2000
 logger-level-modifier:
   enabled: false
+logging:
+  http-interaction:
+    max-limit: 10000
 currency-converter:
   external-rates:
     enabled: true

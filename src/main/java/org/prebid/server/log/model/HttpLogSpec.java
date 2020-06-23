@@ -11,7 +11,7 @@ public class HttpLogSpec {
 
     String account;
 
-    long limit;
+    int limit;
 
     public enum Endpoint {
         auction, amp

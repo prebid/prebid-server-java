@@ -3,6 +3,7 @@ package org.prebid.server.log;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.settings.model.Account;
@@ -14,12 +15,10 @@ public class HttpInteractionLogger {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpInteractionLogger.class);
 
-    private final AtomicReference<HttpLogSpec> httpLogSpec = new AtomicReference<>();
-    private final AtomicLong loggedInteractions = new AtomicLong(0);
+    private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
 
     public void setSpec(HttpLogSpec spec) {
-        httpLogSpec.set(spec);
-        loggedInteractions.set(0);
+        specWithCounter.set(SpecWithCounter.of(spec));
     }
 
     public void maybeLogOpenrtb2Auction(AuctionContext auctionContext,
@@ -27,7 +26,7 @@ public class HttpInteractionLogger {
                                         int statusCode,
                                         String responseBody) {
 
-        if (interactionSatisfySpec(HttpLogSpec.Endpoint.auction, statusCode, auctionContext)) {
+        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.auction, statusCode, auctionContext)) {
             logger.info(
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
@@ -44,7 +43,7 @@ public class HttpInteractionLogger {
                                     int statusCode,
                                     String responseBody) {
 
-        if (interactionSatisfySpec(HttpLogSpec.Endpoint.amp, statusCode, auctionContext)) {
+        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.amp, statusCode, auctionContext)) {
             logger.info(
                     "Requested URL: \"{0}\", response status: \"{1}\", response body: \"{2}\"",
                     routingContext.request().uri(),
@@ -55,28 +54,41 @@ public class HttpInteractionLogger {
         }
     }
 
-    public boolean interactionSatisfySpec(HttpLogSpec.Endpoint requestedEndpoint,
-                                          int statusCode,
-                                          AuctionContext auctionContext) {
+    public boolean interactionSatisfiesSpec(HttpLogSpec.Endpoint requestEndpoint,
+                                            int requestStatusCode,
+                                            AuctionContext auctionContext) {
 
-        final HttpLogSpec spec = httpLogSpec.get();
-        if (spec == null) {
+        final SpecWithCounter specWithCounter = this.specWithCounter.get();
+        if (specWithCounter == null) {
             return false;
         }
 
-        final Account account = auctionContext != null ? auctionContext.getAccount() : null;
-        final String accountId = account != null ? account.getId() : null;
+        final Account requestAccount = auctionContext != null ? auctionContext.getAccount() : null;
+        final String requestAccountId = requestAccount != null ? requestAccount.getId() : null;
 
-        return (spec.getEndpoint() == null || spec.getEndpoint() == requestedEndpoint)
-                && (spec.getStatusCode() == null || spec.getStatusCode() == statusCode)
-                && (spec.getAccount() == null || spec.getAccount().equals(accountId));
+        final HttpLogSpec spec = specWithCounter.getSpec();
+        final HttpLogSpec.Endpoint endpoint = spec.getEndpoint();
+        final Integer statusCode = spec.getStatusCode();
+        final String account = spec.getAccount();
+
+        return (endpoint == null || endpoint == requestEndpoint)
+                && (statusCode == null || statusCode == requestStatusCode)
+                && (account == null || account.equals(requestAccountId));
     }
 
     private void incLoggedInteractions() {
-        final HttpLogSpec spec = httpLogSpec.get();
-        if (spec != null && loggedInteractions.incrementAndGet() >= spec.getLimit()) {
-            httpLogSpec.set(null);
-            loggedInteractions.set(0);
+        final SpecWithCounter specWithCounter = this.specWithCounter.get();
+        if (specWithCounter != null
+                && specWithCounter.getLoggedInteractions().incrementAndGet() >= specWithCounter.getSpec().getLimit()) {
+            this.specWithCounter.set(null);
         }
+    }
+
+    @Value(staticConstructor = "of")
+    private static class SpecWithCounter {
+
+        HttpLogSpec spec;
+
+        AtomicLong loggedInteractions = new AtomicLong(0);
     }
 }

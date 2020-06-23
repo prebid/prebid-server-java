@@ -36,6 +36,7 @@ import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.GetuidsHandler;
+import org.prebid.server.handler.HttpInteractionLogHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
@@ -460,6 +461,9 @@ public class WebConfiguration {
         @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
 
+        @Autowired
+        private HttpInteractionLogHandler httpInteractionLogHandler;
+
         @Autowired(required = false)
         private AccountCacheInvalidationHandler accountCacheInvalidationHandler;
 
@@ -514,6 +518,14 @@ public class WebConfiguration {
             return new CurrencyRatesHandler(currencyConversionRates, mapper);
         }
 
+        @Bean
+        HttpInteractionLogHandler httpInteractionLogHandler(
+                @Value("${logging.http-interaction.max-limit}") int maxLimit,
+                HttpInteractionLogger httpInteractionLogger) {
+
+            return new HttpInteractionLogHandler(maxLimit, httpInteractionLogger);
+        }
+
         @PostConstruct
         public void startAdminServer() {
             logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
@@ -521,6 +533,7 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            router.route("/logging/httpinteraction").handler(httpInteractionLogHandler);
             if (adminHandler != null) {
                 router.route("/admin").handler(adminHandler);
             }
