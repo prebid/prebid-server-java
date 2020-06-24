@@ -2,7 +2,6 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -16,6 +15,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.UsersyncInfoAssembler;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -165,26 +165,20 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Ccpa ccpa = Ccpa.of(cookieSyncRequest.getUsPrivacy());
         final Privacy privacy = Privacy.of(gdprAsString, gdprConsent, ccpa);
 
-        if (privacyEnforcementService.isCcpaEnforced(ccpa)) {
-            respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_CCPA);
-            return;
-        }
-
         final String requestAccount = cookieSyncRequest.getAccount();
         final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdprAsString, gdprConsent, ip,
-                        timeout)
+                .compose(account -> tcfDefinerService.resultForVendorIds(
+                        vendorIds, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout)
                         .compose(this::handleVendorIdResult)
-                        .compose(ignored ->
-                                tcfDefinerService.resultForBidderNames(biddersToSync, gdprAsString, gdprConsent, ip,
-                                        timeout))
-                        .setHandler(asyncResult ->
-                                handleBidderNamesResult(asyncResult, context, uidsCookie, biddersToSync, privacy,
-                                        limit)));
+                        .compose(ignored -> tcfDefinerService.resultForBidderNames(
+                                biddersToSync, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout))
+                        .map(tcfResponse -> handleBidderNamesResult(
+                                tcfResponse, context, account, uidsCookie, biddersToSync, privacy, limit))
+                        .otherwise(ignored -> handleTcfError(context, uidsCookie, biddersToSync, privacy, limit)));
     }
 
     /**
@@ -269,39 +263,57 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * Handles TCF verification result.
      */
-    private void handleBidderNamesResult(AsyncResult<TcfResponse<String>> asyncResult,
+    private Void handleBidderNamesResult(TcfResponse<String> tcfResponse,
                                          RoutingContext context,
+                                         Account account,
                                          UidsCookie uidsCookie,
-                                         Collection<String> biddersToSync,
+                                         Set<String> biddersToSync,
                                          Privacy privacy,
                                          Integer limit) {
-        if (asyncResult.failed()) {
-            respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, limit, REJECTED_BY_TCF);
-        } else {
-            final TcfResponse<String> tcfResponse = asyncResult.result();
 
-            final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
+        final Set<String> ccpaEnforcedBidders = extractCcpaEnforcedBidders(account, biddersToSync, privacy);
 
-            final Set<String> biddersRejectedByTcf = biddersToSync.stream()
-                    .filter(bidder ->
-                            !bidderNameToAction.containsKey(bidder)
-                                    || bidderNameToAction.get(bidder).isBlockPixelSync())
-                    .collect(Collectors.toSet());
+        final Map<String, PrivacyEnforcementAction> bidderNameToAction = tcfResponse.getActions();
 
-            respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, limit, REJECTED_BY_TCF);
-        }
+        final Set<String> biddersRejectedByTcf = biddersToSync.stream()
+                .filter(bidder -> !ccpaEnforcedBidders.contains(bidder))
+                .filter(bidder ->
+                        !bidderNameToAction.containsKey(bidder)
+                                || bidderNameToAction.get(bidder).isBlockPixelSync())
+                .collect(Collectors.toSet());
+
+        respondWith(context, uidsCookie, privacy, biddersToSync, biddersRejectedByTcf, ccpaEnforcedBidders, limit);
+
+        return null;
+    }
+
+    private Void handleTcfError(RoutingContext context,
+                                UidsCookie uidsCookie,
+                                Set<String> biddersToSync,
+                                Privacy privacy,
+                                Integer limit) {
+
+        respondWith(context, uidsCookie, privacy, biddersToSync, biddersToSync, Collections.emptySet(), limit);
+
+        return null;
     }
 
     /**
      * Make HTTP response for given bidders.
      */
-    private void respondWith(RoutingContext context, UidsCookie uidsCookie, Privacy privacy, Collection<String> bidders,
-                             Collection<String> biddersRejectedByTcf, Integer limit, String rejectMessage) {
+    private void respondWith(RoutingContext context,
+                             UidsCookie uidsCookie,
+                             Privacy privacy,
+                             Collection<String> bidders,
+                             Set<String> biddersRejectedByTcf,
+                             Set<String> biddersRejectedByCcpa,
+                             Integer limit) {
+
         updateCookieSyncTcfMetrics(bidders, biddersRejectedByTcf);
 
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
-                .map(bidder -> bidderStatusFor(bidder, context, uidsCookie, biddersRejectedByTcf, privacy,
-                        rejectMessage))
+                .map(bidder -> bidderStatusFor(
+                        bidder, context, uidsCookie, biddersRejectedByTcf, biddersRejectedByCcpa, privacy))
                 .filter(Objects::nonNull) // skip bidder with live UID
                 .collect(Collectors.toList());
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
@@ -333,6 +345,15 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .build());
     }
 
+    private Set<String> extractCcpaEnforcedBidders(Account account, Collection<String> biddersToSync, Privacy privacy) {
+        if (privacyEnforcementService.isCcpaEnforced(privacy.getCcpa(), account)) {
+            return biddersToSync.stream()
+                    .filter(bidder -> bidderCatalog.bidderInfoByName(bidderNameFor(bidder)).isCcpaEnforced())
+                    .collect(Collectors.toSet());
+        }
+        return Collections.emptySet();
+    }
+
     private void updateCookieSyncTcfMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
         for (String bidder : syncBidders) {
             if (rejectedBidders.contains(bidder)) {
@@ -353,9 +374,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * Creates {@link BidderUsersyncStatus} for given bidder.
      */
-    private BidderUsersyncStatus bidderStatusFor(String bidder, RoutingContext context, UidsCookie uidsCookie,
-                                                 Collection<String> biddersRejectedByTcf, Privacy privacy,
-                                                 String rejectMessage) {
+    private BidderUsersyncStatus bidderStatusFor(String bidder,
+                                                 RoutingContext context,
+                                                 UidsCookie uidsCookie,
+                                                 Set<String> biddersRejectedByTcf,
+                                                 Set<String> biddersRejectedByCcpa,
+                                                 Privacy privacy) {
         final BidderUsersyncStatus result;
         final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
 
@@ -371,7 +395,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     .build();
         } else if (isNotAlias && biddersRejectedByTcf.contains(bidder)) {
             result = bidderStatusBuilder(bidder)
-                    .error(rejectMessage)
+                    .error(REJECTED_BY_TCF)
+                    .build();
+        } else if (isNotAlias && biddersRejectedByCcpa.contains(bidder)) {
+            result = bidderStatusBuilder(bidder)
+                    .error(REJECTED_BY_CCPA)
                     .build();
         } else {
             final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
@@ -380,8 +408,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             if (hostBidderUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
                 result = bidderStatusBuilder(bidder)
                         .noCookie(true)
-                        .usersync(ObjectUtils.defaultIfNull(hostBidderUsersyncInfo,
-                                UsersyncInfo.from(usersyncer).withPrivacy(privacy).assemble()))
+                        .usersync(ObjectUtils.defaultIfNull(
+                                hostBidderUsersyncInfo,
+                                UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble()))
                         .build();
             } else {
                 result = null;
@@ -424,7 +453,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                     final String url = String.format("%s/setuid?bidder=%s&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}"
                                     + "&us_privacy={{us_privacy}}&uid=%s", externalUrl, cookieFamilyName,
                             HttpUtil.encodeUrl(hostCookieUid));
-                    return UsersyncInfo.from(usersyncer).withUrl(url)
+                    return UsersyncInfoAssembler.from(usersyncer)
+                            .withUrl(url)
                             .withPrivacy(privacy)
                             .assemble();
                 }
@@ -435,8 +465,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
         return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(null)
+                ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise((Account) null);
+                .otherwise(Account.empty(accountId));
     }
 }

@@ -58,8 +58,7 @@ public abstract class PurposeStrategy {
         final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
 
         final EnforcePurpose purposeType = purpose.getEnforcePurpose();
-        // Basic by default
-        if (purposeType == null || Objects.equals(purposeType, EnforcePurpose.basic)) {
+        if (Objects.equals(purposeType, EnforcePurpose.basic)) {
             return allowedByBasicTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
@@ -67,7 +66,8 @@ public abstract class PurposeStrategy {
             return allowedByNoTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
-        if (Objects.equals(purposeType, EnforcePurpose.full)) {
+        // Full by default
+        if (purposeType == null || Objects.equals(purposeType, EnforcePurpose.full)) {
             return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
@@ -81,7 +81,7 @@ public abstract class PurposeStrategy {
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Collections.emptyList()
                 : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                        bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
+                bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
     }
 
     protected Collection<VendorPermission> allowedByBasicTypeStrategy(
@@ -104,8 +104,8 @@ public abstract class PurposeStrategy {
             TCString vendorConsent, boolean isEnforceVendors, Collection<VendorPermissionWithGvl> vendorForPurpose,
             Collection<VendorPermissionWithGvl> excludedVendors) {
 
-        return fullEnforcePurposeStrategy.allowedByTypeStrategy(getPurposeId(), vendorConsent, excludedVendors,
-                vendorForPurpose, isEnforceVendors);
+        return fullEnforcePurposeStrategy.allowedByTypeStrategy(getPurposeId(), vendorConsent, vendorForPurpose,
+                excludedVendors, isEnforceVendors);
 
     }
 }

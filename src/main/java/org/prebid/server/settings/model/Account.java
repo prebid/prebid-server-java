@@ -17,11 +17,13 @@ public class Account {
 
     Boolean eventsEnabled;
 
-    Boolean enforceGdpr;
+    Boolean enforceCcpa;
 
     AccountGdprConfig gdpr;
 
     Integer analyticsSamplingFactor;
+
+    Integer truncateTargetAttr;
 
     public static Account empty(String id) {
         return Account.builder()
@@ -29,4 +31,3 @@ public class Account {
                 .build();
     }
 }
-
