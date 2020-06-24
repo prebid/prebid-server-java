@@ -142,17 +142,12 @@ In database approach account properties are stored in database table with name a
 ### Configuration in application.yaml
 ```
 settings:
-  enforce-valid-account: true
   database:
+    type: <mysql or postgres>
     pool-size: 20
     type: mysql
     host: <host>
     port: <port>
-    circuit-breaker:
-      enabled: true 
-      opening-threshold: 100
-      opening-interval-ms: 2000
-      closing-interval-ms: 20000
 ```
 
 ### Table description 

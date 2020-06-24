@@ -1,4 +1,5 @@
 
+
 # Full list of application configuration options
 
 This document describes all configuration properties available for Prebid Server.

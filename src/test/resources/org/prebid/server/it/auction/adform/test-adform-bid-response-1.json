@@ -1,12 +1,102 @@
-[
-  {
-    "response": "banner",
-    "banner": "adm12",
-    "win_bid": "10.5",
-    "currency": "currency",
-    "width": 400,
-    "height": 300,
-    "dealId": "dealId",
-    "win_crid": "crid12"
+{
+  "enabled": true,
+  "purpose-one-treatment-interpretation": "ignore"
+  "purposes": {
+    "p1": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p2": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p3": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p4": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p5": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p6": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p7": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p8": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p9": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "p10": {
+      "enforce-purpose": "full",
+      "enforce-vendors": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    }
+  },
+  "special-features": {
+    "sf1": {
+      "enforce": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    },
+    "sf2": {
+      "enforce": true,
+      "vendor-exceptions": [
+        "bidder1",
+        "bidder2"
+      ]
+    }
   }
-]
+}
