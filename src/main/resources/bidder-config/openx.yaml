@@ -3,11 +3,12 @@ adapters:
     enabled: false
     endpoint: http://rtb.openx.net/prebid
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: team-openx@openx.com
+      maintainer-email: prebid@openx.com
       app-media-types:
         - banner
       site-media-types:

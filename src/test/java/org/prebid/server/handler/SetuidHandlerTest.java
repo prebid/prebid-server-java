@@ -31,6 +31,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -89,8 +90,8 @@ public class SetuidHandlerTest extends VertxTest {
     public void setUp() {
         final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null,
                 PrivacyEnforcementAction.allowAll());
-        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, emptyMap(), null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -161,9 +162,9 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(true, singletonMap(null, privacyEnforcementAction),
-                        emptyMap(), null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        TcfResponse.of(true, singletonMap(null, privacyEnforcementAction), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -184,7 +185,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
-        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -206,7 +207,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
         // given
-        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("unexpected error"));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -249,20 +250,22 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(tcfDefinerService).resultFor(anySet(), anySet(), any(), any(), eq("192.168.144.1"), any(), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), eq("192.168.144.1"), any(), any());
     }
 
     @Test
-    public void shouldPassAccountToTcfDefinerServiceIfAccountFoundById() {
+    public void shouldPassAccountToTcfDefinerServiceWhenAccountIsFound() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
-        given(httpRequest.getParam("account")).willReturn("23");
+        given(httpRequest.getParam("account")).willReturn("accId");
 
-        final Account account = Account.empty("23");
-        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder().enabled(true).build();
+        final Account account = Account.builder().gdpr(accountGdprConfig).build();
+        final Future<Account> accountFuture = Future.succeededFuture(account);
+        given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -270,20 +273,20 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(tcfDefinerService).resultFor(anySet(), anySet(), any(), any(), any(), eq(account), any());
-        verify(applicationSettings).getAccountById(eq("23"), any());
+        verify(applicationSettings).getAccountById(eq("accId"), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), eq(accountGdprConfig), any());
     }
 
     @Test
-    public void shouldPassNullAccountToTcfDefinerServiceIfApplicationSettingsIsFailed() {
+    public void shouldPassAccountToTcfDefinerServiceWhenAccountIsNotFound() {
         // given
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
-        given(httpRequest.getParam("account")).willReturn("23");
+        given(httpRequest.getParam("account")).willReturn("accId");
 
-        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad"));
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad req"));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -291,8 +294,8 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(tcfDefinerService).resultFor(anySet(), anySet(), any(), any(), any(), isNull(), any());
-        verify(applicationSettings).getAccountById(eq("23"), any());
+        verify(applicationSettings).getAccountById(eq("accId"), any());
+        verify(tcfDefinerService).resultForVendorIds(anySet(), any(), any(), any(), isNull(), any());
     }
 
     @Test
@@ -422,8 +425,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
-        given(tcfDefinerService.resultFor(anySet(), anySet(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), emptyMap(), null)));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));

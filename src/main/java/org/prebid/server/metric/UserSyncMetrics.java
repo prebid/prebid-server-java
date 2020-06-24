@@ -31,13 +31,24 @@ class UserSyncMetrics extends UpdatableMetrics {
 
     static class BidderUserSyncMetrics extends UpdatableMetrics {
 
+        private final TcfMetrics tcfMetrics;
+
         BidderUserSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
             super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                    nameCreator(Objects.requireNonNull(bidder)));
+                    nameCreator(Objects.requireNonNull(createUserSyncPrefix(bidder))));
+            tcfMetrics = new TcfMetrics(metricRegistry, counterType, createUserSyncPrefix(bidder));
         }
 
-        private static Function<MetricName, String> nameCreator(String bidder) {
-            return metricName -> String.format("usersync.%s.%s", bidder, metricName.toString());
+        TcfMetrics tcf() {
+            return tcfMetrics;
+        }
+
+        private static String createUserSyncPrefix(String bidder) {
+            return String.format("usersync.%s", bidder);
+        }
+
+        private static Function<MetricName, String> nameCreator(String prefix) {
+            return metricName -> String.format("%s.%s", prefix, metricName.toString());
         }
     }
 }

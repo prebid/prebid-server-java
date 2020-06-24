@@ -26,6 +26,11 @@ public class ExtRequestPrebid {
     Map<String, String> aliases;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.aliasgvlids
+     */
+    Map<String, Integer> aliasgvlids;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
      */
     Map<String, BigDecimal> bidadjustmentfactors;
@@ -66,6 +71,11 @@ public class ExtRequestPrebid {
     List<ExtRequestPrebidSchain> schains;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.nosale
+     */
+    List<String> nosale;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.auctiontimestamp
      */
     Long auctiontimestamp;
@@ -75,4 +85,3 @@ public class ExtRequestPrebid {
      */
     ObjectNode bidders;
 }
-
