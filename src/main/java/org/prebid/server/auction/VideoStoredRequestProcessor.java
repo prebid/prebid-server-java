@@ -16,8 +16,6 @@ import com.iab.openrtb.request.video.IncludeBrandCategory;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
-import com.iab.openrtb.request.video.VideoUser;
-import com.iab.openrtb.request.video.VideoVideo;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -128,7 +126,7 @@ public class VideoStoredRequestProcessor {
         validator.validateStoredBidRequest(mergedStoredRequest, enforceStoredRequest, blacklistedAccounts);
 
         final Podconfig podconfig = mergedStoredRequest.getPodconfig();
-        final VideoVideo video = mergedStoredRequest.getVideo();
+        final Video video = mergedStoredRequest.getVideo();
         final Map<String, String> storedIdToImp = storedResult.getStoredIdToImp();
         final WithPodErrors<List<Imp>> impsToPodErrors = mergeStoredImps(podconfig, video, storedIdToImp);
 
@@ -149,7 +147,7 @@ public class VideoStoredRequestProcessor {
                 : originalRequest;
     }
 
-    private WithPodErrors<List<Imp>> mergeStoredImps(Podconfig podconfig, VideoVideo video,
+    private WithPodErrors<List<Imp>> mergeStoredImps(Podconfig podconfig, Video video,
                                                      Map<String, String> storedImpIdToJsonImp) {
         final Map<String, Imp> storedImpIdToImp = storedIdToStoredImp(storedImpIdToJsonImp);
         final WithPodErrors<List<Pod>> validPodsToPodErrors = validator.validPods(podconfig, storedImpIdToImp.keySet());
@@ -183,7 +181,7 @@ public class VideoStoredRequestProcessor {
     }
 
     private static List<Imp> createImps(Map<String, Imp> idToImps, List<Pod> validPods, Podconfig podconfig,
-                                        VideoVideo video) {
+                                        Video video) {
         final List<Integer> durationRangeSec = podconfig.getDurationRangeSec();
         final Boolean requireExactDuration = podconfig.getRequireExactDuration();
         final Tuple2<Integer, Integer> maxMin = maxMin(durationRangeSec);
@@ -225,7 +223,7 @@ public class VideoStoredRequestProcessor {
                 }
                 final Imp imp = storedImp.toBuilder()
                         .id(String.format("%d_%d", pod.getPodId(), i))
-                        .video(createVideo(video, maxDuration, minDuration))
+                        .video(updateVideo(video, maxDuration, minDuration))
                         .build();
                 imps.add(imp);
             }
@@ -243,12 +241,8 @@ public class VideoStoredRequestProcessor {
         return Tuple2.of(max, min);
     }
 
-    private static Video createVideo(VideoVideo video, Integer maxDuration, Integer minDuration) {
-        return Video.builder()
-                .w(video.getW())
-                .h(video.getH())
-                .protocols(video.getProtocols())
-                .mimes(video.getMimes())
+    private static Video updateVideo(Video video, Integer maxDuration, Integer minDuration) {
+        return video.toBuilder()
                 .maxduration(maxDuration)
                 .minduration(minDuration)
                 .build();
@@ -282,13 +276,10 @@ public class VideoStoredRequestProcessor {
             bidRequestBuilder.device(device);
         }
 
-        final VideoUser user = validatedVideoRequest.getUser();
+        final User user = validatedVideoRequest.getUser();
         if (user != null) {
-            final User updatedUser = User.builder()
+            final User updatedUser = user.toBuilder()
                     .buyeruid(DEFAULT_BUYERUID)
-                    .yob(user.getYob())
-                    .gender(user.getGender())
-                    .keywords(user.getKeywords())
                     .build();
             bidRequestBuilder.user(updatedUser);
         }
