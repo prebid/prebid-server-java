@@ -25,7 +25,7 @@
     "language": "fr",
     "ifa": "ifaId",
     "ua": "Android Chrome/60",
-    "ip" : "123.123.123.12"
+    "ip": "123.123.123.12"
   },
   "site": {
     "page": "http://www.example.com",
