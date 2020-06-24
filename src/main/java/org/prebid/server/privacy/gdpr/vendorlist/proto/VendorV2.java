@@ -11,7 +11,7 @@ import java.util.Set;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @Data
 public class VendorV2 {
 

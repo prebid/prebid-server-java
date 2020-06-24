@@ -233,6 +233,7 @@ public class AdtelligentBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithoutErrors() throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("impId").build()))
                         .build()))
@@ -249,7 +250,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
     @Test

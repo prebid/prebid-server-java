@@ -159,6 +159,10 @@ public abstract class VendorListService<T, V> {
      * Returns a map with vendor ID as a key and a set of purposes as a value for given vendor list version.
      */
     public Future<Map<Integer, V>> forVersion(int version) {
+        if (version <= 0) {
+            return Future.failedFuture(String.format("Vendor list for version %s not valid.", version));
+        }
+
         final Map<Integer, V> idToVendor = cache.get(version);
         if (idToVendor != null) {
             return Future.succeededFuture(idToVendor);
@@ -228,7 +232,7 @@ public abstract class VendorListService<T, V> {
                 logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
                 promise.complete();
             } else {
-                logger.warn("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
+                logger.error("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
                         filepath);
                 promise.fail(result.cause());
             }
