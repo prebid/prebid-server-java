@@ -22,12 +22,13 @@ public class Metrics extends UpdatableMetrics {
 
     private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
 
-    private AccountMetricsVerbosity accountMetricsVerbosity;
+    private final AccountMetricsVerbosity accountMetricsVerbosity;
     private final BidderCatalog bidderCatalog;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
+    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -36,6 +37,8 @@ public class Metrics extends UpdatableMetrics {
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
+    private final PrivacyMetrics privacyMetrics;
+    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
             accountMetricsVerbosity, BidderCatalog bidderCatalog) {
@@ -47,11 +50,14 @@ public class Metrics extends UpdatableMetrics {
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
+        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
+        privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
+        circuitBreakerMetrics = new HashMap<>();
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -72,6 +78,14 @@ public class Metrics extends UpdatableMetrics {
 
     CookieSyncMetrics cookieSync() {
         return cookieSyncMetrics;
+    }
+
+    PrivacyMetrics privacy() {
+        return privacyMetrics;
+    }
+
+    CircuitBreakerMetrics forCircuitBreaker(String id) {
+        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
     }
 
     public void updateSafariRequestsMetric(boolean isSafari) {
@@ -288,6 +302,41 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updatePrivacyCoppaMetric() {
+        privacy().incCounter(MetricName.coppa);
+    }
+
+    public void updatePrivacyLmtMetric() {
+        privacy().incCounter(MetricName.lmt);
+    }
+
+    public void updatePrivacyCcpaMetrics(boolean isSpecified, boolean isEnforced) {
+        if (isSpecified) {
+            privacy().usp().incCounter(MetricName.specified);
+        }
+        if (isEnforced) {
+            privacy().usp().incCounter(MetricName.opt_out);
+        }
+    }
+
+    public void updatePrivacyTcfInvalidMetric() {
+        privacy().tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
+        final UpdatableMetrics versionMetrics;
+        if (version == 2) {
+            versionMetrics = privacy().tcf().v2();
+        } else {
+            versionMetrics = privacy().tcf().v1();
+        }
+
+        final MetricName metricName = inEea == null
+                ? MetricName.unknown_geo
+                : inEea ? MetricName.in_geo : MetricName.out_geo;
+        versionMetrics.incCounter(metricName);
+    }
+
     public void updateConnectionAcceptErrors() {
         incCounter(MetricName.connection_accept_errors);
     }
@@ -304,11 +353,11 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateHttpClientCircuitBreakerMetric(boolean opened) {
+    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
         if (opened) {
-            incCounter(MetricName.httpclient_circuitbreaker_opened);
+            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
         } else {
-            incCounter(MetricName.httpclient_circuitbreaker_closed);
+            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
         }
     }
 

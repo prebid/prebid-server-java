@@ -15,5 +15,11 @@ public class GdprInfoWithCountry<T> {
     T consent;
 
     String country;
+
+    Boolean inEea;
+
+    public static <T> GdprInfoWithCountry<T> of(String gdpr, T consent) {
+        return of(gdpr, consent, null, null);
+    }
 }
 
