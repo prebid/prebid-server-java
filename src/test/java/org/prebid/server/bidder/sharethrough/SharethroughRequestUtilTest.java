@@ -3,7 +3,6 @@ package org.prebid.server.bidder.sharethrough;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.junit.Before;
@@ -233,21 +232,19 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsOrRegsExtIsNull() {
         // given
-        final Regs regs = Regs.of(null, null);
-        final Regs regsWithGdprNull = Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null)));
+        final ExtRegs regsWithGdprNull = ExtRegs.of(null, null);
 
         // when and then
         assertThat(requestUtil.isConsentRequired(null)).isFalse();
-        assertThat(requestUtil.isConsentRequired(regs)).isFalse();
         assertThat(requestUtil.isConsentRequired(regsWithGdprNull)).isFalse();
     }
 
     @Test
     public void isConsentRequiredShouldReturnFalseWhenRegsExtIsNot1() {
         // given
-        final Regs regsWith3 = Regs.of(null, mapper.valueToTree(ExtRegs.of(3, null)));
-        final Regs regsWith0 = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
-        final Regs regsWith100 = Regs.of(null, mapper.valueToTree(ExtRegs.of(100, null)));
+        final ExtRegs regsWith3 = ExtRegs.of(3, null);
+        final ExtRegs regsWith0 = ExtRegs.of(0, null);
+        final ExtRegs regsWith100 = ExtRegs.of(100, null);
 
         // when and then
         assertThat(requestUtil.isConsentRequired(regsWith0)).isFalse();
@@ -258,10 +255,29 @@ public class SharethroughRequestUtilTest extends VertxTest {
     @Test
     public void isConsentRequiredShouldReturnTrueWhenRegsExtIs1() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
+        final ExtRegs regs = ExtRegs.of(1, null);
 
         // when and then
         assertThat(requestUtil.isConsentRequired(regs)).isTrue();
+    }
+
+    @Test
+    public void usPrivacyShouldReturnExtractedValueFromCcpa() {
+        // given
+        final ExtRegs regs = ExtRegs.of(1, "ccpa");
+
+        // when and then
+        assertThat(requestUtil.usPrivacy(regs)).isEqualTo("ccpa");
+    }
+
+    @Test
+    public void usPrivacyShouldReturnEmptyValueWhenNull() {
+        // given
+        final ExtRegs regsWithNull = ExtRegs.of(1, null);
+
+        // when and then
+        assertThat(requestUtil.usPrivacy(regsWithNull)).isEqualTo("");
+        assertThat(requestUtil.usPrivacy(null)).isEqualTo("");
     }
 
     @Test

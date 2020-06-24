@@ -14,6 +14,8 @@ import java.util.Map;
 @Value
 public class ExtBidPrebid {
 
+    String bidid;
+
     BidType type;
 
     Map<String, String> targeting;

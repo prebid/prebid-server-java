@@ -23,6 +23,7 @@ import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroug
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
 
 public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
-    private static final String VERSION = "7";
+    private static final String VERSION = "8";
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.banner;
@@ -98,7 +99,9 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      * Retrieves from {@link Imp} and filter not valid {@link ExtImpSharethrough} and returns list result with errors.
      */
     private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request, Date date, boolean test) {
-        final boolean consentRequired = requestUtil.isConsentRequired(request.getRegs());
+        final ExtRegs extRegs = requestUtil.parseRegs(request.getRegs());
+        final boolean consentRequired = requestUtil.isConsentRequired(extRegs);
+        final String usPrivacy = requestUtil.usPrivacy(extRegs);
         final UserInfo userInfo = requestUtil.getUserInfo(request.getUser());
         final String ttdUid = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
         final String consent = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent);
@@ -116,8 +119,8 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                     SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
             final SharethroughRequestBody body = SharethroughRequestBody.of(badv, tmax, DATE_FORMAT.format(deadLine),
                     test, extImpStr.getBidfloor());
-            strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, canAutoPlay, ttdUid,
-                    stxuid, body));
+            strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, usPrivacy,
+                    canAutoPlay, ttdUid, stxuid, body));
         }
         return strUriParameters;
     }
@@ -126,14 +129,16 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values.
      */
     private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpStr, Imp imp, boolean isConsentRequired,
-                                                    String consentString, boolean canBrowserAutoPlayVideo,
-                                                    String ttdUid, String buyeruid, SharethroughRequestBody body) {
+                                                    String consentString, String usPrivacy,
+                                                    boolean canBrowserAutoPlayVideo, String ttdUid, String buyeruid,
+                                                    SharethroughRequestBody body) {
         final Size size = requestUtil.getSize(imp, extImpStr);
         return StrUriParameters.builder()
                 .pkey(extImpStr.getPkey())
                 .bidID(imp.getId())
                 .consentRequired(isConsentRequired)
                 .consentString(consentString)
+                .usPrivacySignal(usPrivacy)
                 .instantPlayCapable(canBrowserAutoPlayVideo)
                 .iframe(extImpStr.getIframe())
                 .height(size.getHeight())
