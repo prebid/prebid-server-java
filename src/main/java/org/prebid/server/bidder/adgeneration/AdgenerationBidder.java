@@ -3,11 +3,11 @@ package org.prebid.server.bidder.adgeneration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +32,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * AdgenerationBidder {@link Bidder} implementation.
@@ -43,6 +45,10 @@ public class AdgenerationBidder implements Bidder<BidRequest> {
     private static final String VERSION = "1.0.0";
     private static final String DEFAULT_REQUEST_CURRENCY = "JPY";
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final MultiMap HEADERS = HttpUtil.headers();
+    private static final Pattern REPLACE_VAST_XML_PATTERN = Pattern.compile("/\\r?\\n/g", Pattern.CASE_INSENSITIVE);
+    private static final Pattern APPEND_CHILD_TO_BODY_PATTERN = Pattern.compile("</\\s?body>",
+            Pattern.CASE_INSENSITIVE);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -117,31 +123,17 @@ public class AdgenerationBidder implements Bidder<BidRequest> {
         if (imp.getBanner() == null || CollectionUtils.isEmpty(imp.getBanner().getFormat())) {
             return "";
         }
-        StringBuilder adSize = new StringBuilder();
-        for (Format format : imp.getBanner().getFormat()) {
-            final Integer formatHeight = format.getH();
-            final Integer formatWidth = format.getW();
-            adSize.append(String.format("%s×%s,", formatWidth, formatHeight));
-        }
 
-        if (adSize.length() > 0 && adSize.lastIndexOf(",") == adSize.length() - 1) {
-            adSize.deleteCharAt(adSize.length() - 1);
-        }
-
-        return adSize.toString();
+        return imp.getBanner().getFormat().stream()
+                .map(format -> String.format("%s×%s", format.getW(), format.getH()))
+                .collect(Collectors.joining(","));
     }
 
     private String getCurrency(BidRequest request) {
-        if (CollectionUtils.isEmpty(request.getCur())) {
-            return DEFAULT_REQUEST_CURRENCY;
-        } else {
-            for (String cur : request.getCur()) {
-                if (cur.equals(DEFAULT_REQUEST_CURRENCY)) {
-                    return cur;
-                }
-            }
-            return request.getCur().get(0);
-        }
+        final List<String> currencies = request.getCur();
+        return CollectionUtils.isEmpty(request.getCur())
+                ? DEFAULT_REQUEST_CURRENCY
+                : currencies.contains(DEFAULT_REQUEST_CURRENCY) ? DEFAULT_REQUEST_CURRENCY : currencies.get(0);
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String uri) {
@@ -152,7 +144,7 @@ public class AdgenerationBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
-                .headers(HttpUtil.headers())
+                .headers(HEADERS)
                 .body(body)
                 .payload(outgoingRequest)
                 .build();
@@ -175,6 +167,10 @@ public class AdgenerationBidder implements Bidder<BidRequest> {
             adgenerationResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+        }
+
+        if (CollectionUtils.isEmpty(adgenerationResponse.getResults())) {
+            return Result.emptyWithError(BidderError.badServerResponse("Results object in BidResponse is empty"));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -216,33 +212,31 @@ public class AdgenerationBidder implements Bidder<BidRequest> {
     private String getAdm(AdgenerationResponse adgenerationResponse, String impId) {
         String ad = adgenerationResponse.getAd();
         if (StringUtils.isNotBlank(adgenerationResponse.getVastxml())) {
-            ad = "<body><div id=\"apvad-" + impId + "\"></div><script type=\"text/javascript\" id=\"apv\" "
-                    + "src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script>" + insertVASTMethod(impId,
-                    adgenerationResponse.getVastxml()) + "</body>";
+            ad = String.format("<body><div id=\"apvad-%s\"></div><script type=\"text/javascript\" id=\"apv\" "
+                    + "src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script>%s</body>", impId,
+                    insertVASTMethod(impId, adgenerationResponse.getVastxml()));
         }
-        ad = appendChildToBody(ad, adgenerationResponse.getBeacon());
-        final String unwrappedAd = removeWrapper(ad);
-        if (StringUtils.isNotBlank(unwrappedAd)) {
-            return unwrappedAd;
-        }
-        return ad;
+        final String updateAd = StringUtils.isNotBlank(adgenerationResponse.getBeacon())
+                ? appendChildToBody(ad, adgenerationResponse.getBeacon()) : ad;
+
+        final String unwrappedAd = removeWrapper(updateAd);
+        return (StringUtils.isNotBlank(unwrappedAd)) ? unwrappedAd : updateAd;
     }
 
     private String insertVASTMethod(String impId, String vastXml) {
-        final String replacedVastxml = vastXml.replaceAll("/\\r?\\n/g", "");
-        return "<script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"" + impId + "\"}).load('"
-                + replacedVastxml + "'); })(); </script>";
+        final String replacedVastxml = REPLACE_VAST_XML_PATTERN.matcher(vastXml).replaceAll("");
+        return String.format("<script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"%s\"}).load('%s');"
+                + " })(); </script>", impId, replacedVastxml);
     }
 
     private String appendChildToBody(String ad, String beacon) {
-        return ad.replaceAll("</\\s?body>", beacon + "</body>");
+        return APPEND_CHILD_TO_BODY_PATTERN.matcher(ad).replaceAll(beacon + "</body>");
     }
 
     private String removeWrapper(String ad) {
-        if (!ad.contains("<body>") || ad.lastIndexOf("</body>") == -1) {
-            return "";
-        }
-        return ad.replace("<body>", "").replaceFirst("<body>", "").trim();
+        return (!ad.contains("<body>") || ad.lastIndexOf("</body>") == -1)
+                ? ""
+                : ad.replace("<body>", "").replaceFirst("<body>", "").trim();
     }
 
     @Override

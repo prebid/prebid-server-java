@@ -1,13 +1,16 @@
 package org.prebid.server.bidder.adgeneration.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class AdgenerationResponse<T> {
+public class AdgenerationResponse {
 
     String locationid;
 
@@ -17,7 +20,8 @@ public class AdgenerationResponse<T> {
 
     String beacon;
 
-    String baconurl;
+    @JsonProperty("baconurl")
+    String baconUrl;
 
     BigDecimal cpm;
 
@@ -35,5 +39,5 @@ public class AdgenerationResponse<T> {
 
     String scheduleid;
 
-    T results;
+    List<ObjectNode> results;
 }
