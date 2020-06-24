@@ -3,11 +3,12 @@ adapters:
     enabled: false
     endpoint: http://nep.advangelists.com/xp/get?pubid=
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: lokesh@advangelists.com
+      maintainer-email: prebid@advangelists.com
       app-media-types:
         - banner
         - video
