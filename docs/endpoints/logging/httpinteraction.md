@@ -1,4 +1,4 @@
-# Admin Endpoint
+# Enable HTTP interaction logging endpoint
 
 This `/logging/httpinteraction` endpoint is bound to `admin.port`.
 
