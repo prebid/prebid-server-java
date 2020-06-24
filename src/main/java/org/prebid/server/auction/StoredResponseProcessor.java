@@ -65,7 +65,9 @@ public class StoredResponseProcessor {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Map<String, String> aliases, Timeout timeout) {
+    Future<StoredResponseResult> getStoredResponseResult(
+            List<Imp> imps, BidderAliases aliases, Timeout timeout) {
+
         final List<Imp> requiredRequestImps = new ArrayList<>();
         final Map<String, String> storedResponseIdToImpId = new HashMap<>();
 
@@ -109,7 +111,7 @@ public class StoredResponseProcessor {
 
     private void fillStoredResponseIdsAndRequestingImps(List<Imp> imps, List<Imp> requiredRequestImps,
                                                         Map<String, String> storedResponseIdToImpId,
-                                                        Map<String, String> aliases) {
+                                                        BidderAliases aliases) {
         for (final Imp imp : imps) {
             final String impId = imp.getId();
             final ObjectNode extImpNode = imp.getExt();
@@ -142,8 +144,9 @@ public class StoredResponseProcessor {
     }
 
     private void resolveStoredBidResponse(List<Imp> requiredRequestImps, Map<String, String> storedResponseIdToImpId,
-                                          Map<String, String> aliases, Imp imp, String impId, ObjectNode extImpNode,
-                                          ExtImpPrebid extImpPrebid) {
+                                          BidderAliases aliases, Imp imp, String impId,
+                                          ObjectNode extImpNode, ExtImpPrebid extImpPrebid) {
+
         final List<ExtStoredBidResponse> storedBidResponse = extImpPrebid.getStoredBidResponse();
         final Map<String, String> bidderToStoredId = storedBidResponse != null
                 ? getBidderToStoredResponseId(storedBidResponse, impId)
@@ -192,7 +195,7 @@ public class StoredResponseProcessor {
         return isUpdated ? imp.toBuilder().ext(extImp).build() : imp;
     }
 
-    private boolean hasValidBidder(Map<String, String> aliases, Imp resolvedBiddersImp) {
+    private boolean hasValidBidder(BidderAliases aliases, Imp resolvedBiddersImp) {
         return asStream(resolvedBiddersImp.getExt().fieldNames())
                 .anyMatch(bidder -> !Objects.equals(bidder, PREBID_EXT) && !Objects.equals(bidder, CONTEXT_EXT)
                         && isValidBidder(bidder, aliases));
@@ -203,8 +206,8 @@ public class StoredResponseProcessor {
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
-    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+    private boolean isValidBidder(String bidder, BidderAliases aliases) {
+        return bidderCatalog.isValidName(bidder) || aliases.isAliasDefined(bidder);
     }
 
     private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult,
