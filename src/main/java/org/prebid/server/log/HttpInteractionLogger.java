@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class HttpInteractionLogger {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpInteractionLogger.class);
+    private static final String HTTP_INTERACTION_LOGGER_NAME = "http-interaction";
+    private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
     private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
 

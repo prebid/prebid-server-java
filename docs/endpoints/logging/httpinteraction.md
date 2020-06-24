@@ -2,7 +2,10 @@
 
 This `/logging/httpinteraction` endpoint is bound to `admin.port`.
 
-This endpoint turns on temporary logging of raw HTTP requests and responses, mainly for troubleshooting production issues.
+This endpoint turns on temporary logging of raw HTTP requests and responses, mainly for troubleshooting production issues. 
+Interaction is logged at `INFO` level using `http-interaction` logback logger so make sure this logger has at least 
+`INFO` or more verbose level set ([logback configuration](../../../src/main/resources/logback-spring.xml) bundled in JAR 
+file sets this logger to `INFO` level).
 
 ### Query Params
 - `endpoint` - endpoint to be affected; valid values: [auction](../openrtb2/auction.md), [amp](../openrtb2/amp.md); 
