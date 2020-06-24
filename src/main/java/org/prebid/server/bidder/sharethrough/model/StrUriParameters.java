@@ -15,6 +15,8 @@ public class StrUriParameters {
 
     String consentString;
 
+    String usPrivacySignal;
+
     Boolean instantPlayCapable;
 
     Boolean iframe;

@@ -11,7 +11,7 @@ public class SpecialFeaturesOneStrategy extends SpecialFeaturesStrategy {
 
     @Override
     public void allow(PrivacyEnforcementAction privacyEnforcementAction) {
-        privacyEnforcementAction.setMaskDeviceIp(true);
-        privacyEnforcementAction.setMaskGeo(true);
+        privacyEnforcementAction.setMaskDeviceIp(false);
+        privacyEnforcementAction.setMaskGeo(false);
     }
 }

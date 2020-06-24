@@ -11,6 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -18,20 +19,22 @@ import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class GungumTest extends IntegrationTest {
+public class AdmixerTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromGumGum() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromAdmixer() throws IOException, JSONException {
         // given
-        // GumGum bid response for imp 001 and 002
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gumgum-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/gumgum/test-gumgum-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gumgum/test-gumgum-bid-response-1.json"))));
+        // AdmixerBidder bid response for imp 001
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/admixer-exchange"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/admixer/test-admixer-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/admixer/test-admixer-bid-response.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/gumgum/test-cache-gumgum-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gumgum/test-cache-gumgum-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/admixer/test-cache-admixer-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/admixer/test-cache-admixer-response.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -39,15 +42,14 @@ public class GungumTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"gum":"GUM-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7Imd1bSI6IkdVTS1VSUQifX0=")
-                .body(jsonFrom("openrtb2/gumgum/test-auction-gumgum-request.json"))
+                .cookie("uids", "eyJ1aWRzIjp7ImFkbWl4ZXIiOiJBRC1VSUQifX0=")
+                .body(jsonFrom("openrtb2/admixer/test-auction-admixer-request.json"))
                 .post("/openrtb2/auction");
 
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
-                "openrtb2/gumgum/test-auction-gumgum-response.json",
-                response, singletonList("gumgum"));
+                "openrtb2/admixer/test-auction-admixer-response.json",
+                response, singletonList("admixer"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
