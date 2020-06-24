@@ -2,14 +2,14 @@ package org.prebid.server.exception;
 
 import lombok.Getter;
 
-@Getter
 @SuppressWarnings("serial")
 public class UnauthorizedAccountException extends RuntimeException {
 
+    @Getter
     private String accountId;
 
     public UnauthorizedAccountException(String message, String accountId) {
-        super(String.format("%s", message));
+        super(message);
         this.accountId = accountId;
     }
 }

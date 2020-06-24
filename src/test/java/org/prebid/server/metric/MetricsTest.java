@@ -328,6 +328,26 @@ public class MetricsTest {
     }
 
     @Test
+    public void forCircuitBreakerShouldReturnSameCircuitBreakerMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forCircuitBreaker("id")).isSameAs(metrics.forCircuitBreaker("id"));
+    }
+
+    @Test
+    public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(
+                metrics -> metrics.forCircuitBreaker("id").incCounter(MetricName.httpclient_circuitbreaker_opened));
+    }
+
+    @Test
+    public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithId() {
+        // when
+        metrics.forCircuitBreaker("id").incCounter(MetricName.httpclient_circuitbreaker_opened);
+
+        // then
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened.id").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void updateSafariRequestsMetricShouldIncrementMetric() {
         // when
         metrics.updateSafariRequestsMetric(true);
@@ -779,19 +799,19 @@ public class MetricsTest {
     @Test
     public void shouldIncrementHttpClientCircuitBreakerOpenMetric() {
         // when
-        metrics.updateHttpClientCircuitBreakerMetric(true);
+        metrics.updateHttpClientCircuitBreakerMetric("id", true);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened.id").getCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldIncrementHttpClientCircuitBreakerCloseMetric() {
         // when
-        metrics.updateHttpClientCircuitBreakerMetric(false);
+        metrics.updateHttpClientCircuitBreakerMetric("id", false);
 
         // then
-        assertThat(metricRegistry.counter("httpclient_circuitbreaker_closed").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_closed.id").getCount()).isEqualTo(1);
     }
 
     @Test

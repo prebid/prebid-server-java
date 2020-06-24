@@ -92,31 +92,33 @@ public class TargetingKeywordsCreator {
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
     private final boolean isApp;
+    private final int truncateAttrChars;
 
     private TargetingKeywordsCreator(PriceGranularity priceGranularity, boolean includeWinners,
-                                     boolean includeBidderKeys, boolean isApp) {
+                                     boolean includeBidderKeys, boolean isApp, int truncateAttrChars) {
         this.priceGranularity = priceGranularity;
         this.includeWinners = includeWinners;
         this.includeBidderKeys = includeBidderKeys;
         this.isApp = isApp;
+        this.truncateAttrChars = truncateAttrChars;
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
     public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity, boolean includeWinners,
-                                                  boolean includeBidderKeys, boolean isApp) {
+                                                  boolean includeBidderKeys, boolean isApp, int truncateAttrChars) {
         return new TargetingKeywordsCreator(PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
-                includeWinners, includeBidderKeys, isApp);
+                includeWinners, includeBidderKeys, isApp, truncateAttrChars);
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for string price granularity representation.
      */
     public static TargetingKeywordsCreator create(String stringPriceGranularity, boolean includeWinners,
-                                                  boolean includeBidderKeys, boolean isApp) {
+                                                  boolean includeBidderKeys, boolean isApp, int truncateAttrChars) {
         return new TargetingKeywordsCreator(convertToCustomPriceGranularity(stringPriceGranularity),
-                includeWinners, includeBidderKeys, isApp);
+                includeWinners, includeBidderKeys, isApp, truncateAttrChars);
     }
 
     /**
@@ -163,7 +165,7 @@ public class TargetingKeywordsCreator {
             String winUrl) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
-                EXCLUDED_BIDDER_KEYS);
+                truncateAttrChars, EXCLUDED_BIDDER_KEYS);
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         keywordMap.put(HB_PB_KEY, roundedCpm);
@@ -228,17 +230,20 @@ public class TargetingKeywordsCreator {
         private final boolean winningBid;
         private final boolean includeWinners;
         private final boolean includeBidderKeys;
+        private final int truncateAttrChars;
         private final Set<String> excludedBidderKeys;
 
         private final Map<String, String> keywords;
 
         KeywordMap(String bidder, boolean winningBid, boolean includeWinners, boolean includeBidderKeys,
-                   Set<String> excludedBidderKeys) {
+                   int truncateAttrChars, Set<String> excludedBidderKeys) {
             this.bidder = bidder;
             this.winningBid = winningBid;
             this.includeWinners = includeWinners;
             this.includeBidderKeys = includeBidderKeys;
             this.excludedBidderKeys = excludedBidderKeys;
+            this.truncateAttrChars = truncateAttrChars;
+
             this.keywords = new HashMap<>();
         }
 
@@ -249,13 +254,19 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(String.format("%s_%s", prefix, bidder));
+                keys.add(truncateKey(String.format("%s_%s", prefix, bidder)));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {
                 keys.add(prefix);
             }
             return keys;
+        }
+
+        private String truncateKey(String key) {
+            return truncateAttrChars > 0 && key.length() > truncateAttrChars
+                    ? key.substring(0, truncateAttrChars)
+                    : key;
         }
 
         private Map<String, String> asMap() {
