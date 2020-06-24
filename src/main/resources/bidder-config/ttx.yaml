@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://ssc.33across.com/api/v1/hb
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
