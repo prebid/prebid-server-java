@@ -521,6 +521,22 @@ If a currency rate doesn't exist in the request, the external file will be used.
 Rewarded video is a way to incentivize users to watch ads by giving them 'points' for viewing an ad. A Prebid Server
 client can declare a given adunit as eligible for rewards by declaring `imp.ext.prebid.is_rewarded_inventory:1`.
 
+#### Supply Chain Support
+
+Basic supply chains are passed to Prebid Server on `source.ext.schain` and passed through to bid adapters. Prebid Server does not currently offer the ability to add a node to the supply chain.
+
+Bidder-specific schains (PBS-Java only):
+
+```
+ext.prebid.schains: [
+   { bidders: ["bidderA"], schain: { SCHAIN OBJECT 1}},
+   { bidders: ["*"], schain: { SCHAIN OBJECT 2}}
+]
+```
+In this scenario, Prebid Server sends the first schain object to `bidderA` and the second schain object to everyone else.
+
+If there's already an source.ext.schain and a bidder is named in ext.prebid.schains (or covered by the wildcard condition), ext.prebid.schains takes precedent.
+
 #### Stored Responses
 
 While testing SDK and video integrations, it's important, but often difficult, to get consistent responses back from bidders that cover a range of scenarios like different CPM values, deals, etc. Prebid Server supports a debugging workflow in two ways:
