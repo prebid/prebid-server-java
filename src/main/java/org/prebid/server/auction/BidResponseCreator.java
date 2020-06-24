@@ -280,9 +280,9 @@ public class BidResponseCreator {
         if (!cacheInfo.isDoCaching()) {
             result = Future.succeededFuture(CacheServiceResult.of(null, null, toMapBidsWithEmptyCacheIds(bidsToCache)));
         } else {
-            // do not submit bids with zero price to prebid cache
-            final List<Bid> bidsWithNonZeroPrice = bidsToCache.stream()
-                    .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
+            // do not submit non deals bids with zero price to prebid cache
+            final List<Bid> bidsValidToBeCached = bidsToCache.stream()
+                    .filter(BidResponseCreator::isValidForToBeCached)
                     .collect(Collectors.toList());
 
             final boolean shouldCacheVideoBids = cacheInfo.isShouldCacheVideoBids();
@@ -309,11 +309,16 @@ public class BidResponseCreator {
                     .auctionTimestamp(auctionTimestamp)
                     .build();
 
-            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, cacheContext, account, eventsContext,
+            result = cacheService.cacheBidsOpenrtb(bidsValidToBeCached, imps, cacheContext, account, eventsContext,
                     timeout)
                     .map(cacheResult -> addNotCachedBids(cacheResult, bidsToCache));
         }
         return result;
+    }
+
+    private static boolean isValidForToBeCached(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private Map<String, List<String>> getBidderAndVideoBidIdsToModify(List<BidderResponse> bidderResponses,

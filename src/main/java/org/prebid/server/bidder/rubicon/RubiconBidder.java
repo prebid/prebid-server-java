@@ -757,10 +757,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                .filter(RubiconBidder::validatePrice)
                 .map(bid -> updateBid(bid, bidResponse))
                 .map(bid -> BidderBid.of(bid, bidType(bidRequest), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
+    }
+
+    private static boolean validatePrice(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private Bid updateBid(Bid bid, BidResponse bidResponse) {
