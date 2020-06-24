@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: service@yoc.com
+      maintainer-email: supply.partners@yoc.com
       app-media-types:
         - banner
       site-media-types:
