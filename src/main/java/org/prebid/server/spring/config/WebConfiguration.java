@@ -36,6 +36,7 @@ import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.GetuidsHandler;
+import org.prebid.server.handler.LoggerControlKnobHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
@@ -51,6 +52,7 @@ import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -449,6 +451,9 @@ public class WebConfiguration {
         @Autowired
         private CurrencyRatesHandler currencyRatesHandler;
 
+        @Autowired
+        private LoggerControlKnobHandler loggerControlKnobHandler;
+
         @Autowired(required = false)
         private AccountCacheInvalidationHandler accountCacheInvalidationHandler;
 
@@ -503,6 +508,14 @@ public class WebConfiguration {
             return new CurrencyRatesHandler(currencyConversionRates, mapper);
         }
 
+        @Bean
+        LoggerControlKnobHandler loggerControlKnobHandler(
+                @Value("${logging.change-level.max-duration-ms}") long maxDuration,
+                LoggerControlKnob loggerControlKnob) {
+
+            return new LoggerControlKnobHandler(maxDuration, loggerControlKnob);
+        }
+
         @PostConstruct
         public void startAdminServer() {
             logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
@@ -510,6 +523,7 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            router.route("/logging/changelevel").handler(loggerControlKnobHandler);
             if (adminHandler != null) {
                 router.route("/admin").handler(adminHandler);
             }

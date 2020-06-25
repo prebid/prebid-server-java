@@ -40,6 +40,7 @@ import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -638,5 +639,10 @@ public class ServiceConfiguration {
     @Bean
     AdminManager adminManager() {
         return new AdminManager();
+    }
+
+    @Bean
+    LoggerControlKnob loggerControlKnob(Vertx vertx) {
+        return new LoggerControlKnob(vertx);
     }
 }
