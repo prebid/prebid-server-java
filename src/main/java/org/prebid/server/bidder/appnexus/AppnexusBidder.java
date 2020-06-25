@@ -85,8 +85,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         IAB_CATEGORIES.put(19, "IAB18-4");
         IAB_CATEGORIES.put(20, "IAB1-5");
         IAB_CATEGORIES.put(21, "IAB1-6");
+        IAB_CATEGORIES.put(22, "IAB19-28");
         IAB_CATEGORIES.put(23, "IAB19-13");
         IAB_CATEGORIES.put(24, "IAB22-2");
+        IAB_CATEGORIES.put(25, "IAB3-9");
+        IAB_CATEGORIES.put(26, "IAB17-26");
         IAB_CATEGORIES.put(27, "IAB19-6");
         IAB_CATEGORIES.put(28, "IAB1-7");
         IAB_CATEGORIES.put(29, "IAB9-5");
@@ -96,7 +99,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         IAB_CATEGORIES.put(33, "IAB16-5");
         IAB_CATEGORIES.put(34, "IAB19-34");
         IAB_CATEGORIES.put(37, "IAB11-4");
-        IAB_CATEGORIES.put(38, "IAB23");
         IAB_CATEGORIES.put(39, "IAB9-30");
         IAB_CATEGORIES.put(41, "IAB7-44");
         IAB_CATEGORIES.put(51, "IAB17-12");
@@ -110,6 +112,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         IAB_CATEGORIES.put(69, "IAB7-1");
         IAB_CATEGORIES.put(71, "IAB22-2");
         IAB_CATEGORIES.put(74, "IAB8-5");
+        IAB_CATEGORIES.put(87, "IAB3-7");
     }
 
     private final String endpointUrl;

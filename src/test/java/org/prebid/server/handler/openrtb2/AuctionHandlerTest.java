@@ -218,30 +218,10 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldExecuteAdminManagerOnInvalidRequestException() {
-        // given
-        auctionHandler = new AuctionHandler(auctionRequestFactory, exchangeService, analyticsReporter, metrics, clock,
-                adminManager, jacksonMapper);
-
-        given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
-
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(),
-                eq("Invalid request format: Request is invalid, Referer: null"));
-    }
-
-    @Test
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
 
         // when
         auctionHandler.handle(routingContext);
@@ -249,7 +229,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).end(eq("Unauthorized: Account id is not provided 1"));
+        verify(httpResponse).end(eq("Account id is not provided"));
     }
 
     @Test
@@ -588,7 +568,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+        // TODO adminManager: enable when admin endpoints can be bound on application port
+        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
