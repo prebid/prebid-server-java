@@ -3,11 +3,12 @@ adapters:
     enabled: false
     endpoint: https://
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: hb-fe-tech@verizonmedia.com
+      maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
       site-media-types:
         - banner

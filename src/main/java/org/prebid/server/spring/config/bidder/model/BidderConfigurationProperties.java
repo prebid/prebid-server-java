@@ -24,6 +24,9 @@ public class BidderConfigurationProperties {
     private Boolean pbsEnforcesGdpr;
 
     @NotNull
+    private Boolean pbsEnforcesCcpa;
+
+    @NotNull
     private Boolean modifyingVastXmlAllowed;
 
     @NotNull
