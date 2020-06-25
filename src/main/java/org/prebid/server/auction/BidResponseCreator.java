@@ -836,8 +836,4 @@ public class BidResponseCreator {
     private CacheAsset toCacheAsset(String cacheId) {
         return CacheAsset.of(cacheAssetUrlTemplate.concat(cacheId), cacheId);
     }
-
-    public static <S, T> T applyIfNotNull(S source, Function<S, T> mapper) {
-        return source != null ? mapper.apply(source) : null;
-    }
 }
