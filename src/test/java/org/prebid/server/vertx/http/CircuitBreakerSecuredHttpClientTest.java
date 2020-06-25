@@ -196,10 +196,10 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest(context);
+        doRequest("http://www.some-host-1.com/path", context);
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq(true));
+        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("www_some_host_1_com"), eq(true));
     }
 
     @Test
@@ -208,13 +208,13 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
-        doRequest(context); // 1 call
-        doRequest(context); // 2 call
+        doRequest("http://www.some-host-1.com/path", context); // 1 call
+        doRequest("http://www.some-host-1.com/path", context); // 2 call
         doWaitForClosingInterval(context);
-        doRequest(context); // 3 call
+        doRequest("http://www.some-host-1.com/path", context); // 3 call
 
         // then
-        verify(metrics).updateHttpClientCircuitBreakerMetric(eq(false));
+        verify(metrics).updateHttpClientCircuitBreakerMetric(eq("www_some_host_1_com"), eq(false));
     }
 
     @SuppressWarnings("unchecked")
@@ -230,14 +230,18 @@ public class CircuitBreakerSecuredHttpClientTest {
         }
     }
 
-    private Future<HttpClientResponse> doRequest(TestContext context) {
-        final Future<HttpClientResponse> future = httpClient.request(HttpMethod.GET, "http://url", null, null, 0L);
+    private Future<HttpClientResponse> doRequest(String url, TestContext context) {
+        final Future<HttpClientResponse> future = httpClient.request(HttpMethod.GET, url, null, null, 0L);
 
         final Async async = context.async();
         future.setHandler(ar -> async.complete());
         async.await();
 
         return future;
+    }
+
+    private Future<HttpClientResponse> doRequest(TestContext context) {
+        return doRequest("http://url", context);
     }
 
     private void doWaitForOpeningInterval(TestContext context) {

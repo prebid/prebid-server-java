@@ -166,6 +166,6 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo() {
         return BidderInfo.create(true, "test@email.org", singletonList("mediaType1"),
-                singletonList("mediaType2"), null, 0, true, false);
+                singletonList("mediaType2"), null, 0, true, true, false);
     }
 }
