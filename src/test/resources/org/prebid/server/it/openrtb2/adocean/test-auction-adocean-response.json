@@ -1,0 +1,56 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "adoceanmyaozpniqismex",
+          "impid": "ao-test",
+          "price": 1,
+          "adm": " <script> +function() { var wu = \"https://win-url.com\"; var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now()); if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script>  <!-- code 1 --> ",
+          "crid": "0af345b42983cc4bc0",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "10.50",
+                "hb_size_adocean": "400x300",
+                "hb_size": "400x300",
+                "hb_bidder": "adform",
+                "hb_cache_id_adocean": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                "hb_bidder_adocean": "adocean",
+                "hb_pb_adocean": "10.50",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_adocean": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_adocean": "{{ cache.path }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                  "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "adocean",
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "responsetimemillis": {
+      "adocean": "{{ adocean.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}
