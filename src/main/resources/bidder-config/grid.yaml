@@ -14,7 +14,7 @@ adapters:
         - banner
         - video
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 686
     usersync:
       url: https://x.bidswitch.net/check_uuid/
       redirect-url: /setuid?bidder=grid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${BSW_UUID}?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}

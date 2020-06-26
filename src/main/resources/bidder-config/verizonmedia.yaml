@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: hb-fe-tech@verizonmedia.com
+      maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
       site-media-types:
         - banner

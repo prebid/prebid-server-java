@@ -136,8 +136,8 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string="
-                + "&instant_play_capable=true&stayInIframe=false&height=10&width=20"
-                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=7";
+                + "&us_privacy=&instant_play_capable=true&stayInIframe=false&height=10&width=20"
+                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=8";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
                 DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
 
@@ -189,9 +189,9 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent"
-                + "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
+                + "&us_privacy=&instant_play_capable=false&stayInIframe=false&height=1&width=1"
                 + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
-                + "&supplyId=FGMrCMMc&strVersion=7&ttduid=first&stxuid=buyer";
+                + "&supplyId=FGMrCMMc&strVersion=8&ttduid=first&stxuid=buyer";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
                 DEADLINE_FORMATTED_TIME, true, null);
 

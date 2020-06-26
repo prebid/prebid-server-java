@@ -63,18 +63,26 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves gdpr from regs.ext.gdpr and in case of 1 returns true.
+     * In case regs.ext.gdpr equal 1 returns true.
      */
-    boolean isConsentRequired(Regs regs) {
-        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
-        final ExtRegs extRegs;
-        try {
-            extRegs = extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
-        } catch (JsonProcessingException e) {
-            return false;
-        }
-
+    boolean isConsentRequired(ExtRegs extRegs) {
         return extRegs != null && extRegs.getGdpr() != null && extRegs.getGdpr() == 1;
+    }
+
+    /**
+     * Returns usPrivasy or empty string in case of null.
+     */
+    String usPrivacy(ExtRegs extRegs) {
+        return extRegs != null ? StringUtils.trimToEmpty(extRegs.getUsPrivacy()) : "";
+    }
+
+    ExtRegs parseRegs(Regs regs) {
+        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
+        try {
+            return extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     /**
