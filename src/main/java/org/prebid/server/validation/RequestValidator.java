@@ -411,7 +411,7 @@ public class RequestValidator {
         try {
             return mapper.mapper().treeToValue(extDevice, ExtDevice.class);
         } catch (JsonProcessingException e) {
-            throw new ValidationException("request.device.ext is not valid", e.getMessage());
+            throw new ValidationException("request.device.ext is not valid: %s", e.getMessage());
         }
     }
 

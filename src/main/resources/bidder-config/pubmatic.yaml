@@ -11,6 +11,7 @@ adapters:
       maintainer-email: header-bidding@pubmatic.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
         - video

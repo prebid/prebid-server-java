@@ -20,10 +20,12 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
 import org.prebid.server.bidder.openx.proto.OpenxImpExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
+import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -44,8 +46,8 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOpenx>>() {
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>>() {
             };
 
     private final String endpointUrl;
@@ -148,41 +150,55 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
 
         return CollectionUtils.isNotEmpty(processedImps)
-                ? bidRequest.toBuilder().imp(processedImps).ext(makeReqExt(imps)).build()
+                ? bidRequest.toBuilder()
+                    .imp(processedImps)
+                    .ext(makeReqExt(imps.get(0)))
+                    .build()
                 : null;
     }
 
     private Imp makeImp(Imp imp) {
-        final ExtImpOpenx openxImpExt = parseOpenxExt(imp);
-        return imp.toBuilder()
+        final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
+        final ExtImpOpenx openxImpExt = impExt.getBidder();
+        final ExtImpPrebid prebidImpExt = impExt.getPrebid();
+        final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .tagid(openxImpExt.getUnit())
                 .bidfloor(openxImpExt.getCustomFloor())
-                .ext(makeImpExt(openxImpExt.getCustomParams()))
-                .build();
+                .ext(makeImpExt(openxImpExt.getCustomParams()));
+
+        if (resolveImpType(imp) == OpenxImpType.video
+                && prebidImpExt != null
+                && Objects.equals(prebidImpExt.getIsRewardedInventory(), 1)) {
+            impBuilder.video(imp.getVideo().toBuilder()
+                                .ext(mapper.mapper().valueToTree(OpenxVideoExt.of(1)))
+                                .build());
+        }
+        return impBuilder.build();
     }
 
-    private ObjectNode makeReqExt(List<Imp> imps) {
-        return mapper.mapper().valueToTree(OpenxRequestExt.of(parseOpenxExt(imps.get(0)).getDelDomain(), OPENX_CONFIG));
+    private ObjectNode makeReqExt(Imp imp) {
+        return mapper.mapper().valueToTree(
+            OpenxRequestExt.of(parseOpenxExt(imp).getBidder().getDelDomain(), OPENX_CONFIG));
     }
 
-    private ExtImpOpenx parseOpenxExt(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        final ExtPrebid<?, ExtImpOpenx> impExtPrebid;
-        if (impExt == null) {
+    private ExtPrebid<ExtImpPrebid, ExtImpOpenx> parseOpenxExt(Imp imp) {
+        final ObjectNode impExtRaw = imp.getExt();
+        final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt;
+        if (impExtRaw == null) {
             throw new PreBidException("openx parameters section is missing");
         }
 
         try {
-            impExtPrebid = mapper.mapper().convertValue(impExt, OPENX_EXT_TYPE_REFERENCE);
+            impExt = mapper.mapper().convertValue(impExtRaw, OPENX_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
 
-        final ExtImpOpenx impExtOpenx = impExtPrebid != null ? impExtPrebid.getBidder() : null;
+        final ExtImpOpenx impExtOpenx = impExt != null ? impExt.getBidder() : null;
         if (impExtOpenx == null) {
             throw new PreBidException("openx parameters section is missing");
         }
-        return impExtOpenx;
+        return impExt;
     }
 
     private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {

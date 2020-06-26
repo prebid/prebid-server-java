@@ -581,7 +581,7 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final List<ExtRequestPrebidSchain> schains = prebid == null ? null : prebid.getSchains();
 
-        if (CollectionUtils.isEmpty(schains)) {
+        if (schains == null || schains.isEmpty()) {
             return Collections.emptyMap();
         }
 
