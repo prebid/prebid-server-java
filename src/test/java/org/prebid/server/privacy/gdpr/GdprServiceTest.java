@@ -156,6 +156,16 @@ public class GdprServiceTest extends VertxTest {
                 .hasMessage("Error when checking if vendor is allowed in a reason of invalid consent string");
     }
 
+    @Test
+    public void shouldReturnAllDeniedWhenVendorListServiceFailed() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("error"));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
+    }
+
     private static PrivacyEnforcementAction denyAll() {
         return action(false, false);
     }

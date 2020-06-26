@@ -337,6 +337,24 @@ public class Metrics extends UpdatableMetrics {
         versionMetrics.incCounter(metricName);
     }
 
+    public void updatePrivacyTcfVendorListMissingMetric(int tcfVersion, int vendorListVersion) {
+        updatePrivacyTcfVendorListMetric(tcfVersion, vendorListVersion, MetricName.missing);
+    }
+
+    public void updatePrivacyTcfVendorListOkMetric(int tcfVersion, int vendorListVersion) {
+        updatePrivacyTcfVendorListMetric(tcfVersion, vendorListVersion, MetricName.ok);
+    }
+
+    public void updatePrivacyTcfVendorListErrorMetric(int tcfVersion, int vendorListVersion) {
+        updatePrivacyTcfVendorListMetric(tcfVersion, vendorListVersion, MetricName.err);
+    }
+
+    private void updatePrivacyTcfVendorListMetric(int tcfVersion, int vendorListVersion, MetricName metricName) {
+        final TcfMetrics tcfMetrics = privacy().tcf();
+        final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = tcfVersion == 2 ? tcfMetrics.v2() : tcfMetrics.v1();
+        tcfVersionMetrics.forVendorList(vendorListVersion).incCounter(metricName);
+    }
+
     public void updateConnectionAcceptErrors() {
         incCounter(MetricName.connection_accept_errors);
     }
