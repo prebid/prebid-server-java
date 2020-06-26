@@ -15,6 +15,7 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -56,6 +57,7 @@ public class GdprService {
         }
 
         return vendorListService.forVersion(vendorConsent.getVendorListVersion())
+                .otherwise(Collections.emptyMap())
                 .map(vendorListMapping -> toResult(vendorListMapping, vendorIds, vendorConsent));
     }
 
