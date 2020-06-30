@@ -202,10 +202,10 @@ settings:
 ```
 
 The select query columns of `stored-requests-query` and `amp-stored-requests-query` properties should correspond to the specific format:
-- first column: account ID which is searched by (int type)
-- second column: ID of stored data item which is searched by (string type)
-- third column: value of stored data item (string type)
-- forth column: type of stored data item (string type). Can be `request` for stored requests or `imp` for stored impressions.
+- first column: account ID which is searched by.
+- second column: ID of stored data item which is searched by.
+- third column: value of stored data item.
+- forth column: type of stored data item. Can be `request` for stored requests or `imp` for stored impressions.
 
 ### HTTP backend
 
