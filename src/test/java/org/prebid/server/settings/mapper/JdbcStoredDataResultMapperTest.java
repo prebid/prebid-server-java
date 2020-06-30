@@ -20,8 +20,6 @@ import static org.mockito.BDDMockito.given;
 
 public class JdbcStoredDataResultMapperTest {
 
-    private static final String ACCOUNT_ID = null;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -34,7 +32,7 @@ public class JdbcStoredDataResultMapperTest {
         given(resultSet.getResults()).willReturn(emptyList());
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, ACCOUNT_ID, emptySet(), emptySet());
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null, emptySet(), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -49,7 +47,7 @@ public class JdbcStoredDataResultMapperTest {
         given(resultSet.getResults()).willReturn(emptyList());
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, ACCOUNT_ID,
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
                 singleton("reqId"), singleton("impId"));
 
         // then
@@ -66,7 +64,7 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId", "id1", "data"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, ACCOUNT_ID,
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
                 singleton("reqId"), emptySet());
 
         // then
@@ -83,7 +81,7 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId", "id1", "data", 123))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, ACCOUNT_ID,
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
                 singleton("reqId"), emptySet());
 
         // then
@@ -118,7 +116,7 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId", "id1", "data1", "request"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, ACCOUNT_ID, singleton("id1"),
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null, singleton("id1"),
                 singleton("id2"));
 
         // then

@@ -148,7 +148,7 @@ public class BidResponseCreator {
 
             result = toBidsWithCacheIds(bidderResponses, bidsToCache, bidRequest.getImp(), cacheInfo, account, timeout,
                     auctionTimestamp)
-                    .compose(cacheResult -> videoStoredDataResult(bidRequest.getImp(), account, timeout)
+                    .compose(cacheResult -> videoStoredDataResult(account, bidRequest.getImp(), timeout)
                             .map(videoStoredDataResult -> toBidResponse(bidderResponses, bidRequest, targeting,
                                     winningBids, winningBidsByBidder, cacheInfo, cacheResult, videoStoredDataResult,
                                     account, eventsAllowedByRequest, auctionTimestamp, debugEnabled)));
@@ -545,7 +545,7 @@ public class BidResponseCreator {
                 .build();
     }
 
-    private Future<VideoStoredDataResult> videoStoredDataResult(List<Imp> imps, Account account, Timeout timeout) {
+    private Future<VideoStoredDataResult> videoStoredDataResult(Account account, List<Imp> imps, Timeout timeout) {
         final List<String> errors = new ArrayList<>();
         final List<Imp> storedVideoInjectableImps = new ArrayList<>();
         for (Imp imp : imps) {

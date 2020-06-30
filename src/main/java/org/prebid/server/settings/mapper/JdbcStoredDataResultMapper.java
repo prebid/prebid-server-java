@@ -127,7 +127,7 @@ public class JdbcStoredDataResultMapper {
      * <p>
      * - account is present in request - find stored items of this account or skip it otherwise.
      * <p>
-     * - account is not present in request - if were found many items - add error, otherwise use found item.
+     * - account is not present in request - if multiple items were found - add error, otherwise use found item.
      *
      * @return map of stored ID -> value or populate error.
      */

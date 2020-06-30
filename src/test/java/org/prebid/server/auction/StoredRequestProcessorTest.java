@@ -57,10 +57,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class StoredRequestProcessorTest extends VertxTest {
 
-    private static final int DEFAULT_TIMEOUT = 500;
-
-    private static final String ACCOUNT_ID = null;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -75,7 +71,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void setUp() {
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         storedRequestProcessor = new StoredRequestProcessor(
-                DEFAULT_TIMEOUT,
+                500,
                 applicationSettings,
                 metrics,
                 timeoutFactory,
@@ -105,8 +101,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 singletonMap("imp", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -147,8 +142,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -170,7 +164,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(ACCOUNT_ID, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -192,8 +186,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .succeededFuture(StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -215,8 +208,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .succeededFuture(StoredDataResult.of(storedRequestFetchResult, emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -234,8 +226,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 .storedrequest(ExtStoredRequest.of(null)).build()))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -254,8 +245,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .id("test-id"));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -285,8 +275,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -307,8 +296,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -330,8 +318,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("No config found for id: 123"))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -347,11 +334,10 @@ public class StoredRequestProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(builder -> builder.imp(singletonList(imp)));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
-        verifyZeroInteractions(applicationSettings);
+        verifyZeroInteractions(applicationSettings, metrics);
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result().getImp().get(0)).isSameAs(imp);
         assertThat(bidRequestFuture.result()).isSameAs(bidRequest);
@@ -376,8 +362,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", storedRequestImpJson), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -403,8 +388,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         null)))))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -422,8 +406,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                                         .set("id", mapper.createObjectNode().putArray("id")
                                                 .add("id"))))).id("imp-test")))));
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // when
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -445,8 +428,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture(new Exception("Error during file fetching")));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -469,8 +451,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), singletonMap("123", "{{}"), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -494,8 +475,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), storedImpFetchResult, emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(ACCOUNT_ID,
-                bidRequest);
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
@@ -511,7 +491,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture((String) null));
 
         // when
-        storedRequestProcessor.processStoredRequests(ACCOUNT_ID, givenBidRequest(builder -> builder
+        storedRequestProcessor.processStoredRequests(null, givenBidRequest(builder -> builder
                 .ext(mapper.valueToTree(ExtBidRequest.of(
                         ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("bidRequest")).build())))
                 .tmax(1000L)));
@@ -529,37 +509,39 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture((String) null));
 
         // when
-        storedRequestProcessor.processStoredRequests(ACCOUNT_ID, givenBidRequest(builder -> builder
+        storedRequestProcessor.processStoredRequests(null, givenBidRequest(builder -> builder
                 .ext(mapper.valueToTree(ExtBidRequest.of(
                         ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("bidRequest")).build())))));
 
         // then
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(applicationSettings).getStoredData(any(), anySet(), anySet(), timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(DEFAULT_TIMEOUT);
+        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(500);
     }
 
     @Test
-    public void processStoredRequestsShouldNotUpdateMetrics() {
+    public void processStoredRequestsShouldNotUpdateMetricsIfApplicationSettingsFailed() {
         // given
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.failedFuture("failed"));
 
         // when
-        storedRequestProcessor.processStoredRequests(ACCOUNT_ID, givenBidRequest(Function.identity()));
+        storedRequestProcessor.processStoredRequests(null, givenBidRequest(builder -> builder
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("bidRequest")).build())))));
 
         // then
         verifyZeroInteractions(metrics);
     }
 
     @Test
-    public void processAmpRequestShouldNotUpdateMetrics() {
+    public void processAmpRequestShouldNotUpdateMetricsIfApplicationSettingsFailed() {
         // given
         given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.failedFuture("failed"));
 
         // when
-        storedRequestProcessor.processAmpRequest(ACCOUNT_ID, "123");
+        storedRequestProcessor.processAmpRequest(null, "123");
 
         // then
         verifyZeroInteractions(metrics);
@@ -583,7 +565,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         singletonMap("123", "stored_request"), singletonMap("321", "stored_imp"), emptyList())));
 
         // when
-        storedRequestProcessor.processStoredRequests(ACCOUNT_ID, bidRequest);
+        storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         verify(metrics).updateStoredRequestMetric(eq(true));
@@ -602,7 +584,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processStoredRequests(ACCOUNT_ID, bidRequest);
+        storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         verify(metrics).updateStoredRequestMetric(eq(false));
@@ -616,7 +598,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(singletonMap("123", "amp"), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processAmpRequest(ACCOUNT_ID, "123");
+        storedRequestProcessor.processAmpRequest(null, "123");
 
         // then
         verify(metrics).updateStoredRequestMetric(true);
@@ -630,7 +612,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processAmpRequest(ACCOUNT_ID, "123");
+        storedRequestProcessor.processAmpRequest(null, "123");
 
         // then
         verify(metrics).updateStoredRequestMetric(false);

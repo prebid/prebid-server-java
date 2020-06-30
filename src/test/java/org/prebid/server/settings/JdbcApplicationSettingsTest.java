@@ -51,8 +51,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(VertxUnitRunner.class)
 public class JdbcApplicationSettingsTest extends VertxTest {
 
-    private static final String ACCOUNT_ID = null;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -239,7 +237,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnExpectedResult(TestContext context) {
         // when
         final Future<StoredDataResult> future = jdbcApplicationSettings.getStoredData(
-                ACCOUNT_ID, new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
+                null, new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
 
         // then
         final Async async = context.async();
@@ -260,7 +258,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAmpStoredDataShouldReturnExpectedResult(TestContext context) {
         // when
         final Future<StoredDataResult> future = jdbcApplicationSettings.getAmpStoredData(
-                ACCOUNT_ID, new HashSet<>(asList("1", "2")), new HashSet<>(asList("3", "4")), timeout);
+                null, new HashSet<>(asList("1", "2")), new HashSet<>(asList("3", "4")), timeout);
 
         // then
         final Async async = context.async();
@@ -331,7 +329,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")),
+                jdbcApplicationSettings.getStoredData(null, new HashSet<>(asList("1", "2", "3")),
                         new HashSet<>(asList("4", "5", "6")), timeout);
 
         // then
@@ -359,7 +357,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")),
+                jdbcApplicationSettings.getAmpStoredData(null, new HashSet<>(asList("1", "2", "3")),
                         new HashSet<>(asList("4", "5", "6")), timeout);
 
         // then
@@ -379,7 +377,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfNoStoredRequestFound(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "3")), emptySet(), timeout);
+                jdbcApplicationSettings.getStoredData(null, new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
@@ -394,7 +392,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfNoStoredImpFound(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, emptySet(), new HashSet<>(asList("4", "6")), timeout);
+                jdbcApplicationSettings.getStoredData(null, emptySet(), new HashSet<>(asList("4", "6")), timeout);
 
         // then
         final Async async = context.async();
@@ -409,7 +407,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAmpStoredDataShouldReturnResultWithErrorIfNoStoredRequestFound(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "3")), emptySet(),
+                jdbcApplicationSettings.getAmpStoredData(null, new HashSet<>(asList("1", "3")), emptySet(),
                         timeout);
 
         // then
@@ -429,7 +427,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")), emptySet(),
+                jdbcApplicationSettings.getStoredData(null, new HashSet<>(asList("1", "2", "3")), emptySet(),
                         timeout);
 
         // then
@@ -450,7 +448,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("1", "2", "3")), emptySet(),
+                jdbcApplicationSettings.getAmpStoredData(null, new HashSet<>(asList("1", "2", "3")), emptySet(),
                         timeout);
 
         // then
@@ -466,7 +464,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("3", "4")),
+                jdbcApplicationSettings.getStoredData(null, new HashSet<>(asList("3", "4")),
                         new HashSet<>(asList("6", "7")), timeout);
 
         // then
@@ -482,7 +480,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAmpStoredDataShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("3", "4")), emptySet(),
+                jdbcApplicationSettings.getAmpStoredData(null, new HashSet<>(asList("3", "4")), emptySet(),
                         timeout);
 
         // then
@@ -498,7 +496,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAmpStoredDataShouldIgnoreImpIdsArgument(TestContext context) {
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("1"), singleton("4"), timeout);
+                jdbcApplicationSettings.getAmpStoredData(null, singleton("1"), singleton("4"), timeout);
 
         // then
         final Async async = context.async();

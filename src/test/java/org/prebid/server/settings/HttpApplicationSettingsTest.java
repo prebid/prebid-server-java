@@ -47,8 +47,6 @@ public class HttpApplicationSettingsTest extends VertxTest {
     private static final String AMP_ENDPOINT = "http://amp-stored-requests";
     private static final String VIDEO_ENDPOINT = "http://video-stored-requests";
 
-    private static final String ACCOUNT_ID = null;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -128,7 +126,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnEmptyResultIfEmptyRequestsIdsGiven() {
         // when
-        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(ACCOUNT_ID, emptySet(),
+        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(null, emptySet(),
                 emptySet(), null);
 
         // then
@@ -143,7 +141,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfTimeoutAlreadyExpired() {
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), emptySet(), expiredTimeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), expiredTimeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -160,7 +158,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        httpApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("id1", "id2")),
+        httpApplicationSettings.getStoredData(null, new HashSet<>(asList("id1", "id2")),
                 new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
@@ -176,7 +174,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT);
 
         // when
-        httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), singleton("id2"), timeout);
+        httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=[\"id1\"]&imp-ids=[\"id2\"]"), any(),
@@ -190,7 +188,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -207,7 +205,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -224,7 +222,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -243,7 +241,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -263,7 +261,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), emptySet(), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -283,7 +281,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
-                ACCOUNT_ID, new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
+                null, new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -307,7 +305,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // when
         final Future<StoredDataResult> future =
-                httpApplicationSettings.getStoredData(ACCOUNT_ID, singleton("id1"), singleton("id2"), timeout);
+                httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -326,7 +324,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        httpApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("id1"), singleton("id2"), timeout);
+        httpApplicationSettings.getAmpStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);

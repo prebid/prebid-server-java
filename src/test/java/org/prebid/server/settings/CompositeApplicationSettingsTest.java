@@ -35,8 +35,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CompositeApplicationSettingsTest {
 
-    private static final String ACCOUNT_ID = null;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -168,7 +166,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(ACCOUNT_ID, singleton("key1"), singleton("key2"), null);
+                compositeApplicationSettings.getStoredData(null, singleton("key1"), singleton("key2"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -195,7 +193,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(ACCOUNT_ID, singleton("key1"), singleton("key2"), null);
+                compositeApplicationSettings.getStoredData(null, singleton("key1"), singleton("key2"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -220,7 +218,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -238,7 +236,7 @@ public class CompositeApplicationSettingsTest {
                                 singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("key1", "key2")),
+        compositeApplicationSettings.getStoredData(null, new HashSet<>(asList("key1", "key2")),
                 new HashSet<>(asList("key3", "key4")), null);
 
         // then
@@ -268,7 +266,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(ACCOUNT_ID, new HashSet<>(asList("key1", "key2")),
+                compositeApplicationSettings.getStoredData(null, new HashSet<>(asList("key1", "key2")),
                         new HashSet<>(asList("key3", "key4")), null);
 
         // then
@@ -293,7 +291,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getAmpStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -317,7 +315,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getAmpStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -340,7 +338,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, singleton("key1"), emptySet(), null);
+                compositeApplicationSettings.getAmpStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -357,7 +355,7 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID, new HashSet<>(asList("key1", "key2")), emptySet(),
+        compositeApplicationSettings.getAmpStoredData(null, new HashSet<>(asList("key1", "key2")), emptySet(),
                 null);
 
         // then
@@ -382,7 +380,7 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(singletonMap("key2", "value2"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredDataResult> future = compositeApplicationSettings.getAmpStoredData(ACCOUNT_ID,
+        final Future<StoredDataResult> future = compositeApplicationSettings.getAmpStoredData(null,
                 new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then
