@@ -144,7 +144,8 @@ public class JdbcStoredDataResultMapper {
 
             for (String searchId : searchIds) {
                 final List<StoredItem> storedItems = idToStoredItems.get(searchId);
-                if (storedItems == null) {
+
+                if (CollectionUtils.isEmpty(storedItems)) {
                     errors.add(String.format("No stored %s found for id: %s", type, searchId));
                 } else {
                     if (StringUtils.isNotEmpty(accountId)) {
