@@ -170,6 +170,12 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
     private Imp updateImp(Imp imp, PublisherOverride publisherOverride) {
+        final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+        if (publisherOverride != null && publisherOverride.getBidFloor() != null) {
+            impBuilder.bidfloor(publisherOverride.getBidFloor());
+        }
+
         final Banner banner = imp.getBanner();
         if (banner != null) {
             final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
@@ -180,22 +186,19 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                         .w(firstFormat.getW())
                         .h(firstFormat.getH());
             }
-            if (publisherOverride != null) {
+            if (publisherOverride != null && publisherOverride.getImpBattr() != null) {
                 bannerBuilder.battr(publisherOverride.getImpBattr());
             }
-            return imp.toBuilder()
-                    .banner(bannerBuilder.build())
-                    .build();
+            impBuilder.banner(bannerBuilder.build());
         }
+
         final Video video = imp.getVideo();
-        if (video != null && publisherOverride != null) {
-            return imp.toBuilder()
-                    .video(video.toBuilder()
-                            .battr(publisherOverride.getImpBattr())
-                            .build())
-                    .build();
+        if (video != null && publisherOverride != null && publisherOverride.getImpBattr() != null) {
+            impBuilder.video(video.toBuilder()
+                    .battr(publisherOverride.getImpBattr())
+                    .build());
         }
-        return imp;
+        return impBuilder.build();
     }
 
     /**
