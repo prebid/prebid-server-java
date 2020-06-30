@@ -276,7 +276,7 @@ public class ApplicationTest extends IntegrationTest {
                         + "&slot=overwrite-tagId"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
-                        + "&us_privacy=1YNN");
+                        + "&consent_string=1YNN");
 
         // then
         JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
@@ -346,7 +346,8 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
-                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null))
+                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, "1YNN", false, null,
+                        null))
                 .when()
                 .post("/cookie_sync")
                 .then()

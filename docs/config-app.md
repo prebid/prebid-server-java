@@ -201,6 +201,8 @@ For caching available next options:
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
+- `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
+available: `/cache/invalidate?account={accountId}` which remove account from the cache.
 - `settings.in-memory-cache.http-update.endpoint` - the url to fetch stored request updates.
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
@@ -213,6 +215,9 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
 - `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
+
+For targeting available next options:
+- `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
@@ -249,10 +254,10 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.purposes.pN.vendor-exceptions[]` - bidder names that will be treated opposite to `pN.enforce-vendors` value.
 - `gdpr.special-features.sfN.enforce` - if equals to `true`, special feature will be enforced for purpose. Default `true`
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
-- `gdpr.purpose-one-treatment-interpretation` - flag that allowing to skip the Purpose one enforcement workflow.
-- `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
-- `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+- `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
+- `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
+- `gdpr.vendorlist.vN.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
+- `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.

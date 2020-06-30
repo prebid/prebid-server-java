@@ -28,6 +28,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.handler.AccountCacheInvalidationHandler;
 import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
@@ -54,9 +55,9 @@ import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
-import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
@@ -219,7 +220,7 @@ public class WebConfiguration {
             Metrics metrics,
             HttpAdapterConnector httpAdapterConnector,
             Clock clock,
-            GdprService gdprService,
+            TcfDefinerService tcfDefinerService,
             PrivacyExtractor privacyExtractor,
             JacksonMapper mapper,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -233,7 +234,7 @@ public class WebConfiguration {
                 metrics,
                 httpAdapterConnector,
                 clock,
-                gdprService,
+                tcfDefinerService,
                 privacyExtractor,
                 mapper,
                 hostVendorId,
@@ -308,6 +309,7 @@ public class WebConfiguration {
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CoopSyncPriorities coopSyncPriorities,
             TcfDefinerService tcfDefinerService,
@@ -319,15 +321,16 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog,
-                tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation, defaultCoopSync,
-                coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
+        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId, useGeoLocation,
+                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporter, metrics, timeoutFactory, mapper);
     }
 
     @Bean
     SetuidHandler setuidHandler(
             @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             TcfDefinerService tcfDefinerService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
@@ -336,8 +339,8 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, tcfDefinerService, hostVendorId,
-                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, applicationSettings, bidderCatalog,
+                tcfDefinerService, hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -447,6 +450,9 @@ public class WebConfiguration {
         private CurrencyRatesHandler currencyRatesHandler;
 
         @Autowired(required = false)
+        private AccountCacheInvalidationHandler accountCacheInvalidationHandler;
+
+        @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
 
         @Autowired(required = false)
@@ -456,10 +462,11 @@ public class WebConfiguration {
         private int adminPort;
 
         @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "account-invalidation-enabled",
                 havingValue = "true")
-        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
-            return new SettingsCacheNotificationHandler(settingsCache, mapper);
+        AccountCacheInvalidationHandler accountCacheInvalidationHandler(
+                CachingApplicationSettings cachingApplicationSettings) {
+            return new AccountCacheInvalidationHandler(cachingApplicationSettings);
         }
 
         @Bean
@@ -469,6 +476,13 @@ public class WebConfiguration {
                 SettingsCache ampSettingsCache, JacksonMapper mapper) {
 
             return new SettingsCacheNotificationHandler(ampSettingsCache, mapper);
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache, JacksonMapper mapper) {
+            return new SettingsCacheNotificationHandler(settingsCache, mapper);
         }
 
         @Bean
@@ -507,6 +521,9 @@ public class WebConfiguration {
             }
             if (ampCacheNotificationHandler != null) {
                 router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            }
+            if (accountCacheInvalidationHandler != null) {
+                router.route("/cache/invalidate").handler(accountCacheInvalidationHandler);
             }
 
             contextRunner.<HttpServer>runOnServiceContext(promise ->

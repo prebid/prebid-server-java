@@ -25,6 +25,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -1320,6 +1321,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1338,6 +1340,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1358,6 +1361,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1420,6 +1424,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1447,6 +1452,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1469,6 +1475,7 @@ public class RequestValidatorTest extends VertxTest {
                                 .build())
                         .build())))
                 .build();
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -1670,7 +1677,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.eids[0].source missing required field: \"source\"");
+                .containsOnly("request.user.ext.eids[0] missing required field: \"source\"");
     }
 
     @Test
@@ -1825,17 +1832,20 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid() {
+    public void validateShouldNotReturnErrorMessageWhenSourceExtIsNotValid() {
         // given
-        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .source(Source.builder()
+                        .ext(mapper.valueToTree(mapper.createObjectNode().put("schain", "not-valid")))
+                        .build())
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
+                .first().asString().startsWith("request.source.ext is invalid: Cannot construct instance");
     }
 
     @Test
@@ -2562,14 +2572,14 @@ public class RequestValidatorTest extends VertxTest {
                 .containsOnly("request.imp[0].id and request.imp[1].id are both \"11\". Imp IDs must be unique.");
     }
 
-    private BidRequest givenBidRequest(
+    private static BidRequest givenBidRequest(
             Function<Native.NativeBuilder, Native.NativeBuilder> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
     }
 
-    private BidRequest givenBidRequestWithNativeRequest(
+    private static BidRequest givenBidRequestWithNativeRequest(
             Function<Request.RequestBuilder, Request.RequestBuilder> nativeRequestCustomizer)
             throws JsonProcessingException {
         return validBidRequestBuilder()

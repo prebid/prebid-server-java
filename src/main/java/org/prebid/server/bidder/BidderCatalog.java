@@ -152,6 +152,19 @@ public class BidderCatalog {
     }
 
     /**
+     * Returns VendorIds configured in configuration for prebid server.
+     */
+    public Set<Integer> knownVendorIds() {
+        return bidderDepsMap.values().stream()
+                .map(BidderDeps::getBidderInfo)
+                .map(BidderInfo::getGdpr)
+                .map(BidderInfo.GdprInfo::getVendorId)
+                // TODO change to notNull when migrate from primitives to Object
+                // .filter(id -> id != 0)
+                .collect(Collectors.toSet());
+    }
+
+    /**
      * Returns an {@link Usersyncer} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check

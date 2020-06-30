@@ -17,11 +17,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -47,7 +49,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(VertxUnitRunner.class)
-public class JdbcApplicationSettingsTest {
+public class JdbcApplicationSettingsTest extends VertxTest {
 
     private static final String ACCOUNT_ID = null;
 
@@ -101,9 +103,10 @@ public class JdbcApplicationSettingsTest {
     @BeforeClass
     public static void beforeClass() throws SQLException {
         connection = DriverManager.getConnection(JDBC_URL);
-        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, uuid varchar(40) "
-                + "NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), banner_cache_ttl INT, "
-                + "video_cache_ttl INT, events_enabled BIT, enforce_gdpr BIT, analytics_sampling_factor INT);");
+        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
+                + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
+                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
+                + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT);");
         connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
                 + "NOT NULL, config varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, "
@@ -114,13 +117,15 @@ public class JdbcApplicationSettingsTest {
                 + "accountId varchar(40) NOT NULL, impid varchar(40) NOT NULL, impData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_imps2 (id SERIAL PRIMARY KEY, "
                 + "accountId varchar(40) NOT NULL, impid varchar(40) NOT NULL, impData varchar(512));");
-        connection.createStatement().execute("CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId "
-                + "varchar(40) NOT NULL, responseData varchar(512));");
+        connection.createStatement().execute(
+                "CREATE TABLE stored_responses (id SERIAL PRIMARY KEY, responseId varchar(40) NOT NULL,"
+                        + " responseData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid "
                 + "varchar(40) NOT NULL);");
         connection.createStatement().execute("insert into accounts_account "
-                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_gdpr, "
-                + "analytics_sampling_factor) values ('accountId','med', 100, 100, TRUE, TRUE, 1);");
+                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
+                + "tcf_config, analytics_sampling_factor, truncate_target_attr) values ('accountId','med', 100, 100, "
+                + "TRUE, TRUE, '{\"enabled\": true}', 1, 0);");
         connection.createStatement().execute(
                 "insert into s2sconfig_config (uuid, config) values ('adUnitConfigId', 'config');");
         connection.createStatement().execute(
@@ -136,9 +141,11 @@ public class JdbcApplicationSettingsTest {
         connection.createStatement().execute(
                 "insert into stored_imps2 (accountId, impid, impData) values ('accountId', '6','value6');");
         connection.createStatement().execute(
-                "insert into stored_responses (responseId, responseData) values ('1', 'response1');");
+                "insert into stored_responses (responseId, responseData) "
+                        + "values ('1', 'response1');");
         connection.createStatement().execute(
-                "insert into stored_responses (responseId, responseData) values ('2', 'response2');");
+                "insert into stored_responses (responseId, responseData) "
+                        + "values ('2', 'response2');");
         connection.createStatement().execute(
                 "insert into one_column_table (reqid) values ('3');");
     }
@@ -153,7 +160,7 @@ public class JdbcApplicationSettingsTest {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_QUERY, SELECT_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
                 SELECT_RESPONSE_QUERY);
     }
 
@@ -177,7 +184,11 @@ public class JdbcApplicationSettingsTest {
                     .videoCacheTtl(100)
                     .analyticsSamplingFactor(1)
                     .eventsEnabled(true)
-                    .enforceGdpr(true)
+                    .enforceCcpa(true)
+                    .gdpr(AccountGdprConfig.builder()
+                            .enabled(true)
+                            .build())
+                    .truncateTargetAttr(0)
                     .build());
             async.complete();
         }));
@@ -287,8 +298,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getVideoStoredDataShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_UNION_QUERY, SELECT_UNION_QUERY,
-                SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -315,8 +326,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_UNION_QUERY, SELECT_UNION_QUERY,
-                SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -343,8 +354,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_UNION_QUERY, SELECT_UNION_QUERY,
-                SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -413,8 +424,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
-                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -433,7 +444,8 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
 
         // when
@@ -534,7 +546,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredResponseShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), SELECT_QUERY, SELECT_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
                 SELECT_ONE_COLUMN_RESPONSE_QUERY);
 
         // when

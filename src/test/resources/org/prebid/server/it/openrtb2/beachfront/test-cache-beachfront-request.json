@@ -9,8 +9,7 @@
         "adm": "<div id=\"44861168\"><script>!function(){console.log\"Hello, ad.\";}();</script></div>",
         "crid": "crid_3",
         "w": 300,
-        "h": 250,
-        "wurl": "http://localhost:8000/event?t=win&b=div-gpt-ad-1460505748561-0Banner&a=publisherId&ts=1000&bidder=beachfront&f=i"
+        "h": 250
       }
     }
   ]

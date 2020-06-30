@@ -10,8 +10,7 @@
         "crid": "1234567890",
         "w": 300,
         "h": 250,
-        "exp": 30,
-        "wurl": "http://localhost:8000/event?t=win&b=tid&a=publisherId&ts=1000&bidder=consumable&f=i"
+        "exp": 30
       },
       "expiry": 30
     }
