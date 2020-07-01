@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
 
 import java.util.List;
@@ -87,7 +88,7 @@ public class SynacormediaBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(BidRequest.builder()
                         .imp(singletonList(givenImp(identity()).toBuilder().tagid("tagId").build()))
-                        .ext(mapper.valueToTree(ExtImpSynacormedia.of("seatId", "tagId")))
+                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), ExtImpSynacormedia.of("seatId", "tagId")))
                         .build());
     }
 
