@@ -1,6 +1,6 @@
 # Change logging level endpoint
 
-This `/logging/changelogging` endpoint is bound to `admin.port`.
+This `/logging/changelevel` endpoint is bound to `admin.port`.
 
 This endpoint allows changing `org.prebid.server` logger level temporarily, mainly for troubleshooting production issues.
 
