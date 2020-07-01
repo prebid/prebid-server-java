@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
@@ -227,7 +228,7 @@ public class AmpRequestFactory {
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
         final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent, targeting);
         final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), ccpaConsent);
-        final ObjectNode updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
+        final ExtRequest updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
 
         final BidRequest result;
         if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
@@ -248,7 +249,7 @@ public class AmpRequestFactory {
 
     private JsonNode readTargeting(String requestTargeting) {
         try {
-            return mapper.mapper().readTree(requestTargeting);
+            return requestTargeting != null ? mapper.mapper().readTree(requestTargeting) : null;
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
         }
@@ -492,12 +493,12 @@ public class AmpRequestFactory {
         return Regs.of(coppa, ExtRegs.of(gdpr, ccpaConsent));
     }
 
-    private ObjectNode overrideExtBidRequest(ObjectNode extNode, Targeting targeting) {
+    private ExtRequest overrideExtBidRequest(ExtRequest extRequest, Targeting targeting) {
         final List<String> targetingBidders = targeting.getBidders();
         if (CollectionUtils.isEmpty(targetingBidders)) {
             return null;
         }
-        return fpdResolver.resolveBidRequestExt(extNode, targetingBidders);
+        return fpdResolver.resolveBidRequestExt(extRequest, targetingBidders);
     }
 
     private static List<Format> parseMultiSizeParam(String ms) {

@@ -1,18 +1,20 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
@@ -42,54 +44,100 @@ public class FpdResolver {
         this.jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
-    public User resolveUser(User originalUser, User fpdUser) {
-        return originalUser.toBuilder()
-                .keywords(getFirstNotNull(fpdUser, originalUser, User::getKeywords))
-                .gender(getFirstNotNull(fpdUser, originalUser, User::getGender))
-                .yob(getFirstNotNull(fpdUser, originalUser, User::getYob))
-                .ext((ObjectNode) mergeExtData(originalUser.getExt(), fpdUser.getExt()))
+    public User resolveUser(User originUser, User fpdUser) {
+        if (originUser == null) {
+            return null;
+        }
+        if (fpdUser == null) {
+            return originUser;
+        }
+        final ExtUser originExtUser = originUser.getExt();
+        final ObjectNode resolvedData = mergeExtData(originExtUser, fpdUser.getExt(),
+                extUser -> extUser != null ? extUser.getData() : null);
+
+        final ExtUser resolvedExtUser = originExtUser != null
+                ? originExtUser.toBuilder().data(resolvedData).build()
+                : ExtUser.builder().data(resolvedData).build();
+
+        return originUser.toBuilder()
+                .keywords(getFirstNotNull(fpdUser, originUser, User::getKeywords))
+                .gender(getFirstNotNull(fpdUser, originUser, User::getGender))
+                .yob(getFirstNotNull(fpdUser, originUser, User::getYob))
+                .ext(resolvedExtUser)
                 .build();
     }
 
-    public App resolveApp(App originalApp, App fpdApp) {
-        return originalApp.toBuilder()
-                .id(getFirstNotNull(fpdApp, originalApp, App::getId))
-                .name(getFirstNotNull(fpdApp, originalApp, App::getName))
-                .bundle(getFirstNotNull(fpdApp, originalApp, App::getBundle))
-                .storeurl(getFirstNotNull(fpdApp, originalApp, App::getStoreurl))
-                .domain(getFirstNotNull(fpdApp, originalApp, App::getDomain))
-                .cat(getFirstNotNull(fpdApp, originalApp, App::getCat))
-                .sectioncat(getFirstNotNull(fpdApp, originalApp, App::getSectioncat))
-                .pagecat(getFirstNotNull(fpdApp, originalApp, App::getPagecat))
-                .content(getFirstNotNull(fpdApp, originalApp, App::getContent))
-                .publisher(getFirstNotNull(fpdApp, originalApp, App::getPublisher))
-                .keywords(getFirstNotNull(fpdApp, originalApp, App::getKeywords))
-                .privacypolicy(getFirstNotNull(fpdApp, originalApp, App::getPrivacypolicy))
-                .ext((ObjectNode) mergeExtData(originalApp.getExt(), fpdApp.getExt()))
+    public App resolveApp(App originApp, App fpdApp) {
+        if (originApp == null) {
+            return null;
+        }
+        if (fpdApp == null) {
+            return originApp;
+        }
+        final ExtApp originExtApp = originApp.getExt();
+        final ObjectNode resolvedData = mergeExtData(originExtApp, fpdApp.getExt(),
+                extApp -> extApp != null ? extApp.getData() : null);
+
+        final ExtApp resolvedExtApp = originExtApp != null
+                ? ExtApp.of(originExtApp.getPrebid(), resolvedData)
+                : ExtApp.of(null, resolvedData);
+
+        return originApp.toBuilder()
+                .id(getFirstNotNull(fpdApp, originApp, App::getId))
+                .name(getFirstNotNull(fpdApp, originApp, App::getName))
+                .bundle(getFirstNotNull(fpdApp, originApp, App::getBundle))
+                .storeurl(getFirstNotNull(fpdApp, originApp, App::getStoreurl))
+                .domain(getFirstNotNull(fpdApp, originApp, App::getDomain))
+                .cat(getFirstNotNull(fpdApp, originApp, App::getCat))
+                .sectioncat(getFirstNotNull(fpdApp, originApp, App::getSectioncat))
+                .pagecat(getFirstNotNull(fpdApp, originApp, App::getPagecat))
+                .content(getFirstNotNull(fpdApp, originApp, App::getContent))
+                .publisher(getFirstNotNull(fpdApp, originApp, App::getPublisher))
+                .keywords(getFirstNotNull(fpdApp, originApp, App::getKeywords))
+                .privacypolicy(getFirstNotNull(fpdApp, originApp, App::getPrivacypolicy))
+                .ext(resolvedExtApp)
                 .build();
     }
 
-    public Site resolveSite(Site originalSite, Site fpdSite) {
-        return originalSite.toBuilder()
-                .id(getFirstNotNull(fpdSite, originalSite, Site::getId))
-                .name(getFirstNotNull(fpdSite, originalSite, Site::getName))
-                .domain(getFirstNotNull(fpdSite, originalSite, Site::getDomain))
-                .cat(getFirstNotNull(fpdSite, originalSite, Site::getCat))
-                .sectioncat(getFirstNotNull(fpdSite, originalSite, Site::getSectioncat))
-                .pagecat(getFirstNotNull(fpdSite, originalSite, Site::getPagecat))
-                .page(getFirstNotNull(fpdSite, originalSite, Site::getPage))
-                .ref(getFirstNotNull(fpdSite, originalSite, Site::getRef))
-                .search(getFirstNotNull(fpdSite, originalSite, Site::getSearch))
-                .content(getFirstNotNull(fpdSite, originalSite, Site::getContent))
-                .publisher(getFirstNotNull(fpdSite, originalSite, Site::getPublisher))
-                .keywords(getFirstNotNull(fpdSite, originalSite, Site::getKeywords))
-                .mobile(getFirstNotNull(fpdSite, originalSite, Site::getMobile))
-                .privacypolicy(getFirstNotNull(fpdSite, originalSite, Site::getPrivacypolicy))
-                .ext((ObjectNode) mergeExtData(originalSite.getExt(), fpdSite.getExt()))
+    public Site resolveSite(Site originSite, Site fpdSite) {
+        if (originSite == null) {
+            return null;
+        }
+        if (fpdSite == null) {
+            return originSite;
+        }
+
+        final ExtSite originExtSite = originSite.getExt();
+        final ObjectNode resolvedData = mergeExtData(originExtSite, fpdSite.getExt(),
+                extSite -> extSite != null ? extSite.getData() : null);
+
+        final ExtSite resolvedExApp = originExtSite != null
+                ? ExtSite.of(originExtSite.getAmp(), resolvedData)
+                : ExtSite.of(null, resolvedData);
+
+        return originSite.toBuilder()
+                .id(getFirstNotNull(fpdSite, originSite, Site::getId))
+                .name(getFirstNotNull(fpdSite, originSite, Site::getName))
+                .domain(getFirstNotNull(fpdSite, originSite, Site::getDomain))
+                .cat(getFirstNotNull(fpdSite, originSite, Site::getCat))
+                .sectioncat(getFirstNotNull(fpdSite, originSite, Site::getSectioncat))
+                .pagecat(getFirstNotNull(fpdSite, originSite, Site::getPagecat))
+                .page(getFirstNotNull(fpdSite, originSite, Site::getPage))
+                .ref(getFirstNotNull(fpdSite, originSite, Site::getRef))
+                .search(getFirstNotNull(fpdSite, originSite, Site::getSearch))
+                .content(getFirstNotNull(fpdSite, originSite, Site::getContent))
+                .publisher(getFirstNotNull(fpdSite, originSite, Site::getPublisher))
+                .keywords(getFirstNotNull(fpdSite, originSite, Site::getKeywords))
+                .mobile(getFirstNotNull(fpdSite, originSite, Site::getMobile))
+                .privacypolicy(getFirstNotNull(fpdSite, originSite, Site::getPrivacypolicy))
+                .ext(resolvedExApp)
                 .build();
     }
 
     public ObjectNode resolveImpExt(ObjectNode impExt, ObjectNode targeting) {
+        if (targeting == null) {
+            return impExt;
+        }
         KNOWN_FPD_ATTRIBUTES.forEach(targeting::remove);
         if (!targeting.fieldNames().hasNext()) {
             return impExt;
@@ -107,51 +155,37 @@ public class FpdResolver {
         return mapper.mapper().valueToTree(resolvedExtImp);
     }
 
-    public ObjectNode resolveBidRequestExt(ObjectNode bidRequestExt, List<String> fpdBidders) {
-        final ExtBidRequest extBidRequest = bidRequestExt != null ? convertToExtBidRequest(bidRequestExt) : null;
-        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+    public ExtRequest resolveBidRequestExt(ExtRequest extRequest, List<String> fpdBidders) {
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null ? extRequestPrebid.getData() : null;
-        final List<String> ortbBidders = extRequestPrebidData != null
+        final List<String> originBidders = extRequestPrebidData != null
                 ? extRequestPrebidData.getBidders()
                 : Collections.emptyList();
 
-        final List<String> resolvedBidders = mergeBidders(fpdBidders, ortbBidders);
+        final List<String> resolvedBidders = mergeBidders(fpdBidders, originBidders);
 
-        final ExtBidRequest resolvedExtBidRequest = ExtBidRequest.of(extRequestPrebid != null
+        return ExtRequest.of(extRequestPrebid != null
                 ? extRequestPrebid.toBuilder().data(ExtRequestPrebidData.of(resolvedBidders)).build()
                 : ExtRequestPrebid.builder().data(ExtRequestPrebidData.of(resolvedBidders)).build());
-        return mapper.mapper().valueToTree(resolvedExtBidRequest);
     }
 
-    private List<String> mergeBidders(List<String> fpdBidders, List<String> ortbBidders) {
-        final HashSet<String> resolvedBidders = new HashSet<>(ortbBidders);
+    private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
+        final HashSet<String> resolvedBidders = new HashSet<>(originBidders);
         resolvedBidders.addAll(fpdBidders);
         return new ArrayList<>(resolvedBidders);
     }
 
-    private JsonNode mergeExtData(ObjectNode ortbExtNode, ObjectNode fpdExtNode) {
-        final JsonNode fpdDataExtNode = fpdExtNode != null ? fpdExtNode.get(DATA) : null;
-        final JsonNode ortbDataExtNode = ortbExtNode != null ? ortbExtNode.get(DATA) : null;
-        if (fpdDataExtNode != null) {
-            if (ortbDataExtNode != null) {
-                ortbExtNode.set(DATA, jsonMergeUtil.merge(fpdExtNode, ortbExtNode));
-            } else {
-                if (ortbExtNode != null) {
-                    ortbExtNode.set(DATA, fpdDataExtNode);
-                } else {
-                    mapper.mapper().createObjectNode().set(DATA, fpdDataExtNode);
-                }
-            }
-        }
-        return ortbExtNode;
-    }
+    private <T> ObjectNode mergeExtData(T originExt, T fpdExt, Function<T, ObjectNode> dataRetriever) {
+        final ObjectNode fpdData = dataRetriever.apply(fpdExt);
+        final ObjectNode originData = dataRetriever.apply(originExt);
 
-    private ExtBidRequest convertToExtBidRequest(ObjectNode extBidRequest) {
-        try {
-            return mapper.mapper().treeToValue(extBidRequest, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error converting bidRequest.ext : %s", e.getMessage()));
+        if (fpdData == null) {
+            return originData;
         }
+        if (originData != null) {
+            return (ObjectNode) jsonMergeUtil.merge(originData, fpdData);
+        }
+        return fpdData;
     }
 
     private ExtImp getExtImp(ObjectNode extImp) {

@@ -69,6 +69,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private FpdResolver fpdResolver;
 
     @Before
     public void setUp() {
@@ -77,9 +79,15 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
         given(routingContext.request()).willReturn(httpRequest);
+        given(fpdResolver.resolveApp(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveSite(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveUser(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
+                .getArgument(0));
 
         factory = new AmpRequestFactory(
-                storedRequestProcessor, auctionRequestFactory, timeoutResolver, jacksonMapper);
+                storedRequestProcessor, auctionRequestFactory, fpdResolver, timeoutResolver, jacksonMapper);
     }
 
     @Test

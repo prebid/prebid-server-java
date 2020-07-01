@@ -13,6 +13,7 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
@@ -120,6 +121,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    FpdResolver fpdResolver(JacksonMapper mapper) {
+        return new FpdResolver(mapper);
+    }
+
+    @Bean
     TimeoutResolver timeoutResolver(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -218,10 +224,12 @@ public class ServiceConfiguration {
     @Bean
     AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
+                                        FpdResolver fpdResolver,
                                         TimeoutResolver timeoutResolver,
                                         JacksonMapper mapper) {
 
-        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
+        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, fpdResolver, timeoutResolver,
+                mapper);
     }
 
     @Bean
