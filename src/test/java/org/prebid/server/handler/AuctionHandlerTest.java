@@ -134,13 +134,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
-        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15, false));
+        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
-        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20, true));
+        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -919,9 +919,9 @@ public class AuctionHandlerTest extends VertxTest {
         return mapper.readValue(preBidResponseCaptor.getValue(), PreBidResponse.class);
     }
 
-    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
+    private static BidderInfo givenBidderInfo(int gdprVendorId) {
         return new BidderInfo(true, null, null, null,
-                new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr), false);
+                new BidderInfo.GdprInfo(gdprVendorId, true), true, false);
     }
 
     private static PrivacyEnforcementAction actionWithUserSync(boolean blockPixelSync) {

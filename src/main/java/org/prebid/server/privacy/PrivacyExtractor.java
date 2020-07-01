@@ -2,7 +2,10 @@ package org.prebid.server.privacy;
 
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -12,6 +15,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
  * GDPR-aware utilities
  */
 public class PrivacyExtractor {
+
+    private static final Logger logger = LoggerFactory.getLogger(PrivacyExtractor.class);
 
     private static final String DEFAULT_CONSENT_VALUE = "";
     private static final String DEFAULT_GDPR_VALUE = "";
@@ -43,8 +48,18 @@ public class PrivacyExtractor {
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
         final String validConsent = consent == null ? DEFAULT_CONSENT_VALUE : consent;
-        final Ccpa validCCPA = usPrivacy == null ? DEFAULT_CCPA_VALUE : Ccpa.of(usPrivacy);
+        final Ccpa validCCPA = usPrivacy == null ? DEFAULT_CCPA_VALUE : toValidCcpa(usPrivacy);
         return Privacy.of(validGdpr, validConsent, validCCPA);
     }
-}
 
+    private static Ccpa toValidCcpa(String usPrivacy) {
+        try {
+            Ccpa.validateUsPrivacy(usPrivacy);
+            return Ccpa.of(usPrivacy);
+        } catch (PreBidException e) {
+            // TODO add error to PBS response, not only in logs (See PR #758)
+            logger.debug("CCPA consent {0} has invalid format: {1}", usPrivacy, e.getMessage());
+            return DEFAULT_CCPA_VALUE;
+        }
+    }
+}

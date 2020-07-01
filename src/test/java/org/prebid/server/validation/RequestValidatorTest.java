@@ -1763,21 +1763,6 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, ExtRegs.of(null, "invalid")))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
-    }
-
-    @Test
     public void validateShouldThrowExceptionWhenNativeRequestEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(Function.identity());

@@ -41,8 +41,10 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Test
     public void shouldReturnGdprEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
-        // given and when
+        // given
         final Regs regs = Regs.of(null, ExtRegs.of(2, null));
+
+        // when
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
@@ -51,8 +53,10 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Test
     public void shouldReturnGdprOneWhenExtRegsContainsGdprOne() {
-        // given and when
+        // given
         final Regs regs = Regs.of(null, ExtRegs.of(1, null));
+
+        // when
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
@@ -61,8 +65,10 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Test
     public void shouldReturnGdprZeroWhenExtRegsContainsGdprZero() {
-        // given and when
+        // given
         final Regs regs = Regs.of(null, ExtRegs.of(0, null));
+
+        // when
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
 
         // then
@@ -80,10 +86,10 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Test
     public void shouldReturnConsentEmptyValueWhenUserConsentIsNull() {
-        // given and when
-        final User user = User.builder()
-                .ext(ExtUser.builder().build())
-                .build();
+        // given
+        final User user = User.builder().ext(ExtUser.builder().build()).build();
+
+        // when
         final String consent = privacyExtractor.validPrivacyFrom(null, user).getConsent();
 
         // then
@@ -92,10 +98,10 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Test
     public void shouldReturnConsentWhenUserContainsConsent() {
-        // given and when
-        final User user = User.builder()
-                .ext(ExtUser.builder().consent("consent").build())
-                .build();
+        // given
+        final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
+
+        // when
         final String consent = privacyExtractor.validPrivacyFrom(null, user).getConsent();
 
         // then
@@ -103,16 +109,27 @@ public class PrivacyExtractorTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnDefaultCcpaIfNotValid() {
+        // given
+        final Regs regs = Regs.of(null, ExtRegs.of(null, "invalid"));
+
+        // when
+        final Ccpa ccpa = privacyExtractor.validPrivacyFrom(regs, null).getCcpa();
+
+        // then
+        assertThat(ccpa).isEqualTo(Ccpa.EMPTY);
+    }
+
+    @Test
     public void shouldReturnPrivacyWithExtractedParameters() {
-        // given and when
-        final User user = User.builder()
-                .ext(ExtUser.builder().consent("consent").build())
-                .build();
-        final Regs regs = Regs.of(null, ExtRegs.of(0, "YAN"));
+        // given
+        final Regs regs = Regs.of(null, ExtRegs.of(0, "1Yn-"));
+        final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
+
+        // when
         final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);
 
         // then
-        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("YAN")));
+        assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-")));
     }
 }
-

@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
@@ -17,6 +16,6 @@ public class ExtSource extends FlexibleExtension {
     /**
      * Defines the contract for bidrequest.source.ext.schain
      */
-    ObjectNode schain;
+    ExtRequestPrebidSchainSchain schain;
 }
 

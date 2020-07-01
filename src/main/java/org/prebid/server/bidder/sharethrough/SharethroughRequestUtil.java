@@ -2,7 +2,6 @@ package org.prebid.server.bidder.sharethrough;
 
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
@@ -53,11 +52,17 @@ class SharethroughRequestUtil {
     }
 
     /**
-     * Retrieves gdpr from regs.ext.gdpr and in case of 1 returns true.
+     * In case regs.ext.gdpr equal 1 returns true.
      */
-    boolean isConsentRequired(Regs regs) {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+    boolean isConsentRequired(ExtRegs extRegs) {
         return extRegs != null && extRegs.getGdpr() != null && extRegs.getGdpr() == 1;
+    }
+
+    /**
+     * Returns usPrivasy or empty string in case of null.
+     */
+    String usPrivacy(ExtRegs extRegs) {
+        return extRegs != null ? StringUtils.trimToEmpty(extRegs.getUsPrivacy()) : "";
     }
 
     /**

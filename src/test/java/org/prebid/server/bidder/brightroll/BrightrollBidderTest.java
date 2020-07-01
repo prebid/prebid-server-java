@@ -507,6 +507,7 @@ public class BrightrollBidderTest extends VertxTest {
     public void makeBidsShouldReturnMultipleBidderBidsFromFirstSeatBid() throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(
                         SeatBid.builder()
                                 .bid(asList(
@@ -525,8 +526,8 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, null),
-                        BidderBid.of(Bid.builder().impid("impId2").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, "EUR"),
+                        BidderBid.of(Bid.builder().impid("impId2").build(), BidType.banner, "EUR"));
     }
 
     @Test

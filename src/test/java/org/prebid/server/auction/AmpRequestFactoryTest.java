@@ -1044,9 +1044,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenUserExtConsentWhenGdprConsentParamIsAvailable() {
+    public void shouldReturnBidRequestWithOverriddenUserExtConsentWhenGdprConsentParamIsValide() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+        given(httpRequest.getParam("gdpr_consent")).willReturn("BONV8oqONXwgmADACHENAO7pqzAAppY");
 
         givenBidRequest(
                 builder -> builder
@@ -1064,14 +1064,14 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
                         .id("1")
-                        .ext(ExtUser.builder().consent("consent-value").build())
+                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
                         .build());
     }
 
     @Test
     public void shouldReturnBidRequestWithNewUserThatContainsUserExtConsentWhenInitialUserIsMissing() {
         // given
-        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+        given(httpRequest.getParam("gdpr_consent")).willReturn("BONV8oqONXwgmADACHENAO7pqzAAppY");
 
         givenBidRequest(
                 builder -> builder
@@ -1084,12 +1084,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getUser())
                 .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("consent-value").build())
+                        .ext(ExtUser.builder().consent("BONV8oqONXwgmADACHENAO7pqzAAppY").build())
                         .build());
     }
 
     @Test
-    public void shouldReturnBidRequestWithNewUserExtConsentWhenInitialUserExtIsMissing() {
+    public void shouldKeepEmptyUserWhenGdprConsentIsInvalid() {
         // given
         given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
 
@@ -1104,9 +1104,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getUser())
-                .isEqualTo(User.builder()
-                        .ext(ExtUser.builder().consent("consent-value").build())
-                        .build());
+                .isEqualTo(User.builder().build());
     }
 
     @Test
@@ -1124,9 +1122,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenUsPrivacyParamIsExist() {
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenUsPrivacyParamIsValid() {
         // given
-        given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
+        given(httpRequest.getParam("gdpr_consent")).willReturn("1N--");
 
         givenBidRequest(
                 builder -> builder.ext(ExtRequest.empty()),
@@ -1137,13 +1135,13 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(null, ExtRegs.of(null, "us_privacy")));
+                .isEqualTo(Regs.of(null, ExtRegs.of(null, "1N--")));
     }
 
     @Test
-    public void shouldReturnBidRequestWithRegsExtUsPrivacyAndGdprWhenUsPrivacyParamAndGdprIsExist() {
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringIsValid() {
         // given
-        given(httpRequest.getParam("us_privacy")).willReturn("us_privacy");
+        given(httpRequest.getParam("consent_string")).willReturn("1Y-N");
 
         givenBidRequest(
                 builder -> builder
@@ -1156,8 +1154,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
+        assertThat(result.getUser())
+                .isEqualTo(User.builder().build());
         assertThat(result.getRegs())
-                .isEqualTo(Regs.of(1, ExtRegs.of(1, "us_privacy")));
+                .isEqualTo(Regs.of(1, ExtRegs.of(1, "1Y-N")));
     }
 
     @Test

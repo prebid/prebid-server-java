@@ -35,9 +35,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -448,18 +446,10 @@ public class RequestValidator {
      * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
      */
     private void validateRegs(Regs regs) throws ValidationException {
-        if (regs != null) {
-            final ExtRegs extRegs = regs.getExt();
-            final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
-            if (gdpr != null && gdpr != 0 && gdpr != 1) {
-                throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
-            }
-            final String usPrivacy = extRegs == null ? null : extRegs.getUsPrivacy();
-            try {
-                Ccpa.validateUsPrivacy(usPrivacy);
-            } catch (PreBidException ex) {
-                throw new ValidationException(String.format("request.regs.ext.%s", ex.getMessage()));
-            }
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        if (gdpr != null && gdpr != 0 && gdpr != 1) {
+            throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
         }
     }
 
