@@ -23,7 +23,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
+import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
@@ -220,7 +222,9 @@ public class OpenxBidderTest extends VertxTest {
                                 .id("impId3")
                                 .video(Video.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
+                                        ExtPrebid.of(
+                                                ExtImpPrebid.builder()
+                                                        .isRewardedInventory(1).build(),
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo3", "bar3"))
@@ -286,13 +290,15 @@ public class OpenxBidderTest extends VertxTest {
                                         .build())
                                 .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
                                 .build(),
-                        // check if each of video imps is a part of separate bidRequest
+                        // check if each of video imps is a part of separate bidRequest and impId3 is rewarded video
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(singletonList(
                                         Imp.builder()
                                                 .id("impId3")
-                                                .video(Video.builder().build())
+                                                .video(Video.builder()
+                                                        .ext(mapper.valueToTree(OpenxVideoExt.of(1)))
+                                                        .build())
                                                 .tagid("unitId")
                                                 // check if each of video imps is a part of separate bidRequest
                                                 .bidfloor(BigDecimal.valueOf(0.1))

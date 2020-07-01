@@ -84,3 +84,4 @@ Following metrics are collected and submitted if account is configured with `det
 - `privacy.tcf.(v1,v2).out-geo` - number of requests received outside of TCF-concerned geo region with consent string of particular version
 - `privacy.usp.specified` - number of requests with a valid US Privacy string (CCPA)
 - `privacy.usp.opt-out` - number of requests that required privacy enforcement according to CCPA rules
+- `privacy.tcf.(v1,v2).vendorlist.{VERSION}.(missing|ok|err)` - number of processed vendor lists of particular version

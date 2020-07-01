@@ -376,10 +376,11 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             FileSystem fileSystem,
             HttpClient httpClient,
+            Metrics metrics,
             JacksonMapper mapper) {
 
         return new VendorListServiceV1(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
-                fileSystem, httpClient, mapper);
+                fileSystem, httpClient, metrics, mapper);
     }
 
     @Bean
@@ -391,10 +392,11 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             FileSystem fileSystem,
             HttpClient httpClient,
+            Metrics metrics,
             JacksonMapper mapper) {
 
         return new VendorListServiceV2(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
-                fileSystem, httpClient, mapper);
+                fileSystem, httpClient, metrics, mapper);
     }
 
     @Bean
