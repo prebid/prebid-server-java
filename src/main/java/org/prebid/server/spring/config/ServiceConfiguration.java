@@ -33,7 +33,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
