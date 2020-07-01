@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases: districtm
     meta-info:
-      maintainer-email: info@prebid.org
+      maintainer-email: prebid-server@xandr.com
       app-media-types:
         - banner
         - video

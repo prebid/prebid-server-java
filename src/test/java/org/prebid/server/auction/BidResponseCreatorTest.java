@@ -126,7 +126,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
 
         bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
-                false, jacksonMapper);
+                false, 0, jacksonMapper);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
@@ -431,7 +431,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService,
-                storedRequestProcessor, true, jacksonMapper);
+                storedRequestProcessor, true, 0, jacksonMapper);
+
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
                 null, CACHE_INFO, ACCOUNT, false, 1000L, false, timeout).result();
@@ -642,6 +643,99 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_bidder_bidder1", "bidder1"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldTruncateTargetingKeywordsByGlobalConfig() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final ExtRequestTargeting targeting = givenTargeting();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final BidResponseCreator bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog,
+                eventsService, storedRequestProcessor, false, 20, jacksonMapper);
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
+                ACCOUNT, false, 1000L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_pb_someVeryLongBi", "5.00"),
+                        tuple("hb_bidder", "someVeryLongBidderName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+    }
+
+    @Test
+    public void shouldTruncateTargetingKeywordsByAccountConfig() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final ExtRequestTargeting targeting = givenTargeting();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+        final Account account = Account.builder().id("accountId").truncateTargetAttr(20).build();
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
+                account, false, 1000L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_pb_someVeryLongBi", "5.00"),
+                        tuple("hb_bidder", "someVeryLongBidderName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+    }
+
+    @Test
+    public void shouldTruncateTargetingKeywordsByRequestPassedValue() {
+        // given
+        final BidRequest bidRequest = givenBidRequest();
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(mapper.valueToTree(
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
+                .includewinners(true)
+                .includebidderkeys(true)
+                .truncateattrchars(20)
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+        final Account account = Account.builder().id("accountId").truncateTargetAttr(25).build();
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
+                account, false, 1000L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_pb_someVeryLongBi", "5.00"),
+                        tuple("hb_bidder", "someVeryLongBidderName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
     }
 
     @Test

@@ -50,7 +50,7 @@
       "httpcalls": {
         "sharethrough": [
           {
-            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=7&ttduid=id&stxuid=STR-UID",
+            "uri": "{{ sharethrough.exchange_uri }}?placement_key=abc123&bidId=bid&consent_required=false&consent_string=consentValue&us_privacy=1NYN&instant_play_capable=true&stayInIframe=true&height=50&width=50&adRequestAt={{ TEST_FORMATTED_TIME }}&supplyId=FGMrCMMc&strVersion=8&ttduid=id&stxuid=STR-UID",
             "requestbody": "{\"badv\":[\"testblocked\"],\"tmax\":3000,\"deadline\":\"{{ DEADLINE_FORMATTED_TIME }}\",\"bidfloor\":3.5}",
             "responsebody": "{\"adserverRequestId\":\"arid\",\"bidId\":\"bid\",\"creatives\":[{\"cpm\":10,\"creative\":{\"campaign_key\":\"cmpKey\",\"creative_key\":\"creaKey\"},\"version\":0}]}",
             "status": 200
@@ -144,7 +144,8 @@
         },
         "regs": {
           "ext": {
-            "gdpr": 0
+            "gdpr": 0,
+            "us_privacy": "1NYN"
           }
         },
         "ext": {

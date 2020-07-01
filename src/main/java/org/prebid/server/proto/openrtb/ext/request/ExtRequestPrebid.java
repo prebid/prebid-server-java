@@ -61,11 +61,6 @@ public class ExtRequestPrebid {
     ExtRequestPrebidData data;
 
     /**
-     * Defines the contract for bidrequest.ext.prebid.bidderconfig
-     */
-    List<ExtRequestPrebidBidderConfig> bidderconfig;
-
-    /**
      * Defines the contract for bidrequest.ext.prebid.events
      */
     ObjectNode events;
