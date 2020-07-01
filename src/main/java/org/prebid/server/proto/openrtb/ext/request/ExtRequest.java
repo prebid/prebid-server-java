@@ -6,19 +6,19 @@ import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 
 /**
- * Defines the contract for bidrequest.app|site.publisher.ext
+ * Defines the contract for bidrequest.ext
  */
 @Value(staticConstructor = "of")
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class ExtPublisher extends FlexibleExtension {
+public class ExtRequest extends FlexibleExtension {
 
     /**
-     * Defines the contract for bidrequest.app|site.publisher.prebid
+     * Defines the contract for bidrequest.ext.prebid
      */
-    ExtPublisherPrebid prebid;
+    ExtRequestPrebid prebid;
 
-    public static ExtPublisher empty() {
+    public static ExtRequest empty() {
         return of(null);
     }
 }

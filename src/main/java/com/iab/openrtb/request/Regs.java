@@ -1,8 +1,8 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 
 /**
  * This object contains any legal, governmental, or industry regulations that
@@ -22,5 +22,5 @@ public class Regs {
     Integer coppa;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
-    ObjectNode ext;
+    ExtRegs ext;
 }

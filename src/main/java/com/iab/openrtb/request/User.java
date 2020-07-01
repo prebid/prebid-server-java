@@ -1,9 +1,9 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.json.CommaSeparatedStringArrayDeserializer;
 import org.prebid.server.json.StringArrayToFirstItemDeserializer;
 
@@ -69,5 +69,5 @@ public class User {
     List<Data> data;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
-    ObjectNode ext;
+    ExtUser ext;
 }

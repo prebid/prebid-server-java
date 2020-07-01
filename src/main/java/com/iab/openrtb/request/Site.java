@@ -1,9 +1,9 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.json.CommaSeparatedStringArrayDeserializer;
 import org.prebid.server.json.StringArrayToFirstItemDeserializer;
 
@@ -78,5 +78,5 @@ public class Site {
     String keywords;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
-    ObjectNode ext;
+    ExtSite ext;
 }
