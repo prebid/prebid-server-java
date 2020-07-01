@@ -43,7 +43,7 @@ import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -435,7 +435,7 @@ public class AmpHandlerTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder
                 .id("reqId1")
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(1).build()))));
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(1).build())));
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
 

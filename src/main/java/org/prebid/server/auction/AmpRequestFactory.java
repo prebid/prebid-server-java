@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
@@ -24,10 +23,10 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -141,8 +140,7 @@ public class AmpRequestFactory {
         final Integer secure = imp.getSecure();
         final boolean setSecure = secure == null || secure != 1;
 
-        final ExtBidRequest extBidRequest = extBidRequest(bidRequest.getExt());
-        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+        final ExtRequestPrebid prebid = bidRequest.getExt().getPrebid();
 
         // AMP won't function unless ext.prebid.targeting and ext.prebid.cache.bids are defined.
         // If the user didn't include them, default those here.
@@ -179,23 +177,12 @@ public class AmpRequestFactory {
             result = bidRequest.toBuilder()
                     .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
                     .test(ObjectUtils.defaultIfNull(updatedTest, test))
-                    .ext(extBidRequestNode(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
+                    .ext(extRequest(bidRequest, prebid, setDefaultTargeting, setDefaultCache, updatedDebug))
                     .build();
         } else {
             result = bidRequest;
         }
         return result;
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
-     */
-    private ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
-        try {
-            return mapper.mapper().treeToValue(extBidRequestNode, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
-        }
     }
 
     /**
@@ -253,8 +240,8 @@ public class AmpRequestFactory {
         final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
         final boolean hasSite = site != null;
-        final ObjectNode siteExt = hasSite ? site.getExt() : null;
-        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
+        final ExtSite siteExt = hasSite ? site.getExt() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
 
         if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp) {
             final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
@@ -269,8 +256,8 @@ public class AmpRequestFactory {
                 siteBuilder.publisher(publisherBuilder.id(accountId).build());
             }
             if (shouldSetExtAmp) {
-                final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
-                siteBuilder.ext(mapper.mapper().valueToTree(ExtSite.of(1, data)));
+                final ObjectNode data = siteExt != null ? siteExt.getData() : null;
+                siteBuilder.ext(ExtSite.of(1, data));
             }
             return siteBuilder.build();
         }
@@ -405,10 +392,10 @@ public class AmpRequestFactory {
         }
 
         final boolean hasUser = user != null;
-        final ObjectNode extUserNode = hasUser ? user.getExt() : null;
+        final ExtUser extUser = hasUser ? user.getExt() : null;
 
-        final ExtUser.ExtUserBuilder extUserBuilder = extUserNode != null
-                ? extractExtUser(extUserNode).toBuilder()
+        final ExtUser.ExtUserBuilder extUserBuilder = extUser != null
+                ? extUser.toBuilder()
                 : ExtUser.builder();
 
         if (StringUtils.isNotBlank(gdprConsent)) {
@@ -418,19 +405,8 @@ public class AmpRequestFactory {
         final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
 
         return userBuilder
-                .ext(mapper.mapper().valueToTree(extUserBuilder.build()))
+                .ext(extUserBuilder.build())
                 .build();
-    }
-
-    /**
-     * Extracts {@link ExtUser} from bidrequest.user.ext {@link ObjectNode}.
-     */
-    private ExtUser extractExtUser(ObjectNode extUserNode) {
-        try {
-            return mapper.mapper().treeToValue(extUserNode, ExtUser.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()));
-        }
     }
 
     private Regs overrideRegs(Regs regs, String ccpaConsent) {
@@ -442,21 +418,10 @@ public class AmpRequestFactory {
         Integer gdpr = null;
         if (regs != null) {
             coppa = regs.getCoppa();
-            gdpr = extractExtRegs(regs.getExt()).getGdpr();
+            gdpr = regs.getExt().getGdpr();
         }
 
-        return Regs.of(coppa, mapper.mapper().valueToTree(ExtRegs.of(gdpr, ccpaConsent)));
-    }
-
-    /**
-     * Extracts {@link ExtRegs} from bidrequest.regs.ext {@link ObjectNode}.
-     */
-    private ExtRegs extractExtRegs(ObjectNode extRegsNode) {
-        try {
-            return mapper.mapper().treeToValue(extRegsNode, ExtRegs.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()));
-        }
+        return Regs.of(coppa, ExtRegs.of(gdpr, ccpaConsent));
     }
 
     private static List<Format> parseMultiSizeParam(String ms) {
@@ -486,10 +451,10 @@ public class AmpRequestFactory {
     /**
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
-    private ObjectNode extBidRequestNode(BidRequest bidRequest, ExtRequestPrebid prebid,
-                                         boolean setDefaultTargeting, boolean setDefaultCache,
-                                         Integer updatedDebug) {
-        final ObjectNode result;
+    private ExtRequest extRequest(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                  boolean setDefaultTargeting, boolean setDefaultCache,
+                                  Integer updatedDebug) {
+        final ExtRequest result;
         if (setDefaultTargeting || setDefaultCache || updatedDebug != null) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
                     ? prebid.toBuilder()
@@ -506,7 +471,7 @@ public class AmpRequestFactory {
                 prebidBuilder.debug(updatedDebug);
             }
 
-            result = mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder.build()));
+            result = ExtRequest.of(prebidBuilder.build());
         } else {
             result = bidRequest.getExt();
         }

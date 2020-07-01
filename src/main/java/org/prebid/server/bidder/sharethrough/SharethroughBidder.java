@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -60,7 +61,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new SharethroughRequestUtil(mapper);
+        this.requestUtil = new SharethroughRequestUtil();
     }
 
     /**
@@ -99,7 +100,8 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
      * Retrieves from {@link Imp} and filter not valid {@link ExtImpSharethrough} and returns list result with errors.
      */
     private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request, Date date, boolean test) {
-        final ExtRegs extRegs = requestUtil.parseRegs(request.getRegs());
+        final Regs regs = request.getRegs();
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final boolean consentRequired = requestUtil.isConsentRequired(extRegs);
         final String usPrivacy = requestUtil.usPrivacy(extRegs);
         final UserInfo userInfo = requestUtil.getUserInfo(request.getUser());
