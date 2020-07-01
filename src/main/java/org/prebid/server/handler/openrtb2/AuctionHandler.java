@@ -1,6 +1,5 @@
 package org.prebid.server.handler.openrtb2;
 
-import ch.qos.logback.classic.Level;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -65,56 +64,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.clock = Objects.requireNonNull(clock);
         this.adminManager = Objects.requireNonNull(adminManager);
         this.mapper = Objects.requireNonNull(mapper);
-
-        playWithLogger();
-    }
-
-    private void playWithLogger() {
-        final ch.qos.logback.classic.Logger slf4jLogger =
-                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("org.prebid.server");
-
-        final Level originalLevel = slf4jLogger.getLevel();
-        System.out.println("Original level: " + originalLevel);
-
-        System.out.println("Sample logs before changing level");
-        sampleLogs();
-
-        System.out.println("Changing level to " + Level.ALL);
-        slf4jLogger.setLevel(Level.ALL);
-        sampleLogs();
-
-        System.out.println("Changing level to " + Level.TRACE);
-        slf4jLogger.setLevel(Level.TRACE);
-        sampleLogs();
-
-        System.out.println("Changing level to " + Level.DEBUG);
-        slf4jLogger.setLevel(Level.DEBUG);
-        sampleLogs();
-
-        System.out.println("Changing level to " + Level.INFO);
-        slf4jLogger.setLevel(Level.INFO);
-        sampleLogs();
-
-        System.out.println("Changing level to " + Level.WARN);
-        slf4jLogger.setLevel(Level.WARN);
-        sampleLogs();
-
-        System.out.println("Changing level to " + Level.ERROR);
-        slf4jLogger.setLevel(Level.ERROR);
-        sampleLogs();
-
-        System.out.println("Changing level to original");
-        slf4jLogger.setLevel(originalLevel);
-        sampleLogs();
-    }
-
-    private void sampleLogs() {
-        logger.fatal("Fatal message");
-        logger.error("Error message");
-        logger.warn("Warn message");
-        logger.info("Info message");
-        logger.debug("Debug message");
-        logger.trace("Trace message");
     }
 
     @Override
