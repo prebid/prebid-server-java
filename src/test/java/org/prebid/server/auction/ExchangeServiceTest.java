@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -727,7 +728,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<List<BidderResponse>> captor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(
                 captor.capture(),
-                eq(bidRequest),
+                any(),
                 eq(targeting),
                 eq(expectedCacheInfo),
                 eq(Account.builder().id("accountId").eventsEnabled(true).build()),
@@ -764,12 +765,22 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
+        final ArgumentCaptor<AuctionContext> auctionContextArgumentCaptor =
+                ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(
                 anyList(),
-                eq(bidRequest),
+                auctionContextArgumentCaptor.capture(),
                 eq(targeting),
                 eq(BidRequestCacheInfo.builder().doCaching(true).shouldCacheWinningBidsOnly(true).build()),
                 any(), eq(false), anyLong(), eq(false), any());
+
+        assertThat(auctionContextArgumentCaptor.getValue().getBidRequest())
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue((TreeNode) ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getCache)
+                .extracting(ExtRequestPrebidCache::getWinningonly)
+                .containsOnly(true);
     }
 
     @Test
@@ -825,7 +836,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidResponseCreator).create(anyList(), eq(bidRequest), any(), any(), any(), anyBoolean(), anyLong(),
+        verify(bidResponseCreator).create(anyList(), any(), any(), any(), any(), anyBoolean(), anyLong(),
                 eq(true), any());
     }
 
@@ -853,8 +864,8 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(bidResponseCreator).create(anyList(), eq(bidRequest), any(), any(), any(), eq(false), anyLong(),
-                eq(true), any());
+        verify(bidResponseCreator).create(anyList(), any(), any(), any(), any(), eq(false),
+                anyLong(), eq(true), any());
     }
 
     @Test

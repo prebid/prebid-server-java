@@ -45,6 +45,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1108,6 +1109,28 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAddErrorToAuctionContextWhenPrivacyIsNotValid() {
+        // given
+        given(httpRequest.getParam("gdpr_consent")).willReturn("consent-value");
+
+        givenBidRequest(
+                builder -> builder
+                        .user(User.builder().build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        // when
+        factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        @SuppressWarnings("unchecked")
+        final ArgumentCaptor<List<String>> errorsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(auctionRequestFactory).toAuctionContext(any(), any(), errorsCaptor.capture(), anyLong(), any());
+        assertThat(errorsCaptor.getValue()).contains("Amp request parameter consent_string or gdpr_consent have"
+                + " invalid format: consent-value");
+    }
+
+    @Test
     public void shouldReturnBidRequestWithoutRegsExtWhenNoPrivacyPolicyIsExist() {
         // given
         givenBidRequest(
@@ -1190,7 +1213,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.toAuctionContext(any(), any(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), anyList(), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])

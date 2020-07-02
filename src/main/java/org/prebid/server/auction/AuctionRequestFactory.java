@@ -55,6 +55,7 @@ import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -161,7 +162,8 @@ public class AuctionRequestFactory {
         }
 
         return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
+                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, new ArrayList<>(),
+                        startTime, timeoutResolver));
     }
 
     /**
@@ -170,6 +172,7 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+                                            List<String> errors,
                                             long startTime, TimeoutResolver timeoutResolver) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
@@ -180,6 +183,7 @@ public class AuctionRequestFactory {
                         .bidRequest(bidRequest)
                         .timeout(timeout)
                         .account(account)
+                        .prebidErrors(errors)
                         .build());
     }
 
