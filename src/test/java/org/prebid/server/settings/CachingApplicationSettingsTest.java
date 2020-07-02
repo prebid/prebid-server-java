@@ -30,7 +30,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
@@ -218,15 +217,16 @@ public class CachingApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData(null, singleton("reqid"), singleton("impid"), timeout);
-        cachingApplicationSettings.getStoredData(null, singleton("reqid"), singleton("impid"), timeout); // second call
+                cachingApplicationSettings.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
+        // second call
+        cachingApplicationSettings.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(StoredDataResult.of(
                 singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList()));
         verify(applicationSettings)
-                .getStoredData(isNull(), eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
+                .getStoredData(eq("1001"), eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
 
