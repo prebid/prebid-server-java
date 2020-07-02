@@ -24,13 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 
-public class BasicEnforcePurposeStrategyTest {
+public class PurposeTwoBasicEnforcePurposeStrategyTest {
+
     private static final int PURPOSE_ID = 1;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private BasicEnforcePurposeStrategy target;
+    private PurposeTwoBasicEnforcePurposeStrategy target;
 
     @Mock
     private TCString tcString;
@@ -55,7 +56,7 @@ public class BasicEnforcePurposeStrategyTest {
         given(purposesConsent.contains(anyInt())).willReturn(false);
         given(purposesLI.contains(anyInt())).willReturn(false);
 
-        target = new BasicEnforcePurposeStrategy();
+        target = new PurposeTwoBasicEnforcePurposeStrategy();
     }
 
     @Test
@@ -197,7 +198,7 @@ public class BasicEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -220,7 +221,7 @@ public class BasicEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).isEmpty();
+        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
     }
 
     @Test
@@ -264,4 +265,3 @@ public class BasicEnforcePurposeStrategyTest {
         assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }
-

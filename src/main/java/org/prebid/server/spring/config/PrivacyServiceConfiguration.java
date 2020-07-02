@@ -22,6 +22,7 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeTwoStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
@@ -120,9 +121,9 @@ public class PrivacyServiceConfiguration {
 
     @Bean
     PurposeTwoStrategy purposeTwoStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                          BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                          PurposeTwoBasicEnforcePurposeStrategy purposeTwoBasicEnforcePurposeStrategy,
                                           NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeTwoStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        return new PurposeTwoStrategy(fullEnforcePurposeStrategy, purposeTwoBasicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -203,6 +204,11 @@ public class PrivacyServiceConfiguration {
     @Bean
     BasicEnforcePurposeStrategy basicEnforcePurposeStrategy() {
         return new BasicEnforcePurposeStrategy();
+    }
+
+    @Bean
+    PurposeTwoBasicEnforcePurposeStrategy purposeTwoBasicEnforcePurposeStrategy() {
+        return new PurposeTwoBasicEnforcePurposeStrategy();
     }
 
     @Bean
