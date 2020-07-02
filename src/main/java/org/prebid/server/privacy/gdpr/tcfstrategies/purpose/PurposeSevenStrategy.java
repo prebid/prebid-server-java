@@ -21,6 +21,11 @@ public class PurposeSevenStrategy extends PurposeStrategy {
     }
 
     @Override
+    public void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction) {
+        privacyEnforcementAction.setRemoveUserIds(false);
+    }
+
+    @Override
     public int getPurposeId() {
         return PURPOSE_ID;
     }
