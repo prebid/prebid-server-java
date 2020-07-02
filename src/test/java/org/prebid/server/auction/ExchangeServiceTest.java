@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -774,10 +773,9 @@ public class ExchangeServiceTest extends VertxTest {
                 eq(BidRequestCacheInfo.builder().doCaching(true).shouldCacheWinningBidsOnly(true).build()),
                 any(), eq(false), anyLong(), eq(false), any());
 
-        assertThat(auctionContextArgumentCaptor.getValue().getBidRequest())
+        assertThat(singletonList(auctionContextArgumentCaptor.getValue().getBidRequest()))
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.treeToValue((TreeNode) ext, ExtBidRequest.class))
-                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getCache)
                 .extracting(ExtRequestPrebidCache::getWinningonly)
                 .containsOnly(true);
