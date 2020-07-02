@@ -1158,7 +1158,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldCleanRequestExtPrebidDataBidders() {
+    public void shouldCleanRequestExtPrebidData() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -1174,13 +1174,12 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequest capturedRequestExt = captureBidRequest().getExt();
         assertThat(capturedRequestExt).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .aliases(singletonMap("someBidder", "alias_should_stay"))
-                .data(ExtRequestPrebidData.of(singletonList("someBidder")))
                 .auctiontimestamp(1000L)
                 .build()));
     }
 
     @Test
-    public void shouldPassUserKeywordsGenderYobGeoAndExtDataOnlyForAllowedBidder() {
+    public void shouldPassUserExtDataOnlyForAllowedBidder() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1219,7 +1218,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
                 .containsOnly(
                         tuple("keyword", "male", 133, Geo.EMPTY, extUser),
-                        tuple(null, null, null, null, maskedExtUser));
+                        tuple("keyword", "male", 133, Geo.EMPTY, maskedExtUser));
     }
 
     @Test
@@ -1260,8 +1259,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob, User::getGeo, User::getExt)
                 .containsOnly(
-                        tuple(null, null, null, null, expectedExtUser),
-                        tuple(null, null, null, null, expectedExtUser));
+                        tuple("keyword", "male", 133, Geo.EMPTY, expectedExtUser),
+                        tuple("keyword", "male", 133, Geo.EMPTY, expectedExtUser));
     }
 
     @Test
@@ -1305,7 +1304,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassSiteKeywordsSearchAndExtOnlyForAllowedBidder() {
+    public void shouldPassSiteExtDataOnlyForAllowedBidder() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1337,7 +1336,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Site::getKeywords, Site::getSearch, Site::getExt)
                 .containsOnly(
                         tuple("keyword", "search", ExtSite.of(0, dataNode)),
-                        tuple(null, null, null));
+                        tuple("keyword", "search", ExtSite.of(0, null)));
     }
 
     @Test
@@ -1375,7 +1374,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldPassAppExtAndKeywordsOnlyForAllowedBidder() {
+    public void shouldPassAppExtDataOnlyForAllowedBidder() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -1385,8 +1384,11 @@ public class ExchangeServiceTest extends VertxTest {
         final Map<String, Integer> bidderToGdpr = doubleMap("someBidder", 1, "missingBidder", 0);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
-                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(singletonList("someBidder"))).auctiontimestamp(1000L).build()))
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder")))
+                                .auctiontimestamp(1000L)
+                                .build()))
                         .app(App.builder()
                                 .keywords("keyword")
                                 .ext(ExtApp.of(null, dataNode))
@@ -1405,7 +1407,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(App::getExt, App::getKeywords)
                 .containsOnly(
                         tuple(ExtApp.of(null, dataNode), "keyword"),
-                        tuple(null, null));
+                        tuple(ExtApp.of(null, null), "keyword"));
     }
 
     @Test
