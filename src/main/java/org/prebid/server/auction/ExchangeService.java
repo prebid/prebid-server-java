@@ -166,7 +166,7 @@ public class ExchangeService {
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
                 .compose(bidderResponses ->
-                        bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, account,
+                        bidResponseCreator.create(bidderResponses, context, targeting, cacheInfo, account,
                                 eventsAllowedByRequest(requestExt), auctionTimestamp(requestExt), debugEnabled,
                                 timeout))
                 .compose(bidResponse ->
