@@ -17,8 +17,12 @@ public class PurposeFourStrategy extends PurposeStrategy {
 
     @Override
     public void allow(PrivacyEnforcementAction privacyEnforcementAction) {
-        privacyEnforcementAction.setRemoveUserIds(false);
         privacyEnforcementAction.setMaskDeviceInfo(false);
+    }
+
+    @Override
+    public void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction) {
+        privacyEnforcementAction.setRemoveUserIds(false);
     }
 
     @Override

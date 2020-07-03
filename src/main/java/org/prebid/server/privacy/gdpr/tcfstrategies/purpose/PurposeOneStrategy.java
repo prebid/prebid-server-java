@@ -21,6 +21,10 @@ public class PurposeOneStrategy extends PurposeStrategy {
     }
 
     @Override
+    public void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction) {
+    }
+
+    @Override
     public int getPurposeId() {
         return PURPOSE_ID;
     }

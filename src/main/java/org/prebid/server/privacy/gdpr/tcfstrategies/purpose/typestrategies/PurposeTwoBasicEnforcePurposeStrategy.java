@@ -1,6 +1,7 @@
 package org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies;
 
 import com.iabtcf.decoder.TCString;
+import com.iabtcf.utils.IntIterable;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -11,9 +12,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class BasicEnforcePurposeStrategy extends EnforcePurposeStrategy {
+public class PurposeTwoBasicEnforcePurposeStrategy extends BasicEnforcePurposeStrategy {
 
-    private static final Logger logger = LoggerFactory.getLogger(BasicEnforcePurposeStrategy.class);
+    private static final Logger logger = LoggerFactory.getLogger(PurposeTwoBasicEnforcePurposeStrategy.class);
 
     public Collection<VendorPermission> allowedByTypeStrategy(int purposeId,
                                                               TCString vendorConsent,
@@ -25,10 +26,20 @@ public class BasicEnforcePurposeStrategy extends EnforcePurposeStrategy {
         final List<VendorPermission> allowedVendorPermissions = vendorsForPurpose.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .filter(vendorPermission -> vendorPermission.getVendorId() != null)
-                .filter(vendorPermission -> isAllowedBySimpleConsent(purposeId,
+                .filter(vendorPermission -> isAllowedBySimpleConsentOrPurposeLI(purposeId,
                         vendorPermission.getVendorId(), isEnforceVendors, vendorConsent))
                 .collect(Collectors.toList());
 
         return CollectionUtils.union(allowedVendorPermissions, toVendorPermissions(excludedVendors));
     }
+
+    private boolean isAllowedBySimpleConsentOrPurposeLI(int purposeId,
+                                                        Integer vendorId,
+                                                        boolean isEnforceVendor,
+                                                        TCString tcString) {
+        final IntIterable purposesLIConsent = tcString.getPurposesLITransparency();
+        return isAllowedBySimpleConsent(purposeId, vendorId, isEnforceVendor, tcString)
+                || purposesLIConsent.contains(purposeId);
+    }
+
 }

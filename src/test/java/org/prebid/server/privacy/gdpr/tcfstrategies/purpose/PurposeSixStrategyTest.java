@@ -30,9 +30,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-public class PurposeOneStrategyTest {
+public class PurposeSixStrategyTest {
 
-    private static final int PURPOSE_ID = 1;
+    private static final int PURPOSE_ID = 6;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -46,14 +46,14 @@ public class PurposeOneStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeOneStrategy target;
+    private PurposeSixStrategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeOneStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new PurposeSixStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -78,7 +78,7 @@ public class PurposeOneStrategyTest {
         target.allowNaturally(privacyEnforcementAction);
 
         // then
-        assertThat(privacyEnforcementAction).isEqualToComparingFieldByField(PrivacyEnforcementAction.restrictAll());
+        assertThat(privacyEnforcementAction).isEqualToComparingFieldByField(allowNatural());
     }
 
     @Test
@@ -140,7 +140,6 @@ public class PurposeOneStrategyTest {
                 VendorV2.empty(3));
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = Arrays.asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
-
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(anyInt(), any(), any(), any(), anyBoolean()))
                 .willReturn(Arrays.asList(vendorPermission1, vendorPermission2));
 
@@ -162,10 +161,9 @@ public class PurposeOneStrategyTest {
     }
 
     @Test
-    public void processTypePurposeStrategyShouldPassEmptyListWithEnforcementsWhenAllBiddersAreExcluded() {
+    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToFullType() {
         // given
-        final List<String> vendorExceptions = Arrays.asList("b1", "b2", "b3", "b5", "b7");
-        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, vendorExceptions);
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -224,9 +222,9 @@ public class PurposeOneStrategyTest {
                 vendorPermissionsWithGvl, false);
 
         // then
-        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurpose());
-        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurpose());
-        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowAllPurpose());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowAllPurpose());
+        final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowAllPurpose());
         assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
@@ -313,9 +311,19 @@ public class PurposeOneStrategyTest {
                 emptyList(), true);
     }
 
-    private static PrivacyEnforcementAction allowPurpose() {
+    private static PrivacyEnforcementAction allowAllPurpose() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setBlockPixelSync(false);
+        privacyEnforcementAction.setRemoveUserIds(false);
+        return privacyEnforcementAction;
+    }
+
+    private static PrivacyEnforcementAction allowPurpose() {
+        return PrivacyEnforcementAction.restrictAll();
+    }
+
+    private static PrivacyEnforcementAction allowNatural() {
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
+        privacyEnforcementAction.setRemoveUserIds(false);
         return privacyEnforcementAction;
     }
 }

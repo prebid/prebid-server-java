@@ -20,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -90,21 +91,25 @@ public class AmpRequestFactory {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
         return createBidRequest(routingContext, tagId)
-                .compose(bidRequest ->
-                        auctionRequestFactory.toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
+                .compose(bidRequestWithErrors ->
+                        auctionRequestFactory.toAuctionContext(routingContext, bidRequestWithErrors.getLeft(),
+                                bidRequestWithErrors.getRight(), startTime, timeoutResolver));
     }
 
     /**
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> createBidRequest(RoutingContext context, String tagId) {
+    private Future<Tuple2<BidRequest, List<String>>> createBidRequest(RoutingContext context,
+                                                                      String tagId) {
+        final List<String> errors = new ArrayList<>();
         return storedRequestProcessor.processAmpRequest(tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
-                .map(bidRequest -> overrideParameters(bidRequest, context.request()))
+                .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
-                .map(auctionRequestFactory::validateRequest);
+                .map(auctionRequestFactory::validateRequest)
+                .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }
 
     /**
@@ -202,7 +207,8 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request,
+                                          List<String> errors) {
         final String requestConsentParam = request.getParam(CONSENT_PARAM);
         final String requestGdprConsentParam = request.getParam(GDPR_CONSENT_PARAM);
         final String consentString = ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
@@ -214,8 +220,10 @@ public class AmpRequestFactory {
             ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
             if (StringUtils.isAllBlank(gdprConsent, ccpaConsent)) {
-                logger.debug("Amp request parameter consent_string or gdpr_consent have invalid format: {0}",
-                        consentString);
+                final String message = String.format(
+                        "Amp request parameter consent_string or gdpr_consent have invalid format: %s", consentString);
+                logger.debug(message);
+                errors.add(message);
             }
         }
 
