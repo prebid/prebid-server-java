@@ -22,6 +22,7 @@ public class PurposeFiveStrategy extends PurposeStrategy {
     @Override
     public void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction) {
         privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
     }
 
     @Override

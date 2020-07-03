@@ -329,6 +329,7 @@ public class PurposeSevenStrategyTest {
     private static PrivacyEnforcementAction allowNatural() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
         return privacyEnforcementAction;
     }
 }
