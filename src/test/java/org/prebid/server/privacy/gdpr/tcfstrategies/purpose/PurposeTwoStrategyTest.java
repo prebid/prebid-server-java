@@ -315,6 +315,7 @@ public class PurposeTwoStrategyTest {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         privacyEnforcementAction.setBlockBidderRequest(false);
         privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
         return privacyEnforcementAction;
     }
 
