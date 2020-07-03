@@ -1116,7 +1116,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .user(User.builder().build())
-                        .ext(ExtRequest.of(null)),
+                        .ext(ExtRequest.empty()),
                 Imp.builder().build());
 
         // when
