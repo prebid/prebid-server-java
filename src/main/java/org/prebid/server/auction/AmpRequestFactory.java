@@ -442,18 +442,6 @@ public class AmpRequestFactory {
         return fpdUserNode == null
                 ? gdprUpdatedUser
                 : fpdResolver.resolveUser(gdprUpdatedUser, convertUser(fpdUserNode));
-
-    }
-
-    /**
-     * Extracts {@link ExtUser} from bidrequest.user.ext {@link ObjectNode}.
-     */
-    private ExtUser extractExtUser(ObjectNode extUserNode) {
-        try {
-            return mapper.mapper().treeToValue(extUserNode, ExtUser.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()));
-        }
     }
 
     /**
@@ -493,6 +481,9 @@ public class AmpRequestFactory {
         return Regs.of(coppa, ExtRegs.of(gdpr, ccpaConsent));
     }
 
+    /**
+     * Overrides {@link ExtRequest} with first party data.
+     */
     private ExtRequest overrideExtBidRequest(ExtRequest extRequest, Targeting targeting) {
         final List<String> targetingBidders = targeting.getBidders();
         if (CollectionUtils.isEmpty(targetingBidders)) {

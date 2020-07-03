@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -28,12 +29,11 @@ import java.util.function.Function;
 
 public class FpdResolver {
 
-    private static final String CONTEXT = "context";
-    private static final String DATA = "data";
     private static final String USER = "user";
     private static final String SITE = "site";
     private static final String BIDDERS = "bidders";
-    private static final Set<String> KNOWN_FPD_ATTRIBUTES = new HashSet<>(Arrays.asList(USER, SITE, BIDDERS));
+    private static final String APP = "app";
+    private static final Set<String> KNOWN_FPD_ATTRIBUTES = new HashSet<>(Arrays.asList(USER, SITE, APP, BIDDERS));
 
     private final JacksonMapper mapper;
     private final JsonMergeUtil jsonMergeUtil;
@@ -46,7 +46,7 @@ public class FpdResolver {
 
     public User resolveUser(User originUser, User fpdUser) {
         if (originUser == null) {
-            return null;
+            return fpdUser;
         }
         if (fpdUser == null) {
             return originUser;
@@ -55,21 +55,27 @@ public class FpdResolver {
         final ObjectNode resolvedData = mergeExtData(originExtUser, fpdUser.getExt(),
                 extUser -> extUser != null ? extUser.getData() : null);
 
-        final ExtUser resolvedExtUser = originExtUser != null
-                ? originExtUser.toBuilder().data(resolvedData).build()
-                : ExtUser.builder().data(resolvedData).build();
+        final ExtUser resolvedExtUser;
+        if (resolvedData != null) {
+            resolvedExtUser = originExtUser != null
+                    ? originExtUser.toBuilder().data(resolvedData).build()
+                    : ExtUser.builder().data(resolvedData).build();
+        } else {
+            resolvedExtUser = null;
+        }
 
         return originUser.toBuilder()
                 .keywords(getFirstNotNull(fpdUser, originUser, User::getKeywords))
                 .gender(getFirstNotNull(fpdUser, originUser, User::getGender))
                 .yob(getFirstNotNull(fpdUser, originUser, User::getYob))
+                .geo(getFirstNotNull(fpdUser, originUser, User::getGeo))
                 .ext(resolvedExtUser)
                 .build();
     }
 
     public App resolveApp(App originApp, App fpdApp) {
         if (originApp == null) {
-            return null;
+            return fpdApp;
         }
         if (fpdApp == null) {
             return originApp;
@@ -78,10 +84,14 @@ public class FpdResolver {
         final ObjectNode resolvedData = mergeExtData(originExtApp, fpdApp.getExt(),
                 extApp -> extApp != null ? extApp.getData() : null);
 
-        final ExtApp resolvedExtApp = originExtApp != null
-                ? ExtApp.of(originExtApp.getPrebid(), resolvedData)
-                : ExtApp.of(null, resolvedData);
-
+        final ExtApp resolvedExtApp;
+        if (resolvedData != null) {
+            resolvedExtApp = originExtApp != null
+                    ? ExtApp.of(originExtApp.getPrebid(), resolvedData)
+                    : ExtApp.of(null, resolvedData);
+        } else {
+            resolvedExtApp = null;
+        }
         return originApp.toBuilder()
                 .id(getFirstNotNull(fpdApp, originApp, App::getId))
                 .name(getFirstNotNull(fpdApp, originApp, App::getName))
@@ -101,7 +111,7 @@ public class FpdResolver {
 
     public Site resolveSite(Site originSite, Site fpdSite) {
         if (originSite == null) {
-            return null;
+            return fpdSite;
         }
         if (fpdSite == null) {
             return originSite;
@@ -111,10 +121,14 @@ public class FpdResolver {
         final ObjectNode resolvedData = mergeExtData(originExtSite, fpdSite.getExt(),
                 extSite -> extSite != null ? extSite.getData() : null);
 
-        final ExtSite resolvedExApp = originExtSite != null
-                ? ExtSite.of(originExtSite.getAmp(), resolvedData)
-                : ExtSite.of(null, resolvedData);
-
+        final ExtSite resolvedExtSite;
+        if (resolvedData != null) {
+            resolvedExtSite = originExtSite != null
+                    ? ExtSite.of(originExtSite.getAmp(), resolvedData)
+                    : ExtSite.of(null, resolvedData);
+        } else {
+            resolvedExtSite = null;
+        }
         return originSite.toBuilder()
                 .id(getFirstNotNull(fpdSite, originSite, Site::getId))
                 .name(getFirstNotNull(fpdSite, originSite, Site::getName))
@@ -130,7 +144,7 @@ public class FpdResolver {
                 .keywords(getFirstNotNull(fpdSite, originSite, Site::getKeywords))
                 .mobile(getFirstNotNull(fpdSite, originSite, Site::getMobile))
                 .privacypolicy(getFirstNotNull(fpdSite, originSite, Site::getPrivacypolicy))
-                .ext(resolvedExApp)
+                .ext(resolvedExtSite)
                 .build();
     }
 
@@ -138,6 +152,7 @@ public class FpdResolver {
         if (targeting == null) {
             return impExt;
         }
+
         KNOWN_FPD_ATTRIBUTES.forEach(targeting::remove);
         if (!targeting.fieldNames().hasNext()) {
             return impExt;
@@ -145,8 +160,10 @@ public class FpdResolver {
 
         final ExtImp extImp = impExt != null ? getExtImp(impExt) : null;
         final ExtImpContext extImpContext = extImp != null ? extImp.getContext() : null;
-        final ObjectNode data = extImpContext != null ? extImpContext.getData() : null;
-        final ObjectNode resolvedData = (ObjectNode) jsonMergeUtil.merge(targeting, data);
+        final ObjectNode extImpContextData = extImpContext != null ? extImpContext.getData() : null;
+        final ObjectNode resolvedData = extImpContextData != null
+                ? (ObjectNode) jsonMergeUtil.merge(targeting, extImpContextData)
+                : targeting;
         final ExtImp resolvedExtImp = ExtImp.of(extImp != null ? extImp.getPrebid() : null,
                 extImpContext != null
                         ? ExtImpContext.of(extImpContext.getKeywords(), extImpContext.getSearch(), resolvedData)
@@ -156,13 +173,19 @@ public class FpdResolver {
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, List<String> fpdBidders) {
+        if (CollectionUtils.isEmpty(fpdBidders)) {
+            return extRequest;
+        }
+
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null ? extRequestPrebid.getData() : null;
         final List<String> originBidders = extRequestPrebidData != null
                 ? extRequestPrebidData.getBidders()
                 : Collections.emptyList();
 
-        final List<String> resolvedBidders = mergeBidders(fpdBidders, originBidders);
+        final List<String> resolvedBidders = CollectionUtils.isNotEmpty(originBidders)
+                ? mergeBidders(fpdBidders, originBidders)
+                : fpdBidders;
 
         return ExtRequest.of(extRequestPrebid != null
                 ? extRequestPrebid.toBuilder().data(ExtRequestPrebidData.of(resolvedBidders)).build()
@@ -183,7 +206,7 @@ public class FpdResolver {
             return originData;
         }
         if (originData != null) {
-            return (ObjectNode) jsonMergeUtil.merge(originData, fpdData);
+            return (ObjectNode) jsonMergeUtil.merge(fpdData, originData);
         }
         return fpdData;
     }

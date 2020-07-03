@@ -1,11 +1,8 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.json.CommaSeparatedStringArrayDeserializer;
-import org.prebid.server.json.StringArrayToFirstItemDeserializer;
 
 import java.util.List;
 
@@ -39,13 +36,11 @@ public class User {
      * Gender, where “M” = male, “F” = female, “O” = known to be other (i.e.,
      * omitted is unknown).
      */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String gender;
 
     String language;
 
     /** Comma separated list of keywords, interests, or intent. */
-    @JsonDeserialize(using = CommaSeparatedStringArrayDeserializer.class)
     String keywords;
 
     /**

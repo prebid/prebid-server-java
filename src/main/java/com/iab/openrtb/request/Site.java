@@ -1,11 +1,8 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.json.CommaSeparatedStringArrayDeserializer;
-import org.prebid.server.json.StringArrayToFirstItemDeserializer;
 
 import java.util.List;
 
@@ -20,15 +17,12 @@ import java.util.List;
 public class Site {
 
     /** Exchange-specific site ID. (recommended) */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String id;
 
     /** Site name (may be aliased at the publisher’s request). */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String name;
 
     /** Domain of the site (e.g., “mysite.foo.com”). */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String domain;
 
     /** Array of IAB content categories of the site. Refer to List 5.1. */
@@ -47,15 +41,12 @@ public class Site {
     List<String> pagecat;
 
     /** URL of the page where the impression will be shown. */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String page;
 
     /** Referrer URL that caused navigation to the current page. */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String ref;
 
     /** Search string that caused navigation to the current page. */
-    @JsonDeserialize(using = StringArrayToFirstItemDeserializer.class)
     String search;
 
     /**
@@ -74,7 +65,6 @@ public class Site {
     Content content;
 
     /** Comma separated list of keywords about the site. */
-    @JsonDeserialize(using = CommaSeparatedStringArrayDeserializer.class)
     String keywords;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
