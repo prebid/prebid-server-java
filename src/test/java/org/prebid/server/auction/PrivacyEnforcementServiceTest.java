@@ -38,6 +38,7 @@ import org.prebid.server.settings.model.Account;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -164,6 +165,37 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .device(deviceTcfMasked())
                 .build();
         assertThat(result).isEqualTo(singletonList(expected));
+    }
+
+    @Test
+    public void shouldAddErrorWhenWhenUsPolicyIsInvalid() {
+        // given
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
+
+        given(bidderCatalog.bidderInfoByName(BIDDER_NAME)).willReturn(givenBidderInfo(1, false));
+
+        final ExtUser extUser = notMaskedExtUser();
+        final User user = notMaskedUser(extUser);
+        final Regs regs = Regs.of(0, ExtRegs.of(1, "invalid"));
+        final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                singletonMap(BIDDER_NAME, 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(user)
+                        .regs(regs));
+
+        final AuctionContext context = auctionContext(bidRequest);
+
+        // when
+        privacyEnforcementService
+                .mask(context, bidderToUser, extUser, singletonList(BIDDER_NAME), BidderAliases.of(null, null))
+                .result();
+
+        // then
+        assertThat(context.getPrebidErrors())
+                .containsOnly("CCPA consent invalid has invalid format: us_privacy must contain 4 characters");
     }
 
     @Test
@@ -989,6 +1021,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.builder().build())
                 .bidRequest(bidRequest)
                 .timeout(timeout)
+                .prebidErrors(new ArrayList<>())
                 .build();
     }
 

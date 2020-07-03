@@ -171,9 +171,11 @@ public class AuctionRequestFactory {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+    Future<AuctionContext> toAuctionContext(RoutingContext routingContext,
+                                            BidRequest bidRequest,
                                             List<String> errors,
-                                            long startTime, TimeoutResolver timeoutResolver) {
+                                            long startTime,
+                                            TimeoutResolver timeoutResolver) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, routingContext)

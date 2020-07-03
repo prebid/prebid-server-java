@@ -212,7 +212,8 @@ public class HttpAdapterConnector {
         if (preBidRequest.getApp() == null
                 && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.getCookieFamilyName()) == null) {
 
-            final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
+            final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser(),
+                    new ArrayList<>());
             bidderStatusBuilder
                     .noCookie(true)
                     .usersync(UsersyncInfoAssembler.from(usersyncer).withPrivacy(privacy).assemble());

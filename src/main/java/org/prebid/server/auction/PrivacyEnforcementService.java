@@ -95,7 +95,8 @@ public class PrivacyEnforcementService {
             return Future.succeededFuture(maskCoppa(bidderToUser, device));
         }
 
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, bidRequest.getUser());
+        final List<String> errors = auctionContext.getPrebidErrors();
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, bidRequest.getUser(), errors);
         final Ccpa ccpa = privacy.getCcpa();
         updateCcpaMetrics(ccpa);
         final Map<String, BidderPrivacyResult> ccpaResult =

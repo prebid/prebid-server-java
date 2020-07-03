@@ -46,6 +46,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -246,7 +247,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser());
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(preBidRequest.getRegs(), preBidRequest.getUser(),
+                new ArrayList<>());
         final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
 
         return tcfDefinerService.resultForVendorIds(

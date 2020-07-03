@@ -11,6 +11,8 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
+import java.util.List;
+
 /**
  * GDPR-aware utilities
  */
@@ -31,7 +33,7 @@ public class PrivacyExtractor {
      * </ul><p>
      * And construct {@link Privacy} from them. Use default values in case of invalid value.
      */
-    public Privacy validPrivacyFrom(Regs regs, User user) {
+    public Privacy validPrivacyFrom(Regs regs, User user, List<String> errors) {
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
 
@@ -40,25 +42,26 @@ public class PrivacyExtractor {
         final String consent = extUser != null ? extUser.getConsent() : null;
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
 
-        return toValidPrivacy(gdpr, consent, usPrivacy);
+        return toValidPrivacy(gdpr, consent, usPrivacy, errors);
     }
 
-    private static Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy) {
+    private static Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy, List<String> errors) {
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
         final String validConsent = consent == null ? DEFAULT_CONSENT_VALUE : consent;
-        final Ccpa validCCPA = usPrivacy == null ? DEFAULT_CCPA_VALUE : toValidCcpa(usPrivacy);
+        final Ccpa validCCPA = usPrivacy == null ? DEFAULT_CCPA_VALUE : toValidCcpa(usPrivacy, errors);
         return Privacy.of(validGdpr, validConsent, validCCPA);
     }
 
-    private static Ccpa toValidCcpa(String usPrivacy) {
+    private static Ccpa toValidCcpa(String usPrivacy, List<String> errors) {
         try {
             Ccpa.validateUsPrivacy(usPrivacy);
             return Ccpa.of(usPrivacy);
         } catch (PreBidException e) {
-            // TODO add error to PBS response, not only in logs (See PR #758)
-            logger.debug("CCPA consent {0} has invalid format: {1}", usPrivacy, e.getMessage());
+            final String message = String.format("CCPA consent %s has invalid format: %s", usPrivacy, e.getMessage());
+            logger.debug(message);
+            errors.add(message);
             return DEFAULT_CCPA_VALUE;
         }
     }
