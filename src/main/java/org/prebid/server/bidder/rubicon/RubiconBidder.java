@@ -2,6 +2,7 @@ package org.prebid.server.bidder.rubicon;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -9,7 +10,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
@@ -69,9 +69,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -91,12 +88,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Bidder} implementation.
@@ -142,7 +141,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        final boolean useFirstPartyData = useFirstPartyData(bidRequest);
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
                 parseRubiconImpExts(bidRequest.getImp(), errors);
         final String impLanguage = firstImpExtLanguage(impToImpExt.values());
@@ -152,8 +150,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final Imp imp = impToExt.getKey();
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
                 final BidRequest singleRequest = createSingleRequest(
-                        imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage, useFirstPartyData
-                );
+                        imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage);
                 final String body = mapper.encode(singleRequest);
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -216,23 +213,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return "Basic " + Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
     }
 
-    /**
-     * Determines if First Party Data should be applied.
-     * This mainly related to global fields like request.site.keywords, etc.
-     */
-    private boolean useFirstPartyData(BidRequest bidRequest) {
-        final ExtRequest extRequest = bidRequest.getExt() != null
-                ? mapper.mapper().convertValue(bidRequest.getExt(), ExtRequest.class)
-                : null;
-        final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
-        final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
-        final List<String> bidders = data == null ? null : data.getBidders();
-        return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
-    }
-
     private Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> parseRubiconImpExts(
-            List<Imp> imps, List<BidderError> errors
-    ) {
+            List<Imp> imps, List<BidderError> errors) {
+
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = new HashMap<>();
         for (final Imp imp : imps) {
             try {
@@ -265,13 +248,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private BidRequest createSingleRequest(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
-                                           BidRequest bidRequest, String impLanguage, boolean useFirstPartyData) {
+    private BidRequest createSingleRequest(Imp imp,
+                                           ExtImpPrebid extPrebid,
+                                           ExtImpRubicon extRubicon,
+                                           BidRequest bidRequest,
+                                           String impLanguage) {
+
         final Site site = bidRequest.getSite();
         final App app = bidRequest.getApp();
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app, useFirstPartyData)))
+                .imp(Collections.singletonList(makeImp(imp, extPrebid, extRubicon, site, app)))
                 .user(makeUser(bidRequest.getUser(), extRubicon))
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(site, impLanguage, extRubicon))
@@ -310,11 +297,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
-                        Site site, App app, boolean useFirstPartyData) {
+    private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon, Site site, App app) {
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app, useFirstPartyData)));
+                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extRubicon, site, app)));
 
         if (isVideo(imp)) {
             builder
@@ -352,65 +338,87 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
-    private RubiconImpExt makeImpExt(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app,
-                                     boolean useFirstPartyData) {
+    private RubiconImpExt makeImpExt(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
         return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(),
-                makeTarget(imp, rubiconImpExt, site, app, useFirstPartyData), RubiconImpExtRpTrack.of("", "")),
+                makeTarget(imp, rubiconImpExt, site, app), RubiconImpExtRpTrack.of("", "")),
                 mapVendorsNamesToUrls(imp.getMetric()));
     }
 
-    private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app, boolean useFirstPartyData) {
-        final ObjectNode inventory = rubiconImpExt.getInventory();
-        final ObjectNode inventoryNode = inventory == null ? mapper.mapper().createObjectNode() : inventory;
+    private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
+        final ObjectNode result = mapper.mapper().createObjectNode();
 
-        if (useFirstPartyData) {
-            final ExtImpContext context = extImpContext(imp);
+        populateFirstPartyDataAttributes(rubiconImpExt.getInventory(), result);
 
-            // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
-            final ExtSite siteExt = site != null ? site.getExt() : null;
-            if (siteExt != null) {
-                populateObjectNode(inventoryNode, siteExt.getData());
-            }
+        copyFirstPartyDataFromSite(site, result);
+        copyFirstPartyDataFromApp(app, result);
+        copyFirstPartyDataFromImp(imp, site, result);
 
-            // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
-            final ExtApp appExt = app != null ? app.getExt() : null;
-            if (appExt != null) {
-                populateObjectNode(inventoryNode, appExt.getData());
-            }
+        return result.size() > 0 ? result : null;
+    }
 
-            // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
-            final ObjectNode contextDataNode = context != null ? context.getData() : null;
-            if (contextDataNode != null) {
-                inventoryNode.setAll(contextDataNode);
+    private void copyFirstPartyDataFromSite(Site site, ObjectNode result) {
+        // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
+        final ExtSite siteExt = site != null ? site.getExt() : null;
+        if (siteExt != null) {
+            populateFirstPartyDataAttributes(siteExt.getData(), result);
+        }
+    }
 
-                // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
-                // leading slash
-                final JsonNode adSlotNode = contextDataNode.get("adslot");
-                if (adSlotNode != null && adSlotNode.isTextual()) {
-                    final String adSlot = adSlotNode.textValue();
-                    final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-                    inventoryNode.put("dfp_ad_unit_code", adUnitCode);
-                }
-            }
+    private void copyFirstPartyDataFromApp(App app, ObjectNode result) {
+        // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
+        final ExtApp appExt = app != null ? app.getExt() : null;
+        if (appExt != null) {
+            populateFirstPartyDataAttributes(appExt.getData(), result);
+        }
+    }
 
-            // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
-            final String keywords = context != null ? context.getKeywords() : null;
-            if (StringUtils.isNotBlank(keywords)) {
-                inventoryNode.put("keywords", keywords);
-            }
+    private void copyFirstPartyDataFromImp(Imp imp, Site site, ObjectNode result) {
+        final ExtImpContext context = extImpContext(imp);
 
-            // copy OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
-            // copy OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
-            // imp-specific values should take precedence over global values
-            final String contextSearch = context != null ? context.getSearch() : null;
-            final String siteSearch = site != null ? site.getSearch() : null;
-            final String search = ObjectUtils.defaultIfNull(contextSearch, siteSearch);
-            if (StringUtils.isNotBlank(search)) {
-                inventoryNode.put("search", search);
+        copyFirstPartyDataFromImpExtContextData(context, result);
+        copyFirstPartyDataKeywords(context, result);
+        copyFirstPartyDataSearch(context, site, result);
+
+    }
+
+    private void copyFirstPartyDataFromImpExtContextData(ExtImpContext context, ObjectNode result) {
+        // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
+        final ObjectNode contextDataNode = context != null ? context.getData() : null;
+        if (contextDataNode != null) {
+            populateFirstPartyDataAttributes(contextDataNode, result);
+
+            // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
+            // leading slash
+            final JsonNode adSlotNode = contextDataNode.get("adslot");
+            if (adSlotNode != null && adSlotNode.isTextual()) {
+                final String adSlot = adSlotNode.textValue();
+                final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+                result.set("dfp_ad_unit_code", stringToStringArray(adUnitCode));
             }
         }
+    }
 
-        return inventoryNode.size() > 0 ? inventoryNode : null;
+    private void copyFirstPartyDataKeywords(ExtImpContext context, ObjectNode result) {
+        // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
+        final String keywords = context != null ? context.getKeywords() : null;
+        if (StringUtils.isNotBlank(keywords)) {
+            result.set("keywords", stringToStringArray(keywords));
+        }
+    }
+
+    private void copyFirstPartyDataSearch(ExtImpContext context, Site site, ObjectNode result) {
+        if (context == null) {
+            return;
+        }
+
+        // copy OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
+        // copy OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
+        // imp-specific values should take precedence over global values
+        final String siteSearch = site != null ? site.getSearch() : null;
+        final String search = ObjectUtils.defaultIfNull(context.getSearch(), siteSearch);
+        if (StringUtils.isNotBlank(search)) {
+            result.set("search", stringToStringArray(search));
+        }
     }
 
     private ExtImpContext extImpContext(Imp imp) {
@@ -425,10 +433,32 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void populateObjectNode(ObjectNode objectNode, JsonNode data) {
-        if (data != null && !data.isNull()) {
-            objectNode.setAll((ObjectNode) data);
+    private void populateFirstPartyDataAttributes(ObjectNode sourceNode, ObjectNode targetNode) {
+        if (sourceNode == null || sourceNode.isNull()) {
+            return;
         }
+
+        final Iterator<String> fieldNames = sourceNode.fieldNames();
+        while (fieldNames.hasNext()) {
+            final String currentFieldName = fieldNames.next();
+            final JsonNode currentField = sourceNode.get(currentFieldName);
+
+            if (isTextualArray(currentField)) {
+                targetNode.set(currentFieldName, currentField);
+            } else if (currentField.isTextual()) {
+                targetNode.set(currentFieldName, stringToStringArray(currentField.textValue()));
+            } else if (currentField.isIntegralNumber()) {
+                targetNode.set(currentFieldName, stringToStringArray(Long.toString(currentField.longValue())));
+            }
+        }
+    }
+
+    private static boolean isTextualArray(JsonNode node) {
+        return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isTextual);
+    }
+
+    private ArrayNode stringToStringArray(String value) {
+        return mapper.mapper().createArrayNode().add(value);
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -612,44 +642,58 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return id != null ? ExtUserTpIdRubicon.of(LIVEINTENT_EID, id) : null;
     }
 
-    private RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt,
+    private RubiconUserExtRp rubiconUserExtRp(User user,
+                                              ExtImpRubicon rubiconImpExt,
                                               Map<String, List<ExtUserEid>> sourceToUserEidExt) {
-        final ObjectNode impExtVisitor = rubiconImpExt.getVisitor();
-        final ObjectNode visitor = impExtVisitor != null && impExtVisitor.size() != 0 ? impExtVisitor : null;
 
-        final boolean hasUser = user != null;
-        final String gender = hasUser ? user.getGender() : null;
-        final Integer yob = hasUser ? user.getYob() : null;
-        final Geo geo = hasUser ? user.getGeo() : null;
+        final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, rubiconImpExt.getVisitor(), user);
 
-        final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, visitor);
-
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        final ObjectNode data = extUser != null ? extUser.getData() : null;
-
-        if (target != null || gender != null || yob != null || geo != null) {
-            final RubiconUserExtRp rubiconUserExtRp = RubiconUserExtRp.of(target, gender, yob, geo);
-            return data != null
-                    ? mapper.fillExtension(rubiconUserExtRp, data)
-                    : rubiconUserExtRp;
-        }
-
-        return null;
+        return target != null ? RubiconUserExtRp.of(target) : null;
     }
 
-    private JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode visitor) {
-        if (sourceToUserEidExt == null || CollectionUtils.isEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
-            return visitor;
-        }
-        final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
-        final JsonNode segment = ext != null ? ext.get("segments") : null;
+    private JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt,
+                                            ObjectNode visitor,
+                                            User user) {
 
-        if (segment == null) {
-            return visitor;
-        }
-        final ObjectNode result = visitor != null ? visitor : mapper.mapper().createObjectNode();
+        final ObjectNode result = mapper.mapper().createObjectNode();
 
-        return result.set("LIseg", segment);
+        populateFirstPartyDataAttributes(visitor, result);
+
+        copyLiveIntentSegment(sourceToUserEidExt, result);
+
+        copyFirstPartyDataFromUser(user, result);
+
+        return result.size() > 0 ? result : null;
+    }
+
+    private void copyLiveIntentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
+        if (sourceToUserEidExt != null && CollectionUtils.isNotEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
+            final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
+            final JsonNode segment = ext != null ? ext.get("segments") : null;
+
+            if (segment != null) {
+                result.set("LIseg", segment);
+            }
+        }
+    }
+
+    private void copyFirstPartyDataFromUser(User user, ObjectNode result) {
+        // copy OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
+        final ExtUser userExt = user != null ? user.getExt() : null;
+        if (userExt != null) {
+            populateFirstPartyDataAttributes(userExt.getData(), result);
+        }
+
+        // copy OPENRTB.user.gender to XAPI.user.ext.rp.target.gender
+        // copy OPENRTB.user.yob to XAPI.user.ext.rp.target.yob
+        final String gender = user != null ? user.getGender() : null;
+        if (StringUtils.isNotBlank(gender)) {
+            result.set("gender", stringToStringArray(gender));
+        }
+        final Integer yob = user != null ? user.getYob() : null;
+        if (yob != null) {
+            result.set("yob", stringToStringArray(Integer.toString(yob)));
+        }
     }
 
     private Device makeDevice(Device device) {

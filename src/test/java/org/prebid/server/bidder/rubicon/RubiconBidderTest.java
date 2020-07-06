@@ -10,7 +10,6 @@ import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Metric;
@@ -60,7 +59,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
@@ -488,12 +486,8 @@ public class RubiconBidderTest extends VertxTest {
                         .ext(jacksonMapper.fillExtension(
                                 ExtUser.builder().build(),
                                 RubiconUserExt.builder()
-                                        .rp(RubiconUserExtRp.of(
-                                                mapper.valueToTree(
-                                                        Visitor.of(singletonList("new"), singletonList("iphone"))),
-                                                null,
-                                                null,
-                                                null))
+                                        .rp(RubiconUserExtRp.of(mapper.valueToTree(
+                                                Visitor.of(singletonList("new"), singletonList("iphone")))))
                                         .build()))
                         .build());
     }
@@ -589,13 +583,12 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyUserGenderYobAndGeoToUserExtRp() {
+    public void makeHttpRequestsShouldCopyUserGenderYobToUserExtRp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder()
                         .gender("M")
                         .yob(2000)
-                        .geo(Geo.builder().build())
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -612,19 +605,24 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(jacksonMapper.fillExtension(
                         ExtUser.builder().build(),
                         RubiconUserExt.builder()
-                                .rp(RubiconUserExtRp.of(null, "M", 2000, Geo.builder().build()))
+                                .rp(RubiconUserExtRp.of(mapper.createObjectNode()
+                                        .<ObjectNode>set("gender", mapper.createArrayNode().add("M"))
+                                        .set("yob", mapper.createArrayNode().add("2000"))))
                                 .build()));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyUserExtDataFieldsToUserExtRp() {
         // given
-        final ObjectNode userExtDataNode = mapper.createObjectNode().put("property", "value");
+        final ObjectNode userExtDataNode = mapper.createObjectNode()
+                .set("property", mapper.createArrayNode().add("value"));
 
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder()
-                        .ext(ExtUser.builder().data(userExtDataNode).build())
-                        .gender("M").build()),
+                builder -> builder
+                        .user(User.builder()
+                                .ext(ExtUser.builder().data(userExtDataNode).build())
+                                .gender("M")
+                                .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -632,10 +630,6 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedNode = mapper.createObjectNode();
-        userExtDataNode.put("gender", "M");
-        expectedNode.set("rp", userExtDataNode);
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -643,7 +637,11 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(User::getExt)
                 .containsOnly(jacksonMapper.fillExtension(
                         ExtUser.builder().build(),
-                        expectedNode));
+                        RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.of(mapper.createObjectNode()
+                                        .<ObjectNode>set("gender", mapper.createArrayNode().add("M"))
+                                        .set("property", mapper.createArrayNode().add("value"))))
+                                .build()));
     }
 
     @Test
@@ -667,14 +665,54 @@ public class RubiconBidderTest extends VertxTest {
                         .ext(jacksonMapper.fillExtension(
                                 ExtUser.builder().build(),
                                 RubiconUserExt.builder()
-                                        .rp(RubiconUserExtRp.of(
-                                                mapper.valueToTree(
-                                                        Visitor.of(singletonList("new"), singletonList("iphone"))),
-                                                null,
-                                                null,
-                                                null))
+                                        .rp(RubiconUserExtRp.of(mapper.valueToTree(
+                                                Visitor.of(singletonList("new"), singletonList("iphone")))))
                                         .build()))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNormalizeAndCopyUserExtDataFieldsToUserExtRp() {
+        // given
+        final ObjectNode userExtDataNode = mapper.createObjectNode()
+                // will be copied verbatim
+                .<ObjectNode>set("property1", mapper.createArrayNode().add("value1").add("value2"))
+                // will be normalized to array of strings
+                .put("property2", "value1")
+                .put("property3", 123)
+                // remnants will be discarded
+                .<ObjectNode>set("property4", mapper.createArrayNode().add("value1").add(123))
+                .<ObjectNode>set("property5", mapper.createObjectNode().put("sub-property1", "value1"))
+                .put("property6", 123.456d)
+                .put("property7", false);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .user(User.builder()
+                                .ext(ExtUser.builder().data(userExtDataNode).build())
+                                .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtUser.builder().build(),
+                        RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.of(mapper.createObjectNode()
+                                        .<ObjectNode>set("property1", mapper.createArrayNode()
+                                                .add("value1")
+                                                .add("value2"))
+                                        .<ObjectNode>set("property2", mapper.createArrayNode().add("value1"))
+                                        .<ObjectNode>set("property3", mapper.createArrayNode().add("123"))))
+                                .build()));
     }
 
     @Test
@@ -768,7 +806,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .tpid(Arrays.asList(
                                         ExtUserTpIdRubicon.of("tdid", "adServerUid"),
                                         ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid1")))
-                                .rp(RubiconUserExtRp.of(expectedRp, null, null, null))
+                                .rp(RubiconUserExtRp.of(expectedRp))
                                 .build()));
     }
 
@@ -805,7 +843,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .build(),
                         RubiconUserExt.builder()
                                 .tpid(singletonList(ExtUserTpIdRubicon.of("liveintent.com", "liveintentUid")))
-                                .rp(RubiconUserExtRp.of(expectedRp, null, null, null))
+                                .rp(RubiconUserExtRp.of(expectedRp))
                                 .build()));
     }
 
@@ -1083,12 +1121,13 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCopyAndModifyImpExtContextDataFieldsToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value")
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .<ObjectNode>set("property", mapper.createArrayNode().add("value"))
                 .put("adslot", "/test");
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
 
@@ -1104,19 +1143,23 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
+                .containsOnly(mapper.createObjectNode()
+                        .<ObjectNode>set("property", mapper.createArrayNode().add("value"))
+                        .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test"))
+                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test")));
     }
 
     @Test
     public void makeHttpRequestsShouldNotCopyAndModifyImpExtContextDataAdslotToRubiconImpExtRpTargetDfpAdUnitCode() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("adslot", 123);
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .set("adslot", mapper.createArrayNode().add("123"));
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
 
         // when
@@ -1131,17 +1174,17 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(impExtContextDataNode);
+                .containsOnly(mapper.createObjectNode().set("adslot", mapper.createArrayNode().add("123")));
     }
 
     @Test
     public void makeHttpRequestsShouldCopySiteExtDataFieldsToRubiconImpExtRpTarget() {
         // given
-        final ObjectNode siteExtDataNode = mapper.createObjectNode().put("property", "value");
+        final ObjectNode siteExtDataNode = mapper.createObjectNode()
+                .set("property", mapper.createArrayNode().add("value"));
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .site(Site.builder().ext(ExtSite.of(0, siteExtDataNode)).build())
-                        .ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                        .site(Site.builder().ext(ExtSite.of(0, siteExtDataNode)).build()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1157,17 +1200,17 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(siteExtDataNode);
+                .containsOnly(mapper.createObjectNode().set("property", mapper.createArrayNode().add("value")));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyAppExtDataFieldsToRubiconImpExtRpTarget() {
         // given
-        final ObjectNode appExtDataNode = mapper.createObjectNode().put("property", "value");
+        final ObjectNode appExtDataNode = mapper.createObjectNode()
+                .set("property", mapper.createArrayNode().add("value"));
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .app(App.builder().ext(ExtApp.of(null, appExtDataNode)).build())
-                        .ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                        .app(App.builder().ext(ExtApp.of(null, appExtDataNode)).build()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1183,20 +1226,21 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(appExtDataNode);
+                .containsOnly(mapper.createObjectNode().set("property", mapper.createArrayNode().add("value")));
     }
 
     @Test
     public void makeHttpRequestsShouldCopySiteExtDataAndImpExtContextDataFieldsToRubiconImpExtRpTarget()
             throws IOException {
         // given
-        final ObjectNode siteExtDataNode = mapper.createObjectNode().put("site", "value1");
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("imp_ext", "value2");
+        final ObjectNode siteExtDataNode = mapper.createObjectNode()
+                .set("site", mapper.createArrayNode().add("value1"));
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .set("imp_ext", mapper.createArrayNode().add("value2"));
 
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .site(Site.builder().ext(ExtSite.of(0, siteExtDataNode)).build())
-                        .ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                        .site(Site.builder().ext(ExtSite.of(0, siteExtDataNode)).build()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1215,20 +1259,21 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"imp_ext\":\"value2\",\"site\":\"value1\"}"));
+                .containsOnly(mapper.readTree("{\"imp_ext\":[\"value2\"],\"site\":[\"value1\"]}"));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyAppExtDataAndImpExtContextDataFieldsToRubiconImpExtRpTarget()
             throws IOException {
         // given
-        final ObjectNode appExtDataNode = mapper.createObjectNode().put("app", "value1");
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("imp_ext", "value2");
+        final ObjectNode appExtDataNode = mapper.createObjectNode()
+                .set("app", mapper.createArrayNode().add("value1"));
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .set("imp_ext", mapper.createArrayNode().add("value2"));
 
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder
-                        .app(App.builder().ext(ExtApp.of(null, appExtDataNode)).build())
-                        .ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                        .app(App.builder().ext(ExtApp.of(null, appExtDataNode)).build()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1247,14 +1292,14 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"imp_ext\":\"value2\",\"app\":\"value1\"}"));
+                .containsOnly(mapper.readTree("{\"imp_ext\":[\"value2\"],\"app\":[\"value1\"]}"));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyImpExtContextKeywordsToRubiconImpExtRpTargetKeywords() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1273,14 +1318,14 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"keywords\":\"imp ext context keywords\"}"));
+                .containsOnly(mapper.readTree("{\"keywords\":[\"imp ext context keywords\"]}"));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyImpExtContextSearchToRubiconImpExtRpTargetSearch() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1299,17 +1344,19 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"search\":\"imp ext search\"}"));
+                .containsOnly(mapper.readTree("{\"search\":[\"imp ext search\"]}"));
     }
 
     @Test
     public void makeHttpRequestsShouldCopySiteSearchToRubiconImpExtRpTargetSearch() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().search("site search").build())
-                        .ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                requestBuilder -> requestBuilder.site(Site.builder().search("site search").build()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        impExt.putObject("context");
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1323,7 +1370,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"search\":\"site search\"}"));
+                .containsOnly(mapper.readTree("{\"search\":[\"site search\"]}"));
     }
 
     @Test
@@ -1351,8 +1398,7 @@ public class RubiconBidderTest extends VertxTest {
             throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().search("site search").build())
-                        .ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                requestBuilder -> requestBuilder.site(Site.builder().search("site search").build()),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1371,7 +1417,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"search\":\"imp ext search\"}"));
+                .containsOnly(mapper.readTree("{\"search\":[\"imp ext search\"]}"));
     }
 
     @Test
@@ -1831,12 +1877,6 @@ public class RubiconBidderTest extends VertxTest {
                                 .price(price)
                                 .build()))
                         .build()))
-                .build());
-    }
-
-    private static ExtRequest givenExtBidRequestWithRubiconFirstPartyData() {
-        return ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(singletonList("rubicon")))
                 .build());
     }
 
