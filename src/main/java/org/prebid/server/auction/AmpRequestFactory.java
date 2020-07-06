@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
@@ -35,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.request.Targeting;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -48,6 +50,7 @@ public class AmpRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AmpRequestFactory.class);
 
     private static final String TAG_ID_REQUEST_PARAM = "tag_id";
+    private static final String TARGETING_REQUEST_PARAM = "targeting";
     private static final String DEBUG_REQUEST_PARAM = "debug";
     private static final String OW_REQUEST_PARAM = "ow";
     private static final String OH_REQUEST_PARAM = "oh";
@@ -64,14 +67,16 @@ public class AmpRequestFactory {
 
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
+    private final FpdResolver fpdResolver;
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
 
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor, AuctionRequestFactory auctionRequestFactory,
-                             TimeoutResolver timeoutResolver, JacksonMapper mapper) {
+                             FpdResolver fpdResolver, TimeoutResolver timeoutResolver, JacksonMapper mapper) {
 
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
+        this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -221,21 +226,27 @@ public class AmpRequestFactory {
             }
         }
 
-        final Site updatedSite = overrideSite(bidRequest.getSite(), request);
-        final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
+        final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
+        final ObjectNode targetingNode = readTargeting(requestTargeting);
+        final Targeting targeting = parseTargeting(targetingNode);
+
+        final Site updatedSite = overrideSite(bidRequest.getSite(), request, targeting);
+        final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request, targetingNode);
         final Long updatedTimeout = overrideTimeout(bidRequest.getTmax(), request);
-        final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent);
+        final User updatedUser = overrideUser(bidRequest.getUser(), gdprConsent, targeting);
         final Regs updatedRegs = overrideRegs(bidRequest.getRegs(), ccpaConsent);
+        final ExtRequest updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
 
         final BidRequest result;
         if (updatedSite != null || updatedImp != null || updatedTimeout != null || updatedUser != null
-                || updatedRegs != null) {
+                || updatedRegs != null || updatedExtBidRequest != null) {
             result = bidRequest.toBuilder()
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
                     .tmax(updatedTimeout != null ? updatedTimeout : bidRequest.getTmax())
                     .user(updatedUser != null ? updatedUser : bidRequest.getUser())
                     .regs(updatedRegs != null ? updatedRegs : bidRequest.getRegs())
+                    .ext(updatedExtBidRequest != null ? updatedExtBidRequest : bidRequest.getExt())
                     .build();
         } else {
             result = bidRequest;
@@ -243,15 +254,48 @@ public class AmpRequestFactory {
         return result;
     }
 
-    private Site overrideSite(Site site, HttpServerRequest request) {
+    private ObjectNode readTargeting(String jsonTargeting) {
+        try {
+            final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
+            final JsonNode jsonNodeTargeting = decodedJsonTargeting != null
+                    ? mapper.mapper().readTree(decodedJsonTargeting)
+                    : null;
+            return jsonNodeTargeting != null ? validateAndGetTargeting(jsonNodeTargeting) : null;
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
+        }
+    }
+
+    private ObjectNode validateAndGetTargeting(JsonNode jsonNodeTargeting) {
+        if (jsonNodeTargeting.isObject()) {
+            return (ObjectNode) jsonNodeTargeting;
+        } else {
+            throw new InvalidRequestException(String.format("Error decoding targeting, expected type is `object` "
+                    + "but was %s", jsonNodeTargeting.getNodeType().name()));
+        }
+    }
+
+    private Targeting parseTargeting(ObjectNode targetingNode) {
+        try {
+            return targetingNode == null
+                    ? Targeting.empty()
+                    : mapper.mapper().treeToValue(targetingNode, Targeting.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
+        }
+    }
+
+    private Site overrideSite(Site site, HttpServerRequest request, Targeting targeting) {
         final String canonicalUrl = canonicalUrl(request);
         final String accountId = request.getParam(ACCOUNT_REQUEST_PARAM);
 
         final boolean hasSite = site != null;
         final ExtSite siteExt = hasSite ? site.getExt() : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
+        final ObjectNode fpdSiteNode = targeting.getSite();
 
-        if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp) {
+        if (StringUtils.isNotBlank(canonicalUrl) || StringUtils.isNotBlank(accountId) || shouldSetExtAmp
+                || fpdSiteNode != null) {
             final Site.SiteBuilder siteBuilder = hasSite ? site.toBuilder() : Site.builder();
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
@@ -267,7 +311,8 @@ public class AmpRequestFactory {
                 final ObjectNode data = siteExt != null ? siteExt.getData() : null;
                 siteBuilder.ext(ExtSite.of(1, data));
             }
-            return siteBuilder.build();
+            return fpdSiteNode == null ? siteBuilder.build() : fpdResolver.resolveSite(siteBuilder.build(),
+                    convertSiteObject(fpdSiteNode));
         }
         return null;
     }
@@ -280,16 +325,17 @@ public class AmpRequestFactory {
         }
     }
 
-    private static Imp overrideImp(Imp imp, HttpServerRequest request) {
+    private Imp overrideImp(Imp imp, HttpServerRequest request, ObjectNode targetingNode) {
         final String tagId = request.getParam(SLOT_REQUEST_PARAM);
         final Banner banner = imp.getBanner();
         final List<Format> overwrittenFormats = banner != null
                 ? createOverrideBannerFormats(request, banner.getFormat())
                 : null;
-        if (StringUtils.isNotBlank(tagId) || CollectionUtils.isNotEmpty(overwrittenFormats)) {
+        if (StringUtils.isNotBlank(tagId) || CollectionUtils.isNotEmpty(overwrittenFormats) || targetingNode != null) {
             return imp.toBuilder()
                     .tagid(StringUtils.isNotBlank(tagId) ? tagId : imp.getTagid())
                     .banner(overrideBanner(imp.getBanner(), overwrittenFormats))
+                    .ext(fpdResolver.resolveImpExt(imp.getExt(), targetingNode))
                     .build();
         }
         return null;
@@ -394,8 +440,9 @@ public class AmpRequestFactory {
         return timeout > 0 && !Objects.equals(timeout, tmax) ? timeout : null;
     }
 
-    private User overrideUser(User user, String gdprConsent) {
-        if (StringUtils.isBlank(gdprConsent)) {
+    private User overrideUser(User user, String gdprConsent, Targeting targeting) {
+        final ObjectNode fpdUserNode = targeting.getUser();
+        if (StringUtils.isBlank(gdprConsent) && fpdUserNode == null) {
             return null;
         }
 
@@ -409,12 +456,33 @@ public class AmpRequestFactory {
         if (StringUtils.isNotBlank(gdprConsent)) {
             extUserBuilder.consent(gdprConsent);
         }
-
         final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
+        final User gdprUpdatedUser = userBuilder.ext(extUserBuilder.build()).build();
+        return fpdUserNode == null
+                ? gdprUpdatedUser
+                : fpdResolver.resolveUser(gdprUpdatedUser, convertUser(fpdUserNode));
+    }
 
-        return userBuilder
-                .ext(extUserBuilder.build())
-                .build();
+    /**
+     * Converts {@link User} from {@link ObjectNode} representation.
+     */
+    private User convertUser(ObjectNode fpdUserNode) {
+        try {
+            return mapper.mapper().treeToValue(fpdUserNode, User.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding targeting user: %s", e.getMessage()));
+        }
+    }
+
+    /**
+     * Converts {@link Site} object from {@link ObjectNode} representation to defined in parameters class.
+     */
+    private Site convertSiteObject(ObjectNode siteNode) {
+        try {
+            return mapper.mapper().treeToValue(siteNode, Site.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding targeting site: %s", e.getMessage()));
+        }
     }
 
     private Regs overrideRegs(Regs regs, String ccpaConsent) {
@@ -430,6 +498,17 @@ public class AmpRequestFactory {
         }
 
         return Regs.of(coppa, ExtRegs.of(gdpr, ccpaConsent));
+    }
+
+    /**
+     * Overrides {@link ExtRequest} with first party data.
+     */
+    private ExtRequest overrideExtBidRequest(ExtRequest extRequest, Targeting targeting) {
+        final List<String> targetingBidders = targeting.getBidders();
+        if (CollectionUtils.isEmpty(targetingBidders)) {
+            return null;
+        }
+        return fpdResolver.resolveBidRequestExt(extRequest, targetingBidders);
     }
 
     private static List<Format> parseMultiSizeParam(String ms) {
