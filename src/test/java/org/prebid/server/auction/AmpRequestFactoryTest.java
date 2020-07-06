@@ -1244,7 +1244,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldThrowInvalidRequestExceptionWhenTargetingHasTypeOtherToObject() throws JsonProcessingException {
+    public void shouldThrowInvalidRequestExceptionWhenTargetingHasTypeOtherToObject() {
         // given
         given(httpRequest.getParam("targeting")).willReturn("[\"a\"]", null, null);
 

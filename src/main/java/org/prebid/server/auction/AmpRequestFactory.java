@@ -261,7 +261,7 @@ public class AmpRequestFactory {
                     ? mapper.mapper().readTree(decodedJsonTargeting)
                     : null;
             return jsonNodeTargeting != null ? validateAndGetTargeting(jsonNodeTargeting) : null;
-        } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException | IllegalArgumentException e) {
             throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
         }
     }
