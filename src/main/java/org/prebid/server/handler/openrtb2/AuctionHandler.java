@@ -148,14 +148,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.toList());
                 final String message = String.join("\n", errorMessages);
-                adminManager.accept(AdminManager.COUNTER_KEY, logger,
-                        logMessageFrom(invalidRequestException, message, context));
+
+                // TODO adminManager: enable when admin endpoints can be bound on application port
+                //adminManager.accept(AdminManager.COUNTER_KEY, logger,
+                //        logMessageFrom(invalidRequestException, message, context));
+                conditionalLogger.info(String.format("%s, Referer: %s", message,
+                        context.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
 
                 status = HttpResponseStatus.BAD_REQUEST.code();
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
-                final String message = String.format("Unauthorized: %s", exception.getMessage());
+                final String message = exception.getMessage();
                 conditionalLogger.info(message, 100);
                 errorMessages = Collections.singletonList(message);
 
@@ -187,12 +191,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status).errors(errorMessages).build();
         respondWith(context, status, body, startTime, requestType, metricRequestStatus, auctionEvent);
-    }
-
-    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
-        return exception.isNeedEnhancedLogging()
-                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
-                : message;
     }
 
     private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,

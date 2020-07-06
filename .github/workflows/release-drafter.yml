@@ -1,0 +1,28 @@
+name: Publish release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  update_release_draft:
+    name: Publish release with notes
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, 'Prebid Server prepare release ')"
+    steps:
+      - name: Extract tag from commit message
+        run: |
+          target_tag=${COMMIT_MSG#"Prebid Server prepare release "}
+          echo "::set-env name=TARGET_TAG::$target_tag"
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+      - name: Create and publish release
+        uses: release-drafter/release-drafter@v5
+        with:
+          config-name: release-drafter-config.yml
+          publish: true
+          name: "v${{ env.TARGET_TAG }}"
+          tag: ${{ env.TARGET_TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

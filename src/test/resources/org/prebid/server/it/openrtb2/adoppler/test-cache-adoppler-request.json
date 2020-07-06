@@ -1,0 +1,27 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "bid001",
+        "impid": "imp1",
+        "price": 3.33,
+        "adm": "adm001",
+        "adid": "adid001",
+        "cid": "cid001",
+        "crid": "crid001",
+        "cat": [
+          "IAB1",
+          "IAB2"
+        ],
+        "ext": {
+          "ads": {
+            "video": {
+              "duration": 121
+            }
+          }
+        }
+      }
+    }
+  ]
+}
