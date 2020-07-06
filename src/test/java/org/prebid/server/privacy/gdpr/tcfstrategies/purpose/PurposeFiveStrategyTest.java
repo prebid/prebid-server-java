@@ -314,6 +314,7 @@ public class PurposeFiveStrategyTest {
     private static PrivacyEnforcementAction allowAllPurpose() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
         return privacyEnforcementAction;
     }
 
@@ -324,6 +325,7 @@ public class PurposeFiveStrategyTest {
     private static PrivacyEnforcementAction allowNatural() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
         return privacyEnforcementAction;
     }
 }
