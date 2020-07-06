@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
@@ -228,8 +227,8 @@ public class AmpRequestFactory {
         }
 
         final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
-        final Targeting targeting = parseTargeting(requestTargeting);
-        final ObjectNode targetingNode = (ObjectNode) readTargeting(requestTargeting);
+        final ObjectNode targetingNode = readTargeting(requestTargeting);
+        final Targeting targeting = parseTargeting(targetingNode);
 
         final Site updatedSite = overrideSite(bidRequest.getSite(), request, targeting);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request, targetingNode);
@@ -255,21 +254,33 @@ public class AmpRequestFactory {
         return result;
     }
 
-    private JsonNode readTargeting(String requestTargeting) {
+    private ObjectNode readTargeting(String jsonTargeting) {
         try {
-            return requestTargeting != null ? mapper.mapper().readTree(requestTargeting) : null;
+            final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
+            final JsonNode jsonNodeTargeting = decodedJsonTargeting != null
+                    ? mapper.mapper().readTree(decodedJsonTargeting)
+                    : null;
+            return jsonNodeTargeting != null ? validateAndGetTargeting(jsonNodeTargeting) : null;
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
         }
     }
 
-    private Targeting parseTargeting(String jsonTargeting) {
+    private ObjectNode validateAndGetTargeting(JsonNode jsonNodeTargeting) {
+        if (jsonNodeTargeting.isObject()) {
+            return (ObjectNode) jsonNodeTargeting;
+        } else {
+            throw new InvalidRequestException(String.format("Error decoding targeting, expected type is `object` "
+                    + "but was %s", jsonNodeTargeting.getNodeType().name()));
+        }
+    }
+
+    private Targeting parseTargeting(ObjectNode targetingNode) {
         try {
-            final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
-            return decodedJsonTargeting == null
+            return targetingNode == null
                     ? Targeting.empty()
-                    : mapper.decodeValue(decodedJsonTargeting, Targeting.class);
-        } catch (DecodeException e) {
+                    : mapper.mapper().treeToValue(targetingNode, Targeting.class);
+        } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
         }
     }

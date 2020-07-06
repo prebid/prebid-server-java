@@ -1244,6 +1244,26 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldThrowInvalidRequestExceptionWhenTargetingHasTypeOtherToObject() throws JsonProcessingException {
+        // given
+        given(httpRequest.getParam("targeting")).willReturn("[\"a\"]", null, null);
+
+        givenBidRequest(
+                builder -> builder
+                        .ext(ExtRequest.empty()),
+                Imp.builder().build());
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Error decoding targeting, expected type is `object` but was ARRAY");
+    }
+
+    @Test
     public void shouldReturnBidRequestWithoutRegsExtWhenNoPrivacyPolicyIsExist() {
         // given
         givenBidRequest(
