@@ -13,6 +13,7 @@ import java.io.IOException;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
@@ -24,10 +25,19 @@ public class AdgenerationTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdgeneration() throws IOException, JSONException {
         // given
         // Adgeneration bid response for imp 001
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adgeneration-exchange"))
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/adgeneration-exchange"))
+                .withQueryParam("posall", equalTo("SSPLOC"))
+                .withQueryParam("id", equalTo("58278"))
+                .withQueryParam("sdktype", equalTo("0"))
+                .withQueryParam("hb", equalTo("true"))
+                .withQueryParam("t", equalTo("json3"))
+                .withQueryParam("currency", equalTo("USD"))
+                .withQueryParam("sdkname", equalTo("prebidserver"))
+                .withQueryParam("size", equalTo("300×250"))
+                .withQueryParam("tp", equalTo("http://www.example.com"))
+                .withQueryParam("adapterver", equalTo("1.0.0"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-request.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/adgeneration/test-adgeneration-bid-response.json"))));
 

@@ -27,6 +27,9 @@
   "site": {
     "publisher": {
       "id": "publisherId"
+    },
+    "site": {
+      "page": "http://example.com/test.html"
     }
   },
   "at": 1,
