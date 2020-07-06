@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: x2@verizonmedia.com
+      maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
         - banner
         - video

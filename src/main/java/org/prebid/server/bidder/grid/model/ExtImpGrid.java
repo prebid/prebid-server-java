@@ -1,11 +1,10 @@
-package org.prebid.server.bidder.rubicon.proto;
+package org.prebid.server.bidder.grid.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class RubiconRegsExt {
-
-    Integer gdpr;
+public class ExtImpGrid {
+    Integer uid;
 }

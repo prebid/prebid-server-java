@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: mediapsr@conversantmedia.com
+      maintainer-email: CNVR_PublisherIntegration@conversantmedia.com
       app-media-types:
         - banner
         - video

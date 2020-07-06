@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class InterstitialProcessorTest extends VertxTest {
 
-    private InterstitialProcessor interstitialProcessor = new InterstitialProcessor(jacksonMapper);
+    private final InterstitialProcessor interstitialProcessor = new InterstitialProcessor();
 
     @Test
     public void processShouldReturnBidRequestUpdatedWithImpsInterstitialFormat() {
@@ -29,7 +29,8 @@ public class InterstitialProcessorTest extends VertxTest {
                         .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
                         .build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -52,7 +53,8 @@ public class InterstitialProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
                 .device(Device.builder().w(400).h(600)
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -76,7 +78,8 @@ public class InterstitialProcessorTest extends VertxTest {
                 .imp(singletonList(Imp.builder().banner(Banner.builder().format(singletonList(
                         Format.builder().w(1).h(1).build())).build()).instl(1).build()))
                 .device(Device.builder().w(400).h(600)
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -101,7 +104,8 @@ public class InterstitialProcessorTest extends VertxTest {
                         .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
                         .build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
+                        .build())
                 .build();
 
         // when
@@ -129,7 +133,8 @@ public class InterstitialProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(0).build()))
                 .device(Device.builder().w(400).h(600)
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -166,7 +171,8 @@ public class InterstitialProcessorTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(400).h(600).build()))
                                 .build()).instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -186,7 +192,8 @@ public class InterstitialProcessorTest extends VertxTest {
                                         Format.builder().w(320).h(481).build()))
                                 .build()).instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build());
     }
 
@@ -196,7 +203,8 @@ public class InterstitialProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -206,7 +214,8 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result).isEqualTo(BidRequest.builder()
                 .imp(singletonList(Imp.builder().instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build());
     }
 
@@ -219,7 +228,8 @@ public class InterstitialProcessorTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(1).h(1).build()))
                                 .build()).instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when and then
@@ -238,7 +248,8 @@ public class InterstitialProcessorTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(10).h(10).build()))
                                 .build()).instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build();
 
         // when
@@ -251,7 +262,8 @@ public class InterstitialProcessorTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(10).h(10).build()))
                                 .build()).instl(1).build()))
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
                 .build());
     }
 }

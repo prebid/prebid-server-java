@@ -16,7 +16,7 @@ adapters:
       supported-vendors:
       vendor-id: 90
     usersync:
-      url: https://ads.us.e-planning.net/uspd/1/?du=https%3A%2F%2Fads.us.e-planning.net%2Fgetuid%2F1%2F5a1ad71d2d53a0f5%3F
+      url: https://ads.us.e-planning.net/uspd/1/?du=
       redirect-url: /setuid?bidder=eplanning&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: eplanning
       type: iframe

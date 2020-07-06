@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
@@ -30,7 +29,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
@@ -316,7 +315,7 @@ public class VideoStoredRequestProcessor {
         bidRequestBuilder.cur(Collections.singletonList(currency));
     }
 
-    private ObjectNode createBidExtension(BidRequestVideo videoRequest) {
+    private ExtRequest createBidExtension(BidRequestVideo videoRequest) {
         final IncludeBrandCategory includebrandcategory = videoRequest.getIncludebrandcategory();
         final ExtIncludeBrandCategory extIncludeBrandCategory;
         if (includebrandcategory != null) {
@@ -355,6 +354,6 @@ public class VideoStoredRequestProcessor {
                 .targeting(targeting)
                 .build();
 
-        return mapper.mapper().valueToTree(ExtBidRequest.of(extRequestPrebid));
+        return ExtRequest.of(extRequestPrebid);
     }
 }

@@ -32,6 +32,7 @@ import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
@@ -102,12 +103,12 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
                 .regs(preBidRequest.getRegs())
-                .ext(makeBidExt(adUnitBidsWithParams))
+                .ext(makeRequestExt(adUnitBidsWithParams))
                 .build();
     }
 
     // Parse Wrapper Extension i.e. ProfileID and VersionID only once per request
-    private ObjectNode makeBidExt(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams) {
+    private ExtRequest makeRequestExt(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams) {
         final ObjectNode wrapExt = adUnitBidsWithParams.stream()
                 .map(AdUnitBidWithParams::getParams)
                 .filter(Objects::nonNull)
@@ -116,7 +117,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .findFirst().orElse(null);
 
         if (wrapExt != null) {
-            return mapper.mapper().valueToTree(PubmaticRequestExt.of(wrapExt));
+            return mapper.fillExtension(ExtRequest.empty(), PubmaticRequestExt.of(wrapExt));
         }
         return null;
     }

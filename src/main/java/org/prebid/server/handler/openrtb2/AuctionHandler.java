@@ -193,12 +193,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         respondWith(context, status, body, startTime, requestType, metricRequestStatus, auctionEvent);
     }
 
-    private static String logMessageFrom(InvalidRequestException exception, String message, RoutingContext context) {
-        return exception.isNeedEnhancedLogging()
-                ? String.format("%s, Referer: %s", message, context.request().headers().get(HttpUtil.REFERER_HEADER))
-                : message;
-    }
-
     private void respondWith(RoutingContext context, int status, String body, long startTime, MetricName requestType,
                              MetricName metricRequestStatus, AuctionEvent event) {
         // don't send the response if client has gone
