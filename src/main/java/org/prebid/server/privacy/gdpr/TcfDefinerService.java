@@ -208,14 +208,13 @@ public class TcfDefinerService {
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
             BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
 
-        TCString tcString = decodeTcString(gdprInfoWithCountry.getConsent());
-
-        updatePrivacyTcfMetrics(gdprInfoWithCountry, tcString);
-
         final String country = gdprInfoWithCountry.getCountry();
         if (!inScope(gdprInfoWithCountry)) {
             return allowAllTcfResponseCreator.apply(country);
         }
+
+        TCString tcString = decodeTcString(gdprInfoWithCountry.getConsent());
+        updatePrivacyTcfMetrics(gdprInfoWithCountry, tcString);
 
         // parsing TC string should not fail the entire request, assume the user does not consent
         if (tcString == null) {
@@ -230,9 +229,7 @@ public class TcfDefinerService {
     }
 
     private void updatePrivacyTcfMetrics(GdprInfoWithCountry<String> gdprInfoWithCountry, TCString tcString) {
-        if (tcString == null) {
-            metrics.updatePrivacyTcfInvalidMetric();
-        } else {
+        if (tcString != null) {
             metrics.updatePrivacyTcfGeoMetric(tcString.getVersion(), gdprInfoWithCountry.getInEea());
         }
     }
@@ -324,10 +321,11 @@ public class TcfDefinerService {
         return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
     }
 
-    private static TCString decodeTcString(String consentString) {
+    private TCString decodeTcString(String consentString) {
         try {
             return StringUtils.isBlank(consentString) ? null : TCString.decode(consentString);
         } catch (Throwable e) {
+            metrics.updatePrivacyTcfInvalidMetric();
             logger.info("Parsing consent string failed with error: {0}", e.getMessage());
             return null;
         }
