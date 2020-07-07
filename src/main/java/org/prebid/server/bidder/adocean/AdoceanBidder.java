@@ -66,8 +66,9 @@ public class AdoceanBidder implements Bidder<Void> {
         }
 
         String consentString = "";
-        if (request.getUser() != null && StringUtils.isNotBlank(extUser(request.getUser().getExt()).getConsent())) {
-            consentString = extUser(request.getUser().getExt()).getConsent();
+        final User user = request.getUser();
+        if (user != null && StringUtils.isNotBlank(extUser(user.getExt()).getConsent())) {
+            consentString = extUser(user.getExt()).getConsent();
         }
 
         final List<BidderError> errors = new ArrayList<>();
