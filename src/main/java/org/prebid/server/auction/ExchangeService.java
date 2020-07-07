@@ -56,7 +56,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.JsonMergeUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -92,6 +91,7 @@ public class ExchangeService {
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
+    private final FpdResolver fpdResolver;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
@@ -100,12 +100,12 @@ public class ExchangeService {
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
-    private final JsonMergeUtil jsonMergeUtil;
 
     public ExchangeService(long expectedCacheTime,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            PrivacyEnforcementService privacyEnforcementService,
+                           FpdResolver fpdResolver,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
                            CurrencyConversionService currencyService,
@@ -122,6 +122,7 @@ public class ExchangeService {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -130,8 +131,6 @@ public class ExchangeService {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
-
-        this.jsonMergeUtil = new JsonMergeUtil(mapper);
     }
 
     /**
@@ -490,7 +489,8 @@ public class ExchangeService {
         }
 
         final User fpdUser = fpdConfig == null ? null : fpdConfig.getUser();
-        return jsonMergeUtil.merge(fpdUser, maskedUser, User.class);
+
+        return fpdResolver.resolveUser(maskedUser, fpdUser);
     }
 
     /**
@@ -672,7 +672,7 @@ public class ExchangeService {
 
         final App fpdApp = fpdConfig == null ? null : fpdConfig.getApp();
 
-        return jsonMergeUtil.merge(fpdApp, maskedApp, App.class);
+        return fpdResolver.resolveApp(maskedApp, fpdApp);
     }
 
     /**
@@ -688,7 +688,7 @@ public class ExchangeService {
 
         final Site fpdSite = fpdConfig == null ? null : fpdConfig.getSite();
 
-        return jsonMergeUtil.merge(fpdSite, maskedSite, Site.class);
+        return fpdResolver.resolveSite(maskedSite, fpdSite);
     }
 
     /**

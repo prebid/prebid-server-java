@@ -141,6 +141,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
+    private FpdResolver fpdResolver;
+    @Mock
     private HttpBidderRequester httpBidderRequester;
     @Mock
     private ResponseBidValidator responseBidValidator;
@@ -184,6 +186,10 @@ public class ExchangeServiceTest extends VertxTest {
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyList()));
 
+        given(fpdResolver.resolveUser(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
@@ -203,6 +209,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidderCatalog,
                 storedResponseProcessor,
                 privacyEnforcementService,
+                fpdResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -221,6 +228,7 @@ public class ExchangeServiceTest extends VertxTest {
                         bidderCatalog,
                         storedResponseProcessor,
                         privacyEnforcementService,
+                        fpdResolver,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -1195,7 +1203,8 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
-                                .data(ExtRequestPrebidData.of(singletonList("someBidder"))).build()))
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder")))
+                                .build()))
                         .user(User.builder()
                                 .keywords("keyword")
                                 .gender("male")
@@ -1443,6 +1452,16 @@ public class ExchangeServiceTest extends VertxTest {
                         .user(requestUser)
                         .ext(extRequest));
 
+        final Site mergedSite = Site.builder().id("siteFromConfig").domain("domain").build();
+        final User mergedUser = User.builder()
+                .id("userFromConfig")
+                .geo(Geo.builder().country("GB").city("London").build())
+                .build();
+
+        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
+        given(fpdResolver.resolveApp(any(), any())).willReturn(bidderConfigApp);
+        given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
+
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
@@ -1451,11 +1470,6 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
-        final Site mergedSite = Site.builder().id("siteFromConfig").domain("domain").build();
-        final User mergedUser = User.builder()
-                .id("userFromConfig")
-                .geo(Geo.builder().country("GB").city("London").build())
-                .build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
                 .containsOnly(tuple(mergedSite, bidderConfigApp, mergedUser));
@@ -1498,6 +1512,20 @@ public class ExchangeServiceTest extends VertxTest {
                         .user(requestUser)
                         .ext(ExtRequest.of(extRequestPrebid)));
 
+        final Site mergedSite = Site.builder()
+                .id("siteId")
+                .page("testPage")
+                .keywords("keyword")
+                .build();
+        final App mergedApp = App.builder()
+                .publisher(Publisher.builder().id("testId").build())
+                .build();
+        final User mergedUser = User.builder().id("userFromConfig").buyeruid("testBuyerId").build();
+
+        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
+        given(fpdResolver.resolveApp(any(), any())).willReturn(mergedApp);
+        given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
+
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
@@ -1506,14 +1534,6 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
-        final Site mergedSite = Site.builder()
-                .id("siteId")
-                .page("testPage")
-                .keywords("keyword")
-                .build();
-        final Publisher mergedPublisher = Publisher.builder().id("testId").build();
-        final App mergedApp = App.builder().publisher(mergedPublisher).build();
-        final User mergedUser = User.builder().id("userFromConfig").buyeruid("testBuyerId").build();
         assertThat(capturedBidRequests)
                 .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
                 .containsOnly(tuple(mergedSite, mergedApp, mergedUser));
@@ -1575,6 +1595,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidderCatalog,
                 storedResponseProcessor,
                 privacyEnforcementService,
+                fpdResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
