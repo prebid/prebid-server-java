@@ -25,11 +25,10 @@ public class BasicEnforcePurposeStrategy extends EnforcePurposeStrategy {
         final List<VendorPermission> allowedVendorPermissions = vendorsForPurpose.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .filter(vendorPermission -> vendorPermission.getVendorId() != null)
-                .filter(vendorPermission -> isAllowedBySimpleConsentOrLegitimateInterest(purposeId,
+                .filter(vendorPermission -> isAllowedBySimpleConsent(purposeId,
                         vendorPermission.getVendorId(), isEnforceVendors, vendorConsent))
                 .collect(Collectors.toList());
 
         return CollectionUtils.union(allowedVendorPermissions, toVendorPermissions(excludedVendors));
-
     }
 }
