@@ -67,8 +67,8 @@ public class AdoceanBidder implements Bidder<Void> {
 
         String consentString = "";
         final User user = request.getUser();
-        if (user != null && StringUtils.isNotBlank(extUser(user.getExt()).getConsent())) {
-            consentString = extUser(user.getExt()).getConsent();
+        if (user != null && StringUtils.isNotBlank(extUser(user).getConsent())) {
+            consentString = extUser(user).getConsent();
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -85,12 +85,16 @@ public class AdoceanBidder implements Bidder<Void> {
         return Result.of(httpRequests, errors);
     }
 
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
+    private ExtUser extUser(User user) {
+        final ObjectNode userExt = user != null ? user.getExt() : null;
+        if (userExt != null) {
+            try {
+                return mapper.mapper().treeToValue(userExt, ExtUser.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
+            }
         }
+        return null;
     }
 
     private HttpRequest<Void> createSingleRequest(List<HttpRequest<Void>> httpRequests, BidRequest request, Imp imp,
