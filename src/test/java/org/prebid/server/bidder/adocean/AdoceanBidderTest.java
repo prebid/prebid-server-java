@@ -316,19 +316,18 @@ public class AdoceanBidderTest extends VertxTest {
 
         // then
         final StringBuilder admBuilder = new StringBuilder();
-        admBuilder.append("<script>\n")
-                .append("\t+function() {\n")
-                .append("\t\tvar wu = \"https://win-url.com\";\n")
-                .append("\t\tvar su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now());\n")
-                .append("\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n\n")
-                .append("\t\t\t(new Image(1,1)).src = wu\n")
-                .append("\t\t}\n")
-                .append("\n")
-                .append("\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n")
-                .append("\t\t\t(new Image(1,1)).src = su\n")
-                .append("\t\t}\n")
-                .append("\t}();\n")
-                .append("</script>")
+        admBuilder.append(" <script>")
+                .append(" +function() {")
+                .append(" var wu = \"https://win-url.com\";")
+                .append(" var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now());")
+                .append(" if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {")
+                .append(" (new Image(1,1)).src = wu")
+                .append(" }")
+                .append(" if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {")
+                .append(" (new Image(1,1)).src = su")
+                .append(" }")
+                .append(" }();")
+                .append(" </script>")
                 .append(" <!-- code 1 --> ");
         final String adm = admBuilder.toString();
 

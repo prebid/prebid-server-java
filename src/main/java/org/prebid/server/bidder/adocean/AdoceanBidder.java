@@ -278,19 +278,18 @@ public class AdoceanBidder implements Bidder<Void> {
 
     private String getAdm(AdoceanResponseAdUnit adoceanResponse) {
         final StringBuilder measurementCode = new StringBuilder();
-        measurementCode.append("<script>\n")
-                .append("\t+function() {\n")
-                .append("\t\tvar wu = \"%s\";\n")
-                .append("\t\tvar su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now());\n")
-                .append("\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n\n")
-                .append("\t\t\t(new Image(1,1)).src = wu\n")
-                .append("\t\t}\n")
-                .append("\n")
-                .append("\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n")
-                .append("\t\t\t(new Image(1,1)).src = su\n")
-                .append("\t\t}\n")
-                .append("\t}();\n")
-                .append("</script>");
+        measurementCode.append(" <script>")
+                .append(" +function() {")
+                .append(" var wu = \"%s\";")
+                .append(" var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now());")
+                .append(" if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {")
+                .append(" (new Image(1,1)).src = wu")
+                .append(" }")
+                .append(" if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {")
+                .append(" (new Image(1,1)).src = su")
+                .append(" }")
+                .append(" }();")
+                .append(" </script>");
 
         return String.format(measurementCode.toString(), adoceanResponse.getWinUrl(), adoceanResponse.getStatsUrl())
                 + HttpUtil.decodeUrl(adoceanResponse.getCode());

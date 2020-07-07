@@ -22,7 +22,7 @@ public class AdoceanResponseAdUnit {
 
     String code;
 
-    @JsonProperty("winUrl")
+    @JsonProperty("winurl")
     String winUrl;
 
     @JsonProperty("statsUrl")
