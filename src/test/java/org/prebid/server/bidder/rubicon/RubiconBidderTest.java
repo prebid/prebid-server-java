@@ -1146,7 +1146,7 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(mapper.createObjectNode()
                         .<ObjectNode>set("property", mapper.createArrayNode().add("value"))
                         .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test"))
-                        .put("dfp_ad_unit_code", "test"));
+                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test")));
     }
 
     @Test
@@ -1304,7 +1304,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of("imp ext context keywords", null, null)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of("imp,ext,context,keywords", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1318,7 +1318,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"keywords\":[\"imp ext context keywords\"]}"));
+                .containsOnly(mapper.readTree("{\"keywords\":[\"imp\", \"ext\", \"context\", \"keywords\"]}"));
     }
 
     @Test

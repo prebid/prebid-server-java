@@ -83,6 +83,7 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -393,7 +394,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             if (adSlotNode != null && adSlotNode.isTextual()) {
                 final String adSlot = adSlotNode.textValue();
                 final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-                result.put("dfp_ad_unit_code", adUnitCode);
+                result.set("dfp_ad_unit_code", stringsToStringArray(adUnitCode));
             }
         }
     }
@@ -402,7 +403,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
         final String keywords = context != null ? context.getKeywords() : null;
         if (StringUtils.isNotBlank(keywords)) {
-            result.set("keywords", stringToStringArray(keywords));
+            result.set("keywords", stringsToStringArray(keywords.split(",")));
         }
     }
 
@@ -417,7 +418,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String siteSearch = site != null ? site.getSearch() : null;
         final String search = ObjectUtils.defaultIfNull(context.getSearch(), siteSearch);
         if (StringUtils.isNotBlank(search)) {
-            result.set("search", stringToStringArray(search));
+            result.set("search", stringsToStringArray(search));
         }
     }
 
@@ -446,9 +447,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             if (isTextualArray(currentField)) {
                 targetNode.set(currentFieldName, currentField);
             } else if (currentField.isTextual()) {
-                targetNode.set(currentFieldName, stringToStringArray(currentField.textValue()));
+                targetNode.set(currentFieldName, stringsToStringArray(currentField.textValue()));
             } else if (currentField.isIntegralNumber()) {
-                targetNode.set(currentFieldName, stringToStringArray(Long.toString(currentField.longValue())));
+                targetNode.set(currentFieldName, stringsToStringArray(Long.toString(currentField.longValue())));
             }
         }
     }
@@ -457,8 +458,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return node.isArray() && StreamSupport.stream(node.spliterator(), false).allMatch(JsonNode::isTextual);
     }
 
-    private ArrayNode stringToStringArray(String value) {
-        return mapper.mapper().createArrayNode().add(value);
+    private ArrayNode stringsToStringArray(String... values) {
+        final ArrayNode arrayNode = mapper.mapper().createArrayNode();
+        Arrays.stream(values).forEach(arrayNode::add);
+        return arrayNode;
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -688,11 +691,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // copy OPENRTB.user.yob to XAPI.user.ext.rp.target.yob
         final String gender = user != null ? user.getGender() : null;
         if (StringUtils.isNotBlank(gender)) {
-            result.set("gender", stringToStringArray(gender));
+            result.set("gender", stringsToStringArray(gender));
         }
         final Integer yob = user != null ? user.getYob() : null;
         if (yob != null) {
-            result.set("yob", stringToStringArray(Integer.toString(yob)));
+            result.set("yob", stringsToStringArray(Integer.toString(yob)));
         }
     }
 
