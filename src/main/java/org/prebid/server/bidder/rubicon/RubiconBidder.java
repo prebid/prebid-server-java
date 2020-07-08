@@ -354,7 +354,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         copyFirstPartyDataFromSite(site, result);
         copyFirstPartyDataFromApp(app, result);
-        copyFirstPartyDataFromImp(imp, result);
+        copyFirstPartyDataFromImp(imp, rubiconImpExt, result);
 
         return result.size() > 0 ? result : null;
     }
@@ -369,7 +369,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
         final String search = site != null ? site.getSearch() : null;
         if (StringUtils.isNotBlank(search)) {
-            mergeIntoArray(search, result, "search");
+            mergeIntoArray(result, "search", search);
         }
     }
 
@@ -381,11 +381,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void copyFirstPartyDataFromImp(Imp imp, ObjectNode result) {
+    private void copyFirstPartyDataFromImp(Imp imp, ExtImpRubicon rubiconImpExt, ObjectNode result) {
         final ExtImpContext context = extImpContext(imp);
 
         copyFirstPartyDataFromContextData(context, result);
         copyFirstPartyDataKeywords(context, result);
+        copyRubiconKeywords(rubiconImpExt, result);
         copyFirstPartyDataSearch(context, result);
 
     }
@@ -426,10 +427,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private void copyFirstPartyDataKeywords(ExtImpContext context, ObjectNode result) {
-        // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
+        // merge OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
         final String keywords = context != null ? context.getKeywords() : null;
         if (StringUtils.isNotBlank(keywords)) {
-            result.set("keywords", stringsToStringArray(keywords.split(",")));
+            mergeIntoArray(result, "keywords", keywords.split(","));
+        }
+    }
+
+    private void copyRubiconKeywords(ExtImpRubicon rubiconImpExt, ObjectNode result) {
+        // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
+        final List<String> keywords = rubiconImpExt != null ? rubiconImpExt.getKeywords() : null;
+        if (CollectionUtils.isNotEmpty(keywords)) {
+            mergeIntoArray(result, "keywords", keywords);
         }
     }
 
@@ -437,19 +446,23 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
         final String search = context != null ? context.getSearch() : null;
         if (StringUtils.isNotBlank(search)) {
-            mergeIntoArray(search, result, "search");
+            mergeIntoArray(result, "search", search);
         }
     }
 
-    private void mergeIntoArray(String value, ObjectNode result, String arrayField) {
+    private void mergeIntoArray(ObjectNode result, String arrayField, String... values) {
+        mergeIntoArray(result, arrayField, Arrays.asList(values));
+    }
+
+    private void mergeIntoArray(ObjectNode result, String arrayField, Collection<String> values) {
         final JsonNode existingArray = result.get(arrayField);
         final Set<String> existingArrayValues = existingArray != null && isTextualArray(existingArray)
                 ? StreamSupport.stream(existingArray.spliterator(), false)
                 .map(JsonNode::asText)
-                .collect(Collectors.toSet())
+                .collect(Collectors.toCollection(LinkedHashSet::new))
                 : new LinkedHashSet<>();
 
-        existingArrayValues.add(value);
+        existingArrayValues.addAll(values);
 
         result.set(arrayField, stringsToStringArray(existingArrayValues.toArray(new String[0])));
     }
@@ -491,8 +504,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private ArrayNode stringsToStringArray(String... values) {
+        return stringsToStringArray(Arrays.asList(values));
+    }
+
+    private ArrayNode stringsToStringArray(Collection<String> values) {
         final ArrayNode arrayNode = mapper.mapper().createArrayNode();
-        Arrays.stream(values).forEach(arrayNode::add);
+        values.forEach(arrayNode::add);
         return arrayNode;
     }
 

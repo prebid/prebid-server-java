@@ -1361,7 +1361,9 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyImpExtContextKeywordsToRubiconImpExtRpTargetKeywords() throws IOException {
+    public void makeHttpRequestsShouldMergeImpExtRubiconAndContextKeywordsToRubiconImpExtRpTargetKeywords()
+            throws IOException {
+
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -1370,6 +1372,11 @@ public class RubiconBidderTest extends VertxTest {
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
         impExt.set("context", mapper.valueToTree(ExtImpContext.of("imp,ext,context,keywords", null, null, null)));
+        impExt.set(
+                "bidder",
+                mapper.valueToTree(ExtImpRubicon.builder()
+                        .keywords(asList("imp", "ext", "rubicon", "keywords"))
+                        .build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1383,7 +1390,8 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"keywords\":[\"imp\", \"ext\", \"context\", \"keywords\"]}"));
+                .containsOnly(mapper.readTree(
+                        "{\"keywords\":[\"imp\", \"ext\", \"context\", \"keywords\", \"rubicon\"]}"));
     }
 
     @Test
