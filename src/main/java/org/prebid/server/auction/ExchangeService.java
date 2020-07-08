@@ -78,6 +78,7 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
+    private static final String DATA = "data";
 
     private static final String GENERIC_SCHAIN_KEY = "*";
 
@@ -617,19 +618,20 @@ public class ExchangeService {
      * <ul>
      * <li>"prebid" field populated with an imp.ext.prebid field value, may be null</li>
      * <li>"context" field populated with an imp.ext.context field value, may be null</li>
+     * <li>"context.data" can be removed from imp.ext.context if first party data not allowed</li>
      * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
         final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
 
-        if (useFirstPartyData) {
-            final JsonNode contextNode = impExt.get(CONTEXT_EXT);
-            if (contextNode != null && !contextNode.isNull()) {
-                result.set(CONTEXT_EXT, contextNode);
+        final JsonNode contextNode = impExt.get(CONTEXT_EXT);
+        if (contextNode != null && !contextNode.isNull()) {
+            if (!useFirstPartyData && contextNode.isObject()) {
+                ((ObjectNode) contextNode).remove(DATA);
             }
+            result.set(CONTEXT_EXT, contextNode);
         }
-
         return result;
     }
 

@@ -1177,6 +1177,31 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldCleanImpExtContextDataWhenFirstPartyDataNotPermittedForBidder() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode().put("someBidder", 1).set("context",
+                mapper.createObjectNode().put("data", "data").put("otherField", "value"));
+        final BidRequest bidRequest = givenBidRequest(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()).ext(impExt).build()),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(singletonList("otherBidder")))
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest capturedRequestExt = captureBidRequest();
+        assertThat(capturedRequestExt.getImp())
+                .extracting(Imp::getExt)
+                .extracting(impExtNode -> impExtNode.get("context"))
+                .containsOnly(mapper.createObjectNode().put("otherField", "value"));
+    }
+
+    @Test
     public void shouldPassUserKeywordsGenderYobGeoAndExtDataOnlyForAllowedBidder() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
