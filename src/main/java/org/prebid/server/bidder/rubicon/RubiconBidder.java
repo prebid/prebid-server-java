@@ -67,6 +67,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpContextAdserver;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -353,7 +354,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         copyFirstPartyDataFromSite(site, result);
         copyFirstPartyDataFromApp(app, result);
-        copyFirstPartyDataFromImp(imp, site, result);
+        copyFirstPartyDataFromImp(imp, result);
 
         return result.size() > 0 ? result : null;
     }
@@ -380,29 +381,47 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void copyFirstPartyDataFromImp(Imp imp, Site site, ObjectNode result) {
+    private void copyFirstPartyDataFromImp(Imp imp, ObjectNode result) {
         final ExtImpContext context = extImpContext(imp);
 
-        copyFirstPartyDataFromImpExtContextData(context, result);
+        copyFirstPartyDataFromContextData(context, result);
         copyFirstPartyDataKeywords(context, result);
-        copyFirstPartyDataSearch(context, site, result);
+        copyFirstPartyDataSearch(context, result);
 
     }
 
-    private void copyFirstPartyDataFromImpExtContextData(ExtImpContext context, ObjectNode result) {
+    private void copyFirstPartyDataFromContextData(ExtImpContext context, ObjectNode result) {
+        if (context == null) {
+            return;
+        }
+
         // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
-        final ObjectNode contextDataNode = context != null ? context.getData() : null;
+        final ObjectNode contextDataNode = context.getData();
         if (contextDataNode != null) {
             populateFirstPartyDataAttributes(contextDataNode, result);
+        }
 
-            // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
-            // leading slash
-            final JsonNode adSlotNode = contextDataNode.get("adslot");
-            if (adSlotNode != null && adSlotNode.isTextual()) {
-                final String adSlot = adSlotNode.textValue();
-                final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-                result.set("dfp_ad_unit_code", stringsToStringArray(adUnitCode));
-            }
+        copyAdslot(context, result);
+    }
+
+    private void copyAdslot(ExtImpContext context, ObjectNode result) {
+        // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
+        // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
+        final ObjectNode contextDataNode = context.getData();
+        final JsonNode dataAdSlotNode = contextDataNode != null ? contextDataNode.get("adslot") : null;
+        final String dataAdSlot = dataAdSlotNode != null && dataAdSlotNode.isTextual()
+                ? dataAdSlotNode.textValue()
+                : null;
+
+        final ExtImpContextAdserver contextAdserver = context.getAdserver();
+        final String adserverAdSlot = contextAdserver != null && Objects.equals(contextAdserver.getName(), "gam")
+                ? contextAdserver.getAdslot()
+                : null;
+
+        final String adSlot = ObjectUtils.firstNonNull(adserverAdSlot, dataAdSlot);
+        if (StringUtils.isNotBlank(adSlot)) {
+            final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+            result.set("dfp_ad_unit_code", stringsToStringArray(adUnitCode));
         }
     }
 
@@ -414,7 +433,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void copyFirstPartyDataSearch(ExtImpContext context, Site site, ObjectNode result) {
+    private void copyFirstPartyDataSearch(ExtImpContext context, ObjectNode result) {
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
         final String search = context != null ? context.getSearch() : null;
         if (StringUtils.isNotBlank(search)) {
@@ -422,8 +441,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void mergeIntoArray(String value, ObjectNode targetObject, String targetArrayField) {
-        final JsonNode existingArray = targetObject.get(targetArrayField);
+    private void mergeIntoArray(String value, ObjectNode result, String arrayField) {
+        final JsonNode existingArray = result.get(arrayField);
         final Set<String> existingArrayValues = existingArray != null && isTextualArray(existingArray)
                 ? StreamSupport.stream(existingArray.spliterator(), false)
                 .map(JsonNode::asText)
@@ -432,7 +451,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         existingArrayValues.add(value);
 
-        targetObject.set(targetArrayField, stringsToStringArray(existingArrayValues.toArray(new String[0])));
+        result.set(arrayField, stringsToStringArray(existingArrayValues.toArray(new String[0])));
     }
 
     private ExtImpContext extImpContext(Imp imp) {

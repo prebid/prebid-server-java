@@ -54,6 +54,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpContextAdserver;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -1129,7 +1130,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode impExtContextDataNode = mapper.createObjectNode()
                 .<ObjectNode>set("property", mapper.createArrayNode().add("value"))
                 .put("adslot", "/test");
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, null, impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1150,6 +1151,70 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldPreferImpContextAdserverAdSlotWhenAdserverNameIsGam() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ExtImpContextAdserver impExtContextAdserver = ExtImpContextAdserver.of("gam", "/test-adserver");
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .put("adslot", "/test-data");
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(
+                null, null, impExtContextAdserver, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(mapper.createObjectNode()
+                        .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test-data"))
+                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test-adserver")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreferImpContextDataAdSlotWhenAdserverNameIsNotGam() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ExtImpContextAdserver impExtContextAdserver = ExtImpContextAdserver.of("not-gam", "/test-adserver");
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .put("adslot", "/test-data");
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(
+                null, null, impExtContextAdserver, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(mapper.createObjectNode()
+                        .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test-data"))
+                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test-data")));
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotCopyAndModifyImpExtContextDataAdslotToRubiconImpExtRpTargetDfpAdUnitCode() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1160,7 +1225,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
         final ObjectNode impExtContextDataNode = mapper.createObjectNode()
                 .set("adslot", mapper.createArrayNode().add("123"));
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, null, impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1245,7 +1310,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, null, impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1278,7 +1343,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, null, impExtContextDataNode)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1304,7 +1369,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of("imp,ext,context,keywords", null, null)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of("imp,ext,context,keywords", null, null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1330,7 +1395,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, "imp ext search", null)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, "imp ext search", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1403,7 +1468,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, "imp ext search", null)));
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, "imp ext search", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
