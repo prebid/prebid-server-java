@@ -181,7 +181,7 @@ public abstract class VendorListService<T, V> {
             return Future.succeededFuture(idToVendor);
         } else {
             final int tcf = getTcfVersion();
-            metrics.updatePrivacyTcfVendorListMissingMetric(tcf, version);
+            metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
 
             logger.info("TCF {0} vendor list for version {1} not found, started downloading.", tcf, version);
             fetchNewVendorListFor(version);
@@ -254,9 +254,9 @@ public abstract class VendorListService<T, V> {
         cache.put(version, filterVendorIdToVendors(vendorListResult.getVendorList()));
 
         final int tcf = getTcfVersion();
-        metrics.updatePrivacyTcfVendorListOkMetric(tcf, version);
+        metrics.updatePrivacyTcfVendorListOkMetric(tcf);
 
-        logger.info("Created new TCF {0} vendor list for version {0}", tcf, version);
+        logger.info("Created new TCF {0} vendor list for version {1}", tcf, version);
         return null;
     }
 
@@ -265,7 +265,7 @@ public abstract class VendorListService<T, V> {
      */
     private Void handleError(Throwable exception, int version) {
         final int tcf = getTcfVersion();
-        metrics.updatePrivacyTcfVendorListErrorMetric(tcf, version);
+        metrics.updatePrivacyTcfVendorListErrorMetric(tcf);
 
         if (logger.isDebugEnabled()) {
             logger.debug("Error while obtaining TCF {0} vendor list for version {1}",
