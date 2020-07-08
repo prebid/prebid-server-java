@@ -113,6 +113,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
+    public static final String FPD_SEARCH_FIELD = "search";
+    public static final String FPD_ADSLOT_FIELD = "adslot";
+    public static final String FPD_ADSERVER_NAME_GAM = "gam";
+    public static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
+    public static final String FPD_KEYWORDS_FIELD = "keywords";
+    public static final String FPD_GENDER_FIELD = "gender";
+    public static final String FPD_YOB_FIELD = "yob";
+
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
             };
@@ -369,7 +377,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
         final String search = site != null ? site.getSearch() : null;
         if (StringUtils.isNotBlank(search)) {
-            mergeIntoArray(result, "search", search);
+            mergeIntoArray(result, FPD_SEARCH_FIELD, search);
         }
     }
 
@@ -409,20 +417,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
         // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
         final ObjectNode contextDataNode = context.getData();
-        final JsonNode dataAdSlotNode = contextDataNode != null ? contextDataNode.get("adslot") : null;
+        final JsonNode dataAdSlotNode = contextDataNode != null ? contextDataNode.get(FPD_ADSLOT_FIELD) : null;
         final String dataAdSlot = dataAdSlotNode != null && dataAdSlotNode.isTextual()
                 ? dataAdSlotNode.textValue()
                 : null;
 
         final ExtImpContextAdserver contextAdserver = context.getAdserver();
-        final String adserverAdSlot = contextAdserver != null && Objects.equals(contextAdserver.getName(), "gam")
-                ? contextAdserver.getAdslot()
-                : null;
+        final String adserverAdSlot =
+                contextAdserver != null && Objects.equals(contextAdserver.getName(), FPD_ADSERVER_NAME_GAM)
+                        ? contextAdserver.getAdslot()
+                        : null;
 
         final String adSlot = ObjectUtils.firstNonNull(adserverAdSlot, dataAdSlot);
         if (StringUtils.isNotBlank(adSlot)) {
             final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-            result.set("dfp_ad_unit_code", stringsToStringArray(adUnitCode));
+            result.set(FPD_DFP_AD_UNIT_CODE_FIELD, stringsToStringArray(adUnitCode));
         }
     }
 
@@ -430,7 +439,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
         final String keywords = context != null ? context.getKeywords() : null;
         if (StringUtils.isNotBlank(keywords)) {
-            mergeIntoArray(result, "keywords", keywords.split(","));
+            mergeIntoArray(result, FPD_KEYWORDS_FIELD, keywords.split(","));
         }
     }
 
@@ -438,7 +447,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
         final List<String> keywords = rubiconImpExt != null ? rubiconImpExt.getKeywords() : null;
         if (CollectionUtils.isNotEmpty(keywords)) {
-            mergeIntoArray(result, "keywords", keywords);
+            mergeIntoArray(result, FPD_KEYWORDS_FIELD, keywords);
         }
     }
 
@@ -446,7 +455,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
         final String search = context != null ? context.getSearch() : null;
         if (StringUtils.isNotBlank(search)) {
-            mergeIntoArray(result, "search", search);
+            mergeIntoArray(result, FPD_SEARCH_FIELD, search);
         }
     }
 
@@ -740,11 +749,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // copy OPENRTB.user.yob to XAPI.user.ext.rp.target.yob
         final String gender = user != null ? user.getGender() : null;
         if (StringUtils.isNotBlank(gender)) {
-            result.set("gender", stringsToStringArray(gender));
+            result.set(FPD_GENDER_FIELD, stringsToStringArray(gender));
         }
         final Integer yob = user != null ? user.getYob() : null;
         if (yob != null) {
-            result.set("yob", stringsToStringArray(Integer.toString(yob)));
+            result.set(FPD_YOB_FIELD, stringsToStringArray(Integer.toString(yob)));
         }
     }
 
