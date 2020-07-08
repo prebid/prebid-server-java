@@ -431,7 +431,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String adSlot = ObjectUtils.firstNonNull(adserverAdSlot, dataAdSlot);
         if (StringUtils.isNotBlank(adSlot)) {
             final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-            result.set(FPD_DFP_AD_UNIT_CODE_FIELD, stringsToStringArray(adUnitCode));
+            result.put(FPD_DFP_AD_UNIT_CODE_FIELD, adUnitCode);
         }
     }
 

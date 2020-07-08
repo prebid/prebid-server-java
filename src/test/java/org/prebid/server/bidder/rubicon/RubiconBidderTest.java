@@ -1147,7 +1147,7 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(mapper.createObjectNode()
                         .<ObjectNode>set("property", mapper.createArrayNode().add("value"))
                         .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test"))
-                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test")));
+                        .put("dfp_ad_unit_code", "test"));
     }
 
     @Test
@@ -1179,7 +1179,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.createObjectNode()
                         .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test-data"))
-                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test-adserver")));
+                        .put("dfp_ad_unit_code", "test-adserver"));
     }
 
     @Test
@@ -1211,7 +1211,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.createObjectNode()
                         .<ObjectNode>set("adslot", mapper.createArrayNode().add("/test-data"))
-                        .set("dfp_ad_unit_code", mapper.createArrayNode().add("test-data")));
+                        .put("dfp_ad_unit_code", "test-data"));
     }
 
     @Test
