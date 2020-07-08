@@ -332,7 +332,7 @@ public class TcfDefinerService {
         try {
             return TCString.decode(consentString);
         } catch (Throwable e) {
-            logger.info("Parsing consent string failed: {0}", e.getMessage());
+            logger.info("Parsing consent string ''{0}'' failed: {1}", consentString, e.getMessage());
             return null;
         }
     }
