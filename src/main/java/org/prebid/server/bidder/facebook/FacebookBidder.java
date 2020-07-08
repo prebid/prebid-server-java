@@ -36,6 +36,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -116,7 +117,8 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
                 .imp(Collections.singletonList(modifiedImp))
                 .site(makeSite(bidRequest.getSite(), publisherId))
                 .app(makeApp(bidRequest.getApp(), publisherId))
-                .ext(mapper.mapper().valueToTree(FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
+                .ext(mapper.fillExtension(
+                        ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
         final String body = mapper.encode(outgoingRequest);

@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -34,11 +33,11 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -56,6 +55,7 @@ import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashMap;
@@ -162,7 +162,8 @@ public class AuctionRequestFactory {
         }
 
         return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, startTime, timeoutResolver));
+                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, new ArrayList<>(),
+                        startTime, timeoutResolver));
     }
 
     /**
@@ -171,6 +172,7 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+                                            List<String> errors,
                                             long startTime, TimeoutResolver timeoutResolver) {
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
@@ -181,6 +183,7 @@ public class AuctionRequestFactory {
                         .bidRequest(bidRequest)
                         .timeout(timeout)
                         .account(account)
+                        .prebidErrors(errors)
                         .build());
     }
 
@@ -257,8 +260,8 @@ public class AuctionRequestFactory {
         final Long tmax = bidRequest.getTmax();
         final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
 
-        final ObjectNode ext = bidRequest.getExt();
-        final ObjectNode populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
+        final ExtRequest ext = bidRequest.getExt();
+        final ExtRequest populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
@@ -340,11 +343,11 @@ public class AuctionRequestFactory {
 
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
-        final ObjectNode siteExt = site != null ? site.getExt() : null;
-        final ObjectNode data = siteExt != null ? (ObjectNode) siteExt.get("data") : null;
-        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final ObjectNode modifiedSiteExt = shouldSetExtAmp
-                ? mapper.mapper().valueToTree(ExtSite.of(0, data))
+        final ExtSite siteExt = site != null ? site.getExt() : null;
+        final ObjectNode data = siteExt != null ? siteExt.getData() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.getAmp() == null;
+        final ExtSite modifiedSiteExt = shouldSetExtAmp
+                ? ExtSite.of(0, data)
                 : null;
 
         String referer = null;
@@ -380,7 +383,7 @@ public class AuctionRequestFactory {
      * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
      */
     private User populateUser(User user) {
-        final ObjectNode ext = userExtOrNull(user);
+        final ExtUser ext = userExtOrNull(user);
 
         if (ext != null) {
             final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
@@ -392,31 +395,14 @@ public class AuctionRequestFactory {
     /**
      * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
      */
-    private ObjectNode userExtOrNull(User user) {
-        final ExtUser extUser = extUser(user);
+    private ExtUser userExtOrNull(User user) {
+        final ExtUser extUser = user != null ? user.getExt() : null;
 
-        // set request.user.ext.digitrust.perf if not defined
         final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
         if (digitrust != null && digitrust.getPref() == null) {
-            final ExtUser updatedExtUser = extUser.toBuilder()
+            return extUser.toBuilder()
                     .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
                     .build();
-            return mapper.mapper().valueToTree(updatedExtUser);
-        }
-        return null;
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
-    private ExtUser extUser(User user) {
-        final ObjectNode userExt = user != null ? user.getExt() : null;
-        if (userExt != null) {
-            try {
-                return mapper.mapper().treeToValue(userExt, ExtUser.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-            }
         }
         return null;
     }
@@ -454,10 +440,9 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Returns updated {@link ExtBidRequest} if required or null otherwise.
+     * Returns updated {@link ExtRequest} if required or null otherwise.
      */
-    private ObjectNode populateRequestExt(ObjectNode extNode, List<Imp> imps) {
-        final ExtBidRequest ext = extBidRequest(extNode);
+    private ExtRequest populateRequestExt(ExtRequest ext, List<Imp> imps) {
         if (ext != null) {
             final ExtRequestPrebid prebid = ext.getPrebid();
 
@@ -472,28 +457,17 @@ public class AuctionRequestFactory {
                         ? prebid.toBuilder()
                         : ExtRequestPrebid.builder();
 
-                return mapper.mapper().valueToTree(ExtBidRequest.of(prebidBuilder
+                return ExtRequest.of(prebidBuilder
                         .aliases(ObjectUtils.defaultIfNull(updatedAliases,
                                 getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
                         .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
                                 getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                         .cache(ObjectUtils.defaultIfNull(updatedCache,
                                 getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                        .build()));
+                        .build());
             }
         }
         return null;
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from bidrequest.ext {@link ObjectNode}.
-     */
-    private ExtBidRequest extBidRequest(ObjectNode extBidRequestNode) {
-        try {
-            return mapper.mapper().treeToValue(extBidRequestNode, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
-        }
     }
 
     /**
@@ -536,8 +510,10 @@ public class AuctionRequestFactory {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
         final boolean isTargetingNotNull = targeting != null;
-        final boolean isPriceGranularityNull = isTargetingNotNull && targeting.getPricegranularity().isNull();
-        final boolean isPriceGranularityTextual = isTargetingNotNull && targeting.getPricegranularity().isTextual();
+        final boolean isPriceGranularityNull = isTargetingNotNull
+                && (targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull());
+        final boolean isPriceGranularityTextual = isTargetingNotNull && !isPriceGranularityNull
+                && targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
 
@@ -767,18 +743,7 @@ public class AuctionRequestFactory {
     /**
      * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
      */
-    private String parentAccountIdFromExtPublisher(ObjectNode extPublisherNode) {
-        if (extPublisherNode == null) {
-            return null;
-        }
-
-        final ExtPublisher extPublisher;
-        try {
-            extPublisher = mapper.mapper().convertValue(extPublisherNode, ExtPublisher.class);
-        } catch (IllegalArgumentException e) {
-            return null; // not critical
-        }
-
+    private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
         final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }

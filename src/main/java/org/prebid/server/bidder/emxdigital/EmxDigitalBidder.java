@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.emxdigital;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
@@ -26,7 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.emxdigital.ExtImpEmxDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -214,34 +213,16 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Determines debug flag from {@link BidRequest} or {@link ExtBidRequest}.
+     * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
      */
     private boolean isDebugEnabled(BidRequest bidRequest) {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
 
-        final ExtBidRequest extBidRequest;
-        try {
-            extBidRequest = requestExt(bidRequest);
-        } catch (Exception e) {
-            return false;
-        }
-
-        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from {@link BidRequest}.
-     */
-    private ExtBidRequest requestExt(BidRequest bidRequest) {
-        try {
-            return bidRequest.getExt() != null
-                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
-        }
     }
 
     @Override

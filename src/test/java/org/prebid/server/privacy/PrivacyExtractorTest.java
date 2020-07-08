@@ -1,6 +1,5 @@
 package org.prebid.server.privacy;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import org.junit.Before;
@@ -11,8 +10,6 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PrivacyExtractorTest extends VertxTest {
@@ -21,7 +18,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        privacyExtractor = new PrivacyExtractor(jacksonMapper);
+        privacyExtractor = new PrivacyExtractor();
     }
 
     @Test
@@ -43,21 +40,9 @@ public class PrivacyExtractorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnGdprEmptyValueWhenRegExtIsNotValidJson() throws IOException {
-        // given
-        final Regs regs = Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}"));
-
-        // when
-        final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
     public void shouldReturnGdprEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(2, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(2, null));
 
         // when
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
@@ -69,7 +54,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprOneWhenExtRegsContainsGdprOne() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(1, null));
 
         // when
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
@@ -81,7 +66,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnGdprZeroWhenExtRegsContainsGdprZero() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null)));
+        final Regs regs = Regs.of(null, ExtRegs.of(0, null));
 
         // when
         final String gdpr = privacyExtractor.validPrivacyFrom(regs, null).getGdpr();
@@ -102,7 +87,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnConsentEmptyValueWhenUserConsentIsNull() {
         // given
-        final User user = User.builder().ext(mapper.valueToTree(ExtUser.builder().build())).build();
+        final User user = User.builder().ext(ExtUser.builder().build()).build();
 
         // when
         final String consent = privacyExtractor.validPrivacyFrom(null, user).getConsent();
@@ -114,7 +99,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnConsentWhenUserContainsConsent() {
         // given
-        final User user = User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build();
+        final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
 
         // when
         final String consent = privacyExtractor.validPrivacyFrom(null, user).getConsent();
@@ -126,7 +111,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnDefaultCcpaIfNotValid() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(null, "invalid")));
+        final Regs regs = Regs.of(null, ExtRegs.of(null, "invalid"));
 
         // when
         final Ccpa ccpa = privacyExtractor.validPrivacyFrom(regs, null).getCcpa();
@@ -138,8 +123,8 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnPrivacyWithExtractedParameters() {
         // given
-        final Regs regs = Regs.of(null, mapper.valueToTree(ExtRegs.of(0, "1Yn-")));
-        final User user = User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build();
+        final Regs regs = Regs.of(null, ExtRegs.of(0, "1Yn-"));
+        final User user = User.builder().ext(ExtUser.builder().consent("consent").build()).build();
 
         // when
         final Privacy privacy = privacyExtractor.validPrivacyFrom(regs, user);
