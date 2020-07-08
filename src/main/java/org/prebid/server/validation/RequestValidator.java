@@ -3,7 +3,6 @@ package org.prebid.server.validation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -20,7 +19,6 @@ import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -38,8 +36,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -47,10 +43,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -118,9 +114,9 @@ public class RequestValidator {
 
             validateCur(bidRequest.getCur());
 
-            final ExtBidRequest extBidRequest = parseAndValidateExtBidRequest(bidRequest);
+            final ExtRequest extRequest = bidRequest.getExt();
 
-            final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+            final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
 
             Map<String, String> aliases = Collections.emptyMap();
 
@@ -168,11 +164,9 @@ public class RequestValidator {
                 throw new ValidationException("request.site or request.app must be defined, but not both");
             }
             validateSite(bidRequest.getSite());
-            validateApp(bidRequest.getApp());
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
-            validateSource(bidRequest.getSource());
         } catch (ValidationException ex) {
             return ValidationResult.error(ex.getMessage());
         }
@@ -317,18 +311,6 @@ public class RequestValidator {
         }
     }
 
-    private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
-        ExtBidRequest extBidRequest = null;
-        if (bidRequest.getExt() != null) {
-            try {
-                extBidRequest = mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class);
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.ext is invalid: %s", e.getMessage());
-            }
-        }
-        return extBidRequest;
-    }
-
     /**
      * Validates aliases. Throws {@link ValidationException} in cases when alias points to invalid bidder or when alias
      * is equals to itself.
@@ -355,37 +337,19 @@ public class RequestValidator {
                         "request.site should include at least one of request.site.id or request.site.page");
             }
 
-            final ObjectNode siteExt = site.getExt();
-            if (siteExt != null && siteExt.size() > 0) {
-                try {
-                    final ExtSite extSite = mapper.mapper().treeToValue(siteExt, ExtSite.class);
-                    final Integer amp = extSite.getAmp();
-                    if (amp != null && (amp < 0 || amp > 1)) {
-                        throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
-                    }
-                } catch (JsonProcessingException e) {
-                    throw new ValidationException("request.site.ext object is not valid: %s", e.getMessage());
-                }
-            }
-        }
-    }
-
-    private void validateApp(App app) throws ValidationException {
-        if (app != null) {
-            if (app.getExt() != null) {
-                try {
-                    mapper.mapper().treeToValue(app.getExt(), ExtApp.class);
-                } catch (JsonProcessingException e) {
-                    throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
+            final ExtSite siteExt = site.getExt();
+            if (siteExt != null) {
+                final Integer amp = siteExt.getAmp();
+                if (amp != null && (amp < 0 || amp > 1)) {
+                    throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
                 }
             }
         }
     }
 
     private void validateDevice(Device device) throws ValidationException {
-        final ObjectNode extDeviceNode = device != null ? device.getExt() : null;
-        if (extDeviceNode != null && extDeviceNode.size() > 0) {
-            final ExtDevice extDevice = parseExtDevice(extDeviceNode);
+        final ExtDevice extDevice = device != null ? device.getExt() : null;
+        if (extDevice != null) {
             final ExtDevicePrebid extDevicePrebid = extDevice.getPrebid();
             final ExtDeviceInt interstitial = extDevicePrebid != null ? extDevicePrebid.getInterstitial() : null;
             if (interstitial != null) {
@@ -407,84 +371,72 @@ public class RequestValidator {
         }
     }
 
-    private ExtDevice parseExtDevice(ObjectNode extDevice) throws ValidationException {
-        try {
-            return mapper.mapper().treeToValue(extDevice, ExtDevice.class);
-        } catch (JsonProcessingException e) {
-            throw new ValidationException("request.device.ext is not valid: %s", e.getMessage());
-        }
-    }
-
     private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
         if (user != null && user.getExt() != null) {
-            try {
-                final ExtUser extUser = mapper.mapper().treeToValue(user.getExt(), ExtUser.class);
+            final ExtUser extUser = user.getExt();
 
-                final ExtUserPrebid prebid = extUser.getPrebid();
-                if (prebid != null) {
-                    final Map<String, String> buyerUids = prebid.getBuyeruids();
-                    if (MapUtils.isEmpty(buyerUids)) {
-                        throw new ValidationException("request.user.ext.prebid requires a \"buyeruids\" property "
-                                + "with at least one ID defined. If none exist, then request.user.ext.prebid"
-                                + " should not be defined");
-                    }
-
-                    for (String bidder : buyerUids.keySet()) {
-                        if (isUnknownBidderOrAlias(bidder, aliases)) {
-                            throw new ValidationException("request.user.ext.%s is neither a known bidder "
-                                    + "name nor an alias in request.ext.prebid.aliases", bidder);
-                        }
-                    }
+            final ExtUserPrebid prebid = extUser.getPrebid();
+            if (prebid != null) {
+                final Map<String, String> buyerUids = prebid.getBuyeruids();
+                if (MapUtils.isEmpty(buyerUids)) {
+                    throw new ValidationException("request.user.ext.prebid requires a \"buyeruids\" property "
+                            + "with at least one ID defined. If none exist, then request.user.ext.prebid"
+                            + " should not be defined");
                 }
 
-                final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-                if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
-                    throw new ValidationException("request.user contains a digitrust object that is not valid");
+                for (String bidder : buyerUids.keySet()) {
+                    if (isUnknownBidderOrAlias(bidder, aliases)) {
+                        throw new ValidationException("request.user.ext.%s is neither a known bidder "
+                                + "name nor an alias in request.ext.prebid.aliases", bidder);
+                    }
                 }
+            }
 
-                final List<ExtUserEid> eids = extUser.getEids();
-                if (eids != null) {
-                    if (eids.isEmpty()) {
+            final ExtUserDigiTrust digitrust = extUser.getDigitrust();
+            if (digitrust != null && digitrust.getPref() != null && digitrust.getPref() != 0) {
+                throw new ValidationException("request.user contains a digitrust object that is not valid");
+            }
+
+            final List<ExtUserEid> eids = extUser.getEids();
+            if (eids != null) {
+                if (eids.isEmpty()) {
+                    throw new ValidationException(
+                            "request.user.ext.eids must contain at least one element or be undefined");
+                }
+                final Set<String> uniqueSources = new HashSet<>(eids.size());
+                for (int index = 0; index < eids.size(); index++) {
+                    final ExtUserEid eid = eids.get(index);
+                    if (StringUtils.isBlank(eid.getSource())) {
                         throw new ValidationException(
-                                "request.user.ext.eids must contain at least one element or be undefined");
+                                "request.user.ext.eids[%d] missing required field: \"source\"", index);
                     }
-                    final Set<String> uniqueSources = new HashSet<>(eids.size());
-                    for (int index = 0; index < eids.size(); index++) {
-                        final ExtUserEid eid = eids.get(index);
-                        if (StringUtils.isBlank(eid.getSource())) {
+                    final String eidId = eid.getId();
+                    final List<ExtUserEidUid> eidUids = eid.getUids();
+                    if (eidId == null && eidUids == null) {
+                        throw new ValidationException(
+                                "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
+                    }
+                    if (eidId == null) {
+                        if (eidUids.isEmpty()) {
                             throw new ValidationException(
-                                    "request.user.ext.eids[%d] missing required field: \"source\"", index);
+                                    "request.user.ext.eids[%d].uids must contain at least one element "
+                                            + "or be undefined", index);
                         }
-                        final String eidId = eid.getId();
-                        final List<ExtUserEidUid> eidUids = eid.getUids();
-                        if (eidId == null && eidUids == null) {
-                            throw new ValidationException(
-                                    "request.user.ext.eids[%d] must contain either \"id\" or \"uids\" field", index);
-                        }
-                        if (eidId == null) {
-                            if (eidUids.isEmpty()) {
+                        for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
+                            final ExtUserEidUid uid = eidUids.get(uidsIndex);
+                            if (StringUtils.isBlank(uid.getId())) {
                                 throw new ValidationException(
-                                        "request.user.ext.eids[%d].uids must contain at least one element "
-                                                + "or be undefined", index);
-                            }
-                            for (int uidsIndex = 0; uidsIndex < eidUids.size(); uidsIndex++) {
-                                final ExtUserEidUid uid = eidUids.get(uidsIndex);
-                                if (StringUtils.isBlank(uid.getId())) {
-                                    throw new ValidationException(
-                                            "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
-                                            uidsIndex);
-                                }
+                                        "request.user.ext.eids[%d].uids[%d] missing required field: \"id\"", index,
+                                        uidsIndex);
                             }
                         }
-                        uniqueSources.add(eid.getSource());
                     }
-
-                    if (eids.size() != uniqueSources.size()) {
-                        throw new ValidationException("request.user.ext.eids must contain unique sources");
-                    }
+                    uniqueSources.add(eid.getSource());
                 }
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.user.ext object is not valid: %s", e.getMessage());
+
+                if (eids.size() != uniqueSources.size()) {
+                    throw new ValidationException("request.user.ext.eids must contain unique sources");
+                }
             }
         }
     }
@@ -494,27 +446,10 @@ public class RequestValidator {
      * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
      */
     private void validateRegs(Regs regs) throws ValidationException {
-        if (regs != null && regs.getExt() != null) {
-            try {
-                final ExtRegs extRegs = mapper.mapper().treeToValue(regs.getExt(), ExtRegs.class);
-
-                final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
-                if (gdpr != null && gdpr != 0 && gdpr != 1) {
-                    throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
-                }
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
-            }
-        }
-    }
-
-    private void validateSource(Source source) throws ValidationException {
-        if (source != null && source.getExt() != null) {
-            try {
-                mapper.mapper().treeToValue(source.getExt(), ExtSource.class);
-            } catch (JsonProcessingException e) {
-                throw new ValidationException("request.source.ext is invalid: %s", e.getMessage());
-            }
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        if (gdpr != null && gdpr != 0 && gdpr != 1) {
+            throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
         }
     }
 
