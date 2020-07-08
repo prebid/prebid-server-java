@@ -49,7 +49,7 @@
         "adocean": [
           {
             "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?aid=adoceanmyaozpniqismex:impId12&gdpr=1&gdpr_consent=consentValue&hcuserid=AO-UID&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&pbsrv_v=1.0.0",
-            "responsebody": "[{\"id\":\"adoceanmyaozpniqismex\",\"price\":\"10\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\"  <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"},{\"id\":\"adoceanmyaozpniqis\",\"price\":\"12\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\"  <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"}]",
+            "responsebody": "[{\"id\":\"adoceanmyaozpniqismex\",\"price\":\"10\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"},{\"id\":\"adoceanmyaozpniqismexs\",\"price\":\"12\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"}]",
             "status": 200
           }
         ],

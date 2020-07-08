@@ -294,7 +294,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 .append(" (new Image(1,1)).src = su")
                 .append(" }")
                 .append(" }();")
-                .append(" </script>");
+                .append(" </script> ");
 
         return String.format(measurementCode.toString(), adoceanResponse.getWinUrl(), adoceanResponse.getStatsUrl())
                 + HttpUtil.decodeUrl(adoceanResponse.getCode());

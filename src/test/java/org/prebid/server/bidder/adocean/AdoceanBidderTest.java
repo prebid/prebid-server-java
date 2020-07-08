@@ -327,7 +327,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .append(" (new Image(1,1)).src = su")
                 .append(" }")
                 .append(" }();")
-                .append(" </script>")
+                .append(" </script> ")
                 .append(" <!-- code 1 --> ");
         final String adm = admBuilder.toString();
 
