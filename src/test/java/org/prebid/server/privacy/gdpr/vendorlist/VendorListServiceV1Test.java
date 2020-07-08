@@ -15,6 +15,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 import org.prebid.server.vertx.http.HttpClient;
@@ -51,6 +52,8 @@ public class VendorListServiceV1Test extends VertxTest {
     @Mock
     private HttpClient httpClient;
     @Mock
+    private Metrics metrics;
+    @Mock
     private BidderCatalog bidderCatalog;
 
     private VendorListService<VendorListV1, VendorV1> vendorListService;
@@ -62,7 +65,7 @@ public class VendorListServiceV1Test extends VertxTest {
         given(bidderCatalog.knownVendorIds()).willReturn(singleton(52));
 
         vendorListService = new VendorListServiceV1(CACHE_DIR, "http://vendorlist/{VERSION}", 0, null, bidderCatalog,
-                fileSystem, httpClient, jacksonMapper);
+                fileSystem, httpClient, metrics, jacksonMapper);
     }
 
     // Creation related tests
@@ -75,7 +78,7 @@ public class VendorListServiceV1Test extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, jacksonMapper))
+                        httpClient, metrics, jacksonMapper))
                 .hasMessage("dir creation error");
     }
 
@@ -87,7 +90,7 @@ public class VendorListServiceV1Test extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, jacksonMapper))
+                        httpClient, metrics, jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -101,7 +104,7 @@ public class VendorListServiceV1Test extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, jacksonMapper))
+                        httpClient, metrics, jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -115,7 +118,7 @@ public class VendorListServiceV1Test extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListServiceV1(CACHE_DIR, "http://vendorlist/%s", 0, null, bidderCatalog, fileSystem,
-                        httpClient, jacksonMapper))
+                        httpClient, metrics, jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }
@@ -150,7 +153,7 @@ public class VendorListServiceV1Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfResponseCodeIsNot200() {
         // given
-        givenHttpClientReturnsResponse(503, "response");
+        givenHttpClientReturnsResponse(503, null);
 
         // when
         vendorListService.forVersion(1);
@@ -272,8 +275,8 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<?> result2 = vendorListService.forVersion(-2);
 
         // then
-        assertThat(result1).isFailed().hasMessage("Vendor list for version 0 not valid.");
-        assertThat(result2).isFailed().hasMessage("Vendor list for version -2 not valid.");
+        assertThat(result1).isFailed().hasMessage("TCF 1 vendor list for version 0 not valid.");
+        assertThat(result2).isFailed().hasMessage("TCF 1 vendor list for version -2 not valid.");
     }
 
     @Test
@@ -285,7 +288,7 @@ public class VendorListServiceV1Test extends VertxTest {
         final Future<Map<Integer, VendorV1>> future = vendorListService.forVersion(1);
 
         // then
-        assertThat(future).isFailed().hasMessage("Vendor list for version 1 not fetched yet, try again later.");
+        assertThat(future).isFailed().hasMessage("TCF 1 vendor list for version 1 not fetched yet, try again later.");
     }
 
     @Test
@@ -320,6 +323,62 @@ public class VendorListServiceV1Test extends VertxTest {
 
         // then
         assertThat(future).succeededWith(singletonMap(52, VendorV1.of(52, singleton(1), singleton(2))));
+    }
+
+    // Metrics tests
+
+    @Test
+    public void shouldIncrementVendorListMissingMetric() {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+
+        // when
+        vendorListService.forVersion(1);
+
+        // then
+        verify(metrics).updatePrivacyTcfVendorListMissingMetric(eq(1), eq(1));
+    }
+
+    @Test
+    public void shouldIncrementVendorListErrorMetricWhenFileIsNotDownloaded() {
+        // given
+        givenHttpClientReturnsResponse(503, null);
+
+        // when
+        vendorListService.forVersion(1);
+
+        // then
+        verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(1), eq(1));
+    }
+
+    @Test
+    public void shouldIncrementVendorListErrorMetricWhenFileIsNotSaved() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
+
+        given(fileSystem.writeFile(anyString(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture("error")));
+
+        // when
+        vendorListService.forVersion(1);
+
+        // then
+        verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(1), eq(1));
+    }
+
+    @Test
+    public void shouldIncrementVendorListOkMetric() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
+
+        given(fileSystem.writeFile(anyString(), any(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+
+        // when
+        vendorListService.forVersion(1);
+
+        // then
+        verify(metrics).updatePrivacyTcfVendorListOkMetric(eq(1), eq(1));
     }
 
     private static VendorListV1 givenVendorList() {
