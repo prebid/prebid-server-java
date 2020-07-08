@@ -48,6 +48,7 @@ public class AdheseTest extends IntegrationTest {
                 "openrtb2/adhese/test-auction-adhese-response.json",
                 response, singletonList("adhese"));
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+        String actualStr = response.asString();
+        JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }

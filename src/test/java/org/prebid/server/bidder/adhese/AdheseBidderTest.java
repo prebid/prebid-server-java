@@ -91,7 +91,7 @@ public class AdheseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequestAndSetExpectedHttpRequestUri() {
+    public void makeHttpRequestsShouldModifyIncomingRequestAndSetExpectedHttpRequestUri() {
         // given
         Map<String, List<String>> targets = new HashMap<>();
         targets.put("ci", asList("gent", "brussels"));
@@ -128,7 +128,7 @@ public class AdheseBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token 'invalid'");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
