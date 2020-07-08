@@ -21,6 +21,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
@@ -67,6 +68,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -136,6 +138,8 @@ public class BidResponseCreator {
                             null)))
                     .build());
         } else {
+            bidderResponses.forEach(BidResponseCreator::removeRedundantBids);
+
             final Set<Bid> winningBids = newOrEmptySet(targeting);
             final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
@@ -186,6 +190,35 @@ public class BidResponseCreator {
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null,
                 ExtBidResponsePrebid.of(auctionTimestamp));
+    }
+
+    private static void removeRedundantBids(BidderResponse bidderResponse) {
+        final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
+        final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
+                .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
+
+        final List<BidderBid> bidsForRemoval = impIdToBidderBid.values().stream()
+                .peek(bidderBids -> bidderBids.remove(mostValuableBid(bidderBids)))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        responseBidderBids.removeAll(bidsForRemoval);
+    }
+
+    private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
+        if (bidderBids.size() == 1) {
+            return bidderBids.get(0);
+        }
+
+        final List<BidderBid> dealBidderBids = bidderBids.stream()
+                .filter(bidderBid -> StringUtils.isNotBlank(bidderBid.getBid().getDealid()))
+                .collect(Collectors.toList());
+
+        List<BidderBid> processedBidderBids = dealBidderBids.isEmpty() ? bidderBids : dealBidderBids;
+
+        return processedBidderBids.stream()
+                .max(Comparator.comparing(bidderBid -> bidderBid.getBid().getPrice(), Comparator.naturalOrder()))
+                .orElse(bidderBids.get(0));
     }
 
     /**

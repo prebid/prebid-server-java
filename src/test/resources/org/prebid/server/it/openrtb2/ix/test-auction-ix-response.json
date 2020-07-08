@@ -36,20 +36,6 @@
               }
             }
           }
-        },
-        {
-          "id": "894859517",
-          "impid": "impId6",
-          "price": 3.75,
-          "adm": "adm6",
-          "crid": "crid6",
-          "w": 600,
-          "h": 480,
-          "ext": {
-            "prebid": {
-              "type": "banner"
-            }
-          }
         }
       ],
       "seat": "ix",
