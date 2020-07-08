@@ -99,7 +99,7 @@ public class AdheseBidderTest extends VertxTest {
         targets.put("tl", singletonList("all"));
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("dummy").build()))
+                        .ext(ExtUser.builder().consent("dummy").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of("demo",

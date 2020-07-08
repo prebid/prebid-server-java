@@ -113,23 +113,9 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private Map<String, List<String>> parseTargetParametersAndSort(JsonNode keywords) {
-        Map<String, List<String>> sortedMap = new TreeMap<>();
-        if (keywords != null) {
-            Iterator<Map.Entry<String, JsonNode>> fields = keywords.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> next = fields.next();
-                List<String> values = null;
-                if (next.getValue() instanceof ArrayNode) {
-                    final ArrayNode arrayNode = (ArrayNode) next.getValue();
-                    values = StreamSupport.stream(arrayNode.spliterator(), false)
-                            .map(JsonNode::toString)
-                            .map(m -> m.substring(1, m.length() - 1))
-                            .collect(Collectors.toList());
-                }
-                sortedMap.put(next.getKey(), values);
-            }
-        }
-        return sortedMap;
+        return keywords != null ? new TreeMap<>(
+                mapper.mapper().convertValue(keywords, new TypeReference<Map<String, List<String>>>() {
+                })) : null;
     }
 
     private String createPartOrUrl(String key, List<String> values) {
@@ -138,17 +124,9 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private String getGdprParameter(User user) {
-        final ExtUser extUser = user != null ? extUser(user.getExt()) : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        return (StringUtils.isNotBlank(consent)) ? String.format("%s%s", "/xt", consent) : "";
-    }
-
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
+        return StringUtils.isNotBlank(consent) ? String.format("%s%s", "/xt", consent) : "";
     }
 
     private String getRefererParameter(Site site) {

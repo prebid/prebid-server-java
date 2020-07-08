@@ -24,7 +24,7 @@ public class AdheseTest extends IntegrationTest {
                 + "leaderboard/ag55/cigent;brussels/tlall/xtconsentValue/xfhttp%3A%2F%2Fwww.example.com"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
                 .withHeader("Content-Type", WireMock.equalTo("application/json;charset=UTF-8"))
-                .withRequestBody(WireMock.equalTo(""))
+                .withRequestBody(WireMock.absent())
                 .willReturn(WireMock.aResponse().withBody(jsonFrom("openrtb2/adhese/test-adhese-bid-response.json"))));
 
         // pre-bid cache
