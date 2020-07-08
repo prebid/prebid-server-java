@@ -93,10 +93,10 @@ public class AdoceanBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA."
                                         + "IFoEUQQgAIQwgIwQABAEAAAAOIAACAIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAA"
-                                        + "AFAAECAAAgAAQARAEQAAAAAJAAIAAgAAAYQEAAAQmAgBC3ZAYzUw").build()))
+                                        + "AFAAECAAAgAAQARAEQAAAAAJAAIAAgAAAYQEAAAQmAgBC3ZAYzUw").build())
                         .build())
                 .imp(asList(Imp.builder()
                                 .id("ao-test")
@@ -127,10 +127,10 @@ public class AdoceanBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAAC"
                                         + "AIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAgA"
-                                        + "AAYQEAAAQmAgBC3ZAYzUw").build()))
+                                        + "AAYQEAAAQmAgBC3ZAYzUw").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
@@ -156,10 +156,10 @@ public class AdoceanBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAAC"
                                         + "AIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAg"
-                                        + "AAAYQEAAAQmAgBC3ZAYzUw").build()))
+                                        + "AAAYQEAAAQmAgBC3ZAYzUw").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
@@ -190,10 +190,10 @@ public class AdoceanBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAACA"
                                         + "IAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAgAA"
-                                        + "AYQEAAAQmAgBC3ZAYzUw").build()))
+                                        + "AYQEAAAQmAgBC3ZAYzUw").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")

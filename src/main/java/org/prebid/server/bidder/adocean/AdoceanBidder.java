@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.adocean;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -65,11 +64,10 @@ public class AdoceanBidder implements Bidder<Void> {
             return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
         }
 
-        String consentString = "";
         final User user = request.getUser();
-        if (user != null && StringUtils.isNotBlank(extUser(user).getConsent())) {
-            consentString = extUser(user).getConsent();
-        }
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String consent = extUser != null ? extUser.getConsent() : null;
+        final String consentString = StringUtils.isNotBlank(consent) ? consent : "";
 
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<Void>> httpRequests = new ArrayList<>();
@@ -83,18 +81,6 @@ public class AdoceanBidder implements Bidder<Void> {
         }
 
         return Result.of(httpRequests, errors);
-    }
-
-    private ExtUser extUser(User user) {
-        final ObjectNode userExt = user != null ? user.getExt() : null;
-        if (userExt != null) {
-            try {
-                return mapper.mapper().treeToValue(userExt, ExtUser.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
     }
 
     private HttpRequest<Void> createSingleRequest(List<HttpRequest<Void>> httpRequests, BidRequest request, Imp imp,
