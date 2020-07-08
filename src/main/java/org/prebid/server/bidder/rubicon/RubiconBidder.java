@@ -90,6 +90,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -363,6 +364,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (siteExt != null) {
             populateFirstPartyDataAttributes(siteExt.getData(), result);
         }
+
+        // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
+        final String search = site != null ? site.getSearch() : null;
+        if (StringUtils.isNotBlank(search)) {
+            mergeIntoArray(search, result, "search");
+        }
     }
 
     private void copyFirstPartyDataFromApp(App app, ObjectNode result) {
@@ -408,18 +415,24 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private void copyFirstPartyDataSearch(ExtImpContext context, Site site, ObjectNode result) {
-        if (context == null) {
-            return;
-        }
-
-        // copy OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
-        // copy OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
-        // imp-specific values should take precedence over global values
-        final String siteSearch = site != null ? site.getSearch() : null;
-        final String search = ObjectUtils.defaultIfNull(context.getSearch(), siteSearch);
+        // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
+        final String search = context != null ? context.getSearch() : null;
         if (StringUtils.isNotBlank(search)) {
-            result.set("search", stringsToStringArray(search));
+            mergeIntoArray(search, result, "search");
         }
+    }
+
+    private void mergeIntoArray(String value, ObjectNode targetObject, String targetArrayField) {
+        final JsonNode existingArray = targetObject.get(targetArrayField);
+        final Set<String> existingArrayValues = existingArray != null && isTextualArray(existingArray)
+                ? StreamSupport.stream(existingArray.spliterator(), false)
+                .map(JsonNode::asText)
+                .collect(Collectors.toSet())
+                : new LinkedHashSet<>();
+
+        existingArrayValues.add(value);
+
+        targetObject.set(targetArrayField, stringsToStringArray(existingArrayValues.toArray(new String[0])));
     }
 
     private ExtImpContext extImpContext(Imp imp) {
