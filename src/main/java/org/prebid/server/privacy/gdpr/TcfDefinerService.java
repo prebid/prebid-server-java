@@ -213,12 +213,12 @@ public class TcfDefinerService {
             return allowAllTcfResponseCreator.apply(country);
         }
 
-        final TCString tcString = parseConsentString(gdprInfoWithCountry.getConsent());
-        metrics.updatePrivacyTcfGeoMetric(tcString.getVersion(), gdprInfoWithCountry.getInEea());
+        final String consentString = gdprInfoWithCountry.getConsent();
+        final TCString tcString = parseConsentStringAndUpdateMetrics(consentString, gdprInfoWithCountry.getInEea());
 
         return tcString.getVersion() == 2
                 ? tcf2Strategy.apply(tcString, country)
-                : gdprStrategy.apply(gdprInfoWithCountry.getConsent(), country);
+                : gdprStrategy.apply(consentString, country);
     }
 
     private <T> Future<TcfResponse<T>> createAllowAllTcfResponse(Set<T> keys, String country) {
@@ -313,7 +313,7 @@ public class TcfDefinerService {
      * <p>
      * Note: parsing TC string should not fail the entire request, but assume the user does not consent.
      */
-    private TCString parseConsentString(String consentString) {
+    private TCString parseConsentStringAndUpdateMetrics(String consentString, Boolean inEea) {
         if (StringUtils.isBlank(consentString)) {
             metrics.updatePrivacyTcfMissingMetric();
             return TCStringEmpty.create();
@@ -325,6 +325,9 @@ public class TcfDefinerService {
             return TCStringEmpty.create();
         }
 
+        final int version = tcString.getVersion();
+        metrics.updatePrivacyTcfRequestsMetric(version);
+        metrics.updatePrivacyTcfGeoMetric(version, inEea);
         return tcString;
     }
 

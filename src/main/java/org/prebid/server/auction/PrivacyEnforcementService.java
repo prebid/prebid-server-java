@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -79,6 +80,7 @@ public class PrivacyEnforcementService {
         privacyExtractor = new PrivacyExtractor();
     }
 
+    // TODO: Consider to remove ExtUser from method signature since it was migrated from JsonNode to POJO
     Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
                                            Map<String, User> bidderToUser,
                                            ExtUser extUser,
@@ -107,10 +109,12 @@ public class PrivacyEnforcementService {
         final AccountGdprConfig accountConfig = auctionContext.getAccount().getGdpr();
         final Timeout timeout = auctionContext.getTimeout();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
+
         return getBidderToEnforcementAction(device, biddersToApplyTcf, aliases, extUser, regs, accountConfig, timeout)
-                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, device))
-                .map(bidderToEnforcement -> getBidderToPrivacyResult(
-                        biddersToApplyTcf, bidderToUser, device, bidderToEnforcement))
+                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, bidderToUser,
+                        extUser, device))
+                .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToEnforcement, biddersToApplyTcf,
+                        bidderToUser, device))
                 .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
@@ -252,7 +256,7 @@ public class PrivacyEnforcementService {
         final VendorIdResolver vendorIdResolver = VendorIdResolver.of(bidderCatalog, aliases);
 
         return tcfDefinerService.resultForBidderNames(
-                new HashSet<>(bidders),
+                Collections.unmodifiableSet(bidders),
                 vendorIdResolver,
                 gdprAsString,
                 gdprConsent,
@@ -295,19 +299,31 @@ public class PrivacyEnforcementService {
     }
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
-            Map<String, PrivacyEnforcementAction> bidderToEnforcement, MetricName requestType, Device device) {
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement,
+            MetricName requestType, Map<String, User> bidderToUser, ExtUser extUser, Device device) {
 
+        // Metrics should represent real picture of the bidding process, so if bidder request is blocked
+        // by privacy then no reason to increment another metrics, like geo masked, etc.
         for (final Map.Entry<String, PrivacyEnforcementAction> bidderEnforcement : bidderToEnforcement.entrySet()) {
             final String bidder = bidderEnforcement.getKey();
             final PrivacyEnforcementAction enforcement = bidderEnforcement.getValue();
 
-            metrics.updateAuctionTcfMetrics(
-                    bidder,
-                    requestType,
-                    enforcement.isRemoveUserIds(),
-                    enforcement.isMaskGeo(),
-                    enforcement.isBlockBidderRequest(),
-                    enforcement.isBlockAnalyticsReport());
+            final boolean requestBlocked = enforcement.isBlockBidderRequest();
+
+            boolean userIdRemoved = enforcement.isRemoveUserIds();
+            if (requestBlocked || (userIdRemoved && !shouldMaskUser(bidderToUser.get(bidder), extUser))) {
+                userIdRemoved = false;
+            }
+
+            boolean geoMasked = enforcement.isMaskGeo();
+            if (requestBlocked || (geoMasked && !shouldMaskGeo(bidderToUser.get(bidder), device))) {
+                geoMasked = false;
+            }
+
+            final boolean analyticsBlocked = !requestBlocked && enforcement.isBlockAnalyticsReport();
+
+            metrics.updateAuctionTcfMetrics(bidder, requestType, userIdRemoved, geoMasked, analyticsBlocked,
+                    requestBlocked);
         }
 
         if (isLmtEnabled(device)) {
@@ -318,14 +334,33 @@ public class PrivacyEnforcementService {
     }
 
     /**
+     * Returns true if {@link User} has sensitive privacy information that can be masked.
+     */
+    private boolean shouldMaskUser(User user, ExtUser extUser) {
+        if (user == null) {
+            return false;
+        }
+        if (user.getId() != null || user.getBuyeruid() != null) {
+            return true;
+        }
+        return extUser != null && (CollectionUtils.isNotEmpty(extUser.getEids()) || extUser.getDigitrust() != null);
+    }
+
+    /**
+     * Returns true if {@link User} or {@link Device} has {@link Geo} information that can be masked.
+     */
+    private boolean shouldMaskGeo(User user, Device device) {
+        return (user != null && user.getGeo() != null) || (device != null && device.getGeo() != null);
+    }
+
+    /**
      * Returns {@link Map}&lt;{@link String}, {@link BidderPrivacyResult}&gt;, where bidder name mapped to masked
      * {@link BidderPrivacyResult}. Masking depends on GDPR and COPPA.
      */
     private List<BidderPrivacyResult> getBidderToPrivacyResult(
-            Set<String> bidders,
+            Map<String, PrivacyEnforcementAction> bidderToEnforcement, Set<String> bidders,
             Map<String, User> bidderToUser,
-            Device device,
-            Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
+            Device device) {
 
         final boolean isLmtEnabled = isLmtEnabled(device);
         return bidderToUser.entrySet().stream()
@@ -476,7 +511,7 @@ public class PrivacyEnforcementService {
     }
 
     /**
-     * Masks ip v6 address by replacing last number of groups .
+     * Masks ip v6 address by replacing last number of groups.
      */
     private static String maskIpv6(String ip, Integer groupsNumber) {
         return ip != null && InetAddressUtils.isIPv6Address(ip) ? maskIp(ip, ":", groupsNumber) : ip;

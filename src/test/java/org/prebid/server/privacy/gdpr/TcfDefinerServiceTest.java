@@ -31,11 +31,13 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
@@ -223,6 +225,16 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
+    public void resultForVendorIdsShouldNotSetTcfRequestsAndTcfGeoMetricsWhenConsentIsNotValid() {
+        // when
+        target.resultForVendorIds(singleton(1), "1", "consent", "ip", null, null);
+
+        // then
+        verify(metrics, never()).updatePrivacyTcfRequestsMetric(anyInt());
+        verify(metrics, never()).updatePrivacyTcfGeoMetric(anyInt(), any());
+    }
+
+    @Test
     public void resultForVendorIdsShouldReturnAllowAllWhenGdprIsZero() {
         // when
         final Future<TcfResponse<Integer>> result =
@@ -332,6 +344,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(TcfResponse.of(true, expectedVendorIdToPrivacyMap, null));
 
         verifyZeroInteractions(tcf2Service);
+        verify(metrics).updatePrivacyTcfRequestsMetric(1);
         verify(metrics).updatePrivacyTcfGeoMetric(1, null);
     }
 
@@ -374,6 +387,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(TcfResponse.of(true, expectedBidderNameToPrivacyMap, null));
 
         verifyZeroInteractions(tcf2Service);
+        verify(metrics).updatePrivacyTcfRequestsMetric(1);
         verify(metrics).updatePrivacyTcfGeoMetric(1, null);
     }
 
@@ -416,6 +430,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(TcfResponse.of(true, expectedBidderNameToPrivacyMap, null));
 
         verifyZeroInteractions(gdprService);
+        verify(metrics).updatePrivacyTcfRequestsMetric(2);
         verify(metrics).updatePrivacyTcfGeoMetric(2, null);
     }
 
