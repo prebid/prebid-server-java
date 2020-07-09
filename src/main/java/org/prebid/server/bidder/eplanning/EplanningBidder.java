@@ -14,6 +14,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -53,6 +54,7 @@ public class EplanningBidder implements Bidder<Void> {
     private static final String DEFAULT_PAGE_URL = "FILE";
     private static final String SEC = "ROS";
     private static final String DFP_CLIENT_ID = "1";
+    private static final String REQUEST_TARGET_INVENTORY = "1";
     private static final List<CleanStepName> CLEAN_STEP_NAMES = Arrays.asList(
             CleanStepName.of("_|\\.|-|\\/", ""),
             CleanStepName.of("\\)\\(|\\(|\\)|:", "_"),
@@ -193,19 +195,45 @@ public class EplanningBidder implements Bidder<Void> {
         final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
                 ? site.getPage() : DEFAULT_PAGE_URL;
 
-        String uri = endpointUrl + String.format("/%s/%s/%s/%s?ct=1&r=pbs&ncb=1&ur=%s&e=%s",
-                clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
-                String.join("+", requestsStrings));
+        final String requestTarget = request.getApp() != null && StringUtils.isNotBlank(request.getApp().getBundle())
+                ? request.getApp().getBundle()
+                : pageDomain;
+
+        final String uri = endpointUrl + String.format("/%s/%s/%s/%s", clientId, DFP_CLIENT_ID, requestTarget, SEC);
+
+        final URIBuilder uriBuilder = new URIBuilder()
+                .setPath(uri)
+                .addParameter("r", "pbs")
+                .addParameter("ncb", "1");
+
+        if (request.getApp() == null) {
+            uriBuilder.addParameter("ur", pageUrl);
+        }
+        uriBuilder.addParameter("e", String.join("+", requestsStrings));
 
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uri = uri + String.format("&uid=%s", user.getBuyeruid());
+            uriBuilder.addParameter("uid", user.getBuyeruid());
         }
 
         if (StringUtils.isNotBlank(ip)) {
-            uri = uri + String.format("&ip=%s", ip);
+            uriBuilder.addParameter("ip", ip);
         }
-        return uri;
+
+        if (request.getApp() != null) {
+            if (StringUtils.isNotBlank(request.getApp().getName())) {
+                uriBuilder.addParameter("appn", request.getApp().getName());
+            }
+            if (StringUtils.isNotBlank(request.getApp().getId())) {
+                uriBuilder.addParameter("appid", request.getApp().getId());
+            }
+            if (request.getDevice() != null && StringUtils.isNotBlank(request.getDevice().getIfa())) {
+                uriBuilder.addParameter("ifa", request.getDevice().getIfa());
+            }
+            uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
+        }
+
+        return uriBuilder.toString();
     }
 
     /**
