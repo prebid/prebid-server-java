@@ -11,15 +11,13 @@ import java.util.List;
 
 public class TCStringEmpty implements TCString {
 
-    private int version;
-
-    public TCStringEmpty(int version) {
-        this.version = version;
+    public static TCString create() {
+        return new TCStringEmpty();
     }
 
     @Override
     public int getVersion() {
-        return version;
+        return 2;
     }
 
     @Override

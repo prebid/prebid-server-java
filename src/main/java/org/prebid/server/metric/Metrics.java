@@ -319,40 +319,40 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updatePrivacyTcfMissingMetric() {
+        privacy().tcf().incCounter(MetricName.missing);
+    }
+
     public void updatePrivacyTcfInvalidMetric() {
         privacy().tcf().incCounter(MetricName.invalid);
     }
 
     public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
-        final UpdatableMetrics versionMetrics;
-        if (version == 2) {
-            versionMetrics = privacy().tcf().v2();
-        } else {
-            versionMetrics = privacy().tcf().v1();
-        }
+        final UpdatableMetrics versionMetrics = version == 2 ? privacy().tcf().v2() : privacy().tcf().v1();
 
         final MetricName metricName = inEea == null
                 ? MetricName.unknown_geo
                 : inEea ? MetricName.in_geo : MetricName.out_geo;
+
         versionMetrics.incCounter(metricName);
     }
 
-    public void updatePrivacyTcfVendorListMissingMetric(int tcfVersion, int vendorListVersion) {
-        updatePrivacyTcfVendorListMetric(tcfVersion, vendorListVersion, MetricName.missing);
+    public void updatePrivacyTcfVendorListMissingMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.missing);
     }
 
-    public void updatePrivacyTcfVendorListOkMetric(int tcfVersion, int vendorListVersion) {
-        updatePrivacyTcfVendorListMetric(tcfVersion, vendorListVersion, MetricName.ok);
+    public void updatePrivacyTcfVendorListOkMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.ok);
     }
 
-    public void updatePrivacyTcfVendorListErrorMetric(int tcfVersion, int vendorListVersion) {
-        updatePrivacyTcfVendorListMetric(tcfVersion, vendorListVersion, MetricName.err);
+    public void updatePrivacyTcfVendorListErrorMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.err);
     }
 
-    private void updatePrivacyTcfVendorListMetric(int tcfVersion, int vendorListVersion, MetricName metricName) {
+    private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
         final TcfMetrics tcfMetrics = privacy().tcf();
-        final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = tcfVersion == 2 ? tcfMetrics.v2() : tcfMetrics.v1();
-        tcfVersionMetrics.forVendorList(vendorListVersion).incCounter(metricName);
+        final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = version == 2 ? tcfMetrics.v2() : tcfMetrics.v1();
+        tcfVersionMetrics.vendorList().incCounter(metricName);
     }
 
     public void updateConnectionAcceptErrors() {
