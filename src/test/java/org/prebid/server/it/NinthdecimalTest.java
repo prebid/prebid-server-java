@@ -47,7 +47,7 @@ public class NinthdecimalTest extends IntegrationTest {
                 .header("X-Forwarded-For", "193.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"advangelists":"AV-UID"}}
+                // this uids cookie value stands for {"uids":{"ninthdecimal":"ND-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7Im5pbnRoZGVjaW1hbCI6Ik5ELVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/ninthdecimal/test-auction-ninthdecimal-request.json"))
                 .post("/openrtb2/auction");
