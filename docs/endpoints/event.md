@@ -19,4 +19,4 @@ This endpoint is used to notify about event and do request for tracking pixel if
 - `x` : Disables or enables analytics. Allowed values: `1` to enable analytics or `0` to disable. `1` is default.
 ### Sample request
 
-`GET http://prebid.site.com/event?type=win&bidid=12345&bidder=rubicon&f=b`
+`GET http://prebid.site.com/event?type=win&bidid=12345&a=1111&bidder=rubicon&f=b`
