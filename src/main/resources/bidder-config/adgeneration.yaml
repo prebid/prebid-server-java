@@ -1,0 +1,23 @@
+adapters:
+  adgeneration:
+    enabled: false
+    endpoint: https://d.socdm.com/adsv/v1
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: ssp-ope@supership.jp
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adgeneration
+      type: redirect
+      support-cors: false
