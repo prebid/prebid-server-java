@@ -177,27 +177,30 @@ public class FpdResolver {
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
-        if (targeting != null) {
-            final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-            final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null
-                    ? extRequestPrebid.getData()
-                    : null;
-
-            final ExtRequestPrebidData resolvedExtRequestPrebidData = resolveExtRequestPrebidData(extRequestPrebidData,
-                    targeting.getBidders());
-            final List<ExtRequestPrebidBidderConfig> resolvedBidderConfig = createAllowedAllBidderConfig(targeting);
-
-            if (resolvedExtRequestPrebidData != null || resolvedBidderConfig != null) {
-                final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = extRequestPrebid != null
-                        ? extRequestPrebid.toBuilder()
-                        : ExtRequestPrebid.builder();
-                return ExtRequest.of(prebidBuilder
-                        .data(resolvedExtRequestPrebidData != null
-                                ? resolvedExtRequestPrebidData
-                                : extRequestPrebidData)
-                        .bidderconfig(resolvedBidderConfig).build());
-            }
+        if (targeting == null) {
+            return extRequest;
         }
+
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null
+                ? extRequestPrebid.getData()
+                : null;
+
+        final ExtRequestPrebidData resolvedExtRequestPrebidData = resolveExtRequestPrebidData(extRequestPrebidData,
+                targeting.getBidders());
+        final List<ExtRequestPrebidBidderConfig> resolvedBidderConfig = createAllowedAllBidderConfig(targeting);
+
+        if (resolvedExtRequestPrebidData != null || resolvedBidderConfig != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = extRequestPrebid != null
+                    ? extRequestPrebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+            return ExtRequest.of(prebidBuilder
+                    .data(resolvedExtRequestPrebidData != null
+                            ? resolvedExtRequestPrebidData
+                            : extRequestPrebidData)
+                    .bidderconfig(resolvedBidderConfig).build());
+        }
+
         return extRequest;
     }
 
@@ -214,7 +217,7 @@ public class FpdResolver {
     private List<ExtRequestPrebidBidderConfig> createAllowedAllBidderConfig(Targeting targeting) {
         final ObjectNode userNode = targeting.getUser();
         final ObjectNode siteNode = targeting.getSite();
-        if (targeting.getUser() == null && targeting.getSite() == null) {
+        if (userNode == null && siteNode == null) {
             return null;
         }
 
