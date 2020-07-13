@@ -49,6 +49,8 @@ public class AdheseBidder implements Bidder<Void> {
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String ORIGIN = "JERLICIA";
+    private static final String QUERY_PARAMETER_GDPR = "/xt";
+    private static final String QUERY_PARAMETER_REFERER = "/xf";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -126,12 +128,14 @@ public class AdheseBidder implements Bidder<Void> {
     private String getGdprParameter(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        return StringUtils.isNotBlank(consent) ? String.format("%s%s", "/xt", consent) : "";
+        return StringUtils.isNotBlank(consent) ? String.format("%s%s", QUERY_PARAMETER_GDPR, consent) : "";
     }
 
     private String getRefererParameter(Site site) {
         final String page = site != null ? site.getPage() : null;
-        return StringUtils.isNotBlank(page) ? String.format("%s%s", "/xf", HttpUtil.encodeUrl(page)) : "";
+        return StringUtils.isNotBlank(page)
+                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
+                : "";
     }
 
     @Override
@@ -149,41 +153,39 @@ public class AdheseBidder implements Bidder<Void> {
         final List<AdheseBid> adheseBid;
         final List<AdheseResponseExt> adheseResponseExt;
         final List<AdheseOriginData> adheseOriginData;
-        SeatBid seatBid;
+        final AdheseBid firstAdheseBid;
+        Bid bid;
         try {
             adheseBid = decodeBodyToBidList(httpCall, AdheseBid.class);
-            if (Objects.equals(adheseBid.get(0).getOrigin(), ORIGIN)) {
+            firstAdheseBid = adheseBid.get(0);
+            if (Objects.equals(firstAdheseBid.getOrigin(), ORIGIN)) {
                 adheseResponseExt = decodeBodyToBidList(httpCall, AdheseResponseExt.class);
                 adheseOriginData = decodeBodyToBidList(httpCall, AdheseOriginData.class);
-                seatBid = convertAdheseBid(adheseBid.get(0), adheseResponseExt.get(0), adheseOriginData.get(0));
+                bid = convertAdheseBid(firstAdheseBid, adheseResponseExt.get(0), adheseOriginData.get(0));
             } else {
-                seatBid = convertAdheseOpenRtbBid(adheseBid.get(0));
+                bid = convertAdheseOpenRtbBid(firstAdheseBid);
             }
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        final BigDecimal price = new BigDecimal(adheseBid.get(0).getExtension().getPrebid().getCpm().getAmount());
-        final Integer width = Integer.valueOf(adheseBid.get(0).getWidth());
-        final Integer height = Integer.valueOf(adheseBid.get(0).getHeight());
+        final BigDecimal price = new BigDecimal(firstAdheseBid.getExtension().getPrebid().getCpm().getAmount());
+        final Integer width = Integer.valueOf(firstAdheseBid.getWidth());
+        final Integer height = Integer.valueOf(firstAdheseBid.getHeight());
 
-        SeatBid updateSeatBid = null;
-        if (seatBid != null && CollectionUtils.isNotEmpty(seatBid.getBid())) {
-            final Bid bid = seatBid.getBid().get(0);
-            updateSeatBid = seatBid.toBuilder()
-                    .bid(Collections.singletonList(Bid.builder()
-                            .price(price)
-                            .w(width)
-                            .h(height)
-                            .dealid(bid.getDealid())
-                            .crid(bid.getCrid())
-                            .adm(bid.getAdm())
-                            .ext(bid.getExt())
-                            .build()))
-                    .build();
-        }
+        final Bid updateBid = bid != null
+                ? Bid.builder()
+                .price(price)
+                .w(width)
+                .h(height)
+                .dealid(bid.getDealid())
+                .crid(bid.getCrid())
+                .adm(bid.getAdm())
+                .ext(bid.getExt())
+                .build()
+                : null;
 
-        if (updateSeatBid == null) {
+        if (updateBid == null) {
             return Result.emptyWithError(BidderError
                     .badServerResponse("Response resulted in an empty seatBid array. %s."));
         }
@@ -192,12 +194,8 @@ public class AdheseBidder implements Bidder<Void> {
          * Used ImpId from Imp of bidRequest, because it is not provided and should be not empty value
          */
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = updateSeatBid.getBid().stream()
-                .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, bidRequest.getImp().get(0).getId(), errors))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        return Result.of(bidderBids, errors);
+        return Result.of(Collections.singletonList(makeBid(updateBid, bidRequest.getImp().get(0).getId(), errors)),
+                errors);
     }
 
     private <T> List<T> decodeBodyToBidList(HttpCall<Void> httpCall, Class<T> bidClassName) {
@@ -210,19 +208,16 @@ public class AdheseBidder implements Bidder<Void> {
         }
     }
 
-    private SeatBid convertAdheseBid(AdheseBid adheseBid, AdheseResponseExt adheseResponseExt,
-                                     AdheseOriginData adheseOriginData) {
+    private Bid convertAdheseBid(AdheseBid adheseBid, AdheseResponseExt adheseResponseExt,
+                                 AdheseOriginData adheseOriginData) {
         final ObjectNode adheseExtJson = mapper.mapper().valueToTree(adheseOriginData);
 
-        return SeatBid.builder()
-                .bid(Collections.singletonList(Bid.builder()
-                        .id("1")
-                        .dealid(adheseResponseExt.getOrderId())
-                        .crid(adheseResponseExt.getId())
-                        .adm(getAdMarkup(adheseBid, adheseResponseExt))
-                        .ext(adheseExtJson)
-                        .build()))
-                .seat("")
+        return Bid.builder()
+                .id("1")
+                .dealid(adheseResponseExt.getOrderId())
+                .crid(adheseResponseExt.getId())
+                .adm(getAdMarkup(adheseBid, adheseResponseExt))
+                .ext(adheseExtJson)
                 .build();
     }
 
@@ -243,12 +238,11 @@ public class AdheseBidder implements Bidder<Void> {
         return adheseResponseExt.getTag();
     }
 
-    private SeatBid convertAdheseOpenRtbBid(AdheseBid adheseBid) {
-        return (CollectionUtils.isNotEmpty(adheseBid.getOriginData().getSeatbid())
-                && CollectionUtils.isNotEmpty(adheseBid.getOriginData().getSeatbid().get(0).getBid()))
-                ? SeatBid.builder()
-                .bid(Collections.singletonList(Bid.builder().adm(adheseBid.getBody()).build()))
-                .build()
+    private Bid convertAdheseOpenRtbBid(AdheseBid adheseBid) {
+        final List<SeatBid> seatbid = adheseBid.getOriginData().getSeatbid();
+        return CollectionUtils.isNotEmpty(seatbid)
+                && CollectionUtils.isNotEmpty(seatbid.get(0).getBid())
+                ? Bid.builder().adm(adheseBid.getBody()).build()
                 : null;
     }
 

@@ -5,9 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class CPMValues {
+public class Cpm {
 
-    String amount;
-
-    String currency;
+    CpmValues cpm;
 }

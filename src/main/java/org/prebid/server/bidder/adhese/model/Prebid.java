@@ -7,5 +7,5 @@ import lombok.Value;
 @Value
 public class Prebid {
 
-    CPM prebid;
+    Cpm prebid;
 }

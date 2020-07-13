@@ -15,8 +15,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adhese.model.AdheseBid;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
 import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
-import org.prebid.server.bidder.adhese.model.CPM;
-import org.prebid.server.bidder.adhese.model.CPMValues;
+import org.prebid.server.bidder.adhese.model.Cpm;
+import org.prebid.server.bidder.adhese.model.CpmValues;
 import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -152,7 +152,7 @@ public class AdheseBidderTest extends VertxTest {
         // given
         final AdheseBid adheseBid = AdheseBid.builder()
                 .body("<div style='background-color:red; height:250px; width:300px'></div>")
-                .extension(Prebid.of(CPM.of(CPMValues.of("1", "USD"))))
+                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
                 .originInstance("")
                 .width("728")
                 .height("90")
@@ -192,7 +192,7 @@ public class AdheseBidderTest extends VertxTest {
 
         final AdheseBid adheseBid = AdheseBid.builder()
                 .body("<div style='background-color:red; height:250px; width:300px'></div>")
-                .extension(Prebid.of(CPM.of(CPMValues.of("1", "USD"))))
+                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
                 .originInstance("")
                 .width("728")
                 .height("90")
@@ -250,7 +250,7 @@ public class AdheseBidderTest extends VertxTest {
 
         final AdheseBid adheseBid = AdheseBid.builder()
                 .body("<vast style='background-color:red; height:250px; width:300px'></vast>")
-                .extension(Prebid.of(CPM.of(CPMValues.of("1", "USD"))))
+                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
                 .originInstance("")
                 .width("728")
                 .height("90")
@@ -308,7 +308,7 @@ public class AdheseBidderTest extends VertxTest {
 
         final AdheseBid adheseBid = AdheseBid.builder()
                 .body("<vast style='background-color:red; height:250px; width:300px'></vast>")
-                .extension(Prebid.of(CPM.of(CPMValues.of("1", "USD"))))
+                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
                 .originInstance("")
                 .width("728")
                 .height("90")
