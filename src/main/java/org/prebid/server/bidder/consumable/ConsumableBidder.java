@@ -207,6 +207,9 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                             .crid(String.valueOf(decision.getAdId()))
                             .exp(30)
                             .build();
+                    // Consumable units are always HTML, never VAST.
+                    // From Prebid's point of view, this means that Consumable units
+                    // are always "banners".
                     bidderBids.add(BidderBid.of(bid, BidType.banner, null));
                 }
             }
