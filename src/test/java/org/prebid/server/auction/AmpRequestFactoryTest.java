@@ -75,6 +75,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock
     private RoutingContext routingContext;
     @Mock
+    private OrtbTypesResolver ortbTypesResolver;
+    @Mock
     private FpdResolver fpdResolver;
 
     @Before
@@ -91,8 +93,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
 
-        factory = new AmpRequestFactory(
-                storedRequestProcessor, auctionRequestFactory, fpdResolver, timeoutResolver, jacksonMapper);
+        factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
+                fpdResolver, timeoutResolver, jacksonMapper);
     }
 
     @Test
@@ -201,6 +203,21 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
                         .build());
+    }
+
+    @Test
+    public void shouldCallOrtbTypeResolver() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(null)),
+                Imp.builder().build());
+
+        // when
+        factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        verify(ortbTypesResolver).normalizeFpdFields(any(), anyList());
     }
 
     @Test
