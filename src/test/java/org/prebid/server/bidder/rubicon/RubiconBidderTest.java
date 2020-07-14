@@ -10,6 +10,7 @@ import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Metric;
@@ -584,12 +585,18 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyUserGenderYobToUserExtRp() {
+    public void makeHttpRequestsShouldRemoveUserGenderYobGeoExtData() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder()
+                        .buyeruid("buyeruid")
                         .gender("M")
                         .yob(2000)
+                        .geo(Geo.builder().country("US").build())
+                        .ext(ExtUser.builder()
+                                .consent("consent")
+                                .data(mapper.createObjectNode())
+                                .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -601,29 +608,30 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser).doesNotContainNull()
-                .extracting(User::getExt)
-                .containsOnly(jacksonMapper.fillExtension(
-                        ExtUser.builder().build(),
-                        RubiconUserExt.builder()
-                                .rp(RubiconUserExtRp.of(mapper.createObjectNode()
-                                        .<ObjectNode>set("gender", mapper.createArrayNode().add("M"))
-                                        .set("yob", mapper.createArrayNode().add("2000"))))
-                                .build()));
+                .extracting(BidRequest::getUser)
+                .containsOnly(User.builder()
+                        .buyeruid("buyeruid")
+                        .ext(ExtUser.builder()
+                                .consent("consent")
+                                .build())
+                        .build());
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyUserExtDataFieldsToUserExtRp() {
+    public void makeHttpRequestsShouldMergeUserExtDataFieldsToUserExtRp() {
         // given
-        final ObjectNode userExtDataNode = mapper.createObjectNode()
-                .set("property", mapper.createArrayNode().add("value"));
+        final ExtUser userExt = jacksonMapper.fillExtension(
+                ExtUser.builder()
+                        .data(mapper.createObjectNode()
+                                .set("property", mapper.createArrayNode().add("valueFromExtData")))
+                        .build(),
+                RubiconUserExt.builder()
+                        .rp(RubiconUserExtRp.of(mapper.createObjectNode()
+                                .set("property", mapper.createArrayNode().add("valueFromExtRpTarget"))))
+                        .build());
 
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder
-                        .user(User.builder()
-                                .ext(ExtUser.builder().data(userExtDataNode).build())
-                                .gender("M")
-                                .build()),
+                builder -> builder.user(User.builder().ext(userExt).build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -640,8 +648,9 @@ public class RubiconBidderTest extends VertxTest {
                         ExtUser.builder().build(),
                         RubiconUserExt.builder()
                                 .rp(RubiconUserExtRp.of(mapper.createObjectNode()
-                                        .<ObjectNode>set("gender", mapper.createArrayNode().add("M"))
-                                        .set("property", mapper.createArrayNode().add("value"))))
+                                        .set("property", mapper.createArrayNode()
+                                                .add("valueFromExtRpTarget")
+                                                .add("valueFromExtData"))))
                                 .build()));
     }
 

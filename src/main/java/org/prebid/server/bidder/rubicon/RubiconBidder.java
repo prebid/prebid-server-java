@@ -466,9 +466,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private void mergeIntoArray(ObjectNode result, String arrayField, Collection<String> values) {
         final JsonNode existingArray = result.get(arrayField);
         final Set<String> existingArrayValues = existingArray != null && isTextualArray(existingArray)
-                ? StreamSupport.stream(existingArray.spliterator(), false)
-                .map(JsonNode::asText)
-                .collect(Collectors.toCollection(LinkedHashSet::new))
+                ? stringArrayToStringSet(existingArray)
                 : new LinkedHashSet<>();
 
         existingArrayValues.addAll(values);
@@ -499,11 +497,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final JsonNode currentField = sourceNode.get(currentFieldName);
 
             if (isTextualArray(currentField)) {
-                targetNode.set(currentFieldName, currentField);
+                mergeIntoArray(targetNode, currentFieldName, stringArrayToStringSet(currentField));
             } else if (currentField.isTextual()) {
-                targetNode.set(currentFieldName, stringsToStringArray(currentField.textValue()));
+                mergeIntoArray(targetNode, currentFieldName, currentField.textValue());
             } else if (currentField.isIntegralNumber()) {
-                targetNode.set(currentFieldName, stringsToStringArray(Long.toString(currentField.longValue())));
+                mergeIntoArray(targetNode, currentFieldName, Long.toString(currentField.longValue()));
             }
         }
     }
@@ -520,6 +518,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ArrayNode arrayNode = mapper.mapper().createArrayNode();
         values.forEach(arrayNode::add);
         return arrayNode;
+    }
+
+    private static LinkedHashSet<String> stringArrayToStringSet(JsonNode stringArray) {
+        return StreamSupport.stream(stringArray.spliterator(), false)
+                .map(JsonNode::asText)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
@@ -618,8 +622,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
-        final User result;
-
         final ExtUser extUser = user != null ? user.getExt() : null;
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUser.getEids())
@@ -630,28 +632,31 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
 
-        if (userExtRp != null || userExtTpIds != null || userExtData != null) {
-            final ExtUser userExt = extUser != null
-                    ? ExtUser.builder().consent(extUser.getConsent())
-                    .digitrust(extUser.getDigitrust())
-                    .eids(extUser.getEids())
-                    .build()
-                    : ExtUser.builder().build();
-
-            final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
-                    .rp(userExtRp)
-                    .tpid(userExtTpIds)
-                    .build();
-
-            final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
-            result = userBuilder
-                    .ext(mapper.fillExtension(userExt, rubiconUserExt))
-                    .build();
-        } else {
-            result = user;
+        if (userExtRp == null && userExtTpIds == null && userExtData == null) {
+            return user;
         }
 
-        return result;
+        final ExtUser userExt = extUser != null
+                ? ExtUser.builder()
+                .consent(extUser.getConsent())
+                .digitrust(extUser.getDigitrust())
+                .eids(extUser.getEids())
+                .build()
+                : ExtUser.builder().build();
+
+        final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
+                .rp(userExtRp)
+                .tpid(userExtTpIds)
+                .build();
+
+        final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
+
+        return userBuilder
+                .gender(null)
+                .yob(null)
+                .geo(null)
+                .ext(mapper.fillExtension(userExt, rubiconUserExt))
+                .build();
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
@@ -716,7 +721,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                             ObjectNode visitor,
                                             User user) {
 
-        final ObjectNode result = mapper.mapper().createObjectNode();
+        final ObjectNode result = existingRubiconUserExtRpTarget(user);
 
         populateFirstPartyDataAttributes(visitor, result);
 
@@ -725,6 +730,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         copyFirstPartyDataFromUser(user, result);
 
         return result.size() > 0 ? result : null;
+    }
+
+    private ObjectNode existingRubiconUserExtRpTarget(User user) {
+        final ExtUser userExt = user != null ? user.getExt() : null;
+        final RubiconUserExt userRubiconExt = userExt != null
+                ? mapper.mapper().convertValue(userExt, RubiconUserExt.class)
+                : null;
+        final RubiconUserExtRp userRubiconRpExt = userRubiconExt != null ? userRubiconExt.getRp() : null;
+        final JsonNode target = userRubiconRpExt != null ? userRubiconRpExt.getTarget() : null;
+
+        return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
     }
 
     private void copyLiveIntentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
@@ -739,21 +755,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private void copyFirstPartyDataFromUser(User user, ObjectNode result) {
-        // copy OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
+        // merge OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
         final ExtUser userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
-        }
-
-        // copy OPENRTB.user.gender to XAPI.user.ext.rp.target.gender
-        // copy OPENRTB.user.yob to XAPI.user.ext.rp.target.yob
-        final String gender = user != null ? user.getGender() : null;
-        if (StringUtils.isNotBlank(gender)) {
-            result.set(FPD_GENDER_FIELD, stringsToStringArray(gender));
-        }
-        final Integer yob = user != null ? user.getYob() : null;
-        if (yob != null) {
-            result.set(FPD_YOB_FIELD, stringsToStringArray(Integer.toString(yob)));
         }
     }
 
