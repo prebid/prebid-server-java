@@ -139,7 +139,10 @@ accounts:
   
 ## Database application setting
 
-In database approach account properties are stored in database table with name accounts_account.
+In database approach account properties are stored in database table.
+
+SQL query for retrieving account is configurable and can be specified in [application configuration](config-app.md). 
+Requirements for the SQL query stated below.
 
 ### Configuration in application.yaml
 ```
@@ -150,36 +153,28 @@ settings:
     type: mysql
     host: <host>
     port: <port>
+    account-query: <SQL query for account>
 ```
 
-### Table description 
+### SQL query for account requirements
 
-Query to create accounts_account table:
+The SQL query for account must:
+* return following columns, with specified type, in that order:
+    * account ID, string
+    * price granularity, string
+    * banner cache TTL, integer
+    * video cache TTL, integer
+    * events enabled flag, boolean
+    * enforce CCPA flag, boolean
+    * TCF configuration, JSON string, see below
+    * analytics sampling factor, integer
+    * maximum targeting attribute size, integer
+* specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
+runtime
 
-```
-'CREATE TABLE `accounts_account` (
-`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-`uuid` varchar(40) NOT NULL,
-`price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
-`granularityMultiplier` decimal(9,3) DEFAULT NULL,
-`banner_cache_ttl` int(11) DEFAULT NULL,
-`video_cache_ttl` int(11) DEFAULT NULL,
-`events_enabled` bit(1) DEFAULT NULL,
-`enforce_ccpa` bit(1) DEFAULT NULL,
-`enforce_gdpr` bit(1) DEFAULT NULL,
-`tcf_config` json DEFAULT NULL,
-`analytics_sampling_factor` tinyint(4) DEFAULT NULL,
-`truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
-`status` enum('active','inactive') DEFAULT 'active',
-`updated_by` int(11) DEFAULT NULL,
-`updated_by_user` varchar(64) DEFAULT NULL,
-`updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-PRIMARY KEY (`id`),
-UNIQUE KEY `uuid` (`uuid`))
-ENGINE=InnoDB AUTO_INCREMENT=1726 DEFAULT CHARSET=utf8'
-```
+It is recommended to include `LIMIT 1` clause in the query because only the very first result returned will be taken.
 
-where tcf_config column is json with next format
+TCF configuration column format:
 
 ```
 {
@@ -286,10 +281,32 @@ where tcf_config column is json with next format
 }
 ```
 
+#### Example
+
+Query to create accounts_account table:
+
+```
+'CREATE TABLE `accounts_account` (
+`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+`uuid` varchar(40) NOT NULL,
+`price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
+`granularityMultiplier` decimal(9,3) DEFAULT NULL,
+`banner_cache_ttl` int(11) DEFAULT NULL,
+`video_cache_ttl` int(11) DEFAULT NULL,
+`events_enabled` bit(1) DEFAULT NULL,
+`enforce_ccpa` bit(1) DEFAULT NULL,
+`tcf_config` json DEFAULT NULL,
+`analytics_sampling_factor` tinyint(4) DEFAULT NULL,
+`truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+PRIMARY KEY (`id`),
+UNIQUE KEY `uuid` (`uuid`))
+ENGINE=InnoDB AUTO_INCREMENT=1726 DEFAULT CHARSET=utf8'
+```
+
 Query used to get an account:
 ```
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr 
-FROM accounts_account where uuid = ?
+SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 
+analytics_sampling_factor, truncate_target_attr 
+FROM accounts_account where uuid = %ACCOUNT_ID%
 LIMIT 1
-
 ```

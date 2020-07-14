@@ -56,6 +56,11 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
     private static final String JDBC_URL = "jdbc:h2:mem:test";
 
+    public static final String SELECT_ACCOUNT_QUERY =
+            "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
+                    + "events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr "
+                    + "FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
+
     private static final String SELECT_QUERY =
             "SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) "
                     + "UNION ALL "
@@ -145,7 +150,12 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(5000L);
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
+                SELECT_QUERY,
+                SELECT_QUERY,
                 SELECT_RESPONSE_QUERY);
     }
 
@@ -283,8 +293,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getVideoStoredDataShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
-                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
+                SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY,
+                SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -311,8 +326,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
-                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
+                SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY,
+                SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -339,8 +359,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getAmpStoredDataUnionSelectByIdShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_UNION_QUERY,
-                SELECT_UNION_QUERY, SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
+                SELECT_UNION_QUERY,
+                SELECT_UNION_QUERY,
+                SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -408,8 +433,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
-                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
+                SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -427,9 +457,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getAmpStoredDataShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper,
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
-                SELECT_FROM_ONE_COLUMN_TABLE_QUERY, SELECT_RESPONSE_QUERY);
+                SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
+                SELECT_RESPONSE_QUERY);
 
         // when
         final Future<StoredDataResult> storedRequestResultFuture =
@@ -527,7 +561,12 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredResponseShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), jacksonMapper, SELECT_QUERY, SELECT_QUERY,
+        jdbcApplicationSettings = new JdbcApplicationSettings(
+                jdbcClient(),
+                jacksonMapper,
+                SELECT_ACCOUNT_QUERY,
+                SELECT_QUERY,
+                SELECT_QUERY,
                 SELECT_ONE_COLUMN_RESPONSE_QUERY);
 
         // when
