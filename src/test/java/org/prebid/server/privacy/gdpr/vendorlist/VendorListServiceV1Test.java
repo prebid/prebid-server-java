@@ -336,7 +336,7 @@ public class VendorListServiceV1Test extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(metrics).updatePrivacyTcfVendorListMissingMetric(eq(1), eq(1));
+        verify(metrics).updatePrivacyTcfVendorListMissingMetric(eq(1));
     }
 
     @Test
@@ -348,7 +348,7 @@ public class VendorListServiceV1Test extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(1), eq(1));
+        verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(1));
     }
 
     @Test
@@ -363,7 +363,7 @@ public class VendorListServiceV1Test extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(1), eq(1));
+        verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(1));
     }
 
     @Test
@@ -378,7 +378,7 @@ public class VendorListServiceV1Test extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(metrics).updatePrivacyTcfVendorListOkMetric(eq(1), eq(1));
+        verify(metrics).updatePrivacyTcfVendorListOkMetric(eq(1));
     }
 
     private static VendorListV1 givenVendorList() {
