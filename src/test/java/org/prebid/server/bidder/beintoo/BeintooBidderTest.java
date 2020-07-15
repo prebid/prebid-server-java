@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,6 +67,21 @@ public class BeintooBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new BeintooBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(emptyList())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
     }
 
     @Test
