@@ -97,6 +97,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -113,13 +114,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
+    public static final String FPD_SECTIONCAT_FIELD = "sectioncat";
+    public static final String FPD_PAGECAT_FIELD = "pagecat";
+    public static final String FPD_PAGE_FIELD = "page";
+    public static final String FPD_REF_FIELD = "ref";
     public static final String FPD_SEARCH_FIELD = "search";
     public static final String FPD_ADSLOT_FIELD = "adslot";
     public static final String FPD_ADSERVER_NAME_GAM = "gam";
     public static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
     public static final String FPD_KEYWORDS_FIELD = "keywords";
-    public static final String FPD_GENDER_FIELD = "gender";
-    public static final String FPD_YOB_FIELD = "yob";
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
@@ -350,8 +353,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private RubiconImpExt makeImpExt(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app) {
-        return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(),
-                makeTarget(imp, rubiconImpExt, site, app), RubiconImpExtRpTrack.of("", "")),
+        return RubiconImpExt.of(
+                RubiconImpExtRp.of(
+                        rubiconImpExt.getZoneId(),
+                        makeTarget(imp, rubiconImpExt, site, app),
+                        RubiconImpExtRpTrack.of("", "")),
                 mapVendorsNamesToUrls(imp.getMetric()));
     }
 
@@ -360,51 +366,63 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         populateFirstPartyDataAttributes(rubiconImpExt.getInventory(), result);
 
-        copyFirstPartyDataFromSite(site, result);
-        copyFirstPartyDataFromApp(app, result);
-        copyFirstPartyDataFromImp(imp, rubiconImpExt, result);
+        mergeFirstPartyDataFromSite(site, result);
+        mergeFirstPartyDataFromApp(app, result);
+        mergeFirstPartyDataFromImp(imp, rubiconImpExt, result);
 
         return result.size() > 0 ? result : null;
     }
 
-    private void copyFirstPartyDataFromSite(Site site, ObjectNode result) {
-        // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
+    private void mergeFirstPartyDataFromSite(Site site, ObjectNode result) {
+        // merge OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
         final ExtSite siteExt = site != null ? site.getExt() : null;
         if (siteExt != null) {
             populateFirstPartyDataAttributes(siteExt.getData(), result);
         }
 
+        // merge OPENRTB.site.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
+        mergeCollectionAttributeIntoArray(result, site, Site::getSectioncat, FPD_SECTIONCAT_FIELD);
+        // merge OPENRTB.site.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
+        mergeCollectionAttributeIntoArray(result, site, Site::getPagecat, FPD_PAGECAT_FIELD);
+        // merge OPENRTB.site.page to every impression XAPI.imp[].ext.rp.target.page
+        mergeStringAttributeIntoArray(result, site, Site::getPage, FPD_PAGE_FIELD);
+        // merge OPENRTB.site.ref to every impression XAPI.imp[].ext.rp.target.ref
+        mergeStringAttributeIntoArray(result, site, Site::getRef, FPD_REF_FIELD);
         // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
-        final String search = site != null ? site.getSearch() : null;
-        if (StringUtils.isNotBlank(search)) {
-            mergeIntoArray(result, FPD_SEARCH_FIELD, search);
-        }
+        mergeStringAttributeIntoArray(result, site, Site::getSearch, FPD_SEARCH_FIELD);
     }
 
-    private void copyFirstPartyDataFromApp(App app, ObjectNode result) {
-        // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
+    private void mergeFirstPartyDataFromApp(App app, ObjectNode result) {
+        // merge OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
         final ExtApp appExt = app != null ? app.getExt() : null;
         if (appExt != null) {
             populateFirstPartyDataAttributes(appExt.getData(), result);
         }
+
+        // merge OPENRTB.app.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
+        mergeCollectionAttributeIntoArray(result, app, App::getSectioncat, FPD_SECTIONCAT_FIELD);
+        // merge OPENRTB.app.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
+        mergeCollectionAttributeIntoArray(result, app, App::getPagecat, FPD_PAGECAT_FIELD);
     }
 
-    private void copyFirstPartyDataFromImp(Imp imp, ExtImpRubicon rubiconImpExt, ObjectNode result) {
+    private void mergeFirstPartyDataFromImp(Imp imp, ExtImpRubicon rubiconImpExt, ObjectNode result) {
         final ExtImpContext context = extImpContext(imp);
 
-        copyFirstPartyDataFromContextData(context, result);
-        copyFirstPartyDataKeywords(context, result);
-        copyRubiconKeywords(rubiconImpExt, result);
-        copyFirstPartyDataSearch(context, result);
+        mergeFirstPartyDataFromContextData(context, result);
+        mergeFirstPartyDataKeywords(context, result);
+        // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
+        mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
+        // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
+        mergeStringAttributeIntoArray(result, context, ExtImpContext::getSearch, FPD_SEARCH_FIELD);
 
     }
 
-    private void copyFirstPartyDataFromContextData(ExtImpContext context, ObjectNode result) {
+    private void mergeFirstPartyDataFromContextData(ExtImpContext context, ObjectNode result) {
         if (context == null) {
             return;
         }
 
-        // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
+        // merge OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
         final ObjectNode contextDataNode = context.getData();
         if (contextDataNode != null) {
             populateFirstPartyDataAttributes(contextDataNode, result);
@@ -435,7 +453,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void copyFirstPartyDataKeywords(ExtImpContext context, ObjectNode result) {
+    private void mergeFirstPartyDataKeywords(ExtImpContext context, ObjectNode result) {
         // merge OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
         final String keywords = context != null ? context.getKeywords() : null;
         if (StringUtils.isNotBlank(keywords)) {
@@ -443,19 +461,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void copyRubiconKeywords(ExtImpRubicon rubiconImpExt, ObjectNode result) {
-        // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
-        final List<String> keywords = rubiconImpExt != null ? rubiconImpExt.getKeywords() : null;
-        if (CollectionUtils.isNotEmpty(keywords)) {
-            mergeIntoArray(result, FPD_KEYWORDS_FIELD, keywords);
+    private <S, T extends Collection<? extends String>> void mergeCollectionAttributeIntoArray(
+            ObjectNode result, S source, Function<S, T> getter, String fieldName) {
+
+        final T attribute = source != null ? getter.apply(source) : null;
+        if (CollectionUtils.isNotEmpty(attribute)) {
+            mergeIntoArray(result, fieldName, attribute);
         }
     }
 
-    private void copyFirstPartyDataSearch(ExtImpContext context, ObjectNode result) {
-        // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
-        final String search = context != null ? context.getSearch() : null;
-        if (StringUtils.isNotBlank(search)) {
-            mergeIntoArray(result, FPD_SEARCH_FIELD, search);
+    private <S, T extends String> void mergeStringAttributeIntoArray(
+            ObjectNode result, S source, Function<S, T> getter, String fieldName) {
+
+        final T attribute = source != null ? getter.apply(source) : null;
+        if (StringUtils.isNotBlank(attribute)) {
+            mergeIntoArray(result, fieldName, attribute);
         }
     }
 
@@ -463,7 +483,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeIntoArray(result, arrayField, Arrays.asList(values));
     }
 
-    private void mergeIntoArray(ObjectNode result, String arrayField, Collection<String> values) {
+    private void mergeIntoArray(ObjectNode result, String arrayField, Collection<? extends String> values) {
         final JsonNode existingArray = result.get(arrayField);
         final Set<String> existingArrayValues = existingArray != null && isTextualArray(existingArray)
                 ? stringArrayToStringSet(existingArray)
@@ -727,7 +747,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         copyLiveIntentSegment(sourceToUserEidExt, result);
 
-        copyFirstPartyDataFromUser(user, result);
+        mergeFirstPartyDataFromUser(user, result);
 
         return result.size() > 0 ? result : null;
     }
@@ -754,7 +774,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private void copyFirstPartyDataFromUser(User user, ObjectNode result) {
+    private void mergeFirstPartyDataFromUser(User user, ObjectNode result) {
         // merge OPENRTB.user.ext.data.* to XAPI.user.ext.rp.target.*
         final ExtUser userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
@@ -776,7 +796,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return site == null
-                ? Site.builder().content(makeSiteContent(null, impLanguage)).build()
+                ? Site.builder()
+                .content(makeSiteContent(null, impLanguage))
+                .build()
                 : site.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
                 .content(makeSiteContent(site.getContent(), impLanguage))
@@ -810,14 +832,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private ExtSite makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
-        ExtSite extSite = null;
-        if (site != null) {
-            try {
-                extSite = mapper.mapper().convertValue(site.getExt(), ExtSite.class);
-            } catch (IllegalArgumentException e) {
-                throw new PreBidException(e.getMessage(), e.getCause());
-            }
-        }
+        final ExtSite extSite = site != null ? site.getExt() : null;
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
 
         return mapper.fillExtension(

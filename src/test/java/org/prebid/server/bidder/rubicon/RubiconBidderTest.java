@@ -1031,6 +1031,27 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldRemoveSiteExtData() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder().ext(ExtSite.of(null, mapper.createObjectNode())).build()),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.siteId(3001));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtSite.of(null, null),
+                        RubiconSiteExt.of(RubiconSiteExtRp.of(3001))));
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillAppExtIfAppPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1056,6 +1077,27 @@ public class RubiconBidderTest extends VertxTest {
                                 ExtApp.of(null, null),
                                 RubiconAppExt.of(RubiconSiteExtRp.of(3001))))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRemoveAppExtData() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.app(App.builder().ext(ExtApp.of(null, mapper.createObjectNode())).build()),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.siteId(3001));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getApp)
+                .extracting(App::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtApp.of(null, null),
+                        RubiconAppExt.of(RubiconSiteExtRp.of(3001))));
     }
 
     @Test
@@ -1430,32 +1472,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopySiteSearchToRubiconImpExtRpTargetSearch() throws IOException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().search("site search").build()),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                identity());
-
-        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        impExt.putObject("context");
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
-                .extracting(RubiconImpExt::getRp)
-                .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"search\":[\"site search\"]}"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldCopyImpExtVideoLanguageToSiteContentLanguage() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1500,6 +1516,101 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.readTree("{\"search\":[\"site search\", \"imp ext search\"]}"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMergeImpExtContextDataAndSiteAttributesAndCopyToRubiconImpExtRpTarget()
+            throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder()
+                        .sectioncat(singletonList("site sectioncat"))
+                        .pagecat(singletonList("site pagecat"))
+                        .page("site page")
+                        .ref("site ref")
+                        .search("site search")
+                        .build()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExtContextData = mapper.createObjectNode()
+                .<ObjectNode>set("sectioncat", mapper.createArrayNode().add("imp ext sectioncat"))
+                .<ObjectNode>set("pagecat", mapper.createArrayNode().add("imp ext pagecat"))
+                .put("page", "imp ext page")
+                .put("ref", "imp ext ref")
+                .put("search", "imp ext search");
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, null, impExtContextData)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(mapper.createObjectNode()
+                        .<ObjectNode>set("sectioncat", mapper.createArrayNode()
+                                .add("site sectioncat")
+                                .add("imp ext sectioncat"))
+                        .<ObjectNode>set("pagecat", mapper.createArrayNode()
+                                .add("site pagecat")
+                                .add("imp ext pagecat"))
+                        .<ObjectNode>set("page", mapper.createArrayNode()
+                                .add("site page")
+                                .add("imp ext page"))
+                        .<ObjectNode>set("ref", mapper.createArrayNode()
+                                .add("site ref")
+                                .add("imp ext ref"))
+                        .set("search", mapper.createArrayNode()
+                                .add("site search")
+                                .add("imp ext search")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMergeImpExtContextDataAndAppAttributesAndCopyToRubiconImpExtRpTarget()
+            throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.app(App.builder()
+                        .sectioncat(singletonList("app sectioncat"))
+                        .pagecat(singletonList("app pagecat"))
+                        .build()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExtContextData = mapper.createObjectNode()
+                .<ObjectNode>set("sectioncat", mapper.createArrayNode().add("imp ext sectioncat"))
+                .<ObjectNode>set("pagecat", mapper.createArrayNode().add("imp ext pagecat"));
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, null, impExtContextData)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(mapper.createObjectNode()
+                        .<ObjectNode>set("sectioncat", mapper.createArrayNode()
+                                .add("app sectioncat")
+                                .add("imp ext sectioncat"))
+                        .<ObjectNode>set("pagecat", mapper.createArrayNode()
+                                .add("app pagecat")
+                                .add("imp ext pagecat")));
     }
 
     @Test
