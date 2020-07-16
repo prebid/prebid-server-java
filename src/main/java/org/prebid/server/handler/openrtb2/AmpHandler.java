@@ -12,6 +12,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -27,7 +28,6 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -125,21 +125,16 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(context -> context.toBuilder()
                         .requestTypeMetric(REQUEST_TYPE_METRIC)
                         .build())
-
-                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
                 .map(context -> updateAppAndNoCookieAndImpsMetrics(context, isSafari))
+                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
 
-                .compose(context -> exchangeService.holdAuction(context)
-                        .map(bidResponse -> Tuple2.of(bidResponse, context)))
+                .compose(exchangeService::holdAuction)
+                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
+                .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
 
-                .map(result -> addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
-                .map(result -> Tuple3.of(result.getLeft(), result.getRight(),
-                        toAmpResponse(result.getRight().getBidRequest(), result.getLeft())))
-
-                .compose(result -> ampResponsePostProcessor.postProcess(result.getMiddle().getBidRequest(),
-                        result.getLeft(), result.getRight(), routingContext))
-
+                .compose(this::prepareAmpResponse)
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
+
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
@@ -159,6 +154,14 @@ public class AmpHandler implements Handler<RoutingContext> {
         metrics.updateImpTypesMetrics(imps);
 
         return context;
+    }
+
+    private Future<AmpResponse> prepareAmpResponse(AuctionContext context) {
+        final BidRequest bidRequest = context.getBidRequest();
+        final BidResponse bidResponse = context.getBidResponse();
+        final AmpResponse ampResponse = toAmpResponse(bidRequest, bidResponse);
+        final RoutingContext routingContext = context.getRoutingContext();
+        return ampResponsePostProcessor.postProcess(bidRequest, bidResponse, ampResponse, routingContext);
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {

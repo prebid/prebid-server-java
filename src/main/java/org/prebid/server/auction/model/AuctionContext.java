@@ -2,6 +2,7 @@ package org.prebid.server.auction.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.BidResponse;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
@@ -23,6 +24,12 @@ public class AuctionContext {
     UidsCookie uidsCookie;
 
     BidRequest bidRequest;
+
+    @JsonIgnore
+    BidResponse bidResponse;
+
+    @JsonIgnore
+    List<AuctionParticipation> auctionParticipations;
 
     @JsonIgnore
     Timeout timeout;

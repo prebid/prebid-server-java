@@ -9,6 +9,7 @@ import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
+import org.prebid.server.auction.BidRequester;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
@@ -389,14 +390,29 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ExchangeService exchangeService(
+    BidRequester bidRequester(
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
-            StoredResponseProcessor storedResponseProcessor,
-            PrivacyEnforcementService privacyEnforcementService,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
+            Clock clock) {
+
+        return new BidRequester(
+                expectedCacheTimeMs,
+                bidderCatalog,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyConversionService,
+                clock);
+    }
+
+    @Bean
+    ExchangeService exchangeService(
+            BidderCatalog bidderCatalog,
+            StoredResponseProcessor storedResponseProcessor,
+            PrivacyEnforcementService privacyEnforcementService,
+            BidRequester bidRequester,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
@@ -404,13 +420,10 @@ public class ServiceConfiguration {
             JacksonMapper mapper) {
 
         return new ExchangeService(
-                expectedCacheTimeMs,
                 bidderCatalog,
                 storedResponseProcessor,
+                bidRequester,
                 privacyEnforcementService,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
                 metrics,
