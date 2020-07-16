@@ -74,8 +74,8 @@ public class BrightrollBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("testPublisher")))).build()))
                 .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
+                .regs(Regs.of(0, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -104,11 +104,11 @@ public class BrightrollBidderTest extends VertxTest {
                                 .build()))
                         .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
                         .bcat(BLOCKED_CATEGORIES)
                         .badv(BLOCKED_ADVERTISERS)
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(0, ExtRegs.of(1, null)))
                         .at(1)
                         .build()));
     }
@@ -507,6 +507,7 @@ public class BrightrollBidderTest extends VertxTest {
     public void makeBidsShouldReturnMultipleBidderBidsFromFirstSeatBid() throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder()
+                .cur("EUR")
                 .seatbid(singletonList(
                         SeatBid.builder()
                                 .bid(asList(
@@ -525,8 +526,8 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, null),
-                        BidderBid.of(Bid.builder().impid("impId2").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, "EUR"),
+                        BidderBid.of(Bid.builder().impid("impId2").build(), BidType.banner, "EUR"));
     }
 
     @Test

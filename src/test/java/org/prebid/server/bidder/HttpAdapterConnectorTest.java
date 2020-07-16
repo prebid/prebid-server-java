@@ -86,8 +86,10 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     @Mock
     private HttpClient httpClient;
+
     private Clock clock;
 
     private HttpAdapterConnector httpAdapterConnector;
@@ -99,6 +101,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     private UidsCookie uidsCookie;
 
     private AdapterRequest adapterRequest;
+
     private PreBidRequestContext preBidRequestContext;
 
     @Before
@@ -112,7 +115,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         httpAdapterConnector = new HttpAdapterConnector(
-                httpClient, new PrivacyExtractor(jacksonMapper), clock, jacksonMapper);
+                httpClient, new PrivacyExtractor(), clock, jacksonMapper);
 
         usersyncer = new Usersyncer(null, "", "", null, null, false);
     }
@@ -580,9 +583,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
     public void callShouldReturnGdprAwareAdapterResponseWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        final Regs regs = Regs.of(0, mapper.valueToTree(ExtRegs.of(1, "1--")));
+        final Regs regs = Regs.of(0, ExtRegs.of(1, "1---"));
         final User user = User.builder()
-                .ext(mapper.valueToTree(ExtUser.builder().consent("consent$1").build()))
+                .ext(ExtUser.builder().consent("consent$1").build())
                 .build();
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.regs(regs).user(user));
 
@@ -603,7 +606,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         assertThat(adapterResponse.getBidderStatus().getNoCookie()).isTrue();
         assertThat(adapterResponse.getBidderStatus().getUsersync()).isNotNull();
         assertThat(adapterResponse.getBidderStatus().getUsersync()).isEqualTo(UsersyncInfo.of(
-                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1--", null, false));
+                "http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241%26us_privacy=1---", null, false));
     }
 
     @Test

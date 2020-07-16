@@ -6,8 +6,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Objects;
@@ -17,8 +15,6 @@ import java.util.concurrent.TimeoutException;
  * Simple wrapper around {@link HttpClient} with general functionality.
  */
 public class BasicHttpClient implements HttpClient {
-
-    private static final Logger logger = LoggerFactory.getLogger(BasicHttpClient.class);
 
     private final Vertx vertx;
     private final io.vertx.core.http.HttpClient httpClient;
@@ -95,8 +91,6 @@ public class BasicHttpClient implements HttpClient {
     }
 
     private static void failResponse(Throwable exception, Promise<HttpClientResponse> promise) {
-        logger.warn("HTTP client error", exception);
-
         promise.tryFail(exception);
     }
 }

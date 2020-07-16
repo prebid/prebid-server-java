@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: https://server.cpmstar.com/openrtbbidrq.aspx
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:

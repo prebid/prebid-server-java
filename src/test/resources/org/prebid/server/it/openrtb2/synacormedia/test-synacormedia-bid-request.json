@@ -1,79 +1,61 @@
 {
-  "at": 1,
-  "cur": [
-    "USD"
-  ],
-  "device": {
-    "dnt": 2,
-    "ifa": "ifaId",
-    "ip": "193.168.244.1",
-    "language": "en",
-    "pxratio": 4.2,
-    "ua": "userAgent"
-  },
-  "ext": {
-    "seatId": "228",
-    "tagId": "demo1"
-  },
   "id": "tid",
   "imp": [
     {
+      "id": "impId001",
       "banner": {
         "format": [
           {
-            "h": 250,
-            "w": 300
+            "w": 300,
+            "h": 250
           }
         ]
       },
+      "tagid": "demo1",
       "ext": {
         "bidder": {
           "seatId": "228",
           "tagId": "demo1"
         }
-      },
-      "id": "impId001",
-      "tagid": "demo1"
+      }
     },
     {
+      "id": "impId002",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 300,
+        "h": 250,
+        "pos": 1
+      },
+      "tagid": "demo1",
       "ext": {
         "bidder": {
           "seatId": "1987",
           "tagId": "demo1"
         }
-      },
-      "id": "impId002",
-      "tagid": "demo1",
-      "video": {
-        "h": 250,
-        "mimes": [
-          "video/mp4"
-        ],
-        "pos": 1,
-        "w": 300
       }
     }
   ],
-  "regs": {
-    "ext": {
-      "gdpr": 0
-    }
-  },
   "site": {
     "domain": "example.com",
-    "ext": {
-      "amp": 0
-    },
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
-  "source": {
-    "fd": 1,
-    "tid": "tid"
+  "device": {
+    "ua": "userAgent",
+    "dnt": 2,
+    "ip": "193.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId"
   },
-  "tmax": 5000,
   "user": {
     "buyeruid": "SCM-UID",
     "ext": {
@@ -84,5 +66,23 @@
         "pref": 0
       }
     }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "seatId": "228",
+    "tagId": "demo1"
   }
 }

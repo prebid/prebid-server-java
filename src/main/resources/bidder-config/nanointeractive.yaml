@@ -1,0 +1,23 @@
+adapters:
+  nanointeractive:
+    enabled: false
+    endpoint: https://ad.audiencemanager.de/hbs
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: development@nanointeractive.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://ad.audiencemanager.de/hbs/cookie_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri=
+      redirect-url: /setuid?bidder=nanointeractive&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      cookie-family-name: nanointeractive
+      type: redirect
+      support-cors: false
