@@ -8,9 +8,7 @@
           "impid": "impId6",
           "price": 4.75,
           "adm": "adm6",
-          "crid": "crid6",
-          "w": 300,
-          "h": 600
+          "crid": "crid6"
         }
       ],
       "seat": "seatId6"
