@@ -197,12 +197,11 @@ public class BidResponseCreator {
         final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
                 .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
 
-        final List<BidderBid> bidsForRemoval = impIdToBidderBid.values().stream()
-                .peek(bidderBids -> bidderBids.remove(mostValuableBid(bidderBids)))
-                .flatMap(Collection::stream)
+        final List<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
+                .map(BidResponseCreator::mostValuableBid)
                 .collect(Collectors.toList());
 
-        responseBidderBids.removeAll(bidsForRemoval);
+        responseBidderBids.retainAll(mostValuableBids);
     }
 
     private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {

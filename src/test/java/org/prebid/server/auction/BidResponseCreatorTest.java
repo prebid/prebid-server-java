@@ -386,7 +386,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
-        final Bid bid = Bid.builder().impid("i1").build();
+        final Bid bid = Bid.builder().impid("imp1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, null, null)), 100));
 
@@ -406,7 +406,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
-        final Bid bid = Bid.builder().impid("i1").build();
+        final Bid bid = Bid.builder().impid("imp1").build();
         final List<BidderResponse> bidderResponses = asList(
                 BidderResponse.of("bidder1", givenSeatBid(), 0),
                 BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
@@ -488,7 +488,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldFilterByDealsAndPriceBidsWhenImpIdsAreEqueal() {
+    public void shouldFilterByDealsAndPriceBidsWhenImpIdsAreEqual() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
