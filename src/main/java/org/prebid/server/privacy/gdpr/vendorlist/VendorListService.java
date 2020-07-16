@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +46,6 @@ public abstract class VendorListService<T, V> {
 
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
-    private static final Integer EXPIRE_DAY_CACHE_DURATION = 5;
 
     private final String cacheDir;
     private final String endpointTemplate;
@@ -143,7 +141,6 @@ public abstract class VendorListService<T, V> {
         final Map<String, String> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
 
         final Map<Integer, Map<Integer, V>> cache = Caffeine.newBuilder()
-                .expireAfterWrite(EXPIRE_DAY_CACHE_DURATION, TimeUnit.DAYS)
                 .<Integer, Map<Integer, V>>build()
                 .asMap();
 
