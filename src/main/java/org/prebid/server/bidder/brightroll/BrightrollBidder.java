@@ -198,7 +198,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         }
 
         final Video video = imp.getVideo();
-        if (video != null && (bidFloor != null && impBattr != null)) {
+        if (video != null && (bidFloor != null || impBattr != null)) {
             final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
             if (bidFloor != null) {
