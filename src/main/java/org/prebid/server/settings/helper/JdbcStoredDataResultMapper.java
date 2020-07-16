@@ -1,24 +1,22 @@
-package org.prebid.server.settings.mapper;
+package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
+import org.prebid.server.settings.model.StoredItem;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Utility class for mapping {@link ResultSet} to {@link StoredDataResult}.
@@ -63,8 +61,8 @@ public class JdbcStoredDataResultMapper {
                 errors.add(String.format("No %s%s%s were found", errorRequests, separator, errorImps));
             }
         } else {
-            final List<StoredItem> requestStoredItems = new ArrayList<>();
-            final List<StoredItem> impStoredItems = new ArrayList<>();
+            final Map<String, Set<StoredItem>> requestIdToStoredItems = new HashMap<>();
+            final Map<String, Set<StoredItem>> impIdToStoredItems = new HashMap<>();
 
             for (JsonArray result : resultSet.getResults()) {
                 final String fetchedAccountId;
@@ -88,22 +86,21 @@ public class JdbcStoredDataResultMapper {
                     type = StoredDataType.valueOf(typeAsString);
                 } catch (IllegalArgumentException e) {
                     logger.error("Stored request data with id={0} has invalid type: ''{1}'' and will be ignored.", e,
-                            id,
-                            typeAsString);
+                            id, typeAsString);
                     continue;
                 }
 
-                final StoredItem storedItem = StoredItem.of(fetchedAccountId, id, data);
                 if (type == StoredDataType.request) {
-                    requestStoredItems.add(storedItem);
+                    addStoredItem(fetchedAccountId, id, data, requestIdToStoredItems);
                 } else {
-                    impStoredItems.add(storedItem);
+                    addStoredItem(fetchedAccountId, id, data, impIdToStoredItems);
                 }
             }
 
-            storedIdToRequest = storedItemsOrAddError(StoredDataType.request, accountId, requestIds, requestStoredItems,
-                    errors);
-            storedIdToImp = storedItemsOrAddError(StoredDataType.imp, accountId, impIds, impStoredItems, errors);
+            storedIdToRequest = storedItemsOrAddError(StoredDataType.request, accountId, requestIds,
+                    requestIdToStoredItems, errors);
+            storedIdToImp = storedItemsOrAddError(StoredDataType.imp, accountId, impIds,
+                    impIdToStoredItems, errors);
         }
 
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
@@ -112,81 +109,51 @@ public class JdbcStoredDataResultMapper {
     /**
      * Overloaded method for cases when no specific IDs are required, e.g. fetching all records.
      *
-     * @param resultSet - incoming Result Set representing a result of SQL query
-     * @return - a {@link StoredDataResult} object
+     * @param resultSet - incoming {@link ResultSet} representing a result of SQL query.
+     * @return - a {@link StoredDataResult} object.
      */
     public static StoredDataResult map(ResultSet resultSet) {
         return map(resultSet, null, Collections.emptySet(), Collections.emptySet());
     }
 
-    /**
-     * Tries to find stored item which belongs to appropriate account.
-     * <p>
-     * Additional processing involved because incoming prebid request may not have account defined,
-     * so there are two cases:
-     * <p>
-     * - account is present in request - find stored items of this account or skip it otherwise.
-     * <p>
-     * - account is not present in request - if multiple items were found - add error, otherwise use found item.
-     *
-     * @return map of stored ID -> value or populate error.
-     */
-    private static Map<String, String> storedItemsOrAddError(StoredDataType type, String accountId,
-                                                             Set<String> searchIds, List<StoredItem> foundStoredItems,
-                                                             List<String> errors) {
-        final Map<String, String> result = new HashMap<>(foundStoredItems.size());
+    private static void addStoredItem(String accountId, String id, String data,
+                                      Map<String, Set<StoredItem>> idToStoredItems) {
+        final StoredItem storedItem = StoredItem.of(accountId, data);
 
-        if (searchIds.isEmpty()) {
-            foundStoredItems.forEach(storedItem -> result.put(storedItem.getId(), storedItem.getData()));
+        final Set<StoredItem> storedItems = idToStoredItems.get(id);
+        if (storedItems == null) {
+            idToStoredItems.put(id, new HashSet<>(Collections.singleton(storedItem)));
         } else {
-            final Map<String, List<StoredItem>> idToStoredItems = foundStoredItems.stream()
-                    .collect(Collectors.groupingBy(StoredItem::getId));
-
-            for (String searchId : searchIds) {
-                final List<StoredItem> storedItems = idToStoredItems.get(searchId);
-
-                if (CollectionUtils.isEmpty(storedItems)) {
-                    errors.add(String.format("No stored %s found for id: %s", type, searchId));
-                } else {
-                    if (StringUtils.isNotEmpty(accountId)) {
-                        final StoredItem storedItem = storedItems.stream()
-                                .filter(item -> Objects.equals(item.getAccountId(), accountId))
-                                .findAny()
-                                .orElse(null);
-
-                        if (storedItem == null) {
-                            errors.add(String.format(
-                                    "No stored %s found for id: %s for account: %s", type, searchId, accountId));
-                        } else {
-                            result.put(storedItem.getId(), storedItem.getData());
-                        }
-                    } else {
-                        if (storedItems.size() > 1) {
-                            errors.add(String.format(
-                                    "Multiple stored %ss found for id: %s but no account ID specified in request",
-                                    type, searchId));
-                        } else {
-                            final StoredItem storedItem = storedItems.get(0);
-                            result.put(storedItem.getId(), storedItem.getData());
-                        }
-                    }
-                }
-            }
+            storedItems.add(storedItem);
         }
-        return result;
     }
 
     /**
-     * The model helps to reduce multiple rows found for single stored request/imp ID.
+     * Returns map of stored ID -> value or populates error.
      */
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class StoredItem {
+    private static Map<String, String> storedItemsOrAddError(StoredDataType type,
+                                                             String accountId,
+                                                             Set<String> searchIds,
+                                                             Map<String, Set<StoredItem>> foundIdToStoredItems,
+                                                             List<String> errors) {
+        final Map<String, String> result = new HashMap<>();
 
-        String accountId;
+        if (searchIds.isEmpty()) {
+            for (Map.Entry<String, Set<StoredItem>> entry : foundIdToStoredItems.entrySet()) {
+                entry.getValue().forEach(storedItem -> result.put(entry.getKey(), storedItem.getData()));
+            }
+        } else {
+            for (String id : searchIds) {
+                try {
+                    final StoredItem resolvedStoredItem = StoredItemResolver.resolve(type, accountId, id,
+                            foundIdToStoredItems.get(id));
+                    result.put(id, resolvedStoredItem.getData());
+                } catch (PreBidException e) {
+                    errors.add(e.getMessage());
+                }
+            }
+        }
 
-        String id;
-
-        String data;
+        return result;
     }
 }

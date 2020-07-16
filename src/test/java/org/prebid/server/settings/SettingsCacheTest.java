@@ -2,7 +2,7 @@ package org.prebid.server.settings;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.prebid.server.settings.model.CachedStoredDataValue;
+import org.prebid.server.settings.model.StoredItem;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -35,7 +35,7 @@ public class SettingsCacheTest {
 
         // then
         assertThat(settingsCache.getRequestCache()).hasSize(1)
-                .containsEntry("reqId1", singleton(CachedStoredDataValue.of("1001", "reqValue1")));
+                .containsEntry("reqId1", singleton(StoredItem.of("1001", "reqValue1")));
     }
 
     @Test
@@ -45,7 +45,7 @@ public class SettingsCacheTest {
 
         // then
         assertThat(settingsCache.getImpCache()).hasSize(1)
-                .containsEntry("impId1", singleton(CachedStoredDataValue.of("1001", "impValue1")));
+                .containsEntry("impId1", singleton(StoredItem.of("1001", "impValue1")));
     }
 
     @Test
@@ -55,9 +55,9 @@ public class SettingsCacheTest {
 
         // then
         assertThat(settingsCache.getRequestCache()).hasSize(1)
-                .containsEntry("reqId1", singleton(CachedStoredDataValue.of(null, "reqValue1")));
+                .containsEntry("reqId1", singleton(StoredItem.of(null, "reqValue1")));
         assertThat(settingsCache.getImpCache()).hasSize(1)
-                .containsEntry("impId1", singleton(CachedStoredDataValue.of(null, "impValue1")));
+                .containsEntry("impId1", singleton(StoredItem.of(null, "impValue1")));
     }
 
     @Test
@@ -71,8 +71,8 @@ public class SettingsCacheTest {
 
         // then
         assertThat(settingsCache.getRequestCache()).hasSize(1)
-                .containsEntry("reqId2", singleton(CachedStoredDataValue.of(null, "reqValue2")));
+                .containsEntry("reqId2", singleton(StoredItem.of(null, "reqValue2")));
         assertThat(settingsCache.getImpCache()).hasSize(1)
-                .containsEntry("impId2", singleton(CachedStoredDataValue.of(null, "impValue2")));
+                .containsEntry("impId2", singleton(StoredItem.of(null, "impValue2")));
     }
 }

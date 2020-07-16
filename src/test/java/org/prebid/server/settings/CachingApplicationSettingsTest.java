@@ -265,6 +265,30 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
+    public void getStoredDataShouldReturnResultWithErrorIfAccountDiffers() {
+        // given
+        given(applicationSettings.getStoredData(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("reqid", "json"), emptyMap(), emptyList())))
+                .willReturn(Future.failedFuture("error"));
+
+        // when
+        cachingApplicationSettings.getStoredData("1001", singleton("reqid"), emptySet(), timeout);
+        // second call
+        final Future<StoredDataResult> future =
+                cachingApplicationSettings.getStoredData("1002", singleton("reqid"), emptySet(), timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).hasMessage("error");
+        verify(applicationSettings)
+                .getStoredData(eq("1001"), eq(singleton("reqid")), eq(emptySet()), same(timeout));
+        verify(applicationSettings)
+                .getStoredData(eq("1002"), eq(singleton("reqid")), eq(emptySet()), same(timeout));
+        verifyNoMoreInteractions(applicationSettings);
+    }
+
+    @Test
     public void getStoredResponseShouldPropagateFailure() {
         // given
         given(applicationSettings.getStoredResponses(anySet(), any()))

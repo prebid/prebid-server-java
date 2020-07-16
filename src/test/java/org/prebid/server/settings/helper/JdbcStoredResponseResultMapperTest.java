@@ -1,4 +1,4 @@
-package org.prebid.server.settings.mapper;
+package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;

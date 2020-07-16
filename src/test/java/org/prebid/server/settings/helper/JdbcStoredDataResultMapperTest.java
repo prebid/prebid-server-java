@@ -1,4 +1,4 @@
-package org.prebid.server.settings.mapper;
+package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
@@ -64,7 +64,7 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId", "id1", "data"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId",
                 singleton("reqId"), emptySet());
 
         // then
@@ -81,7 +81,7 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId", "id1", "data", 123))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null,
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId",
                 singleton("reqId"), emptySet());
 
         // then
@@ -116,7 +116,7 @@ public class JdbcStoredDataResultMapperTest {
                 new JsonArray(asList("accountId", "id1", "data1", "request"))));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, null, singleton("id1"),
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "accountId", singleton("id1"),
                 singleton("id2"));
 
         // then
@@ -162,7 +162,29 @@ public class JdbcStoredDataResultMapperTest {
         assertThat(result.getStoredIdToRequest()).isEmpty();
         assertThat(result.getStoredIdToImp()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Multiple stored requests found for id: id1 but no account ID specified in request");
+                .containsOnly("Multiple stored requests found for id: id1 but no account was specified");
+    }
+
+    @Test
+    public void mapShouldReturnEmptyStoredResultWithErrorIfMultipleStoredItemsFoundButNoAccountIdIsDiffers() {
+        // given
+        given(resultSet.getResults()).willReturn(asList(
+                new JsonArray(asList("accountId1", "id1", "data-accountId", "request")),
+                new JsonArray(asList("accountId2", "id1", "data-otherAccountId", "request")),
+                new JsonArray(asList("accountId1", "id2", "data-accountId", "imp")),
+                new JsonArray(asList("accountId2", "id2", "data-otherAccountId", "imp"))));
+
+        // when
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, "otherAccountId",
+                singleton("id1"), singleton("id2"));
+
+        // then
+        assertThat(result.getStoredIdToRequest()).isEmpty();
+        assertThat(result.getStoredIdToImp()).isEmpty();
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(
+                        "No stored request found among multiple id: id1 for account: otherAccountId",
+                        "No stored imp found among multiple id: id2 for account: otherAccountId");
     }
 
     @Test

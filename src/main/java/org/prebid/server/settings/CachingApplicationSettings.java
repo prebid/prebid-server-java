@@ -6,10 +6,11 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.settings.helper.StoredDataFetcher;
+import org.prebid.server.settings.helper.StoredItemResolver;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.CachedStoredDataValue;
-import org.prebid.server.settings.model.StoredDataFetcher;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredItem;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.Collections;
@@ -123,9 +124,9 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     /**
      * Retrieves stored data from cache and collects ids which were absent. For absent ids makes look up to original
-     * source, combines results and updates cache with missed stored request. In case when origin source returns Failed
+     * source, combines results and updates cache with missed stored item. In case when origin source returns failed
      * {@link Future} propagates its result to caller. In successive call return {@link Future&lt;StoredDataResult&gt;}
-     * with all found stored requests and error from origin source id call was made.
+     * with all found stored items and error from origin source id call was made.
      */
     private static Future<StoredDataResult> getFromCacheOrDelegate(
             SettingsCache cache, String accountId, Set<String> requestIds, Set<String> impIds, Timeout timeout,
@@ -135,8 +136,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
         final String normalizedAccountId = StringUtils.stripToNull(accountId);
 
         // search in cache
-        final Map<String, Set<CachedStoredDataValue>> requestCache = cache.getRequestCache();
-        final Map<String, Set<CachedStoredDataValue>> impCache = cache.getImpCache();
+        final Map<String, Set<StoredItem>> requestCache = cache.getRequestCache();
+        final Map<String, Set<StoredItem>> impCache = cache.getImpCache();
 
         final Set<String> missedRequestIds = new HashSet<>();
         final Map<String, String> storedIdToRequest = getFromCacheOrAddMissedIds(normalizedAccountId, requestIds,
@@ -179,29 +180,18 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     private static Map<String, String> getFromCacheOrAddMissedIds(String accountId,
                                                                   Set<String> ids,
-                                                                  Map<String, Set<CachedStoredDataValue>> cache,
+                                                                  Map<String, Set<StoredItem>> cache,
                                                                   Set<String> missedIds) {
-        final Map<String, String> storedIdToJson = new HashMap<>(ids.size());
-
+        final Map<String, String> idToStoredItem = new HashMap<>(ids.size());
         for (String id : ids) {
-            final Set<CachedStoredDataValue> cachedValues = cache.get(id);
-            if (cachedValues != null) {
-                final CachedStoredDataValue cachedValue = cachedValues.stream()
-                        .filter(value -> Objects.equals(value.getAccountId(), StringUtils.stripToNull(accountId)))
-                        .findFirst()
-                        .orElse(null);
-
-                if (cachedValue != null) {
-                    storedIdToJson.put(id, cachedValue.getValue());
-                } else {
-                    missedIds.add(id);
-                }
-            } else {
+            try {
+                final StoredItem resolvedStoredItem = StoredItemResolver.resolve(null, accountId, id, cache.get(id));
+                idToStoredItem.put(id, resolvedStoredItem.getData());
+            } catch (PreBidException e) {
                 missedIds.add(id);
             }
         }
-
-        return storedIdToJson;
+        return idToStoredItem;
     }
 
     public void invalidateAccountCache(String accountId) {

@@ -1,7 +1,9 @@
-package org.prebid.server.settings.model;
+package org.prebid.server.settings.helper;
+
+import org.prebid.server.settings.model.StoredDataResult;
 
 /**
- * Interface to satisfy obtaining {@link StoredDataResult}
+ * Interface to satisfy obtaining of {@link StoredDataResult}.
  *
  * @param <ACC>  account ID
  * @param <REQS> set of stored request IDs
