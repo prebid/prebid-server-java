@@ -84,7 +84,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 Future.failedFuture("ERROR"));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), null);
 
         // then
@@ -128,7 +128,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), requestVideo);
 
         // then
@@ -195,7 +195,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 WithPodErrors.of(emptyList(), Arrays.asList(podError1, podError2)));
 
         // when
-        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(STORED_REQUEST_ID,
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
                 singleton(STORED_POD_ID), requestVideo);
 
         // then
