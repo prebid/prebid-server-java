@@ -1,11 +1,10 @@
 package org.prebid.server.auction.model;
 
-import com.iab.openrtb.request.BidRequest;
 import lombok.Builder;
 import lombok.Data;
 
 /**
- * Structure to pass {@link BidRequest} along with the bidder name
+ * Representation of a single auction interaction
  */
 @Builder
 @Data
@@ -28,6 +27,3 @@ public class AuctionParticipation {
         return this;
     }
 }
-
-
-
