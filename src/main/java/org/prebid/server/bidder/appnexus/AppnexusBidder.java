@@ -391,11 +391,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(this::bidderBid)
+                .map(bid -> bidderBid(bid, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid bidderBid(Bid bid) {
+    private BidderBid bidderBid(Bid bid, String currency) {
         final AppnexusBidExtAppnexus appnexus = parseAppnexusBidExt(bid.getExt()).getAppnexus();
         if (appnexus == null) {
             throw new PreBidException("bidResponse.bid.ext.appnexus should be defined");
@@ -409,7 +409,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             bid.setCat(Collections.emptyList());
         }
 
-        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), null);
+        return BidderBid.of(bid, bidType(appnexus.getBidAdType()), currency);
     }
 
     private static String iabCategory(Integer brandId) {
