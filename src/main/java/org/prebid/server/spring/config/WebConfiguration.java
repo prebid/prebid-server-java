@@ -514,7 +514,7 @@ public class WebConfiguration {
                 router.route("/admin").handler(adminHandler);
             }
             if (currencyRatesHandler != null) {
-                router.route("/currency-rates").handler(currencyRatesHandler);
+                router.route("/currency/rates").handler(currencyRatesHandler);
             }
             if (cacheNotificationHandler != null) {
                 router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
