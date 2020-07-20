@@ -197,11 +197,12 @@ public class BidResponseCreator {
         final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
                 .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
 
-        final List<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
+        final Set<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
                 .map(BidResponseCreator::mostValuableBid)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
-        responseBidderBids.retainAll(mostValuableBids);
+        responseBidderBids.clear();
+        responseBidderBids.addAll(mostValuableBids);
     }
 
     private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
