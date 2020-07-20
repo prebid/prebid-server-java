@@ -4,6 +4,9 @@
     {
       "bid": [
         {
+          "id": "1",
+          "impid": "impId001",
+          "price": 0.01,
           "adm": "<b>hi</b>",
           "cid": "test_cid",
           "crid": "test_banner_crid",
@@ -32,10 +35,7 @@
                 }
               }
             }
-          },
-          "id": "1",
-          "impid": "imp123",
-          "price": 0.01
+          }
         }
       ],
       "group": 0,
