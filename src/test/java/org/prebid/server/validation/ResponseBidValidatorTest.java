@@ -22,7 +22,7 @@ public class ResponseBidValidatorTest {
 
     @Test
     public void validateShouldFailedIfMissingBid() {
-        final ValidationResult result = responseBidValidator.validate(null);
+        final ValidationResult result = responseBidValidator.validate(null, null, null, null);
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Empty bid object submitted.");
@@ -30,7 +30,8 @@ public class ResponseBidValidatorTest {
 
     @Test
     public void validateShouldFailedIfBidHasNoId() {
-        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.id(null)));
+        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.id(null)), null,
+                null, null);
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Bid missing required field 'id'");
@@ -38,7 +39,8 @@ public class ResponseBidValidatorTest {
 
     @Test
     public void validateShouldFailedIfBidHasNoImpId() {
-        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.impid(null)));
+        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.impid(null)), null,
+                null, null);
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Bid \"bidId1\" missing required field 'impid'");
@@ -46,7 +48,8 @@ public class ResponseBidValidatorTest {
 
     @Test
     public void validateShouldFailedIfBidHasNoPrice() {
-        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(null)));
+        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(null)), null,
+                null, null);
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
@@ -55,7 +58,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailedIfBidHasNegativePrice() {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(
-                BigDecimal.valueOf(-1))));
+                BigDecimal.valueOf(-1))), null, null, null);
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
@@ -63,7 +66,8 @@ public class ResponseBidValidatorTest {
 
     @Test
     public void validateShouldFailedIfBidHasNoCrid() {
-        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.crid(null)));
+        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.crid(null)), null,
+                null, null);
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Bid \"bidId1\" missing creative ID");
@@ -71,7 +75,7 @@ public class ResponseBidValidatorTest {
 
     @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
-        final ValidationResult result = responseBidValidator.validate(givenBid(identity()));
+        final ValidationResult result = responseBidValidator.validate(givenBid(identity()), null, null, null);
 
         assertThat(result.hasErrors()).isFalse();
     }

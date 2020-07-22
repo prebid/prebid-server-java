@@ -21,6 +21,10 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -151,6 +155,10 @@ public class ExchangeServiceTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private UidsCookie uidsCookie;
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
 
     private Clock clock;
 
@@ -161,6 +169,10 @@ public class ExchangeServiceTest extends VertxTest {
     @SuppressWarnings("unchecked")
     @Before
     public void setUp() {
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
         given(bidResponseCreator.create(anyList(), any(), any(), any(), any(), anyBoolean(), anyLong(), anyBoolean(),
                 any()))
                 .willReturn(Future.succeededFuture(givenBidResponseWithBids(singletonList(givenBid(identity())))));
@@ -181,7 +193,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyList()));
 
-        given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
+        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
@@ -918,7 +930,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any()))
+        given(responseBidValidator.validate(any(), any(), any(), any()))
                 .willReturn(ValidationResult.error("bid validation error"));
 
         final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
@@ -1967,6 +1979,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
         return AuctionContext.builder()
+                .routingContext(routingContext)
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .account(account)
