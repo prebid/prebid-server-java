@@ -299,10 +299,14 @@ public class AuctionRequestFactory {
     private Device populateDevice(Device device, HttpServerRequest request) {
         final String ip = device != null ? device.getIp() : null;
         final String ua = device != null ? device.getUa() : null;
+        final Integer dnt = resolveDntHeader(request);
 
-        if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
+        if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua) || dnt != null) {
             final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
-            builder.ua(StringUtils.isNotBlank(ua) ? ua : paramsExtractor.uaFrom(request));
+
+            if (StringUtils.isBlank(ua)) {
+                builder.ua(paramsExtractor.uaFrom(request));
+            }
 
             if (StringUtils.isBlank(ip)) {
                 final String ipFromRequest = paramsExtractor.ipFrom(request);
@@ -311,10 +315,20 @@ public class AuctionRequestFactory {
                 builder.ip(resolveDeviceIp(ip, ipFromRequest, inetAddress))
                         .ipv6(resolveDeviceIpv6(ip, ipFromRequest, inetAddress));
             }
+
+            if (dnt != null) {
+                builder.dnt(dnt);
+            }
+
             return builder.build();
         }
 
         return null;
+    }
+
+    private Integer resolveDntHeader(HttpServerRequest request) {
+        final String dnt = request.getHeader(HttpUtil.DNT_HEADER.toString());
+        return StringUtils.equalsAny(dnt, "0", "1") ? Integer.valueOf(dnt) : null;
     }
 
     private String resolveDeviceIp(String deviceIp, String ipFromRequest, InetAddress inetAddress) {
