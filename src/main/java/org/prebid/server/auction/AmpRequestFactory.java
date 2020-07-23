@@ -102,7 +102,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request(), errors))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
-                .map(auctionRequestFactory::validateRequest)
+                .map(bidRequest -> auctionRequestFactory.validateRequest(bidRequest, errors))
                 .map(bidRequest -> Tuple2.of(bidRequest, errors));
     }
 
@@ -210,6 +210,8 @@ public class AmpRequestFactory {
         String gdprConsent = null;
         String ccpaConsent = null;
         if (StringUtils.isNotBlank(consentString)) {
+            // TODO remove this validation when it become clear how to determine consent string type in other way than
+            // validation and  put invalid consent to the right model so ValidationService can do his job
             gdprConsent = TcfDefinerService.isGdprConsentValid(consentString) ? consentString : null;
             ccpaConsent = Ccpa.isValid(consentString) ? consentString : null;
 
@@ -406,9 +408,7 @@ public class AmpRequestFactory {
                 ? extUser.toBuilder()
                 : ExtUser.builder();
 
-        if (StringUtils.isNotBlank(gdprConsent)) {
-            extUserBuilder.consent(gdprConsent);
-        }
+        extUserBuilder.consent(gdprConsent);
 
         final User.UserBuilder userBuilder = hasUser ? user.toBuilder() : User.builder();
 

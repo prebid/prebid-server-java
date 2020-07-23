@@ -37,7 +37,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withQueryParam("placement_key", equalTo("abc123"))
                 .withQueryParam("bidId", equalTo("bid"))
                 .withQueryParam("consent_required", equalTo("false"))
-                .withQueryParam("consent_string", equalTo("consentValue"))
+                .withQueryParam("consent_string", equalTo("BOEFEAyOEFEAyAHABDENAIgAAAB9vABAASA"))
                 .withQueryParam("us_privacy", equalTo("1NYN"))
                 .withQueryParam("instant_play_capable", equalTo("true"))
                 .withQueryParam("stayInIframe", equalTo("true"))

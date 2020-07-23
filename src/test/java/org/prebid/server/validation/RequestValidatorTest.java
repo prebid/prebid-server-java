@@ -1239,6 +1239,22 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldNotReturnWarningsMessageWhenCCPAConsentIsNotValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .regs(Regs.of(null, ExtRegs.of(null, "invalid")))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).containsOnly("CCPA usPrivacy value `invalid` failed validation with a reason:"
+                + " us_privacy must contain 4 characters");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsNoValues() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1674,6 +1690,25 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.user.ext.eids[0].uids[0] missing required field: \"id\"");
+    }
+
+    @Test
+    public void validateShouldReturnWarningMessageWhenTcfConsentStringIsInvalid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("invalid")
+                                .build())
+                        .build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).containsOnly("Tcf consent string has invalid format: invalid");
     }
 
     @Test

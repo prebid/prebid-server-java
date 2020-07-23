@@ -57,7 +57,6 @@ public class PrivacyExtractor {
             Ccpa.validateUsPrivacy(usPrivacy);
             return Ccpa.of(usPrivacy);
         } catch (PreBidException e) {
-            // TODO add error to PBS response, not only in logs (See PR #758)
             logger.debug("CCPA consent {0} has invalid format: {1}", usPrivacy, e.getMessage());
             return DEFAULT_CCPA_VALUE;
         }

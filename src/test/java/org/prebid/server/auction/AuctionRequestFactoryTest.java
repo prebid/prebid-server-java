@@ -62,6 +62,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -1099,7 +1100,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
                 BidRequest.builder().build()));
 
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
+        given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2"),
+                Collections.emptyList()));
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);
@@ -1108,6 +1110,25 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).containsOnly("error1", "error2");
+    }
+
+    @Test
+    public void shouldCreateContextWithErrorsWhenValidationServiceReturnsWarnings() {
+        // given
+        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
+
+        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
+                BidRequest.builder().build()));
+
+        given(requestValidator.validate(any()))
+                .willReturn(ValidationResult.warning(Collections.singletonList("warning")));
+
+        // when
+        final Future<AuctionContext> result = factory.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result().getPrebidErrors()).containsOnly("warning");
     }
 
     @Test

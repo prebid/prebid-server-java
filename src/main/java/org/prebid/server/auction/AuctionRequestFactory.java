@@ -160,9 +160,9 @@ public class AuctionRequestFactory {
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
-
-        return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, new ArrayList<>(),
+        final List<String> warnings = new ArrayList<>();
+        return updateBidRequest(routingContext, incomingBidRequest, warnings)
+                .compose(bidRequest -> toAuctionContext(routingContext, bidRequest, warnings,
                         startTime, timeoutResolver));
     }
 
@@ -214,10 +214,10 @@ public class AuctionRequestFactory {
      * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest) {
+    private Future<BidRequest> updateBidRequest(RoutingContext context, BidRequest bidRequest, List<String> warnings) {
         return storedRequestProcessor.processStoredRequests(bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
-                .map(this::validateRequest)
+                .map(resolvedBidRequest -> validateRequest(resolvedBidRequest, warnings))
                 .map(interstitialProcessor::process);
     }
 
@@ -680,13 +680,27 @@ public class AuctionRequestFactory {
 
     /**
      * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
+     * Throws {@link InvalidRequestException} in case of any critical error or fill warnings list with error messages
+     * in case of uncritical.
      */
-    BidRequest validateRequest(BidRequest bidRequest) {
+    BidRequest validateRequest(BidRequest bidRequest, List<String> warnings) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
             throw new InvalidRequestException(validationResult.getErrors());
         }
+
+        if (validationResult.hasWarnings()) {
+            warnings.addAll(validationResult.getWarnings());
+        }
         return bidRequest;
+    }
+
+    /**
+     * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
+     * Throws {@link InvalidRequestException} in case of any critical error.
+     */
+    BidRequest validateRequest(BidRequest bidRequest) {
+        return validateRequest(bidRequest, new ArrayList<>());
     }
 
     /**
