@@ -443,9 +443,10 @@ public class ServiceConfiguration {
             TcfDefinerService tcfDefinerService,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+            @Value("${ccpa.enforce}") boolean ccpaEnforce,
+            @Value("${lmt.enforce}") boolean lmtEnforce) {
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, useGeoLocation, ccpaEnforce);
+                bidderCatalog, tcfDefinerService, metrics, useGeoLocation, ccpaEnforce, lmtEnforce);
     }
 
     @Bean

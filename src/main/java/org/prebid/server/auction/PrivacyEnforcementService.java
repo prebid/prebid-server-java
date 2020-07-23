@@ -61,6 +61,7 @@ public class PrivacyEnforcementService {
     private final TcfDefinerService tcfDefinerService;
     private final Metrics metrics;
     private final boolean ccpaEnforce;
+    private final boolean lmtEnforce;
 
     private final PrivacyExtractor privacyExtractor;
 
@@ -68,13 +69,15 @@ public class PrivacyEnforcementService {
                                      TcfDefinerService tcfDefinerService,
                                      Metrics metrics,
                                      boolean useGeoLocation,
-                                     boolean ccpaEnforce) {
+                                     boolean ccpaEnforce,
+                                     boolean lmtEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.metrics = Objects.requireNonNull(metrics);
         this.useGeoLocation = useGeoLocation;
         this.ccpaEnforce = ccpaEnforce;
+        this.lmtEnforce = lmtEnforce;
 
         privacyExtractor = new PrivacyExtractor();
     }
@@ -310,7 +313,7 @@ public class PrivacyEnforcementService {
                     enforcement.isBlockAnalyticsReport());
         }
 
-        if (isLmtEnabled(device)) {
+        if (lmtEnforce && isLmtEnabled(device)) {
             metrics.updatePrivacyLmtMetric();
         }
 
@@ -327,7 +330,7 @@ public class PrivacyEnforcementService {
             Device device,
             Map<String, PrivacyEnforcementAction> bidderToEnforcement) {
 
-        final boolean isLmtEnabled = isLmtEnabled(device);
+        final boolean isLmtEnabled = lmtEnforce && isLmtEnabled(device);
         return bidderToUser.entrySet().stream()
                 .filter(entry -> bidders.contains(entry.getKey()))
                 .map(bidderUserEntry -> createBidderPrivacyResult(
