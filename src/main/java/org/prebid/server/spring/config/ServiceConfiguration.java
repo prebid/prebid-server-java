@@ -476,8 +476,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ResponseBidValidator responseValidator() {
-        return new ResponseBidValidator();
+    ResponseBidValidator responseValidator(
+            @Value("${auction.validations.banner-creative-size}") boolean shouldValidateBanner,
+            @Value("${auction.validations.banner-creative-allowed-sizes:#{null}}") List<String> bannerAllowedSizes,
+            @Value("${auction.validations.secure-markup}") boolean shouldValidateSecureMarkup) {
+
+        return new ResponseBidValidator(shouldValidateBanner, bannerAllowedSizes, shouldValidateSecureMarkup);
     }
 
     @Bean

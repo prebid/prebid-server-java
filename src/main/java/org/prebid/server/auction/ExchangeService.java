@@ -747,13 +747,13 @@ public class ExchangeService {
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
-        final List<String> cur = bidderRequest.getBidRequest().getCur();
-        final String adServerCurrency = cur.get(0);
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
+        final String adServerCurrency = bidRequest.getCur().get(0);
         final Bidder<?> bidder = bidderCatalog.bidderByName(aliases.resolveBidder(bidderName));
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
-                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, cur))
+        return httpBidderRequester.requestBids(bidder, bidRequest, timeout, debugEnabled)
+                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, bidRequest))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)));
@@ -766,20 +766,21 @@ public class ExchangeService {
      * <p>
      * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
      */
-    private BidderSeatBid validBidderSeatBid(BidderSeatBid bidderSeatBid, List<String> requestCurrencies) {
-        final List<BidderBid> bids = bidderSeatBid.getBids();
-
-        final List<BidderBid> validBids = new ArrayList<>(bids.size());
+    private BidderSeatBid validBidderSeatBid(BidderSeatBid bidderSeatBid, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
 
+        final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
             errors.add(BidderError.badInput(
                     String.format("Cur parameter contains more than one currency. %s will be used",
                             requestCurrencies.get(0))));
         }
 
-        for (BidderBid bid : bids) {
-            final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
+        final List<BidderBid> bids = bidderSeatBid.getBids();
+        final List<BidderBid> validBids = new ArrayList<>(bids.size());
+
+        for (final BidderBid bid : bids) {
+            final ValidationResult validationResult = responseBidValidator.validate(bid, bidRequest);
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
                     errors.add(BidderError.generic(error));
@@ -796,7 +797,7 @@ public class ExchangeService {
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
+     * This method should always be invoked after {@link #validBidderSeatBid}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
@@ -858,7 +859,7 @@ public class ExchangeService {
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}.
      * <p>
-     * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
+     * This method should always be invoked after {@link #validBidderSeatBid}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
