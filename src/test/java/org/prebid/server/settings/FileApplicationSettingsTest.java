@@ -19,6 +19,7 @@ import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.validation.model.Size;
 
 import java.util.HashSet;
 
@@ -127,7 +128,7 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
-                .bidValidations(AccountBidValidationConfig.of(asList("1x1", "2x2")))
+                .bidValidations(AccountBidValidationConfig.of(asList(Size.of(1, 1), Size.of(2, 2))))
                 .build());
     }
 

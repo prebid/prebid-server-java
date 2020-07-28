@@ -154,11 +154,17 @@ public class ExchangeService {
                         extractBidderRequests(context, impsRequiredRequest, aliases))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, requestTypeMetric))
-                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
-                        .map(bidderRequest -> requestBids(bidderRequest,
-                                auctionTimeout(timeout, cacheInfo.isDoCaching()), debugEnabled, aliases,
-                                bidAdjustments(requestExt), currencyRates(requestExt)))
-                        .collect(Collectors.toList())))
+                .compose(bidderRequests -> CompositeFuture.join(
+                        bidderRequests.stream()
+                                .map(bidderRequest -> requestBids(
+                                        bidderRequest,
+                                        account,
+                                        auctionTimeout(timeout, cacheInfo.isDoCaching()),
+                                        debugEnabled,
+                                        aliases,
+                                        bidAdjustments(requestExt),
+                                        currencyRates(requestExt)))
+                                .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
@@ -741,10 +747,14 @@ public class ExchangeService {
      * Passes the request to a corresponding bidder and wraps response in {@link BidderResponse} which also holds
      * recorded response time.
      */
-    private Future<BidderResponse> requestBids(BidderRequest bidderRequest, Timeout timeout,
-                                               boolean debugEnabled, BidderAliases aliases,
+    private Future<BidderResponse> requestBids(BidderRequest bidderRequest,
+                                               Account account,
+                                               Timeout timeout,
+                                               boolean debugEnabled,
+                                               BidderAliases aliases,
                                                Map<String, BigDecimal> bidAdjustments,
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
+
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
         final BidRequest bidRequest = bidderRequest.getBidRequest();
@@ -753,7 +763,7 @@ public class ExchangeService {
         final long startTime = clock.millis();
 
         return httpBidderRequester.requestBids(bidder, bidRequest, timeout, debugEnabled)
-                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, bidRequest))
+                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, bidRequest, account))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)));
@@ -766,7 +776,7 @@ public class ExchangeService {
      * <p>
      * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
      */
-    private BidderSeatBid validBidderSeatBid(BidderSeatBid bidderSeatBid, BidRequest bidRequest) {
+    private BidderSeatBid validBidderSeatBid(BidderSeatBid bidderSeatBid, BidRequest bidRequest, Account account) {
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
 
         final List<String> requestCurrencies = bidRequest.getCur();
@@ -780,7 +790,7 @@ public class ExchangeService {
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
 
         for (final BidderBid bid : bids) {
-            final ValidationResult validationResult = responseBidValidator.validate(bid, bidRequest);
+            final ValidationResult validationResult = responseBidValidator.validate(bid, bidRequest, account);
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
                     errors.add(BidderError.generic(error));

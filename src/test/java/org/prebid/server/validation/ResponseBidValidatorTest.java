@@ -5,8 +5,12 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.validation.model.Size;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -18,7 +22,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ResponseBidValidatorTest {
+public class ResponseBidValidatorTest extends VertxTest {
 
     private static final List<String> BANNER_ALLOWED_SIZES = asList("1x1", "2x2");
 
@@ -26,13 +30,13 @@ public class ResponseBidValidatorTest {
 
     @Before
     public void setUp() {
-        responseBidValidator = new ResponseBidValidator(true, BANNER_ALLOWED_SIZES, true);
+        responseBidValidator = new ResponseBidValidator(true, BANNER_ALLOWED_SIZES, true, jacksonMapper);
     }
 
     @Test
     public void validateShouldFailIfMissingBid() {
         final ValidationResult result = responseBidValidator.validate(
-                BidderBid.of(null, null, null), givenBidRequest(identity()));
+                BidderBid.of(null, null, null), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Empty bid object submitted.");
@@ -41,7 +45,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBidHasNoId() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.id(null)), givenBidRequest(identity()));
+                givenBid(builder -> builder.id(null)), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid missing required field 'id'");
@@ -50,7 +54,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBidHasNoImpId() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.impid(null)), givenBidRequest(identity()));
+                givenBid(builder -> builder.impid(null)), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" missing required field 'impid'");
@@ -59,7 +63,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBidHasNoPrice() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(null)), givenBidRequest(identity()));
+                givenBid(builder -> builder.price(null)), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
@@ -68,7 +72,8 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBidHasNegativePrice() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(BigDecimal.valueOf(-1))), givenBidRequest(identity()));
+                givenBid(builder -> builder.price(BigDecimal.valueOf(-1))), givenBidRequest(identity()),
+                givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
@@ -77,7 +82,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBidHasNoCrid() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.crid(null)), givenBidRequest(identity()));
+                givenBid(builder -> builder.crid(null)), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" missing creative ID");
@@ -86,7 +91,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBannerBidHasNoWidthAndHeight() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(null).h(null)), givenBidRequest(identity()));
+                givenBid(builder -> builder.w(null).h(null)), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: 'nullxnull'");
@@ -95,7 +100,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBannerBidHasNotAllowedWidthAndHeight() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(3).h(3)), givenBidRequest(identity()));
+                givenBid(builder -> builder.w(3).h(3)), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '3x3'");
@@ -104,7 +109,18 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldReturnSuccessIfNonBannerBidHasAnySize() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.video, builder -> builder.w(3).h(3)), givenBidRequest(identity()));
+                givenBid(BidType.video, builder -> builder.w(3).h(3)), givenBidRequest(identity()), givenAccount());
+
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    public void validateShouldReturnSuccessIfBannerBidHasAllowedByAccountWidthAndHeight() {
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.w(3).h(3)),
+                givenBidRequest(identity()),
+                givenAccount(builder -> builder.bidValidations(
+                        AccountBidValidationConfig.of(singletonList(Size.of(3, 3))))));
 
         assertThat(result.hasErrors()).isFalse();
     }
@@ -112,7 +128,7 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldFailIfBidHasNoCorrespondingImp() {
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.impid("nonExistentsImpid")), givenBidRequest(identity()));
+                givenBid(builder -> builder.impid("nonExistentsImpid")), givenBidRequest(identity()), givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" has no corresponding imp in request");
@@ -122,7 +138,8 @@ public class ResponseBidValidatorTest {
     public void validateShouldFailIfBidHasInsecureCreativeInSecureContext() {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
-                givenBidRequest(builder -> builder.secure(1)));
+                givenBidRequest(builder -> builder.secure(1)),
+                givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" has has insecure creative but should be in secure context");
@@ -132,7 +149,8 @@ public class ResponseBidValidatorTest {
     public void validateShouldFailIfBidHasInsecureEncodedCreativeInSecureContext() {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>>http%3A//site.com/creative.jpg</tag>")),
-                givenBidRequest(builder -> builder.secure(1)));
+                givenBidRequest(builder -> builder.secure(1)),
+                givenAccount());
 
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" has has insecure creative but should be in secure context");
@@ -142,7 +160,8 @@ public class ResponseBidValidatorTest {
     public void validateShouldReturnSuccessIfBidHasInsecureCreativeInInsecureContext() {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
-                givenBidRequest(identity()));
+                givenBidRequest(identity()),
+                givenAccount());
 
         assertThat(result.hasErrors()).isFalse();
     }
@@ -150,40 +169,36 @@ public class ResponseBidValidatorTest {
     @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
         final ValidationResult result =
-                responseBidValidator.validate(givenBid(identity()), givenBidRequest(builder -> builder.secure(1)));
+                responseBidValidator.validate(
+                        givenBid(identity()),
+                        givenBidRequest(builder -> builder.secure(1)),
+                        givenAccount());
 
         assertThat(result.hasErrors()).isFalse();
     }
 
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
-        responseBidValidator = new ResponseBidValidator(false, null, true);
+        responseBidValidator = new ResponseBidValidator(false, null, true, jacksonMapper);
 
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.w(null).h(null)),
-                givenBidRequest(identity()));
+                givenBidRequest(identity()),
+                givenAccount());
 
         assertThat(result.hasErrors()).isFalse();
     }
 
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
-        responseBidValidator = new ResponseBidValidator(true, BANNER_ALLOWED_SIZES, false);
+        responseBidValidator = new ResponseBidValidator(true, BANNER_ALLOWED_SIZES, false, jacksonMapper);
 
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
-                givenBidRequest(builder -> builder.secure(1)));
+                givenBidRequest(builder -> builder.secure(1)),
+                givenAccount());
 
         assertThat(result.hasErrors()).isFalse();
-    }
-
-    private BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        final Imp.ImpBuilder impBuilder = Imp.builder()
-                .id("impId1");
-
-        return BidRequest.builder()
-                .imp(singletonList(impCustomizer.apply(impBuilder).build()))
-                .build();
     }
 
     private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -201,5 +216,22 @@ public class ResponseBidValidatorTest {
                 .price(BigDecimal.ONE);
 
         return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, null);
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        final Imp.ImpBuilder impBuilder = Imp.builder()
+                .id("impId1");
+
+        return BidRequest.builder()
+                .imp(singletonList(impCustomizer.apply(impBuilder).build()))
+                .build();
+    }
+
+    private static Account givenAccount() {
+        return givenAccount(identity());
+    }
+
+    private static Account givenAccount(Function<Account.AccountBuilder, Account.AccountBuilder> accountCustomizer) {
+        return accountCustomizer.apply(Account.builder()).build();
     }
 }

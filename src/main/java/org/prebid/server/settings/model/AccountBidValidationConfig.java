@@ -2,6 +2,7 @@ package org.prebid.server.settings.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
+import org.prebid.server.validation.model.Size;
 
 import java.util.List;
 
@@ -9,5 +10,5 @@ import java.util.List;
 public class AccountBidValidationConfig {
 
     @JsonProperty("banner-creative-allowed-sizes")
-    List<String> bannerCreativeAllowedSizes;
+    List<Size> bannerCreativeAllowedSizes;
 }

@@ -27,6 +27,7 @@ import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.validation.model.Size;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
@@ -177,7 +178,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .enabled(true)
                             .build())
                     .truncateTargetAttr(0)
-                    .bidValidations(AccountBidValidationConfig.of(asList("1x1", "2x2")))
+                    .bidValidations(AccountBidValidationConfig.of(asList(Size.of(1, 1), Size.of(2, 2))))
                     .build());
             async.complete();
         }));
