@@ -23,7 +23,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
+import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 
 import java.util.List;
@@ -121,13 +123,60 @@ public class TelariaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTelaria.of("adCode", null)))));
+                                ExtImpTelaria.of("adCode", null, mapper.createObjectNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Telaria: Seat Code required"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotChangeExtIfExtExtraIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpTelaria.of("adCode", "seatCode", mapper.createObjectNode())))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldChangeRequestExtIfExtImpExtraIsNotEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        Imp.builder()
+                                .video(Video.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpTelaria.of("adCode", "seatCode",
+                                                mapper.createObjectNode().put("custom", "1234")))))
+                                .build()))
+                .site(Site.builder().build())
+                .app(App.builder().build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtRequest.empty(), TelariaRequestExt.of(mapper.createObjectNode().put("custom", "1234"))));
     }
 
     @Test
@@ -288,7 +337,7 @@ public class TelariaBidderTest extends VertxTest {
                 .id("123")
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpTelaria.of("adCode", "seatCode")))))
+                        ExtImpTelaria.of("adCode", "seatCode", null)))))
                 .build();
     }
 
