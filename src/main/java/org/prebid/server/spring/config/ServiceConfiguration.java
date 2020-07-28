@@ -67,6 +67,8 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -478,11 +480,12 @@ public class ServiceConfiguration {
     @Bean
     ResponseBidValidator responseValidator(
             @Value("${auction.validations.banner-creative-size}") boolean shouldValidateBanner,
-            @Value("${auction.validations.banner-creative-allowed-sizes:#{null}}") List<String> bannerAllowedSizes,
+            @Value("${auction.validations.banner-creative-allowed-sizes:#{null}}") String bannerAllowedSizesAsString,
             @Value("${auction.validations.secure-markup}") boolean shouldValidateSecureMarkup,
             JacksonMapper mapper) {
 
-        return new ResponseBidValidator(shouldValidateBanner, bannerAllowedSizes, shouldValidateSecureMarkup, mapper);
+        return new ResponseBidValidator(
+                shouldValidateBanner, splitToList(bannerAllowedSizesAsString), shouldValidateSecureMarkup, mapper);
     }
 
     @Bean
@@ -541,5 +544,9 @@ public class ServiceConfiguration {
     @Bean
     AdminManager adminManager() {
         return new AdminManager();
+    }
+
+    private static List<String> splitToList(String listAsString) {
+        return listAsString != null ? new ArrayList<>(Arrays.asList(listAsString.trim().split(","))) : null;
     }
 }
