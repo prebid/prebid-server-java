@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -91,7 +92,10 @@ public class FileApplicationSettingsTest {
                         + "},"
                         + "purpose-one-treatment-interpretation: access-allowed"
                         + "},"
-                        + "analyticsSamplingFactor : '1'"
+                        + "analyticsSamplingFactor : '1',"
+                        + "bidValidations: {"
+                        + "banner-creative-allowed-sizes: ['1x1', '2x2']"
+                        + "}"
                         + "}"
                         + "]"));
 
@@ -123,8 +127,8 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
+                .bidValidations(AccountBidValidationConfig.of(asList("1x1", "2x2")))
                 .build());
-
     }
 
     @Test

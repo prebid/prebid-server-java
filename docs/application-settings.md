@@ -17,6 +17,7 @@ There are two ways to configure application settings: database and file. This do
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow. Values: ignore, no-access-allowed, access-allowed.
 - `analytics-sampling-factor` - Analytics sampling factor value. 
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
+- `bid-validations.banner-creative-allowed-sizes` - Defines valid banner sizes.
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -170,6 +171,7 @@ Query to create accounts_account table:
 `tcf_config` json DEFAULT NULL,
 `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
 `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+`bid_validations` json DEFAULT NULL,
 `status` enum('active','inactive') DEFAULT 'active',
 `updated_by` int(11) DEFAULT NULL,
 `updated_by_user` varchar(64) DEFAULT NULL,
@@ -181,7 +183,7 @@ ENGINE=InnoDB AUTO_INCREMENT=1726 DEFAULT CHARSET=utf8'
 
 where tcf_config column is json with next format
 
-```
+```json
 {
   "enabled": true,
   "purpose-one-treatment-interpretation": "ignore"
@@ -286,9 +288,17 @@ where tcf_config column is json with next format
 }
 ```
 
+and bid_validations column is json with next format
+
+```json
+{
+  "banner-creative-allowed-sizes": ["1x1", "2x2"]
+}
+```
+
 Query used to get an account:
 ```
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr 
+SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, bid_validations 
 FROM accounts_account where uuid = ?
 LIMIT 1
 

@@ -25,6 +25,8 @@ public class Account {
 
     Integer truncateTargetAttr;
 
+    AccountBidValidationConfig bidValidations;
+
     public static Account empty(String id) {
         return Account.builder()
                 .id(id)
