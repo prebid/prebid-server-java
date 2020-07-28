@@ -58,6 +58,10 @@ public enum MetricName {
     err,
     networkerr,
 
+    // validation errors
+    size,
+    secure,
+
     // cookie sync
     cookie_sync_requests,
     opt_outs,

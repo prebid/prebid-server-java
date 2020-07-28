@@ -5,9 +5,12 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
@@ -29,29 +32,32 @@ public class ResponseBidValidator {
     private final boolean shouldValidateBanner;
     private final List<Size> bannerAllowedSizes;
     private final boolean shouldValidateSecureMarkup;
+    private final Metrics metrics;
     private final JacksonMapper mapper;
 
     public ResponseBidValidator(boolean shouldValidateBanner,
                                 List<String> bannerAllowedSizes,
                                 boolean shouldValidateSecureMarkup,
+                                Metrics metrics,
                                 JacksonMapper mapper) {
 
+        this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
         this.shouldValidateBanner = shouldValidateBanner;
         this.bannerAllowedSizes = toSizes(bannerAllowedSizes);
         this.shouldValidateSecureMarkup = shouldValidateSecureMarkup;
     }
 
-    public ValidationResult validate(BidderBid bidderBid, BidRequest bidRequest, Account account) {
+    public ValidationResult validate(BidderBid bidderBid, BidderRequest bidderRequest, Account account) {
         try {
             validateCommonFields(bidderBid.getBid());
 
             if (shouldValidateBanner(bidderBid)) {
-                validateBannerFields(bidderBid, account);
+                validateBannerFields(bidderBid, bidderRequest, account);
             }
 
             if (shouldValidateSecureMarkup) {
-                validateSecureMarkup(bidderBid, bidRequest);
+                validateSecureMarkup(bidderBid, bidderRequest, account);
             }
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
@@ -101,10 +107,14 @@ public class ResponseBidValidator {
         return bidderBid.getType() == BidType.banner && shouldValidateBanner;
     }
 
-    private void validateBannerFields(BidderBid bidderBid, Account account) throws ValidationException {
+    private void validateBannerFields(
+            BidderBid bidderBid, BidderRequest bidderRequest, Account account) throws ValidationException {
+
         final Bid bid = bidderBid.getBid();
 
         if (bannerSizeIsNotValid(bid, validBannerSizes(account))) {
+            metrics.updateValidationErrorMetrics(bidderRequest.getBidder(), account.getId(), MetricName.size);
+
             throw new ValidationException(
                     "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
                     bid.getId(), bid.getW(), bid.getH());
@@ -127,11 +137,15 @@ public class ResponseBidValidator {
         return Objects.equals(bid.getW(), size.getWidth()) && Objects.equals(bid.getH(), size.getHeight());
     }
 
-    private static void validateSecureMarkup(BidderBid bidderBid, BidRequest bidRequest) throws ValidationException {
+    private void validateSecureMarkup(
+            BidderBid bidderBid, BidderRequest bidderRequest, Account account) throws ValidationException {
+
         final Bid bid = bidderBid.getBid();
-        final Imp imp = findCorrespondingImp(bidRequest, bidderBid.getBid());
+        final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bidderBid.getBid());
 
         if (isImpSecure(imp) && markupIsNotSecure(bid)) {
+            metrics.updateValidationErrorMetrics(bidderRequest.getBidder(), account.getId(), MetricName.secure);
+
             throw new ValidationException(
                     "Bid \"%s\" has has insecure creative but should be in secure context", bid.getId());
         }

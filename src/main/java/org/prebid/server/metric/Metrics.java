@@ -247,6 +247,11 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
     }
 
+    public void updateValidationErrorMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(resolveMetricsBidderName(bidder)).validationError().incCounter(type);
+        forAccount(accountId).validationError().incCounter(type);
+    }
+
     public void updateUserSyncOptoutMetric() {
         userSync().incCounter(MetricName.opt_outs);
     }

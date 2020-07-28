@@ -575,6 +575,23 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateValidationErrorMetricsShouldIncrementMetrics() {
+        // given
+        given(bidderCatalog.isValidName(INVALID_BIDDER)).willReturn(false);
+        given(bidderCatalog.nameByAlias(INVALID_BIDDER)).willReturn(RUBICON, null);
+
+        // when
+        metrics.updateValidationErrorMetrics(RUBICON, ACCOUNT_ID, MetricName.size);
+        metrics.updateValidationErrorMetrics(INVALID_BIDDER, ACCOUNT_ID, MetricName.size);
+        metrics.updateValidationErrorMetrics(INVALID_BIDDER, ACCOUNT_ID, MetricName.size);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.validation_err.size").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("adapter.UNKNOWN.validation_err.size").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.validation_err.size").getCount()).isEqualTo(3);
+    }
+
+    @Test
     public void updateCookieSyncRequestMetricShouldIncrementMetric() {
         // when
         metrics.updateCookieSyncRequestMetric();

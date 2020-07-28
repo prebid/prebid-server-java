@@ -482,10 +482,15 @@ public class ServiceConfiguration {
             @Value("${auction.validations.banner-creative-size}") boolean shouldValidateBanner,
             @Value("${auction.validations.banner-creative-allowed-sizes:#{null}}") String bannerAllowedSizesAsString,
             @Value("${auction.validations.secure-markup}") boolean shouldValidateSecureMarkup,
+            Metrics metrics,
             JacksonMapper mapper) {
 
         return new ResponseBidValidator(
-                shouldValidateBanner, splitToList(bannerAllowedSizesAsString), shouldValidateSecureMarkup, mapper);
+                shouldValidateBanner,
+                splitToList(bannerAllowedSizesAsString),
+                shouldValidateSecureMarkup,
+                metrics,
+                mapper);
     }
 
     @Bean
