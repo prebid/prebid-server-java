@@ -46,6 +46,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -138,14 +139,21 @@ public class BidResponseCreator {
                             null)))
                     .build());
         } else {
-            bidderResponses.forEach(BidResponseCreator::removeRedundantBids);
+            final List<Imp> imps = bidRequest.getImp();
+            final Map<String, Boolean> impPreferDeals = imps.stream()
+                    .collect(Collectors.toMap(Imp::getId,
+                            imp -> preferDeals(extractImpPreferDeal(imp),
+                                    BooleanUtils.toBooleanDefaultIfNull(account.getPreferDeals(), false))));
+
+            bidderResponses.forEach(bidderResponse -> reduceToBidderWinningBid(bidderResponse, impPreferDeals));
+
+            final Set<Bid> winningBidsByBidder = getWinningBidForEachBidder(bidderResponses);
 
             final Set<Bid> winningBids = newOrEmptySet(targeting);
-            final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
             // determine winning bids only if targeting is present
             if (targeting != null) {
-                populateWinningBids(bidderResponses, winningBids, winningBidsByBidder);
+                populateWinningBids(bidderResponses, winningBids, impPreferDeals);
             }
 
             final Set<Bid> bidsToCache = cacheInfo.isShouldCacheWinningBidsOnly()
@@ -161,6 +169,15 @@ public class BidResponseCreator {
         }
 
         return result;
+    }
+
+    private Set<Bid> getWinningBidForEachBidder(List<BidderResponse> bidderResponses) {
+        return bidderResponses.stream()
+                .map(BidderResponse::getSeatBid)
+                .map(BidderSeatBid::getBids)
+                .flatMap(Collection::stream)
+                .map(BidderBid::getBid)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -192,32 +209,54 @@ public class BidResponseCreator {
                 ExtBidResponsePrebid.of(auctionTimestamp));
     }
 
-    private static void removeRedundantBids(BidderResponse bidderResponse) {
+    private static void reduceToBidderWinningBid(BidderResponse bidderResponse, Map<String, Boolean> impPreferDeals) {
         final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
-        final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
+        final Map<String, List<BidderBid>> impsIdToBidderBids = responseBidderBids.stream()
                 .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
 
-        final List<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
-                .map(BidResponseCreator::mostValuableBid)
+        final List<BidderBid> mostValuableBids = impsIdToBidderBids.entrySet().stream()
+                .map(impToBidderBid -> mostValuableBid(impToBidderBid.getValue(),
+                        impPreferDeals.get(impToBidderBid.getKey())))
                 .collect(Collectors.toList());
 
         responseBidderBids.retainAll(mostValuableBids);
     }
 
-    private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
+    private static boolean preferDeals(Boolean impPreferDeals, boolean accountPreferDeals) {
+        return impPreferDeals != null ? impPreferDeals : accountPreferDeals;
+    }
+
+    private Boolean extractImpPreferDeal(Imp imp) {
+        final ExtImp extImp;
+        try {
+            extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format(
+                    "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
+        }
+        final ExtImpTargeting extImpTargeting = extImp.getTargeting();
+        return extImpTargeting != null ? extImpTargeting.getPreferDeals() : null;
+    }
+
+    private static BidderBid mostValuableBid(List<BidderBid> bidderBids, boolean preferDeal) {
         if (bidderBids.size() == 1) {
             return bidderBids.get(0);
         }
 
+        final List<BidderBid> processedBidderBids = preferDeal ? extractDealBids(bidderBids) : bidderBids;
+        return processedBidderBids.stream()
+                .max(Comparator.comparing(bidderBid -> bidderBid.getBid().getPrice(), Comparator.naturalOrder()))
+                .orElse(bidderBids.get(0));
+    }
+
+    private static List<BidderBid> extractDealBids(List<BidderBid> bidderBids) {
+        List<BidderBid> processedBidderBids;
         final List<BidderBid> dealBidderBids = bidderBids.stream()
                 .filter(bidderBid -> StringUtils.isNotBlank(bidderBid.getBid().getDealid()))
                 .collect(Collectors.toList());
 
-        List<BidderBid> processedBidderBids = dealBidderBids.isEmpty() ? bidderBids : dealBidderBids;
-
-        return processedBidderBids.stream()
-                .max(Comparator.comparing(bidderBid -> bidderBid.getBid().getPrice(), Comparator.naturalOrder()))
-                .orElse(bidderBids.get(0));
+        processedBidderBids = dealBidderBids.isEmpty() ? bidderBids : dealBidderBids;
+        return processedBidderBids;
     }
 
     /**
@@ -237,60 +276,57 @@ public class BidResponseCreator {
      * Winning bid is the one with the highest price.
      */
     private static void populateWinningBids(List<BidderResponse> bidderResponses, Set<Bid> winningBids,
-                                            Set<Bid> winningBidsByBidder) {
+                                            Map<String, Boolean> impPreferDeals) {
         final Map<String, Bid> winningBidsMap = new HashMap<>(); // impId -> Bid
-        final Map<String, Map<String, Bid>> winningBidsByBidderMap = new HashMap<>(); // impId -> [bidder -> Bid]
 
         for (BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
-
             for (BidderBid bidderBid : bidderResponse.getSeatBid().getBids()) {
                 final Bid bid = bidderBid.getBid();
-
-                tryAddWinningBid(bid, winningBidsMap);
-                tryAddWinningBidByBidder(bid, bidder, winningBidsByBidderMap);
+                tryAddWinningBid(bid, winningBidsMap, impPreferDeals.get(bid.getImpid()));
             }
         }
-
         winningBids.addAll(winningBidsMap.values());
-
-        final List<Bid> bidsByBidder = winningBidsByBidderMap.values().stream()
-                .flatMap(bidsByBidderMap -> bidsByBidderMap.values().stream())
-                .collect(Collectors.toList());
-        winningBidsByBidder.addAll(bidsByBidder);
     }
 
     /**
      * Tries to add a winning bid for each impId.
      */
-    private static void tryAddWinningBid(Bid bid, Map<String, Bid> winningBids) {
+    private static void tryAddWinningBid(Bid bid, Map<String, Bid> winningBids, boolean preferDeals) {
         final String impId = bid.getImpid();
 
-        if (!winningBids.containsKey(impId) || bid.getPrice().compareTo(winningBids.get(impId).getPrice()) > 0) {
+        if (!winningBids.containsKey(impId) || isWinningBid(bid, winningBids.get(impId), preferDeals)) {
             winningBids.put(impId, bid);
         }
     }
 
     /**
-     * Tries to add a winning bid for each impId for separate bidder.
+     * Returns true if the first given {@link Bid} wins the previous winner, otherwise false.
+     * <p>
+     * The priority for choosing the 'winner' (hb_pb, hb_bidder, etc) is:
+     * <p>
+     * - PG Line Items always win over non-PG bids
+     * - Amongst PG Line Items, choose the highest CPM
+     * - Amongst non-PG bids, choose the highest CPM
      */
-    private static void tryAddWinningBidByBidder(Bid bid, String bidder,
-                                                 Map<String, Map<String, Bid>> winningBidsByBidder) {
-        final String impId = bid.getImpid();
+    private static boolean isWinningBid(Bid bid, Bid otherBid, boolean preferDeals) {
+        return preferDeals ? isWinningHighDealPriority(bid, otherBid) : isWinnerBidByPrice(bid, otherBid);
+    }
 
-        if (!winningBidsByBidder.containsKey(impId)) {
-            final Map<String, Bid> bidsByBidder = new HashMap<>();
-            bidsByBidder.put(bidder, bid);
-
-            winningBidsByBidder.put(impId, bidsByBidder);
+    private static boolean isWinningHighDealPriority(Bid bid, Bid otherBid) {
+        final String bidDealId = bid.getDealid();
+        final String otherBidDealId = otherBid.getDealid();
+        if (bidDealId != null) {
+            return otherBidDealId == null || isWinnerBidByPrice(bid, otherBid);
         } else {
-            final Map<String, Bid> bidsByBidder = winningBidsByBidder.get(impId);
-
-            if (!bidsByBidder.containsKey(bidder)
-                    || bid.getPrice().compareTo(bidsByBidder.get(bidder).getPrice()) > 0) {
-                bidsByBidder.put(bidder, bid);
-            }
+            return otherBidDealId == null && isWinnerBidByPrice(bid, otherBid);
         }
+    }
+
+    /**
+     * Returns true if the first given {@link Bid} has higher CPM than another one, otherwise false.
+     */
+    private static boolean isWinnerBidByPrice(Bid bid, Bid otherBid) {
+        return bid.getPrice().compareTo(otherBid.getPrice()) > 0;
     }
 
     private static Stream<Bid> getBids(BidderResponse bidderResponse) {

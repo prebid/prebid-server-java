@@ -66,6 +66,7 @@ public class TelariaTest extends IntegrationTest {
                 response, singletonList("telaria"));
 
         String actualStr = response.asString();
+
         JSONAssert.assertEquals(expectedAuctionResponse, actualStr, JSONCompareMode.NON_EXTENSIBLE);
     }
 }

@@ -8,6 +8,7 @@ There are two ways to configure application settings: database and file. This do
 - `video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
 - `events-enabled` - enables events for account if true
 - `enforce-ccpa` - enforces ccpa if true. Has higher priority than configuration in application.yaml.
+- `prefer-deals` - if `true` bid with deals has higher priority during searching for winning bids than bids without deals 
 - `gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
 - `gdpr.purposes.[p1-p10].enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
@@ -57,6 +58,7 @@ accounts:
     eventsEnabled: true
     priceGranularity: low
     enforceCcpa: true
+    preferDeals: true
     analyticsSamplingFactor: 1
     truncateTargetAttr: 40
     gdpr:
@@ -170,6 +172,7 @@ Query to create accounts_account table:
 `tcf_config` json DEFAULT NULL,
 `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
 `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
+`prefer_deals` bit(1) DEFAULT NULL,
 `status` enum('active','inactive') DEFAULT 'active',
 `updated_by` int(11) DEFAULT NULL,
 `updated_by_user` varchar(64) DEFAULT NULL,
