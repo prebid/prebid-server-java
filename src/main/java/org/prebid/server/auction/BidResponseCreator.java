@@ -301,12 +301,6 @@ public class BidResponseCreator {
 
     /**
      * Returns true if the first given {@link Bid} wins the previous winner, otherwise false.
-     * <p>
-     * The priority for choosing the 'winner' (hb_pb, hb_bidder, etc) is:
-     * <p>
-     * - PG Line Items always win over non-PG bids
-     * - Amongst PG Line Items, choose the highest CPM
-     * - Amongst non-PG bids, choose the highest CPM
      */
     private static boolean isWinningBid(Bid bid, Bid otherBid, boolean preferDeals) {
         return preferDeals ? isWinningHighDealPriority(bid, otherBid) : isWinnerBidByPrice(bid, otherBid);
