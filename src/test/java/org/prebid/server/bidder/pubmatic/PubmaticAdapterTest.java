@@ -32,6 +32,7 @@ import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Video;
@@ -236,9 +237,9 @@ public class PubmaticAdapterTest extends VertxTest {
                         .timeoutMillis(1500L)
                         .tid("tid")
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))));
+                        .regs(Regs.of(0, ExtRegs.of(1, null))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -276,15 +277,15 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(0, ExtRegs.of(1, null)))
                         .source(Source.builder()
                                 .fd(1)
                                 .tid("tid")
                                 .build())
-                        .ext(mapper.valueToTree(
-                                PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))))
+                        .ext(jacksonMapper.fillExtension(
+                                ExtRequest.empty(), PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))))
                         .build());
     }
 

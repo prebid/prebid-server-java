@@ -43,16 +43,17 @@ import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.bidder.rubicon.proto.RubiconParams.RubiconParamsBuilder;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconRegsExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
@@ -322,16 +323,20 @@ public class RubiconAdapterTest extends VertxTest {
                                 .domain("example.com")
                                 .page("http://www.example.com")
                                 .publisher(Publisher.builder()
-                                        .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
+                                        .ext(jacksonMapper.fillExtension(
+                                                ExtPublisher.empty(),
+                                                RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                         .build())
-                                .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001), null)))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtSite.of(null, null), RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                                 .build())
                         .device(Device.builder()
                                 .ua("userAgent")
                                 .ip("192.168.144.1")
                                 .pxratio(new BigDecimal("4.2"))
-                                .ext(mapper.valueToTree(RubiconDeviceExt.of(
-                                        RubiconDeviceExtRp.of(new BigDecimal("4.2")))))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtDevice.empty(),
+                                        RubiconDeviceExt.of(RubiconDeviceExtRp.of(new BigDecimal("4.2")))))
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
@@ -403,10 +408,9 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getDevice()).isNotNull()
                 .extracting(Device::getExt).isNotNull()
-                .extracting(objectNode -> mapper.treeToValue(objectNode, RubiconDeviceExt.class))
-                .extracting(RubiconDeviceExt::getRp).isNotNull()
-                .extracting(RubiconDeviceExtRp::getPixelratio)
-                .containsOnly(new BigDecimal("4.2"));
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtDevice.empty(),
+                        RubiconDeviceExt.of(RubiconDeviceExtRp.of(new BigDecimal("4.2")))));
 
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getSite()).isNotNull()
@@ -431,10 +435,9 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getDevice()).isNotNull()
                 .extracting(Device::getExt).isNotNull()
-                .extracting(objectNode -> mapper.treeToValue(objectNode, RubiconDeviceExt.class))
-                .extracting(RubiconDeviceExt::getRp).isNotNull()
-                .extracting(RubiconDeviceExtRp::getPixelratio)
-                .containsNull();
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtDevice.empty(),
+                        RubiconDeviceExt.of(RubiconDeviceExtRp.of(null))));
 
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getSite()).isNotNull()
@@ -520,7 +523,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
-                .extracting(user -> user.getExt().at("/rp/target")).containsOnly(visitor);
+                .extracting(user -> user.getExt().getProperty("rp").at("/target")).containsOnly(visitor);
     }
 
     @Test
@@ -528,7 +531,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build()));
 
         // when
@@ -539,8 +542,7 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
                 .extracting(User::getExt).isNotNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
-                .extracting(RubiconUserExt::getConsent)
+                .extracting(ExtUser::getConsent)
                 .containsOnly("consent");
     }
 
@@ -549,7 +551,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build()));
 
         // when
@@ -560,30 +562,15 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
                 .extracting(User::getExt).isNotNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
-                .extracting(RubiconUserExt::getRp)
+                .extracting(ext -> ext.getProperty("rp"))
                 .containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtIsNotValidJson() {
-        // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder.user(User.builder()
-                        .ext(mapper.createObjectNode()
-                                .set("consent", mapper.createObjectNode())).build()));
-
-        // when
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessageStartingWith("Cannot deserialize instance of `java.lang.String`");
     }
 
     @Test
     public void makeHttpRequestShouldReturnBidRequestWithGdprFromPreBidRequestRegsExt() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
-                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5, null)))));
+                builder -> builder.regs(Regs.of(null, ExtRegs.of(5, null))));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -593,8 +580,7 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getRegs()).isNotNull()
                 .extracting(Regs::getExt).isNotNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconRegsExt.class))
-                .extracting(RubiconRegsExt::getGdpr)
+                .extracting(ExtRegs::getGdpr)
                 .containsOnly(5);
     }
 

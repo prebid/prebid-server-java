@@ -2,11 +2,11 @@ package org.prebid.server.validation;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
-import com.iab.openrtb.request.video.VideoVideo;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -77,7 +77,7 @@ public class VideoRequestValidator {
         }
     }
 
-    private static void validateVideo(VideoVideo video) {
+    private static void validateVideo(Video video) {
         if (video == null) {
             throw new InvalidRequestException("request missing required field: Video");
         }
