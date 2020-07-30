@@ -22,6 +22,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
+import org.prebid.server.auction.WinningBidsResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -376,6 +377,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
+            WinningBidsResolver winningBidsResolver,
             @Value("${auction.generate-bid-id}") boolean generateBidId,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             JacksonMapper mapper) {
@@ -383,9 +385,20 @@ public class ServiceConfiguration {
         if (truncateAttrChars < 0 || truncateAttrChars > 255) {
             throw new IllegalArgumentException("settings.targeting.truncate-attr-chars must be between 0 and 255");
         }
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, generateBidId,
+        return new BidResponseCreator(
+                cacheService,
+                bidderCatalog,
+                eventsService,
+                storedRequestProcessor,
+                winningBidsResolver,
+                generateBidId,
                 truncateAttrChars,
                 mapper);
+    }
+
+    @Bean
+    WinningBidsResolver winningBidsResolver(JacksonMapper jacksonMapper) {
+        return new WinningBidsResolver(jacksonMapper);
     }
 
     @Bean
