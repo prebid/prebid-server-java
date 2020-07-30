@@ -151,7 +151,7 @@ public class ExchangeService {
         return storedResponseProcessor.getStoredResponseResult(imps, aliases, timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedResponse))
                 .compose(impsRequiredRequest ->
-                        extractBidderRequests(context, impsRequiredRequest, requestExt, aliases))
+                        extractBidderRequests(context, impsRequiredRequest, aliases))
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, requestTypeMetric))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
@@ -202,9 +202,9 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts usepbsrates flag from {@link ExtBidRequest}.
+     * Extracts usepbsrates flag from {@link ExtRequest}.
      */
-    private static Boolean usepbsrates(ExtBidRequest requestExt) {
+    private static Boolean usepbsrates(ExtRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
         return currency != null ? currency.getUsepbsrates() : null;

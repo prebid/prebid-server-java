@@ -325,8 +325,6 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder
                         .id("requestId")
                         .ext(ExtRequest.of(
-                                ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
-                        .ext(mapper.valueToTree(
                                 ExtRequestPrebid.builder()
                                         .currency(ExtRequestCurrency.of(currencyRates, false))
                                         .build()))
@@ -348,8 +346,6 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
                 .ext(ExtRequest.of(
-                        ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
-                .ext(mapper.valueToTree(
                         ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates, false)).build()))
                 .tmax(500L)
                 .build());
@@ -1592,9 +1588,8 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.valueOf(10));
         given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
-                .willReturn(BigDecimal.valueOf(10.0));
+                .willReturn(BigDecimal.valueOf(10));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
