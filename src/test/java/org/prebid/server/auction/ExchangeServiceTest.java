@@ -380,6 +380,40 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPassImpWithExtPrebidToDefinedBidder() {
+        // given
+        final String bidder1Name = "bidder1";
+        final String bidder2Name = "bidder2";
+        final Bidder<?> bidder1 = mock(Bidder.class);
+        final Bidder<?> bidder2 = mock(Bidder.class);
+        givenBidder(bidder1Name, bidder1, givenEmptySeatBid());
+        givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
+
+        final ObjectNode impExt = mapper.createObjectNode()
+                .put(bidder1Name, "ignored1")
+                .put(bidder2Name, "ignored2")
+                .putPOJO("prebid", doubleMap(bidder1Name, 1, bidder2Name, 2));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(impExt, identity())), identity());
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
+        assertThat(bidRequest1Captor.getValue().getImp()).hasSize(1)
+                .extracting(imp -> imp.getExt().get("prebid"))
+                .containsOnly(mapper.createObjectNode().put("bidder", 1));
+
+        final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
+        assertThat(bidRequest2Captor.getValue().getImp()).hasSize(1)
+                .extracting(imp -> imp.getExt().get("prebid"))
+                .containsOnly(mapper.createObjectNode().put("bidder", 2));
+    }
+
+    @Test
     public void shouldPassRequestWithExtPrebidToDefinedBidder() {
         // given
         final String bidder1Name = "bidder1";
