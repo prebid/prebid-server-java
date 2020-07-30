@@ -61,14 +61,14 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid":"OX-UID",
+    "buyeruid": "OX-UID",
     "ext": {
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
       },
-      "consent" : "consentValue"
+      "consent": "consentValue"
     }
   },
   "at": 1,

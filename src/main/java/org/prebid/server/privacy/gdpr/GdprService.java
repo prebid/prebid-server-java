@@ -15,6 +15,7 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class GdprService {
 
     private static final Logger logger = LoggerFactory.getLogger(GdprService.class);
+
     private static final int PURPOSE_ONE_ID = 1;
 
     private final VendorListService<VendorListV1, VendorV1> vendorListService;
@@ -50,12 +52,13 @@ public class GdprService {
         if (vendorConsent == null) {
             // consent string is broken
             return Future.succeededFuture(vendorIds.stream()
-                    .map(vendorId -> VendorPermission.of(vendorId, null, allDenied()))
+                    .map(GdprService::toRestrictedVendorPermission)
                     .collect(Collectors.toList()));
         }
 
         return vendorListService.forVersion(vendorConsent.getVendorListVersion())
-                .map(vendorListMapping -> toResult(vendorListMapping, vendorIds, vendorConsent));
+                .compose(vendorListMapping -> toResult(vendorListMapping, vendorIds, vendorConsent),
+                        ignoredFailed -> toFallbackResult(vendorIds));
     }
 
     /**
@@ -72,7 +75,7 @@ public class GdprService {
         try {
             return VendorConsentDecoder.fromBase64String(vendorConsentString);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            logger.info("Parsing consent string failed with error: {0}", e.getMessage());
             return null;
         }
     }
@@ -80,14 +83,15 @@ public class GdprService {
     /**
      * Processes {@link VendorListService} response and returns GDPR result for every vendor ID.
      */
-    private static Collection<VendorPermission> toResult(Map<Integer, VendorV1> vendorListMapping,
-                                                         Set<Integer> vendorIds,
-                                                         VendorConsent vendorConsent) {
+    private static Future<Collection<VendorPermission>> toResult(Map<Integer, VendorV1> vendorListMapping,
+                                                                 Set<Integer> vendorIds,
+                                                                 VendorConsent vendorConsent) {
 
         final Set<Integer> allowedPurposeIds = getAllowedPurposeIdsFromConsent(vendorConsent);
-        return vendorIds.stream()
+        final List<VendorPermission> vendorPermissions = vendorIds.stream()
                 .map(vendorId -> toVendorPermission(vendorId, vendorListMapping, vendorConsent, allowedPurposeIds))
                 .collect(Collectors.toList());
+        return Future.succeededFuture(vendorPermissions);
     }
 
     /**
@@ -110,7 +114,7 @@ public class GdprService {
 
         // confirm that there is consent for vendor and it has entry in vendor list
         if (!isVendorAllowed(vendorConsent, vendorId) || !vendorListMapping.containsKey(vendorId)) {
-            return VendorPermission.of(vendorId, null, allDenied());
+            return toRestrictedVendorPermission(vendorId);
         }
 
         final VendorV1 vendorListEntry = vendorListMapping.get(vendorId);
@@ -121,6 +125,10 @@ public class GdprService {
         final boolean purposeOneClaimedAndAllowed = isPurposeOneClaimedAndAllowed(claimedPurposes, allowedPurposeIds);
 
         return VendorPermission.of(vendorId, null, toAction(claimedPurposesAllowed, purposeOneClaimedAndAllowed));
+    }
+
+    private static VendorPermission toRestrictedVendorPermission(Integer vendorId) {
+        return VendorPermission.of(vendorId, null, allDenied());
     }
 
     /**
@@ -154,5 +162,13 @@ public class GdprService {
                 .blockBidderRequest(false)
                 .blockPixelSync(!allowUserSync)
                 .build();
+    }
+
+    private static Future<Collection<VendorPermission>> toFallbackResult(Set<Integer> vendorIds) {
+        final List<VendorPermission> vendorPermissions = vendorIds.stream()
+                .filter(Objects::nonNull)
+                .map(GdprService::toRestrictedVendorPermission)
+                .collect(Collectors.toList());
+        return Future.succeededFuture(vendorPermissions);
     }
 }

@@ -43,8 +43,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconExt;
-import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBidders;
 import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBiddersBidder;
 import org.prebid.server.bidder.rubicon.proto.RubiconExtPrebidBiddersBidderDebug;
@@ -68,9 +66,12 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -112,7 +113,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String ADSERVER_EID = "adserver.org";
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String DATA_NODE_NAME = "data";
     private static final String PREBID_EXT = "prebid";
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
@@ -226,10 +226,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
      * This mainly related to global fields like request.site.keywords, etc.
      */
     private boolean useFirstPartyData(BidRequest bidRequest) {
-        final ExtBidRequest extBidRequest = bidRequest.getExt() != null
-                ? mapper.mapper().convertValue(bidRequest.getExt(), ExtBidRequest.class)
+        final ExtRequest extRequest = bidRequest.getExt() != null
+                ? mapper.mapper().convertValue(bidRequest.getExt(), ExtRequest.class)
                 : null;
-        final ExtRequestPrebid prebid = extBidRequest == null ? null : extBidRequest.getPrebid();
+        final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
         final List<String> bidders = data == null ? null : data.getBidders();
         return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
@@ -307,15 +307,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return StringUtils.isBlank(integration) ? null : integration;
     }
 
-    private RubiconExtPrebidBiddersBidder extPrebidBiddersRubicon(ObjectNode extRequest) {
-        try {
-            final RubiconExt rubiconExt = mapper.mapper().convertValue(extRequest, RubiconExt.class);
-            final RubiconExtPrebid prebid = rubiconExt == null ? null : rubiconExt.getPrebid();
-            final RubiconExtPrebidBidders bidders = prebid == null ? null : prebid.getBidders();
-            return bidders == null ? null : bidders.getBidder();
-        } catch (IllegalArgumentException e) {
-            return null;
+    private RubiconExtPrebidBiddersBidder extPrebidBiddersRubicon(ExtRequest extRequest) {
+        final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
+        final ObjectNode biddersNode = prebid == null ? null : prebid.getBidders();
+        if (biddersNode != null) {
+            try {
+                final RubiconExtPrebidBidders bidders = mapper.mapper().convertValue(biddersNode,
+                        RubiconExtPrebidBidders.class);
+                return bidders == null ? null : bidders.getBidder();
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
         }
+        return null;
     }
 
     private Imp makeImp(Imp imp, ExtImpPrebid extPrebid, ExtImpRubicon extRubicon,
@@ -375,15 +379,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ExtImpContext context = extImpContext(imp);
 
             // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
-            final ObjectNode siteExt = site != null ? site.getExt() : null;
+            final ExtSite siteExt = site != null ? site.getExt() : null;
             if (siteExt != null) {
-                populateObjectNode(inventoryNode, getDataNode(siteExt));
+                populateObjectNode(inventoryNode, siteExt.getData());
             }
 
             // copy OPENRTB.app.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
-            final ObjectNode appExt = app != null ? app.getExt() : null;
+            final ExtApp appExt = app != null ? app.getExt() : null;
             if (appExt != null) {
-                populateObjectNode(inventoryNode, getDataNode(appExt));
+                populateObjectNode(inventoryNode, appExt.getData());
             }
 
             // copy OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
@@ -431,10 +435,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    private static JsonNode getDataNode(ObjectNode extObjectNode) {
-        return extObjectNode.get(DATA_NODE_NAME);
     }
 
     private static void populateObjectNode(ObjectNode objectNode, JsonNode data) {
@@ -541,7 +541,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private User makeUser(User user, ExtImpRubicon rubiconImpExt) {
         final User result;
 
-        final ExtUser extUser = user != null ? extUser(user.getExt()) : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUser.getEids())
                 : null;
@@ -552,50 +552,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
 
         if (userExtRp != null || userExtTpIds != null || userExtData != null) {
-            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
-            if (extUser != null) {
-                userExtBuilder
-                        .consent(extUser.getConsent())
-                        .digitrust(extUser.getDigitrust())
-                        .eids(extUser.getEids());
-            }
+            final ExtUser userExt = extUser != null
+                    ? ExtUser.builder().consent(extUser.getConsent())
+                    .digitrust(extUser.getDigitrust())
+                    .eids(extUser.getEids())
+                    .build()
+                    : ExtUser.builder().build();
 
-            final RubiconUserExt rubiconUserExt = userExtBuilder
+            final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                     .rp(userExtRp)
                     .tpid(userExtTpIds)
                     .build();
-            final ObjectNode rubiconUserExtNode = mapper.mapper().valueToTree(rubiconUserExt);
-
-            if (userExtData != null) {
-                final ObjectNode userExtRpNode = userExtRp != null
-                        ? mapper.mapper().valueToTree(userExtRp)
-                        : mapper.mapper().createObjectNode();
-
-                userExtRpNode.setAll(userExtData);
-
-                rubiconUserExtNode.set("rp", userExtRpNode);
-            }
 
             final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
             result = userBuilder
-                    .ext(rubiconUserExtNode)
+                    .ext(mapper.fillExtension(userExt, rubiconUserExt))
                     .build();
         } else {
             result = user;
         }
 
         return result;
-    }
-
-    /**
-     * Extracts {@link ExtUser} from request.user.ext or returns null if not presents.
-     */
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
-        }
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {
@@ -659,9 +636,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final JsonNode target = rubiconUserExtRpTarget(sourceToUserEidExt, visitor);
 
-        return target != null || gender != null || yob != null || geo != null
-                ? RubiconUserExtRp.of(target, gender, yob, geo)
-                : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final ObjectNode data = extUser != null ? extUser.getData() : null;
+
+        if (target != null || gender != null || yob != null || geo != null) {
+            final RubiconUserExtRp rubiconUserExtRp = RubiconUserExtRp.of(target, gender, yob, geo);
+            return data != null
+                    ? mapper.fillExtension(rubiconUserExtRp, data)
+                    : rubiconUserExtRp;
+        }
+
+        return null;
     }
 
     private JsonNode rubiconUserExtRpTarget(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode visitor) {
@@ -681,7 +666,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Device makeDevice(Device device) {
         return device == null ? null : device.toBuilder()
-                .ext(mapper.mapper().valueToTree(RubiconDeviceExt.of(RubiconDeviceExtRp.of(device.getPxratio()))))
+                .ext(mapper.fillExtension(
+                        ExtDevice.empty(),
+                        RubiconDeviceExt.of(RubiconDeviceExtRp.of(device.getPxratio()))))
                 .build();
     }
 
@@ -695,7 +682,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 : site.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
                 .content(makeSiteContent(site.getContent(), impLanguage))
-                .ext(mapper.mapper().valueToTree(makeSiteExt(site, rubiconImpExt)))
+                .ext(makeSiteExt(site, rubiconImpExt))
                 .build();
     }
 
@@ -714,15 +701,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
         return Publisher.builder()
-                .ext(mapper.mapper().valueToTree(makePublisherExt(rubiconImpExt)))
+                .ext(makePublisherExt(rubiconImpExt))
                 .build();
     }
 
-    private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
+    private ExtPublisher makePublisherExt(ExtImpRubicon rubiconImpExt) {
+        return mapper.fillExtension(
+                ExtPublisher.empty(),
+                RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId())));
     }
 
-    private RubiconSiteExt makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
+    private ExtSite makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
         ExtSite extSite = null;
         if (site != null) {
             try {
@@ -732,18 +721,22 @@ public class RubiconBidder implements Bidder<BidRequest> {
             }
         }
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
-        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()), siteExtAmp);
+
+        return mapper.fillExtension(
+                ExtSite.of(siteExtAmp, null),
+                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
     }
 
     private App makeApp(App app, ExtImpRubicon rubiconImpExt) {
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
-                .ext(mapper.mapper().valueToTree(makeAppExt(rubiconImpExt)))
+                .ext(makeAppExt(rubiconImpExt))
                 .build();
     }
 
-    private static RubiconAppExt makeAppExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
+    private ExtApp makeAppExt(ExtImpRubicon rubiconImpExt) {
+        return mapper.fillExtension(ExtApp.of(null, null),
+                RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
     }
 
     private static Source makeSource(Source source, String pchain) {
