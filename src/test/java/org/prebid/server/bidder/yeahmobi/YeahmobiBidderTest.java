@@ -36,7 +36,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class YeahmobiBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://{{Host}}/prebid/bid";
 
     private YeahmobiBidder yeahmobiBidder;
 
@@ -63,7 +63,7 @@ public class YeahmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -81,11 +81,11 @@ public class YeahmobiBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.comgw-zoneId-bid.yeahtargeter.com");
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://gw-zoneId-bid.yeahtargeter.com/prebid/bid");
     }
 
     @Test
-    public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
+    public void makeHttpRequestsShouldAddNativeRequestIfEmpty() {
         // given
         String nativeRequest = "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":2,"
                 + "\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":{\"type\":3,\"wmin\""
@@ -94,12 +94,39 @@ public class YeahmobiBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .w(200)
-                                .h(150)
-                                .build())
+                        .banner(Banner.builder().build())
                 .xNative(Native.builder().request(nativeRequest).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+
+        // then
+        String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
+                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":"
+                + "{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
+                + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getXNative)
+                .extracting(Native::getRequest)
+                .containsOnly(expectedNativeRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotNativeRequestIfAlreadyExists() {
+        // given
+        String nativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
+                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,"
+                + "\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\","
+                + "\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().build())
+                        .xNative(Native.builder().request(nativeRequest).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);

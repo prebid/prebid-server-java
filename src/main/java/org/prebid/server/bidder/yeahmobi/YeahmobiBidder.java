@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.yeahmobi;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -11,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import lombok.SneakyThrows;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -52,20 +52,38 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> result = new ArrayList<>();
+        final List<Imp> validImps = new ArrayList<>();
 
+        ExtImpYeahmobi extImpYeahmobi = null;
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpYeahmobi extImpYeahmobi = parseImpExt(imp);
+                if (extImpYeahmobi == null) {
+                    extImpYeahmobi = parseImpExt(imp);
+                }
                 final Imp processImp = processImp(imp);
-                final String url = endpointUrl + "gw-" + extImpYeahmobi.getZoneId() + "-bid.yeahtargeter.com";
-                result.add(createSingleRequest(processImp, request, url));
+                validImps.add(processImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(result, errors);
+        final String host = extImpYeahmobi != null ? String.format("gw-%s-bid.yeahtargeter.com",
+                HttpUtil.encodeUrl(extImpYeahmobi.getZoneId())) : null;
+        final String url = host != null ? endpointUrl.replace("{{Host}}", host) : null;
+
+        final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
+
+        final String body = mapper.encode(outgoingRequest);
+
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(url)
+                        .headers(HttpUtil.headers())
+                        .payload(outgoingRequest)
+                        .body(body)
+                        .build()),
+                errors);
     }
 
     private ExtImpYeahmobi parseImpExt(Imp imp) {
@@ -76,40 +94,26 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         }
     }
 
+    @SneakyThrows
     private Imp processImp(Imp imp) {
+        final Native xNative = imp.getXNative();
 
-        final String updateNativeRequest;
-        try {
-            final JsonNode nativeRequest = imp.getXNative() != null
-                    ? mapper.mapper().readValue(imp.getXNative().getRequest(), JsonNode.class)
+        if (xNative != null) {
+            final JsonNode nativeRequest = xNative.getRequest() != null
+                    ? mapper.mapper().readValue(xNative.getRequest(), JsonNode.class)
                     : null;
 
+            final String newNativeRequest;
             final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativeRequest);
-            updateNativeRequest = nativeRequest != null && nativeRequest.get("native") == null
+            newNativeRequest = nativeRequest == null || nativeRequest.get("native") == null
                     ? mapper.mapper().writeValueAsString(objectNode)
                     : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
+
+            return newNativeRequest != null
+                    ? imp.toBuilder().xNative(Native.builder().request(newNativeRequest).build()).build()
+                    : imp;
         }
-
-        return updateNativeRequest != null
-                ? imp.toBuilder().xNative(Native.builder().request(updateNativeRequest).build()).build()
-                : imp;
-    }
-
-    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
-        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-
-        final String body = mapper.encode(outgoingRequest);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(url)
-
-                .headers(HttpUtil.headers())
-                .body(body)
-                .payload(outgoingRequest)
-                .build();
+        return imp;
     }
 
     @Override
@@ -150,21 +154,18 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     }
 
     protected BidType getBidType(String impId, List<Imp> imps) {
-        BidType bidType = BidType.banner;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    break;
+                    return BidType.banner;
                 } else if (imp.getVideo() != null) {
-                    bidType = BidType.video;
-                    break;
+                    return BidType.video;
                 } else if (imp.getXNative() != null) {
-                    bidType = BidType.xNative;
-                    break;
+                    return BidType.xNative;
                 }
             }
         }
-        return bidType;
+        return BidType.banner;
     }
 
     @Override
