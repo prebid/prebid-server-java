@@ -109,15 +109,15 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
+    private static Set<String> activeBidders(BidderCatalog bidderCatalog) {
+        return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
+    }
+
     private static Integer validateHostVendorId(Integer gdprHostVendorId) {
         if (gdprHostVendorId == null) {
             logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
         }
         return gdprHostVendorId;
-    }
-
-    private static Set<String> activeBidders(BidderCatalog bidderCatalog) {
-        return bidderCatalog.names().stream().filter(bidderCatalog::isActive).collect(Collectors.toSet());
     }
 
     @Override
