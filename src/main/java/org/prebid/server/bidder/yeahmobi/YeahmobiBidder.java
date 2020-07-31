@@ -66,8 +66,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         }
 
         if (extImpYeahmobi == null) {
-            errors.add(BidderError.badInput("Invalid ExtImpYeahmobi value"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.emptyWithError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
         }
 
         final String host = String.format("gw-%s-bid.yeahtargeter.com", HttpUtil.encodeUrl(extImpYeahmobi.getZoneId()));
