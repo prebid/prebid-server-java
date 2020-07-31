@@ -8,7 +8,7 @@ adapters:
     deprecated-names: indexExchange
     aliases:
     meta-info:
-      maintainer-email: info@prebid.org
+      maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:
       site-media-types:
         - banner

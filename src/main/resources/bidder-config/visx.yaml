@@ -8,13 +8,13 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: service@yoc.com
+      maintainer-email: supply.partners@yoc.com
       app-media-types:
         - banner
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 154
     usersync:
       url: https://t.visx.net/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
       redirect-url: /setuid?bidder=visx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={UUID}

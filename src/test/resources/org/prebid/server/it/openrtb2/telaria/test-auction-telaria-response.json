@@ -1,0 +1,56 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "imp123",
+          "price": 0.01,
+          "adm": "<b>hi</b>",
+          "cid": "test_cid",
+          "crid": "test_video_crid",
+          "ext": {
+            "bidder": {
+              "format": "VIDEO"
+            },
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "0.00",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_host_telaria": "{{ cache.host }}",
+                "hb_cache_path_telaria": "{{ cache.path }}",
+                "hb_bidder_telaria": "telaria",
+                "hb_bidder": "telaria",
+                "hb_cache_id_telaria": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                "hb_cache_id": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_pb_telaria": "0.00"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}9c0c4f2f-686f-4673-a00a-d8cae7e7a05d",
+                  "cacheId": "9c0c4f2f-686f-4673-a00a-d8cae7e7a05d"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "telaria",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "telaria": "{{ telaria.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}
