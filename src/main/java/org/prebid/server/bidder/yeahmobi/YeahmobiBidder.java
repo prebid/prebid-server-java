@@ -57,9 +57,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         ExtImpYeahmobi extImpYeahmobi = null;
         for (Imp imp : request.getImp()) {
             try {
-                if (extImpYeahmobi == null) {
-                    extImpYeahmobi = parseImpExt(imp);
-                }
+                extImpYeahmobi = extImpYeahmobi == null ? parseImpExt(imp) : extImpYeahmobi;
                 final Imp processImp = processImp(imp);
                 validImps.add(processImp);
             } catch (PreBidException e) {
@@ -67,9 +65,13 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
             }
         }
 
-        final String host = extImpYeahmobi != null ? String.format("gw-%s-bid.yeahtargeter.com",
-                HttpUtil.encodeUrl(extImpYeahmobi.getZoneId())) : null;
-        final String url = host != null ? endpointUrl.replace("{{Host}}", host) : null;
+        if (extImpYeahmobi == null) {
+            errors.add(BidderError.badInput("Invalid ExtImpYeahmobi value"));
+            return Result.of(Collections.emptyList(), errors);
+        }
+
+        final String host = String.format("gw-%s-bid.yeahtargeter.com", HttpUtil.encodeUrl(extImpYeahmobi.getZoneId()));
+        final String url = endpointUrl.replace("{{Host}}", host);
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 

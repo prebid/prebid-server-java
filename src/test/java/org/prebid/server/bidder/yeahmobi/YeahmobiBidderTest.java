@@ -61,9 +61,9 @@ public class YeahmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors().get(1).getMessage()).startsWith("Invalid ExtImpYeahmobi value");
     }
 
     @Test
