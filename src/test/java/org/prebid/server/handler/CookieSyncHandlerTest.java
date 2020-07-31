@@ -586,6 +586,47 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldSkipVendorHostCheckAndContiniueWithBiddersCheckWhenHostVendorIdIsMissing() throws IOException {
+        // given
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, false, emptyList(),
+                analyticsReporter, metrics, timeoutFactory, jacksonMapper);
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build(),
+                jacksonMapper));
+
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(
+                        CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null, null, null, null)));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
+        givenUsersyncersReturningFamilyName();
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
+
+        given(bidderCatalog.bidderInfoByName(APPNEXUS))
+                .willReturn(BidderInfo.create(true, null, null,
+                        null, null, 2, true, true, false));
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(tcfDefinerService, never()).resultForVendorIds(anySet(), anyString(), anyString(), anyString(), any(),
+                any());
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
+                .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
+                .containsOnly(tuple(APPNEXUS, "Rejected by TCF"));
+    }
+
+    @Test
     public void shouldUpdateCookieSyncSetAndRejectByTcfMetricForEachRejectedAndSyncedBidder() {
         // given
         given(routingContext.getBody())
@@ -647,7 +688,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByTcf() throws IOException {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, false, emptyList(),
+                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, false, emptyList(),
                 analyticsReporter, metrics, timeoutFactory, jacksonMapper);
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -664,7 +705,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningVendorIdResult(emptySet());
         givenTcfServiceReturningBidderNamesResult(set(RUBICON, APPNEXUS));
 
         // when

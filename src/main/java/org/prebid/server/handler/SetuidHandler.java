@@ -65,7 +65,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
-        this.gdprHostVendorId = gdprHostVendorId;
+        this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
@@ -76,6 +76,13 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .map(bidderCatalog::usersyncerByName)
                 .map(Usersyncer::getCookieFamilyName)
                 .collect(Collectors.toSet());
+    }
+
+    private static Integer validateHostVendorId(Integer gdprHostVendorId) {
+        if (gdprHostVendorId == null) {
+            logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
+        }
+        return gdprHostVendorId;
     }
 
     @Override
@@ -100,16 +107,19 @@ public class SetuidHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String requestAccount = context.request().getParam(ACCOUNT_PARAM);
         final String gdpr = context.request().getParam(GDPR_PARAM);
         final String gdprConsent = context.request().getParam(GDPR_CONSENT_PARAM);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
+        if (gdprHostVendorId == null) {
+            respondWithCookie(context, cookieName, uidsCookie);
+            return;
+        }
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService.resultForVendorIds(vendorIds, gdpr, gdprConsent, ip,
-                        account.getGdpr(), timeout))
+                .compose(account -> tcfDefinerService.resultForVendorIds(Collections.singleton(gdprHostVendorId), gdpr,
+                        gdprConsent, ip, account.getGdpr(), timeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, cookieName));
     }
 

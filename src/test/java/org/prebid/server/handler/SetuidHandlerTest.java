@@ -47,6 +47,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
@@ -88,7 +89,7 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(null,
+        final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(1,
                 PrivacyEnforcementAction.allowAll());
         given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
@@ -107,7 +108,7 @@ public class SetuidHandlerTest extends VertxTest {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, null, false, analyticsReporter, metrics, timeoutFactory);
+                bidderCatalog, tcfDefinerService, 1, false, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
@@ -233,7 +234,7 @@ public class SetuidHandlerTest extends VertxTest {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, null, true, analyticsReporter, metrics, timeoutFactory);
+                bidderCatalog, tcfDefinerService, 1, true, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -444,6 +445,42 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
+        verify(routingContext, never()).addCookie(any(Cookie.class));
+        verify(httpResponse).end();
+
+        final String uidsCookie = getUidsCookie();
+        final Uids decodedUids = decodeUids(uidsCookie);
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
+    public void shouldSkipTcfChecksAndRespondWithCookieIfHostVendorIdNotDefined() throws IOException {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
+                bidderCatalog, tcfDefinerService, null, false, analyticsReporter, metrics, new TimeoutFactory(clock));
+        given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(tcfDefinerService, never()).resultForVendorIds(anySet(), anyString(), anyString(), anyString(), any(),
+                any());
         verify(routingContext, never()).addCookie(any(Cookie.class));
         verify(httpResponse).end();
 

@@ -97,7 +97,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.activeBidders = activeBidders(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
-        this.gdprHostVendorId = gdprHostVendorId;
+        this.gdprHostVendorId = validateHostVendorId(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
         this.defaultCoopSync = defaultCoopSync;
         this.listOfCoopSyncBidders = CollectionUtils.isNotEmpty(listOfCoopSyncBidders)
@@ -107,6 +107,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    private static Integer validateHostVendorId(Integer gdprHostVendorId) {
+        if (gdprHostVendorId == null) {
+            logger.warn("gdpr.host-vendor-id not specified. Will skip host company GDPR checks");
+        }
+        return gdprHostVendorId;
     }
 
     private static Set<String> activeBidders(BidderCatalog bidderCatalog) {
@@ -166,14 +173,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Privacy privacy = Privacy.of(gdprAsString, gdprConsent, ccpa);
 
         final String requestAccount = cookieSyncRequest.getAccount();
-        final Set<Integer> vendorIds = Collections.singleton(gdprHostVendorId);
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         accountById(requestAccount, timeout)
-                .compose(account -> tcfDefinerService.resultForVendorIds(
-                        vendorIds, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout)
-                        .compose(this::handleVendorIdResult)
+                .compose(account -> allowedForVendorId(gdprConsent, gdprAsString, gdprHostVendorId, ip, timeout,
+                        account)
                         .compose(ignored -> tcfDefinerService.resultForBidderNames(
                                 biddersToSync, gdprAsString, gdprConsent, ip, account.getGdpr(), timeout))
                         .map(tcfResponse -> handleBidderNamesResult(
@@ -199,6 +204,19 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         return new HashSet<>(requestBidders);
+    }
+
+    /**
+     * Returns failed future if vendor is not allowed for cookie sync.
+     * If host vendor id is null, host allowed to sync cookies.
+     */
+    private Future<Void> allowedForVendorId(String gdprConsent, String gdprAsString, Integer gdprHostVendorId,
+                                            String ip, Timeout timeout, Account account) {
+        return gdprHostVendorId != null
+                ? tcfDefinerService.resultForVendorIds(
+                Collections.singleton(gdprHostVendorId), gdprAsString, gdprConsent, ip, account.getGdpr(), timeout)
+                .compose(this::handleVendorIdResult)
+                : Future.succeededFuture();
     }
 
     private Set<String> addAllCoopSyncBidders(List<String> bidders) {
