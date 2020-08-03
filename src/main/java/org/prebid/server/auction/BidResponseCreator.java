@@ -763,6 +763,9 @@ public class BidResponseCreator {
             final Integer type = img != null ? img.getType() : null;
             if (type != null) {
                 responseAsset.getImg().setType(type);
+            } else {
+                throw new PreBidException(String.format("Response has an Image asset with ID:%s present that doesn't "
+                        + "exist in the request", responseAsset.getId()));
             }
         }
         if (responseAsset.getData() != null) {
@@ -770,6 +773,9 @@ public class BidResponseCreator {
             final Integer type = data != null ? data.getType() : null;
             if (type != null) {
                 responseAsset.getData().setType(type);
+            } else {
+                throw new PreBidException(String.format("Response has a Data asset with ID:%s present that doesn't "
+                        + "exist in the request", responseAsset.getId()));
             }
         }
     }
