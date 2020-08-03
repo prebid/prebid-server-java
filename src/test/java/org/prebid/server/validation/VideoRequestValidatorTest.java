@@ -2,11 +2,11 @@ package org.prebid.server.validation;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
-import com.iab.openrtb.request.video.VideoVideo;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.auction.model.WithPodErrors;
@@ -167,7 +167,7 @@ public class VideoRequestValidatorTest {
     public void validateStoredBidRequestShouldThrowExceptionWhenVideoMimesIsNull() {
         // given
         final BidRequestVideo requestVideo = givenBidRequestVideo(
-                requestBuilder -> requestBuilder.video(VideoVideo.builder().build()),
+                requestBuilder -> requestBuilder.video(Video.builder().build()),
                 identity());
 
         // when and then
@@ -180,7 +180,7 @@ public class VideoRequestValidatorTest {
     public void validateStoredBidRequestShouldThrowExceptionWhenVideoProtocolsIsNull() {
         // given
         final BidRequestVideo requestVideo = givenBidRequestVideo(
-                requestBuilder -> requestBuilder.video(VideoVideo.builder().mimes(singletonList("mime")).build()),
+                requestBuilder -> requestBuilder.video(Video.builder().mimes(singletonList("mime")).build()),
                 identity());
 
         // when and then
@@ -260,7 +260,7 @@ public class VideoRequestValidatorTest {
                         .durationRangeSec(asList(200, 100)))
                         .build())
                 .site(Site.builder().id("siteId").build())
-                .video(VideoVideo.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
     }
 }

@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.App.AppBuilder;
@@ -37,7 +36,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -45,6 +43,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -168,21 +167,6 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(
                         "currency was not defined either in request.cur or in configuration field adServerCurrency");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenExtIsInvalid() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("prebid", new TextNode("invalid-prebid"));
-        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().startsWith("request.ext is invalid");
     }
 
     @Test
@@ -991,7 +975,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("id").page("page")
-                        .ext(mapper.valueToTree(ExtSite.of(-1, null)))).build();
+                        .ext(ExtSite.of(-1, null))).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1006,7 +990,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("id").page("page")
-                        .ext(mapper.valueToTree(ExtSite.of(2, null)))).build();
+                        .ext(ExtSite.of(2, null))).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1014,47 +998,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.site.ext.amp must be either 1, 0, or undefined");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenSiteExtCannotBeParsed() {
-        // given
-        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
-                siteBuilder -> Site.builder()
-                        .id("id")
-                        .page("page")
-                        .ext(mapper.createObjectNode().put("amp", "value")))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().startsWith("request.site.ext object is not valid: ");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenAppExtIsNotValid() {
-        // given
-        final ObjectNode invalidExt = mapper.createObjectNode();
-        invalidExt.put("prebid", "invalid");
-
-        final BidRequest bidRequest = overwriteApp(
-                BidRequest.builder()
-                        .id("123")
-                        .cur(singletonList("USD"))
-                        .imp(singletonList(validImpBuilder().build())),
-                appBuilder -> App.builder()
-                        .id("3").ext(invalidExt))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().startsWith("request.app.ext object is not valid: ");
     }
 
     @Test
@@ -1094,7 +1037,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))
+                        .build())
                 .build();
 
         // when
@@ -1110,7 +1054,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))
+                        .build())
                 .build();
 
         // when
@@ -1126,7 +1071,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))
+                        .build())
                 .build();
 
         // when
@@ -1142,7 +1088,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))
+                        .build())
                 .build();
 
         // when
@@ -1159,7 +1106,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))
+                        .build())
                 .build();
 
         // when
@@ -1176,7 +1124,8 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .device(Device.builder()
-                        .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))).build())
+                        .ext(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))
+                        .build())
                 .build();
 
         // when
@@ -1264,7 +1213,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().build()))
+                        .ext(ExtUser.builder().build())
                         .build())
                 .build();
 
@@ -1279,7 +1228,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null, null))))
+                .regs(Regs.of(null, ExtRegs.of(null, null)))
                 .build();
 
         // when
@@ -1294,10 +1243,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(emptyMap()))
                                 .digitrust(ExtUserDigiTrust.of(null, null, 0))
-                                .build()))
+                                .build())
                         .build())
                 .build();
 
@@ -1314,11 +1263,11 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenCantParseTargetingPriceGranularity() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(new TextNode("pricegranularity"))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1333,11 +1282,11 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenRangesAreEmptyList() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1352,13 +1301,13 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenIncrementIsZero() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(ExtPriceGranularity
                                         .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                                 BigDecimal.valueOf(0))))))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1373,14 +1322,14 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenIncrementIsNegative() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(
                                         2,
                                         singletonList(ExtGranularityRange.of(
                                                 BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1394,12 +1343,12 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenPrecisionIsNegative() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(ExtPriceGranularity.of(-1, singletonList(
                                         ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1416,12 +1365,12 @@ public class RequestValidatorTest extends VertxTest {
                 ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
 
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranularity))
                                 .mediatypepricegranularity(ExtMediaTypePriceGranularity.of(null, null, null))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1444,12 +1393,12 @@ public class RequestValidatorTest extends VertxTest {
                 null,
                 null);
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranularity))
                                 .mediatypepricegranularity(mediaTypePriceGranuality)
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1466,13 +1415,13 @@ public class RequestValidatorTest extends VertxTest {
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
                 ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranularity))
                                 .includebidderkeys(false)
                                 .includewinners(false)
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1490,11 +1439,11 @@ public class RequestValidatorTest extends VertxTest {
                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                         ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranuality))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1513,11 +1462,11 @@ public class RequestValidatorTest extends VertxTest {
                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
                         ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranuality))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1535,11 +1484,11 @@ public class RequestValidatorTest extends VertxTest {
                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))));
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranularity))
                                 .build())
-                        .build())))
+                        .build()))
                 .build();
 
         // when
@@ -1555,9 +1504,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("unknown-bidder", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
+                                .build())
                         .build())
                 .build();
 
@@ -1574,12 +1524,14 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnAnyErrorInValidationResultWhenPrebidBuyerIdIsKnownBidderAlias() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                        .aliases(singletonMap("unknown-bidder", "rubicon")).build())))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("unknown-bidder", "rubicon"))
+                        .build()))
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("unknown-bidder", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
+                                .build())
                         .build())
                 .build();
 
@@ -1595,9 +1547,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .prebid(ExtUserPrebid.of(singletonMap("rubicon", "42")))
-                                .digitrust(ExtUserDigiTrust.of(null, null, 0)).build()))
+                                .digitrust(ExtUserDigiTrust.of(null, null, 0))
+                                .build())
                         .build())
                 .build();
 
@@ -1613,8 +1566,9 @@ public class RequestValidatorTest extends VertxTest {
         // given;
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .digitrust(ExtUserDigiTrust.of(null, null, 1)).build()))
+                        .ext(ExtUser.builder()
+                                .digitrust(ExtUserDigiTrust.of(null, null, 1))
+                                .build())
                         .build())
                 .build();
 
@@ -1627,29 +1581,13 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenUserExtFailedToBeParsed() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.put("digitrust", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder().ext(ext).build())
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.user.ext object is not valid:");
-    }
-
-    @Test
     public void validateShouldReturnValidationMessageWhenEidsIsEmpty() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(emptyList()).build()))
+                        .ext(ExtUser.builder()
+                                .eids(emptyList())
+                                .build())
                         .build())
                 .build();
 
@@ -1666,8 +1604,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of(null, null, null, null))).build()))
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(null, null, null, null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1684,8 +1623,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, null, null))).build()))
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of("source", null, null, null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1702,8 +1642,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
-                                .eids(singletonList(ExtUserEid.of("source", null, emptyList(), null))).build()))
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of("source", null, emptyList(), null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1720,9 +1661,10 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .eids(singletonList(ExtUserEid.of("source", null,
-                                        singletonList(ExtUserEidUid.of(null, null)), null))).build()))
+                                        singletonList(ExtUserEidUid.of(null, null)), null)))
+                                .build())
                         .build())
                 .build();
 
@@ -1739,13 +1681,13 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder()
+                        .ext(ExtUser.builder()
                                 .eids(asList(
                                         ExtUserEid.of("source", null,
                                                 singletonList(ExtUserEidUid.of("id1", null)), null),
                                         ExtUserEid.of("source", null,
                                                 singletonList(ExtUserEidUid.of("id2", null)), null)))
-                                .build()))
+                                .build())
                         .build())
                 .build();
 
@@ -1760,8 +1702,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOn() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                .aliases(singletonMap("rubicon", "rubicon")).build()));
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("rubicon", "rubicon"))
+                .build());
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -1776,8 +1719,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                .aliases(singletonMap("alias", "fake")).build()));
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "fake"))
+                .build());
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -1791,8 +1735,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnEmptyValidationMessagesWhenAliasesWasUsed() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
-                .aliases(singletonMap("alias", "rubicon")).build()));
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .aliases(singletonMap("alias", "rubicon"))
+                .build());
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -1805,8 +1750,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
-        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2, null));
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .regs(Regs.of(null, ExtRegs.of(2, null)))
+                .build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1814,48 +1760,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.regs.ext.gdpr must be either 0 or 1");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenRegsExtIsNotValidJson() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode().put("gdpr", "String");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext is invalid:");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsEmpty() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
-    }
-
-    @Test
-    public void validateShouldReturnValidationResultWithErrorsWhenCcpaIsNotValid() {
-        // given
-        final ObjectNode ext = mapper.createObjectNode().put("us_privacy", "invalid");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .element(0).asString().contains("request.regs.ext.us_privacy must contain 4 characters");
     }
 
     @Test
@@ -2496,9 +2400,9 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAdjustmentFactorNegative() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(
+                .ext(ExtRequest.of(
                         ExtRequestPrebid.builder()
-                                .bidadjustmentfactors(singletonMap("rubicon", BigDecimal.valueOf(-1.1))).build())))
+                                .bidadjustmentfactors(singletonMap("rubicon", BigDecimal.valueOf(-1.1))).build()))
                 .build();
 
         // when
@@ -2514,10 +2418,10 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenBidderUnknown() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(
+                .ext(ExtRequest.of(
                         ExtRequestPrebid.builder()
                                 .bidadjustmentfactors(singletonMap("unknownBidder", BigDecimal.valueOf(1.1F)))
-                                .build())))
+                                .build()))
                 .build();
 
         // when
@@ -2532,9 +2436,9 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(
+                .ext(ExtRequest.of(
                         ExtRequestPrebid.builder()
-                                .bidadjustmentfactors(singletonMap("rubicon", BigDecimal.valueOf(1.1))).build())))
+                                .bidadjustmentfactors(singletonMap("rubicon", BigDecimal.valueOf(1.1))).build()))
                 .build();
 
         // when
@@ -2548,11 +2452,11 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(
+                .ext(ExtRequest.of(
                         ExtRequestPrebid.builder()
                                 .aliases(singletonMap("rubicon_alias", "rubicon"))
                                 .bidadjustmentfactors(singletonMap("rubicon_alias", BigDecimal.valueOf(1.1)))
-                                .build())))
+                                .build()))
                 .build();
 
         // when
@@ -2583,7 +2487,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<Native.NativeBuilder, Native.NativeBuilder> nativeCustomizer) {
+            Function<Native.NativeBuilder<?, ?>, Native.NativeBuilder<?, ?>> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();

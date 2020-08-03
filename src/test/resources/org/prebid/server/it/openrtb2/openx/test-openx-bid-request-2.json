@@ -39,7 +39,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid":"OX-UID",
+    "buyeruid": "OX-UID",
     "ext": {
       "digitrust": {
         "id": "id",
