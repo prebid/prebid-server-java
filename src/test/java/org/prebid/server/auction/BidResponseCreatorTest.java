@@ -604,6 +604,8 @@ public class BidResponseCreatorTest extends VertxTest {
                         .build()))
                 .build();
 
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
         final Response responseAdm = Response.builder()
                 .assets(singletonList(com.iab.openrtb.response.Asset.builder()
                         .id(123)
@@ -619,11 +621,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
-
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getAdm)
@@ -653,6 +654,8 @@ public class BidResponseCreatorTest extends VertxTest {
                         .build()))
                 .build();
 
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
         final Response responseAdm = Response.builder()
                 .assets(singletonList(com.iab.openrtb.response.Asset.builder()
                         .id(123)
@@ -668,11 +671,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
-
         assertThat(bidResponse.getSeatbid()).hasSize(1)
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getAdm)
