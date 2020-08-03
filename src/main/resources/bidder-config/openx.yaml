@@ -11,13 +11,14 @@ adapters:
       maintainer-email: prebid@openx.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
         - video
       supported-vendors:
       vendor-id: 69
     usersync:
-      url: https://rtb.openx.net/sync/prebid?r=
+      url: https://rtb.openx.net/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
       redirect-url: /setuid?bidder=openx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: openx
       type: redirect

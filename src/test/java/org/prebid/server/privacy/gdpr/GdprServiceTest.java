@@ -50,6 +50,16 @@ public class GdprServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAllDeniedWhenVendorListIsNotFetchedYet() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("Not fetched yet"));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(9), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(9, null, denyAll())));
+    }
+
+    @Test
     public void shouldReturnAllDeniedWhenVendorIsNotAllowed() {
         // given
         given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
@@ -144,6 +154,16 @@ public class GdprServiceTest extends VertxTest {
         assertThat(gdprService.resultFor(singleton(1), "BOSbaBZOSbaBoABABBENBcoAAAAgSABgBAA"))
                 .isFailed()
                 .hasMessage("Error when checking if vendor is allowed in a reason of invalid consent string");
+    }
+
+    @Test
+    public void shouldReturnAllDeniedWhenVendorListServiceFailed() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.failedFuture("error"));
+
+        // when and then
+        assertThat(gdprService.resultFor(singleton(1), "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"))
+                .succeededWith(singletonList(VendorPermission.of(1, null, denyAll())));
     }
 
     private static PrivacyEnforcementAction denyAll() {

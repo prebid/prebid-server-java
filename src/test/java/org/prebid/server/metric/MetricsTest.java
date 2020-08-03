@@ -671,6 +671,26 @@ public class MetricsTest {
     }
 
     @Test
+    public void privacyShouldReturnSameMetricsOnSuccessiveCalls() {
+        assertThat(metrics.privacy()).isSameAs(metrics.privacy());
+    }
+
+    @Test
+    public void privacyTcfShouldReturnSameMetricsOnSuccessiveCalls() {
+        assertThat(metrics.privacy().tcf()).isSameAs(metrics.privacy().tcf());
+    }
+
+    @Test
+    public void privacyTcfVersionShouldReturnSameMetricsOnSuccessiveCalls() {
+        assertThat(metrics.privacy().tcf().v1()).isSameAs(metrics.privacy().tcf().v1());
+    }
+
+    @Test
+    public void privacyTcfVersionVendorListShouldReturnSameMetricsOnSuccessiveCalls() {
+        assertThat(metrics.privacy().tcf().v2().vendorList()).isSameAs(metrics.privacy().tcf().v2().vendorList());
+    }
+
+    @Test
     public void updatePrivacyCoppaMetricShouldIncrementMetric() {
         // when
         metrics.updatePrivacyCoppaMetric();
@@ -699,6 +719,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyTcfMissingMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfMissingMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.missing").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void updatePrivacyTcfInvalidMetricShouldIncrementMetric() {
         // when
         metrics.updatePrivacyTcfInvalidMetric();
@@ -718,6 +747,33 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("privacy.tcf.v1.unknown-geo").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("privacy.tcf.v2.in-geo").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("privacy.tcf.v2.out-geo").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyTcfVendorListMissingMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListMissingMetric(1);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.v1.vendorlist.missing").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyTcfVendorListOkMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListOkMetric(1);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.v1.vendorlist.ok").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updatePrivacyTcfVendorListErrorMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListErrorMetric(1);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.v1.vendorlist.err").getCount()).isEqualTo(1);
     }
 
     @Test
