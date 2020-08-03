@@ -157,33 +157,42 @@ public class ExchangeService {
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, requestTypeMetric))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
-                        .map(bidderRequest -> requestBids(bidderRequest,
-                                auctionTimeout(timeout, cacheInfo.isDoCaching()), debugEnabled, aliases,
-                                bidAdjustments(requestExt), currencyRates(requestExt), usepbsrates(requestExt)))
+                        .map(bidderRequest -> requestBids(
+                                bidderRequest,
+                                auctionTimeout(timeout, cacheInfo.isDoCaching()),
+                                debugEnabled,
+                                aliases,
+                                bidAdjustments(requestExt),
+                                currencyRates(requestExt), usepbsrates(requestExt)))
                         .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
-                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
-                .compose(bidderResponses ->
-                        bidResponseCreator.create(bidderResponses, context, targeting, cacheInfo, account,
-                                eventsAllowedByRequest(requestExt), auctionTimestamp(requestExt), debugEnabled,
-                                timeout))
-                .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
-                                account));
+                .compose(bidderResponses -> bidResponseCreator.create(
+                        bidderResponses,
+                        context,
+                        targeting,
+                        cacheInfo,
+                        account,
+                        eventsAllowedByRequest(requestExt),
+                        auctionTimestamp(requestExt),
+                        debugEnabled,
+                        timeout))
+                .compose(bidResponse -> bidResponsePostProcessor.postProcess(
+                        routingContext, uidsCookie, bidRequest, bidResponse, account));
     }
 
     /**
      * Extracts aliases from {@link ExtRequest}.
      */
-    private static BidderAliases aliases(ExtRequest requestExt) {
+    private BidderAliases aliases(ExtRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
-        return BidderAliases.of(aliases, aliasgvlids);
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
     }
 
     /**
@@ -897,9 +906,11 @@ public class ExchangeService {
      * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
-    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
+    private List<BidderResponse> updateMetricsFromResponses(
+            List<BidderResponse> bidderResponses, String publisherId, BidderAliases aliases) {
+
         for (final BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
+            final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
 
             metrics.updateAdapterResponseTime(bidder, publisherId, bidderResponse.getResponseTime());
 
