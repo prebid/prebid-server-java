@@ -863,10 +863,10 @@ public class ExchangeService {
                     bid.setPrice(adjustedPrice);
                 }
                 updatedBidderBids.add(bidderBid);
-            } catch (PreBidException ex) {
+            } catch (PreBidException e) {
                 errors.add(BidderError.generic(
                         String.format("Unable to covert bid currency %s to desired ad server currency %s. %s",
-                                bidCurrency, adServerCurrency, ex.getMessage())));
+                                bidCurrency, adServerCurrency, e.getMessage())));
             }
         }
 

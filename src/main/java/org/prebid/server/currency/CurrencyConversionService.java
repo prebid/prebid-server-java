@@ -1,11 +1,12 @@
 package org.prebid.server.currency;
 
-import org.apache.commons.lang3.BooleanUtils;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -140,9 +141,19 @@ public class CurrencyConversionService implements Initializable {
             return price;
         }
 
-        final BigDecimal conversionRate = BooleanUtils.isNotFalse(usepbsrates)
-                    ? getConversionRateFromServerFirst(requestCurrencyRates, adServerCurrency, effectiveBidCurrency)
-                    : getConversionRateFromRequestFirst(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
+        final Map<String, Map<String, BigDecimal>> firstPriorityRates;
+        final Map<String, Map<String, BigDecimal>> secondPriorityRates;
+
+        if (BooleanUtils.isFalse(usepbsrates)) {
+            firstPriorityRates = requestCurrencyRates;
+            secondPriorityRates = externalCurrencyRates;
+        } else {
+            firstPriorityRates = externalCurrencyRates;
+            secondPriorityRates = requestCurrencyRates;
+        }
+
+        final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates, secondPriorityRates,
+                adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
             throw new PreBidException("no currency conversion available");
@@ -152,34 +163,16 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
-     *  Get conversion rate from request currency rates if it is present and then from server if it is not processed.
+     * Returns conversion rate from the given currency rates according to priority.
      */
-    private BigDecimal getConversionRateFromRequestFirst(Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                                         String adServerCurrency, String effectiveBidCurrency) {
-        BigDecimal conversionRate = null;
-        if (requestCurrencyRates != null) {
-            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
-        }
+    private static BigDecimal getConversionRateByPriority(Map<String, Map<String, BigDecimal>> firstPriorityRates,
+                                                          Map<String, Map<String, BigDecimal>> secondPriorityRates,
+                                                          String adServerCurrency,
+                                                          String effectiveBidCurrency) {
 
-        if (conversionRate == null && externalCurrencyRates != null) {
-            conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
-        }
-        return conversionRate;
-    }
-
-    /**
-     * Get conversion rate from server and then using request currency if it is not processed.
-     */
-    private BigDecimal getConversionRateFromServerFirst(Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                                        String adServerCurrency, String effectiveBidCurrency) {
-        BigDecimal conversionRate = null;
-        if (externalCurrencyRates != null) {
-            conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
-        }
-        if (conversionRate == null && requestCurrencyRates != null) {
-            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
-        }
-        return conversionRate;
+        return ObjectUtils.defaultIfNull(
+                getConversionRate(firstPriorityRates, adServerCurrency, effectiveBidCurrency),
+                getConversionRate(secondPriorityRates, adServerCurrency, effectiveBidCurrency));
     }
 
     /**
