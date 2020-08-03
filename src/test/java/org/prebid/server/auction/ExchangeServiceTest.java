@@ -184,7 +184,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(storedResponseProcessor.getStoredResponseResult(any(), any(), any()))
@@ -325,7 +325,9 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder
                         .id("requestId")
                         .ext(ExtRequest.of(
-                                ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
+                                ExtRequestPrebid.builder()
+                                        .currency(ExtRequestCurrency.of(currencyRates, false))
+                                        .build()))
                         .tmax(500L));
 
         // when
@@ -344,7 +346,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(0, 1)))
                         .build()))
                 .ext(ExtRequest.of(
-                        ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates)).build()))
+                        ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates, false)).build()))
                 .tmax(500L)
                 .build());
     }
@@ -1538,7 +1540,7 @@ public class ExchangeServiceTest extends VertxTest {
                 identity());
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(5.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), anyBoolean())).willReturn(updatedPrice);
 
         givenBidResponseCreator(singletonList(Bid.builder().price(updatedPrice).build()));
 
@@ -1562,7 +1564,7 @@ public class ExchangeServiceTest extends VertxTest {
                 identity());
 
         // returns the same price as in argument
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), anyBoolean()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         // when
@@ -1585,7 +1587,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
                 identity());
 
-        given(currencyService.convertCurrency(any(), any(), any(), any()))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
                 .willThrow(new PreBidException("no currency conversion available"));
 
         // when
@@ -1620,7 +1622,8 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.valueOf(10));
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
+                .willReturn(BigDecimal.valueOf(10));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -1655,7 +1658,7 @@ public class ExchangeServiceTest extends VertxTest {
                 identity());
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice)
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice)
                 .willThrow(new PreBidException("no currency conversion available"));
 
         // when
@@ -1665,8 +1668,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), anyBoolean(), anyLong(),
                 anyBoolean(), any());
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), any(), eq("CUR1"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), any(), eq("CUR2"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), any(), eq("CUR1"), eq(null));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), any(), eq("CUR2"), eq(null));
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
@@ -1696,8 +1699,8 @@ public class ExchangeServiceTest extends VertxTest {
                         identity()))).build();
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(20);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR")))
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR"), any()))
                 .willThrow(new PreBidException("no currency conversion available"));
 
         // when
@@ -1707,8 +1710,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), anyBoolean(), anyLong(),
                 anyBoolean(), any());
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), eq("BAD"), eq("USD"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), eq("BAD"), eq("CUR"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(null), eq("BAD"), eq("USD"), eq(null));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(null), eq("BAD"), eq("CUR"), eq(null));
 
         assertThat(argumentCaptor.getValue()).hasSize(2);
 
@@ -1740,7 +1743,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.cur(asList("CUR1", "CUR2", "CUR2")));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -1749,7 +1752,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), anyBoolean(), anyLong(),
                 anyBoolean(), any());
-        verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq("CUR1"), eq("USD"));
+        verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq("CUR1"), eq("USD"), eq(null));
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
@@ -1785,8 +1788,8 @@ public class ExchangeServiceTest extends VertxTest {
                 singletonList(givenImp(impBidders, identity())), builder -> builder.cur(singletonList("USD")));
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
-        given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), any(), eq("USD"))).willReturn(bidder3Price);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), eq("USD"), any())).willReturn(bidder3Price);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -1795,9 +1798,9 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<List<BidderResponse>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any(), any(), anyBoolean(), anyLong(),
                 anyBoolean(), any());
-        verify(currencyService).convertCurrency(eq(bidder1Price), eq(null), eq("USD"), eq("EUR"));
-        verify(currencyService).convertCurrency(eq(bidder2Price), eq(null), eq("USD"), eq("GBP"));
-        verify(currencyService).convertCurrency(eq(bidder3Price), eq(null), eq("USD"), eq("USD"));
+        verify(currencyService).convertCurrency(eq(bidder1Price), eq(null), eq("USD"), eq("EUR"), eq(null));
+        verify(currencyService).convertCurrency(eq(bidder2Price), eq(null), eq("USD"), eq("GBP"), eq(null));
+        verify(currencyService).convertCurrency(eq(bidder3Price), eq(null), eq("USD"), eq("USD"), eq(null));
         verifyNoMoreInteractions(currencyService);
 
         assertThat(argumentCaptor.getValue())
@@ -1982,6 +1985,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(emptyMap())
                         .auctiontimestamp(1000L)
+                        .currency(ExtRequestCurrency.of(null, false))
                         .bidadjustmentfactors(singletonMap("some-other-bidder", BigDecimal.TEN))
                         .build())));
 
