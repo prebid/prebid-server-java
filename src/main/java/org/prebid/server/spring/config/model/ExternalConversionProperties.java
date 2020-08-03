@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.time.Clock;
 
 @Validated
 @Data
@@ -21,17 +22,23 @@ public class ExternalConversionProperties {
 
     @NotNull
     @Min(2)
-    Long defaultTimeout;
+    Long defaultTimeoutMs;
 
     @NotNull
     @Min(2)
-    Long refreshPeriod;
+    Long refreshPeriodMs;
+
+    @Min(2)
+    Long stalePeriodMs;
 
     @NotNull
     Vertx vertx;
 
     @NotNull
     HttpClient httpClient;
+
+    @NotNull
+    Clock clock;
 
     @NotNull
     JacksonMapper mapper;

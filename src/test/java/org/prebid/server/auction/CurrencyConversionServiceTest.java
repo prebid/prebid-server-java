@@ -20,6 +20,9 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,6 +56,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private Vertx vertx;
+    private Clock clock;
 
     private CurrencyConversionService currencyService;
 
@@ -64,13 +68,15 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 200,
                 mapper.writeValueAsString(CurrencyConversionRates.of(null, currencyRates)));
 
-        currencyService = setExternalResource(URL, 1L, vertx, httpClient);
+        clock = Clock.fixed(Instant.now(), ZoneOffset.UTC);
+
+        currencyService = setExternalResource(URL, 1L, httpClient);
     }
 
     @Test
     public void creationShouldFailOnInvalidCurrencyServerUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> setExternalResource("invalid-url", 1L, vertx, httpClient))
+                .isThrownBy(() -> setExternalResource("invalid-url", 1L, httpClient))
                 .withMessage("URL supplied is not valid: invalid-url");
     }
 
@@ -226,7 +232,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 503, "server unavailable");
 
         // when
-        currencyService = setExternalResource(URL, 1L, vertx, httpClient);
+        currencyService = setExternalResource(URL, 1L, httpClient);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -240,7 +246,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 200, "{\"foo\": \"bar\"}");
 
         // when
-        currencyService = setExternalResource(URL, 1L, vertx, httpClient);
+        currencyService = setExternalResource(URL, 1L, httpClient);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -257,7 +263,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 200, "{\"foo\": \"bar\"}");
 
         // when and then
-        currencyService = setExternalResource(URL, 1000, vertx, httpClient);
+        currencyService = setExternalResource(URL, 1000, httpClient);
 
         final ArgumentCaptor<Handler<Long>> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
         verify(vertx).setPeriodic(eq(1000L), handlerCaptor.capture());
@@ -269,10 +275,11 @@ public class CurrencyConversionServiceTest extends VertxTest {
         verify(httpClient, times(3)).get(anyString(), anyLong());
     }
 
-    private static CurrencyConversionService setExternalResource(String url, long refreshPeriod, Vertx vertx,
-                                                                 HttpClient httpClient) {
+    private CurrencyConversionService setExternalResource(String url, long refreshPeriod, HttpClient httpClient) {
+
         final CurrencyConversionService currencyService = new CurrencyConversionService(
-                new ExternalConversionProperties(url, 1000L, refreshPeriod, vertx, httpClient, jacksonMapper));
+                new ExternalConversionProperties(
+                        url, 1000L, refreshPeriod, null, vertx, httpClient, clock, jacksonMapper));
         currencyService.initialize();
         return currencyService;
     }

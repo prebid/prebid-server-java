@@ -110,6 +110,7 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-converter.external-rates.stale-period-ms` - stale period after which the latest external currency rates get discarded.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.

@@ -516,6 +516,7 @@ public class ServiceConfiguration {
     @Bean
     CurrencyConversionService currencyConversionService(
             @Autowired(required = false) ExternalConversionProperties externalConversionProperties) {
+
         return new CurrencyConversionService(externalConversionProperties);
     }
 
@@ -523,14 +524,16 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "currency-converter.external-rates", name = "enabled", havingValue = "true")
     ExternalConversionProperties externalConversionProperties(
             @Value("${currency-converter.external-rates.url}") String currencyServerUrl,
-            @Value("${currency-converter.external-rates.default-timeout-ms}") long defaultTimeout,
-            @Value("${currency-converter.external-rates.refresh-period-ms}") long refreshPeriod,
+            @Value("${currency-converter.external-rates.default-timeout-ms}") Long defaultTimeoutMs,
+            @Value("${currency-converter.external-rates.refresh-period-ms}") Long refreshPeriodMs,
+            @Value("${currency-converter.external-rates.stale-period-ms:#{null}}") Long stalePeriodMs,
             Vertx vertx,
             HttpClient httpClient,
+            Clock clock,
             JacksonMapper mapper) {
 
-        return new ExternalConversionProperties(currencyServerUrl, defaultTimeout, refreshPeriod, vertx, httpClient,
-                mapper);
+        return new ExternalConversionProperties(
+                currencyServerUrl, defaultTimeoutMs, refreshPeriodMs, stalePeriodMs, vertx, httpClient, clock, mapper);
     }
 
     @Bean
