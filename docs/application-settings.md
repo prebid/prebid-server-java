@@ -19,22 +19,24 @@ There are two ways to configure application settings: database and file. This do
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 
 ```
-Purpose| Purpose goal                            |  Purpose meaning for PBS (n\a - not affected)  
-p1        | Access device                          | Stops usersync for given vendor and stops settings cookie on `/seuid`
-p2        | Select basic ads                       | Verify consent for each vendor as appropriate for the enforcement method before calling a bid adapter. If consent is not granted, log a metric and skip it.
-p3        | Personalized ads profile            | n\a
-p4        | Select personalized ads            | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, user.ext.digitrust, device.if attributes and call the adapter.
-p5        | Personalized content profile      | n\a
-p6        | Select personalized content      | n\a
+Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
+----------|---------------------------------|---------------------------------------------
+p1        | Access device                   | Stops usersync for given vendor and stops settings cookie on `/seuid`
+p2        | Select basic ads                | Verify consent for each vendor as appropriate for the enforcement method before calling a bid adapter. If consent is not granted, log a metric and skip it.
+p3        | Personalized ads profile        | n\a
+p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, user.ext.digitrust, device.if attributes and call the adapter.
+p5        | Personalized content profile    | n\a
+p6        | Select personalized content     | n\a
 p7        | Measure ad performance          | Verify consent for each analytics module. If consent is not grantet skip it.
-p8        | Measure content performance  | n\a
+p8        | Measure content performance     | n\a
 p9        | Generate audience insights      | n\a
-p10      | Develop/improve products        | n\a
+p10       | Develop/improve products        | n\a
 
-f1         | Precise geo                               | Verifies user opt-in. If the user has opted out, rounds off the IP address and lat/long details 
-f2         | Fingerprinting                          | n\a
+sf1       | Precise geo                     | Verifies user opt-in. If the user has opted out, rounds off the IP address and lat/long details 
+sf2       | Fingerprinting                  | n\a
 ```
-## File based
+
+## File application setting
 
 In file based approach all configuration stores in .yaml files, path to which are defined in application properties.
 

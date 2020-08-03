@@ -28,7 +28,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
 
     @Before
     public void setUp() {
-        requestUtil = new SharethroughRequestUtil(jacksonMapper);
+        requestUtil = new SharethroughRequestUtil();
     }
 
     @Test
@@ -111,7 +111,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         // given
         final String consent = "con";
         final ExtUser extUser = ExtUser.builder().consent(consent).build();
-        final User user = User.builder().ext(mapper.valueToTree(extUser)).build();
+        final User user = User.builder().ext(extUser).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(consent, null, null);
@@ -131,7 +131,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
                 .consent(consent)
                 .eids(Collections.singletonList(extUserEid))
                 .build();
-        final User user = User.builder().buyeruid("buyerid").ext(mapper.valueToTree(extUser)).build();
+        final User user = User.builder().buyeruid("buyerid").ext(extUser).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(consent, "first", "buyerid");
@@ -154,7 +154,7 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder()
                 .eids(Arrays.asList(firstExtUserEid, secondExtUserEid))
                 .build();
-        final User user = User.builder().ext(mapper.valueToTree(extUser)).build();
+        final User user = User.builder().ext(extUser).build();
 
         // when and then
         final UserInfo expected = UserInfo.of(null, "firstFromSecond", null);

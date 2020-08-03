@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.User;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.ObjectUtils;
@@ -51,7 +52,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new AdformRequestUtil(mapper);
+        this.requestUtil = new AdformRequestUtil();
         this.httpUtil = new AdformHttpUtil(mapper);
     }
 
@@ -65,7 +66,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 .map(this::toAdformParams)
                 .collect(Collectors.toList());
 
-        final ExtUser extUser = requestUtil.getExtUser(preBidRequestContext.getPreBidRequest().getUser());
+        final User user = preBidRequestContext.getPreBidRequest().getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
 
         return Collections.singletonList(AdapterHttpRequest.of(
                 HttpMethod.GET,

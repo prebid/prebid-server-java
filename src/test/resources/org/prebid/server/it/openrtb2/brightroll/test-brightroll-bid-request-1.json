@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "impId17",
+      "bidfloor": 0.30,
       "banner": {
         "w": 300,
         "h": 250,
@@ -190,16 +191,6 @@
   },
   "ext": {
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
