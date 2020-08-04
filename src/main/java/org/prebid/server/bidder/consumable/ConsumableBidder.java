@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.consumable;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -70,21 +69,26 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                     .url(site.getPage());
         }
 
-        final ExtRegs extRegs = extRegs(request.getRegs());
+        final Regs regs = request.getRegs();
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
         if (usPrivacy != null) {
             requestBuilder.usPrivacy(usPrivacy);
         }
 
-        final ConsumableBidGdpr.ConsumableBidGdprBuilder consumableBidGdpr = ConsumableBidGdpr.builder();
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
-        if (gdpr != null) {
-            requestBuilder.gdpr(consumableBidGdpr.applies(gdpr != 0).build());
-        }
-
-        final ExtUser extUser = extUser(request.getUser().getExt());
-        if (extUser != null) {
-            requestBuilder.gdpr(consumableBidGdpr.consent(extUser.getConsent()).build());
+        final User user = request.getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
+        if (gdpr != null || gdprConsent != null) {
+            final ConsumableBidGdpr.ConsumableBidGdprBuilder bidGdprBuilder = ConsumableBidGdpr.builder();
+            if (gdpr != null) {
+                bidGdprBuilder.applies(gdpr != 0);
+            }
+            if (gdprConsent != null) {
+                bidGdprBuilder.consent(gdprConsent).build();
+            }
+            requestBuilder.gdpr(bidGdprBuilder.build());
         }
 
         try {
@@ -112,26 +116,6 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                         .payload(outgoingRequest)
                         .build()),
                 Collections.emptyList());
-    }
-
-    private ExtRegs extRegs(Regs regs) {
-        final ObjectNode regsExt = regs != null ? regs.getExt() : null;
-        if (regsExt != null) {
-            try {
-                return mapper.mapper().treeToValue(regsExt, ExtRegs.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
-            }
-        }
-        return null;
-    }
-
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
     }
 
     private void resolveRequestFields(ConsumableBidRequest.ConsumableBidRequestBuilder requestBuilder,

@@ -347,7 +347,7 @@ public class ConsumableBidderTest extends VertxTest {
                                         ExtImpConsumable.of(123, 234, 345, "unit"))))
                                 .build()))
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build())
                 .build();
     }
@@ -358,9 +358,9 @@ public class ConsumableBidderTest extends VertxTest {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer)))
-                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))))
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build()))
                 .build();
     }
