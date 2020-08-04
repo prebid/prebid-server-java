@@ -161,4 +161,4 @@ health-check:
 ipv6:
   always-mask-right: 64
   anon-left-mask-bits: 56
-  private-networks: ::1/128, fc00::/7, fe80::/10
+  private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8
