@@ -61,6 +61,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
+- `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
+- `auction.id-generator-type` - if generate-bid-id is on, then this defines how the ID should be generated. Currently onlye `uuid` is supported.
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
