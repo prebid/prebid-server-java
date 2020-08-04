@@ -41,15 +41,42 @@ class TcfMetrics extends UpdatableMetrics {
 
     static class TcfVersionMetrics extends UpdatableMetrics {
 
+        private final VendorListMetrics vendorListMetrics;
+
         TcfVersionMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String version) {
             super(
                     Objects.requireNonNull(metricRegistry),
                     Objects.requireNonNull(counterType),
                     nameCreator(createVersionPrefix(Objects.requireNonNull(prefix), Objects.requireNonNull(version))));
+
+            vendorListMetrics = new VendorListMetrics(metricRegistry, counterType,
+                    createVersionPrefix(prefix, version));
         }
 
         private static String createVersionPrefix(String prefix, String version) {
             return String.format("%s.%s", prefix, version);
+        }
+
+        private static Function<MetricName, String> nameCreator(String prefix) {
+            return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        }
+
+        VendorListMetrics vendorList() {
+            return vendorListMetrics;
+        }
+    }
+
+    static class VendorListMetrics extends UpdatableMetrics {
+
+        VendorListMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
+            super(
+                    metricRegistry,
+                    counterType,
+                    nameCreator(createVersionPrefix(prefix)));
+        }
+
+        private static String createVersionPrefix(String prefix) {
+            return String.format("%s.vendorlist", prefix);
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {

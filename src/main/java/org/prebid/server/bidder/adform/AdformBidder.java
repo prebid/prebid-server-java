@@ -61,7 +61,7 @@ public class AdformBidder implements Bidder<Void> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestUtil = new AdformRequestUtil(mapper);
+        this.requestUtil = new AdformRequestUtil();
         this.httpUtil = new AdformHttpUtil(mapper);
     }
 
@@ -83,7 +83,8 @@ public class AdformBidder implements Bidder<Void> {
 
         final String currency = resolveRequestCurrency(request.getCur());
         final Device device = request.getDevice();
-        final ExtUser extUser = requestUtil.getExtUser(request.getUser());
+        final User user = request.getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
         final String url = httpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterTagIds(extImpAdforms))
@@ -105,7 +106,7 @@ public class AdformBidder implements Bidder<Void> {
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
-                getUserId(request.getUser()),
+                getUserId(user),
                 requestUtil.getAdformDigitrust(extUser));
 
         return Result.of(Collections.singletonList(

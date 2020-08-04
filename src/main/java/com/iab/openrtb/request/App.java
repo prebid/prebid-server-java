@@ -1,8 +1,8 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 
 import java.util.List;
 
@@ -70,5 +70,5 @@ public class App {
     String keywords;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
-    ObjectNode ext;
+    ExtApp ext;
 }
