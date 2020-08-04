@@ -126,7 +126,7 @@ public class TargetingKeywordsCreator {
                                                   int truncateAttrChars,
                                                   String cacheHost,
                                                   String cachePath,
-                                                  TargetingKeywordsResolver extractor) {
+                                                  TargetingKeywordsResolver resolver) {
 
         return new TargetingKeywordsCreator(
                 PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
@@ -136,7 +136,7 @@ public class TargetingKeywordsCreator {
                 truncateAttrChars,
                 cacheHost,
                 cachePath,
-                extractor);
+                resolver);
     }
 
     /**

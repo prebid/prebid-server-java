@@ -184,9 +184,7 @@ public class AmpRequestFactory {
                 ? debugQueryParam
                 : null;
 
-        final ExtRequestPrebidAmp amp = prebid != null ? prebid.getAmp() : null;
-        final Map<String, String> ampData = amp != null ? amp.getData() : null;
-        final Map<String, String> updatedAmpData = updateAmpData(ampData, context.request());
+        final Map<String, String> updatedAmpData = updateAmpData(prebid, context.request());
 
         final BidRequest result;
         if (setSecure
@@ -474,6 +472,25 @@ public class AmpRequestFactory {
         return formats;
     }
 
+    private static Map<String, String> updateAmpData(ExtRequestPrebid prebid, HttpServerRequest request) {
+        final ExtRequestPrebidAmp amp = prebid != null ? prebid.getAmp() : null;
+        final Map<String, String> existingAmpData = amp != null ? amp.getData() : null;
+
+        final MultiMap queryParams = request.params();
+        if (queryParams.isEmpty()) {
+            return null;
+        }
+
+        final Map<String, String> ampQueryData = queryParams.entries().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (value1, value2) -> value1));
+
+        final Map<String, String> updatedAmpData =
+                new HashMap<>(ObjectUtils.defaultIfNull(existingAmpData, Collections.emptyMap()));
+        updatedAmpData.putAll(ampQueryData);
+
+        return updatedAmpData;
+    }
+
     /**
      * Creates updated bidrequest.ext {@link ObjectNode}.
      */
@@ -541,21 +558,5 @@ public class AmpRequestFactory {
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
                 .build();
-    }
-
-    private static Map<String, String> updateAmpData(Map<String, String> existingAmpData, HttpServerRequest request) {
-        final MultiMap queryParams = request.params();
-        if (queryParams.isEmpty()) {
-            return null;
-        }
-
-        final Map<String, String> ampQueryData = queryParams.entries().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (value1, value2) -> value1));
-
-        final Map<String, String> updatedAmpData =
-                new HashMap<>(ObjectUtils.defaultIfNull(existingAmpData, Collections.emptyMap()));
-        updatedAmpData.putAll(ampQueryData);
-
-        return updatedAmpData;
     }
 }

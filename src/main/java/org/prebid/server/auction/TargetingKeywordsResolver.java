@@ -156,10 +156,8 @@ public class TargetingKeywordsResolver {
 
     private Map<String, String> resolveResponseKeywords(Bid bid, String bidder) {
         if (!responseRules.isEmpty()) {
-            final JsonNode bidNode = mapper.mapper().valueToTree(bid);
-
             return lookupValues(
-                    bidNode,
+                    mapper.mapper().valueToTree(bid),
                     responseRules,
                     value -> StringUtils.substringAfter(value, SEATBID_BID_PREFIX),
                     key -> StringUtils.replace(key, BIDDER_MACRO, bidder));
