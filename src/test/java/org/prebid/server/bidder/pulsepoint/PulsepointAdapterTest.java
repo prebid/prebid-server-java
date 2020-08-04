@@ -275,9 +275,9 @@ public class PulsepointAdapterTest extends VertxTest {
                         .timeoutMillis(1500L)
                         .tid("tid1")
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null)))));
+                        .regs(Regs.of(0, ExtRegs.of(1, null))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid1");
 
@@ -317,9 +317,9 @@ public class PulsepointAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid1")
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(0, ExtRegs.of(1, null)))
                         .source(Source.builder()
                                 .fd(1)
                                 .tid("tid1")

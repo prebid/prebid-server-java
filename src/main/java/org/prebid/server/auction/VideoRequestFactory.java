@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.video.BidRequestVideo;
 import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
@@ -15,7 +16,9 @@ import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -64,7 +67,8 @@ public class VideoRequestFactory {
         final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
         return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
                 .compose(bidRequestToPodError -> auctionRequestFactory
-                        .toAuctionContext(routingContext, bidRequestToPodError.getData(), startTime, timeoutResolver)
+                        .toAuctionContext(routingContext, bidRequestToPodError.getData(), new ArrayList<>(),
+                                startTime, timeoutResolver)
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
     }
 
@@ -85,10 +89,30 @@ public class VideoRequestFactory {
         }
 
         try {
-            return mapper.decodeValue(body, BidRequestVideo.class);
+            final BidRequestVideo bidRequestVideo = mapper.decodeValue(body, BidRequestVideo.class);
+            return insertDeviceUa(context, bidRequestVideo);
         } catch (DecodeException e) {
             throw new InvalidRequestException(e.getMessage());
         }
+    }
+
+    private BidRequestVideo insertDeviceUa(RoutingContext context, BidRequestVideo bidRequestVideo) {
+        final Device device = bidRequestVideo.getDevice();
+        final String deviceUa = device != null ? device.getUa() : null;
+        if (StringUtils.isBlank(deviceUa)) {
+            final String userAgentHeader = context.request().getHeader(HttpUtil.USER_AGENT_HEADER);
+            if (StringUtils.isEmpty(userAgentHeader)) {
+                throw new InvalidRequestException("Device.UA and User-Agent Header is not presented");
+            }
+            final Device.DeviceBuilder deviceBuilder = device == null ? Device.builder() : device.toBuilder();
+
+            return bidRequestVideo.toBuilder()
+                    .device(deviceBuilder
+                            .ua(userAgentHeader)
+                            .build())
+                    .build();
+        }
+        return bidRequestVideo;
     }
 
     private static Set<String> podConfigIds(BidRequestVideo incomingBidRequest) {

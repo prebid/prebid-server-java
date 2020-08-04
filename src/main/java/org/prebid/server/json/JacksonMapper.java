@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBufInputStream;
 import io.vertx.core.buffer.Buffer;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,5 +53,10 @@ public class JacksonMapper {
         } catch (IOException e) {
             throw new DecodeException("Failed to decode: " + e.getMessage(), e);
         }
+    }
+
+    public <T extends FlexibleExtension, S> T fillExtension(T target, S source) {
+        target.addProperties(mapper.convertValue(source, FlexibleExtension.PROPERTIES_TYPE_REF));
+        return target;
     }
 }

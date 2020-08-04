@@ -1,8 +1,6 @@
 package org.prebid.server.bidder.adform;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -12,8 +10,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AdformRequestUtilTest extends VertxTest {
@@ -22,45 +18,7 @@ public class AdformRequestUtilTest extends VertxTest {
 
     @Before
     public void setUp() {
-        requestUtil = new AdformRequestUtil(jacksonMapper);
-    }
-
-    @Test
-    public void getExtUserShouldReturnNullIfUserIsNull() {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(null);
-
-        // then
-        assertThat(extUser).isNull();
-    }
-
-    @Test
-    public void getExtUserShouldReturnNullIfUserExtIsNull() {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(User.builder().ext(null).build());
-
-        // then
-        assertThat(extUser).isNull();
-    }
-
-    @Test
-    public void getExtUserShouldReturnNullIfExtUserIsInvalidJSON() throws IOException {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(
-                User.builder().ext((ObjectNode) mapper.readTree("{\"prebid\":1}")).build());
-
-        // then
-        assertThat(extUser).isNull();
-    }
-
-    @Test
-    public void getExtUserShouldReturnExtUser() {
-        // given and when
-        final ExtUser extUser = requestUtil.getExtUser(
-                User.builder().ext(mapper.valueToTree(ExtUser.builder().build())).build());
-
-        // then
-        assertThat(extUser).isEqualTo(ExtUser.builder().build());
+        requestUtil = new AdformRequestUtil();
     }
 
     @Test
@@ -82,20 +40,9 @@ public class AdformRequestUtilTest extends VertxTest {
     }
 
     @Test
-    public void getGdprAppliesShouldReturnEmptyValueWhenRegExtIsNotValidJson() throws IOException {
-        // given and when
-        final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, (ObjectNode) mapper.readTree("{\"gdpr\": \"gdpr\"}")));
-
-        // then
-        assertThat(gdpr).isEmpty();
-    }
-
-    @Test
     public void getGdprAppliesShouldReturnEmptyValueWhenRegsExtGdprIsNoEqualsToOneOrZero() {
         // given and when
-        final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(2, null))));
+        final String gdpr = requestUtil.getGdprApplies(Regs.of(null, ExtRegs.of(2, null)));
 
         // then
         assertThat(gdpr).isEmpty();
@@ -104,8 +51,7 @@ public class AdformRequestUtilTest extends VertxTest {
     @Test
     public void getGdprAppliesShouldReturnOne() {
         // given and when
-        final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(1, null))));
+        final String gdpr = requestUtil.getGdprApplies(Regs.of(null, ExtRegs.of(1, null)));
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -114,8 +60,7 @@ public class AdformRequestUtilTest extends VertxTest {
     @Test
     public void getGdprAppliesShouldReturnZero() {
         // given and when
-        final String gdpr = requestUtil.getGdprApplies(
-                Regs.of(null, mapper.valueToTree(ExtRegs.of(0, null))));
+        final String gdpr = requestUtil.getGdprApplies(Regs.of(null, ExtRegs.of(0, null)));
 
         // then
         assertThat(gdpr).isEqualTo("0");

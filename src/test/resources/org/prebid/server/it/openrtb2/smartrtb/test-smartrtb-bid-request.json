@@ -20,16 +20,6 @@
           "ttlseconds": 120
         }
       },
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.8110
-          }
-        }
-      },
       "targeting": {
         "includebidderkeys": true,
         "includewinners": true,
