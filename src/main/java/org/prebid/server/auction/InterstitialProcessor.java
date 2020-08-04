@@ -1,14 +1,11 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -22,12 +19,6 @@ import java.util.stream.Collectors;
 public class InterstitialProcessor {
 
     private static final int MAX_SIZES_COUNT = 10;
-
-    private final JacksonMapper mapper;
-
-    public InterstitialProcessor(JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
-    }
 
     public BidRequest process(BidRequest bidRequest) {
         if (bidRequest.getImp().stream().anyMatch(this::isInterstitial)) {
@@ -97,19 +88,9 @@ public class InterstitialProcessor {
     }
 
     private ExtDeviceInt getExtDeviceInt(Device device) {
-        final ObjectNode extDeviceNode = device != null ? device.getExt() : null;
-        final ExtDevice extDevice = extDeviceNode != null ? parseExtDevice(extDeviceNode) : null;
+        final ExtDevice extDevice = device != null ? device.getExt() : null;
         final ExtDevicePrebid extDevicePrebid = extDevice != null ? extDevice.getPrebid() : null;
         return extDevicePrebid != null ? extDevicePrebid.getInterstitial() : null;
-    }
-
-    private ExtDevice parseExtDevice(ObjectNode extDeviceNode) {
-        try {
-            return mapper.mapper().treeToValue(extDeviceNode, ExtDevice.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format(
-                    "Error decoding bidRequest.device.ext: %s", e.getMessage()));
-        }
     }
 
     private static class InterstitialSize {

@@ -201,13 +201,23 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
+    public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsMissing() {
+        // when
+        target.resultForVendorIds(singleton(1), "1", null, "ip", null, null);
+
+        // then
+        verify(tcf2Service).permissionsFor(any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
+        verifyZeroInteractions(gdprService);
+        verify(metrics).updatePrivacyTcfMissingMetric();
+    }
+
+    @Test
     public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsNotValid() {
         // when
         target.resultForVendorIds(singleton(1), "1", "consent", "ip", null, null);
 
         // then
-        verify(tcf2Service).permissionsFor(
-                any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
+        verify(tcf2Service).permissionsFor(any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
         verifyZeroInteractions(gdprService);
         verify(metrics).updatePrivacyTcfInvalidMetric();
     }
@@ -410,27 +420,27 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnTrueWhenStringIsValid() {
+    public void isGdprConsentValidShouldReturnTrueWhenStringIsValid() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
+        final boolean result = TcfDefinerService.isGdprConsentValid("BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA");
 
         // then
         Assertions.assertThat(result).isTrue();
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnFalseWhenStringIsNull() {
+    public void isGdprConsentValidShouldReturnFalseWhenStringIsNull() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid(null);
+        final boolean result = TcfDefinerService.isGdprConsentValid(null);
 
         // then
         Assertions.assertThat(result).isFalse();
     }
 
     @Test
-    public void isGdprConsentIsValidShouldReturnFalseWhenStringNotValid() {
+    public void isGdprConsentValidShouldReturnFalseWhenStringNotValid() {
         // when
-        final boolean result = TcfDefinerService.isGdprConsentIsValid("invalid");
+        final boolean result = TcfDefinerService.isGdprConsentValid("invalid");
 
         // then
         Assertions.assertThat(result).isFalse();

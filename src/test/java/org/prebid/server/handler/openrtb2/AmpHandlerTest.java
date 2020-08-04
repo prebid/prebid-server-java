@@ -43,7 +43,7 @@ import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -206,7 +206,10 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+
+        // TODO adminManager: enable when admin endpoints can be bound on application port
+        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -259,7 +262,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
 
         // when
         ampHandler.handle(routingContext);
@@ -272,7 +275,7 @@ public class AmpHandlerTest extends VertxTest {
                 .containsOnly(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
-        verify(httpResponse).end(eq("Unauthorized: Account id is not provided 1"));
+        verify(httpResponse).end(eq("Account id is not provided"));
     }
 
     @Test
@@ -432,7 +435,7 @@ public class AmpHandlerTest extends VertxTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder
                 .id("reqId1")
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder().debug(1).build()))));
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(1).build())));
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
 

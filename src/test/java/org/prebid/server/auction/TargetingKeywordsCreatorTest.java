@@ -40,6 +40,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 null)
@@ -68,6 +69,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 null)
@@ -95,6 +97,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 null)
@@ -123,6 +126,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 null)
@@ -150,6 +154,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 null)
@@ -183,6 +188,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 null)
@@ -210,7 +216,8 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("").price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create("invalid", true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                "invalid", true, true, false, 0)
                 .makeFor(bid, true);
 
         // then
@@ -223,7 +230,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("").price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, true);
 
         // then
@@ -237,7 +244,7 @@ public class TargetingKeywordsCreatorTest {
                 .price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, "", true, null, null, null);
 
         // then
@@ -250,7 +257,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("bidder").price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, true);
 
         // then
@@ -264,7 +271,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, "bidder", true, null, null, null);
 
         // then
@@ -278,7 +285,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("bidder").price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true, 0)
                 .makeFor(bid, true);
 
         // then
@@ -293,7 +300,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, true, 0)
                 .makeFor(bid, "bidder", true, null, null, null);
 
         // then
@@ -308,7 +315,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false, 0)
                 .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
@@ -321,7 +328,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
@@ -334,7 +341,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, false, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, false, false, 0)
                 .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
@@ -347,7 +354,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false, 0)
                 .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
@@ -363,7 +370,7 @@ public class TargetingKeywordsCreatorTest {
                 .build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, "bidder1", true, null, null, "http://extetranlUrl");
 
         // then
@@ -383,7 +390,7 @@ public class TargetingKeywordsCreatorTest {
                 .build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, "bidder1", false, null, null, "http://extetranlUrl");
 
         // then
@@ -399,11 +406,39 @@ public class TargetingKeywordsCreatorTest {
                 .build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false)
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, true, false, 0)
                 .makeFor(bid, "bidder1", true, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidid", "hb_bidid_bidder1", "hb_winurl", "hb_winurl_bidder1");
+    }
+
+    @Test
+    public void shouldTruncateTargetingKeywordsIfTruncateAttrCharsIsDefined() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false, 20)
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null);
+
+        // then
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
+    }
+
+    @Test
+    public void shouldNotTruncateTargetingKeywordsIfTruncateAttrCharsIsNotDefined() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false, 0)
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null);
+
+        // then
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidder_someVeryLongBidderName", "hb_pb_someVeryLongBidderName");
     }
 
     @Test
@@ -425,6 +460,7 @@ public class TargetingKeywordsCreatorTest {
                 true,
                 true,
                 false,
+                0,
                 null,
                 null,
                 resolver)

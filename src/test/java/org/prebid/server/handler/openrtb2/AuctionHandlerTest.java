@@ -35,10 +35,10 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -221,7 +221,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithUnauthorizedIfAccountIdIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided 1", "1")));
+                .willReturn(Future.failedFuture(new UnauthorizedAccountException("Account id is not provided", null)));
 
         // when
         auctionHandler.handle(routingContext);
@@ -229,7 +229,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
-        verify(httpResponse).end(eq("Unauthorized: Account id is not provided 1"));
+        verify(httpResponse).end(eq("Account id is not provided"));
     }
 
     @Test
@@ -297,10 +297,10 @@ public class AuctionHandlerTest extends VertxTest {
         final ExtMediaTypePriceGranularity priceGranuality = ExtMediaTypePriceGranularity.of(
                 mapper.valueToTree(priceGranularity), null, mapper.createObjectNode());
         final BidRequest resolvedRequest = BidRequest.builder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder().mediatypepricegranularity(priceGranuality).build())
                         .auctiontimestamp(0L)
-                        .build())))
+                        .build()))
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
@@ -568,7 +568,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
+        // TODO adminManager: enable when admin endpoints can be bound on application port
+        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
 
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()

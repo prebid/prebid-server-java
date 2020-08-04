@@ -14,6 +14,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Clock;
+
 @Configuration
 @ConditionalOnProperty("status-response")
 @ConditionalOnExpression("'${status-response}' != ''")
@@ -33,9 +35,10 @@ public class HealthCheckerConfiguration {
     HealthChecker geoLocationChecker(Vertx vertx,
                                      @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
                                      GeoLocationService geoLocationService,
-                                     TimeoutFactory timeoutFactory) {
+                                     TimeoutFactory timeoutFactory,
+                                     Clock clock) {
 
-        return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory);
+        return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory, clock);
     }
 
     @Bean

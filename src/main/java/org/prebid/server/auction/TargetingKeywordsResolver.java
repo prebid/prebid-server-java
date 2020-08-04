@@ -1,16 +1,12 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source;
@@ -24,8 +20,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class TargetingKeywordsResolver {
-
-    private static final Logger logger = LoggerFactory.getLogger(TargetingKeywordsResolver.class);
 
     public static final String IMP_PREFIX = "imp.";
     public static final String SEATBID_BID_PREFIX = "seatbid.bid.";
@@ -62,9 +56,9 @@ public class TargetingKeywordsResolver {
     }
 
     private Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource() {
-        final ExtBidRequest extRequest = parseExt(bidRequest.getExt());
+        final ExtRequest extRequest = bidRequest.getExt();
         final List<ExtRequestPrebidAdservertargetingRule> rules =
-                get(get(extRequest, ExtBidRequest::getPrebid), ExtRequestPrebid::getAdservertargeting);
+                get(get(extRequest, ExtRequest::getPrebid), ExtRequestPrebid::getAdservertargeting);
 
         return ObjectUtils.<List<ExtRequestPrebidAdservertargetingRule>>defaultIfNull(rules, Collections.emptyList())
                 .stream()
@@ -212,15 +206,6 @@ public class TargetingKeywordsResolver {
 
     private static String toPath(String value) {
         return String.format("/%s", value.replaceAll("\\.", "/"));
-    }
-
-    public ExtBidRequest parseExt(ObjectNode ext) {
-        try {
-            return mapper.mapper().treeToValue(ext, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            logger.warn("Error occurred while parsing request extension", e);
-            return null;
-        }
     }
 
     private static <T, U> U get(T target, Function<T, U> getter) {
