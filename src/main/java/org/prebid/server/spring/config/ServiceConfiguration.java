@@ -14,6 +14,7 @@ import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -67,6 +68,7 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -106,6 +108,16 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    IpAddressHelper ipAddressHelper(@Value("${ipv6.always-mask-right}") int ipv6AlwaysMaskBits,
+                                    @Value("${ipv6.anon-left-mask-bits}") int ipv6AnonLeftMaskBits,
+                                    @Value("${ipv6.private-networks}") String ipv6PrivateNetworksAsString) {
+
+        final List<String> ipv6LocalNetworks = Arrays.asList(ipv6PrivateNetworksAsString.trim().split(","));
+
+        return new IpAddressHelper(ipv6AlwaysMaskBits, ipv6AnonLeftMaskBits, ipv6LocalNetworks);
+    }
+
+    @Bean
     TimeoutResolver timeoutResolver(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -136,6 +148,7 @@ public class ServiceConfiguration {
     PreBidRequestContextFactory preBidRequestContextFactory(
             TimeoutResolver timeoutResolver,
             ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
             TimeoutFactory timeoutFactory,
@@ -144,6 +157,7 @@ public class ServiceConfiguration {
         return new PreBidRequestContextFactory(
                 timeoutResolver,
                 implicitParametersExtractor,
+                ipAddressHelper,
                 applicationSettings,
                 uidsCookieService,
                 timeoutFactory,
@@ -161,6 +175,7 @@ public class ServiceConfiguration {
             @Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             RequestValidator requestValidator,
@@ -184,6 +199,7 @@ public class ServiceConfiguration {
                 blacklistedAccounts,
                 storedRequestProcessor,
                 implicitParametersExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
@@ -441,11 +457,13 @@ public class ServiceConfiguration {
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
             TcfDefinerService tcfDefinerService,
+            IpAddressHelper ipAddressHelper,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
             @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, useGeoLocation, ccpaEnforce);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, useGeoLocation, ccpaEnforce);
     }
 
     @Bean

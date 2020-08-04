@@ -76,6 +76,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     @Mock
     private TcfDefinerService tcfDefinerService;
     @Mock
+    private IpAddressHelper ipAddressHelper;
+    @Mock
     private Metrics metrics;
 
     private PrivacyEnforcementService privacyEnforcementService;
@@ -90,11 +92,13 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, restrictDeviceAndUser()), null)));
         given(aliases.resolveBidder(anyString())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ipAddressHelper.anonymizeIpv6(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
+                .willReturn("2001:0db8:85a3:0000::");
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
 
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, false);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, false);
     }
 
     @Test
@@ -135,7 +139,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaWhenUsPolicyIsValidAndCoppaIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, true);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -759,7 +763,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskForCcpaAndTcfWhenUsPolicyIsValidAndGdprIsEnforcedAndCOPPAIsZero() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, true);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, true);
 
         final String bidder1Name = "bidder1Name";
         final String bidder2Name = "bidder2Name";
@@ -831,7 +835,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldNotMaskForCcpaWhenCatchAllWildcardIsPresentInNosaleList() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, true);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -886,7 +890,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrueInConfigurationAndFalseInAccount() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, true);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, true);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().enforceCcpa(false).build();
@@ -899,7 +903,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnFalseWhenEnforcedPropertyIsTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, true);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, true);
 
         final Ccpa ccpa = Ccpa.of("1YNY");
         final Account account = Account.builder().build();
@@ -912,7 +916,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void isCcpaEnforcedShouldReturnTrueWhenEnforcedPropertyIsTrueAndCcpaReturnsTrue() {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, false, true);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, false, true);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().build();
@@ -1078,7 +1082,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static Device deviceCoppaMasked() {
         return Device.builder()
                 .ip("192.168.0.0")
-                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0:0")
+                .ipv6("2001:0db8:85a3:0000::")
                 .geo(Geo.builder().country("US").build())
                 .build();
     }
@@ -1093,7 +1097,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     private static Device deviceTcfMasked() {
         return Device.builder()
                 .ip("192.168.0.0")
-                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0")
+                .ipv6("2001:0db8:85a3:0000::")
                 .geo(Geo.builder().lon(-85.34F).lat(189.34F).country("US").build())
                 .build();
     }
