@@ -78,6 +78,7 @@ public class FileApplicationSettingsTest {
                         + "bannerCacheTtl: '100',"
                         + "videoCacheTtl : '100',"
                         + "eventsEnabled: 'true',"
+                        + "enforceCcpa: 'true',"
                         + "gdpr: {"
                         + "enabled: true,"
                         + "purposes: {"
@@ -108,6 +109,7 @@ public class FileApplicationSettingsTest {
                 .bannerCacheTtl(100)
                 .videoCacheTtl(100)
                 .eventsEnabled(true)
+                .enforceCcpa(true)
                 .gdpr(AccountGdprConfig.builder()
                         .enabled(true)
                         .purposes(Purposes.builder()

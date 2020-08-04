@@ -11,6 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
@@ -44,7 +45,7 @@ public class GammaTest extends IntegrationTest {
                 .withHeader("X-Forwarded-For", equalTo("123.123.123.12"))
                 .withHeader("Accept-Language", equalTo("fr"))
                 .withHeader("DNT", equalTo("2"))
-                .withRequestBody(equalTo(""))
+                .withRequestBody(absent())
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamma/test-gamma-bid-response.json"))));
 
         // pre-bid cache
@@ -71,4 +72,3 @@ public class GammaTest extends IntegrationTest {
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
-

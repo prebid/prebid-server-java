@@ -10,6 +10,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.settings.model.Account;
 
+import java.util.List;
+
 @Builder(toBuilder = true)
 @Value
 public class AuctionContext {
@@ -28,4 +30,6 @@ public class AuctionContext {
     Account account;
 
     MetricName requestTypeMetric;
+
+    List<String> prebidErrors;
 }

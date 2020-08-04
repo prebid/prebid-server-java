@@ -92,31 +92,71 @@ public class TargetingKeywordsCreator {
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
     private final boolean isApp;
+    private final int truncateAttrChars;
+    private final String cacheHost;
+    private final String cachePath;
+    private final TargetingKeywordsResolver resolver;
 
-    private TargetingKeywordsCreator(PriceGranularity priceGranularity, boolean includeWinners,
-                                     boolean includeBidderKeys, boolean isApp) {
+    private TargetingKeywordsCreator(PriceGranularity priceGranularity,
+                                     boolean includeWinners,
+                                     boolean includeBidderKeys,
+                                     boolean isApp,
+                                     int truncateAttrChars,
+                                     String cacheHost,
+                                     String cachePath,
+                                     TargetingKeywordsResolver resolver) {
+
         this.priceGranularity = priceGranularity;
         this.includeWinners = includeWinners;
         this.includeBidderKeys = includeBidderKeys;
         this.isApp = isApp;
+        this.truncateAttrChars = truncateAttrChars;
+        this.cacheHost = cacheHost;
+        this.cachePath = cachePath;
+        this.resolver = resolver;
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
-    public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity, boolean includeWinners,
-                                                  boolean includeBidderKeys, boolean isApp) {
-        return new TargetingKeywordsCreator(PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
-                includeWinners, includeBidderKeys, isApp);
+    public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity,
+                                                  boolean includeWinners,
+                                                  boolean includeBidderKeys,
+                                                  boolean isApp,
+                                                  int truncateAttrChars,
+                                                  String cacheHost,
+                                                  String cachePath,
+                                                  TargetingKeywordsResolver resolver) {
+
+        return new TargetingKeywordsCreator(
+                PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
+                includeWinners,
+                includeBidderKeys,
+                isApp,
+                truncateAttrChars,
+                cacheHost,
+                cachePath,
+                resolver);
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for string price granularity representation.
      */
-    public static TargetingKeywordsCreator create(String stringPriceGranularity, boolean includeWinners,
-                                                  boolean includeBidderKeys, boolean isApp) {
-        return new TargetingKeywordsCreator(convertToCustomPriceGranularity(stringPriceGranularity),
-                includeWinners, includeBidderKeys, isApp);
+    public static TargetingKeywordsCreator create(String stringPriceGranularity,
+                                                  boolean includeWinners,
+                                                  boolean includeBidderKeys,
+                                                  boolean isApp,
+                                                  int truncateAttrChars) {
+
+        return new TargetingKeywordsCreator(
+                convertToCustomPriceGranularity(stringPriceGranularity),
+                includeWinners,
+                includeBidderKeys,
+                isApp,
+                truncateAttrChars,
+                null,
+                null,
+                null);
     }
 
     /**
@@ -141,29 +181,66 @@ public class TargetingKeywordsCreator {
      * Creates map of keywords for the given {@link Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
-        return makeFor(bid.getBidder(), bid.getBidId(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(),
-                bid.getHeight(), bid.getCacheId(), null, bid.getDealId(), null, null, null);
+        return makeFor(
+                bid.getBidder(),
+                bid.getBidId(),
+                winningBid,
+                bid.getPrice(),
+                StringUtils.EMPTY,
+                bid.getWidth(),
+                bid.getHeight(),
+                bid.getCacheId(),
+                null,
+                bid.getDealId(),
+                null);
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
     Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid, String cacheId,
-                                String vastCacheId, String cacheHost, String cachePath, String winUrl) {
-        return makeFor(bidder, bid.getId(), winningBid, bid.getPrice(), "0.0", bid.getW(), bid.getH(), cacheId,
-                vastCacheId, bid.getDealid(), cacheHost, cachePath, winUrl);
+                                String vastCacheId, String winUrl) {
+        final Map<String, String> keywords = makeFor(
+                bidder,
+                bid.getId(),
+                winningBid,
+                bid.getPrice(),
+                "0.0",
+                bid.getW(),
+                bid.getH(),
+                cacheId,
+                vastCacheId,
+                bid.getDealid(),
+                winUrl);
+
+        if (resolver == null) {
+            return keywords;
+        }
+
+        final Map<String, String> augmentedKeywords = new HashMap<>(keywords);
+        augmentedKeywords.putAll(resolver.resolve(bid, bidder));
+
+        return augmentedKeywords;
     }
 
     /**
      * Common method for creating targeting keywords.
      */
     private Map<String, String> makeFor(
-            String bidder, String bidId, boolean winningBid, BigDecimal price, String defaultCpm, Integer width,
-            Integer height, String cacheId, String vastCacheId, String dealId, String cacheHost, String cachePath,
+            String bidder,
+            String bidId,
+            boolean winningBid,
+            BigDecimal price,
+            String defaultCpm,
+            Integer width,
+            Integer height,
+            String cacheId,
+            String vastCacheId,
+            String dealId,
             String winUrl) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
-                EXCLUDED_BIDDER_KEYS);
+                truncateAttrChars, EXCLUDED_BIDDER_KEYS);
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         keywordMap.put(HB_PB_KEY, roundedCpm);
@@ -222,23 +299,26 @@ public class TargetingKeywordsCreator {
      * <p>
      * Brings a convenient way for creating keywords regarding to bidder and winning bid flag.
      */
-    private class KeywordMap {
+    private static class KeywordMap {
 
         private final String bidder;
         private final boolean winningBid;
         private final boolean includeWinners;
         private final boolean includeBidderKeys;
+        private final int truncateAttrChars;
         private final Set<String> excludedBidderKeys;
 
         private final Map<String, String> keywords;
 
         KeywordMap(String bidder, boolean winningBid, boolean includeWinners, boolean includeBidderKeys,
-                   Set<String> excludedBidderKeys) {
+                   int truncateAttrChars, Set<String> excludedBidderKeys) {
             this.bidder = bidder;
             this.winningBid = winningBid;
             this.includeWinners = includeWinners;
             this.includeBidderKeys = includeBidderKeys;
             this.excludedBidderKeys = excludedBidderKeys;
+            this.truncateAttrChars = truncateAttrChars;
+
             this.keywords = new HashMap<>();
         }
 
@@ -249,13 +329,19 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(String.format("%s_%s", prefix, bidder));
+                keys.add(truncateKey(String.format("%s_%s", prefix, bidder)));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {
                 keys.add(prefix);
             }
             return keys;
+        }
+
+        private String truncateKey(String key) {
+            return truncateAttrChars > 0 && key.length() > truncateAttrChars
+                    ? key.substring(0, truncateAttrChars)
+                    : key;
         }
 
         private Map<String, String> asMap() {
