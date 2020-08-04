@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -9,7 +10,7 @@ import java.util.List;
 /**
  * Defines the contract for bidrequest.imp[i].ext.prebid
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class ExtImpPrebid {
 
@@ -19,24 +20,29 @@ public class ExtImpPrebid {
     ExtStoredRequest storedrequest;
 
     /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.options
-     */
-    ExtOptions options;
-
-    /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.storedAuctionResponse
+     * Defines the contract for bidrequest.imp[i].ext.prebid.storedauctionresponse
      */
     @JsonProperty("storedauctionresponse")
     ExtStoredAuctionResponse storedAuctionResponse;
 
     /**
-     * Defines the contract for bidrequest.imp[i].ext.prebid.storedBidResponse
+     * Defines the contract for bidrequest.imp[i].ext.prebid.storedbidresponse
      */
     @JsonProperty("storedbidresponse")
     List<ExtStoredBidResponse> storedBidResponse;
 
     /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.options
+     */
+    ExtOptions options;
+
+    /**
      * Defines the contract for bidrequest.imp[i].ext.prebid.is_rewarded_inventory
      */
     Integer isRewardedInventory;
+
+    /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.BIDDER
+     */
+    JsonNode bidder;
 }

@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -170,32 +171,64 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Updates {@link Imp} {@link Banner} and/or {@link Video}.
      */
     private Imp updateImp(Imp imp, PublisherOverride publisherOverride) {
+        final BigDecimal bidFloor = publisherOverride != null && publisherOverride.getBidFloor() != null
+                ? publisherOverride.getBidFloor()
+                : null;
+        final List<Integer> impBattr = publisherOverride != null && publisherOverride.getImpBattr() != null
+                ? publisherOverride.getImpBattr()
+                : null;
+
         final Banner banner = imp.getBanner();
         if (banner != null) {
-            final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
-            if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
-                // update banner with size from first format
-                final Format firstFormat = banner.getFormat().get(0);
-                bannerBuilder
-                        .w(firstFormat.getW())
-                        .h(firstFormat.getH());
+            final boolean noSizes = banner.getW() == null && banner.getH() == null
+                    && CollectionUtils.isNotEmpty(banner.getFormat());
+
+            if (bidFloor != null || impBattr != null || noSizes) {
+                final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+                if (bidFloor != null) {
+                    impBuilder.bidfloor(bidFloor);
+                }
+                if (impBattr != null || noSizes) {
+                    impBuilder.banner(updateBanner(banner, impBattr, noSizes));
+                }
+
+                return impBuilder.build();
             }
-            if (publisherOverride != null) {
-                bannerBuilder.battr(publisherOverride.getImpBattr());
-            }
-            return imp.toBuilder()
-                    .banner(bannerBuilder.build())
-                    .build();
         }
+
         final Video video = imp.getVideo();
-        if (video != null && publisherOverride != null) {
-            return imp.toBuilder()
-                    .video(video.toBuilder()
-                            .battr(publisherOverride.getImpBattr())
-                            .build())
-                    .build();
+        if (video != null && (bidFloor != null || impBattr != null)) {
+            final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+            if (bidFloor != null) {
+                impBuilder.bidfloor(bidFloor);
+            }
+            if (impBattr != null) {
+                impBuilder.video(video.toBuilder()
+                        .battr(impBattr)
+                        .build());
+            }
+            return impBuilder.build();
         }
         return imp;
+    }
+
+    private static Banner updateBanner(Banner banner, List<Integer> impBattr, boolean noSizes) {
+        final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
+
+        if (impBattr != null) {
+            bannerBuilder.battr(impBattr);
+        }
+        if (noSizes) {
+            // update banner with size from first format
+            final Format firstFormat = banner.getFormat().get(0);
+            bannerBuilder
+                    .w(firstFormat.getW())
+                    .h(firstFormat.getH());
+        }
+
+        return bannerBuilder.build();
     }
 
     /**
