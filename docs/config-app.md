@@ -24,7 +24,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Client
-- `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
+- `http-client.max-pool-size` - set the maximum pool size for outgoing connections (per host).
+- `http-client.idle-timeout-ms` - set the maximum time idle connections could exist before being reaped
+- `http-client.pool-cleaner-period-ms` - set how often idle connections will be closed removed from pool
 - `http-client.connect-timeout-ms` - set the connect timeout.
 - `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
 - `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.

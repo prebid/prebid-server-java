@@ -71,6 +71,7 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -289,11 +290,7 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
             matchIfMissing = true)
     BasicHttpClient basicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
-
-        return createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
-                httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
-                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
+        return createBasicHttpClient(vertx, httpClientProperties);
     }
 
     @Bean
@@ -313,36 +310,35 @@ public class ServiceConfiguration {
             @Qualifier("httpClientCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
-        final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties.getMaxPoolSize(),
-                httpClientProperties.getConnectTimeoutMs(), httpClientProperties.getUseCompression(),
-                httpClientProperties.getMaxRedirects(), httpClientProperties.getSsl(),
-                httpClientProperties.getJksPath(), httpClientProperties.getJksPassword());
+        final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
+
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
                 circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(), clock);
     }
 
-    private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression, int maxRedirects, boolean ssl,
-                                                         String jksPath, String jksPassword) {
-
+    private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(maxPoolSize)
-                .setTryUseCompression(useCompression)
-                .setConnectTimeout(connectTimeoutMs)
+                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
+                .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
+                .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
+                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
+                .setTryUseCompression(httpClientProperties.getUseCompression())
+                .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
-                .setMaxRedirects(maxRedirects + 1);
+                .setMaxRedirects(httpClientProperties.getMaxRedirects() + 1);
 
-        if (ssl) {
+        if (httpClientProperties.getSsl()) {
             final JksOptions jksOptions = new JksOptions()
-                    .setPath(jksPath)
-                    .setPassword(jksPassword);
+                    .setPath(httpClientProperties.getJksPath())
+                    .setPassword(httpClientProperties.getJksPassword());
 
             options
                     .setSsl(true)
                     .setKeyStoreOptions(jksOptions);
         }
+
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
