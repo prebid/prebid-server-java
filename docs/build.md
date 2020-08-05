@@ -8,7 +8,7 @@ To verify the installed Java run in console:
 ```bash
 java -version
 ```
-which should show something like (your can differs):
+which should show something like (yours may be different):
 ```
 openjdk version "1.8.0_252"
 OpenJDK Runtime Environment (build 1.8.0_252)
