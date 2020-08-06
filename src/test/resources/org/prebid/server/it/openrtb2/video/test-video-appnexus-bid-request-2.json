@@ -72,7 +72,8 @@
           "precision": 2
         },
         "includewinners": true,
-        "includebidderkeys": true
+        "includebidderkeys": true,
+        "includeformat" : false
       },
       "cache": {
         "vastxml": {}

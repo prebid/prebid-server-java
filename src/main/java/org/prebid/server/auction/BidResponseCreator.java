@@ -703,7 +703,7 @@ public class BidResponseCreator {
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(bidder, account.getId(), auctionTimestamp))
                     : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
-                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, winUrl);
+                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, bidType.getName(), winUrl);
 
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
@@ -817,7 +817,6 @@ public class BidResponseCreator {
         }
 
         final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
-        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
 
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
@@ -850,6 +849,7 @@ public class BidResponseCreator {
                 parsePriceGranularity(priceGranularity),
                 targeting.getIncludewinners(),
                 targeting.getIncludebidderkeys(),
+                targeting.getIncludeformat(),
                 isApp,
                 resolveTruncateAttrChars(targeting, account),
                 cacheHost,

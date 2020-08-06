@@ -190,6 +190,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                                 BigDecimal.valueOf(0.1))))))
                                 .includewinners(true)
                                 .includebidderkeys(true)
+                                .includeformat(false)
                                 .build())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
@@ -268,6 +269,55 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludewinners)
                 .containsExactly(false);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithDefaultIncludeFormatIfStoredBidRequestExtTargetingHasNoIncludeFormat() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludeformat, ExtRequestTargeting::getPricegranularity)
+                // assert that includeFormat was set with default value and priceGranularity remained unchanged
+                .containsExactly(
+                        tuple(false, mapper.createObjectNode().put("foo", "bar")));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithIncludeFormatFromStoredBidRequest() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(
+                                ExtRequestTargeting.builder()
+                                        .pricegranularity(mapper.createObjectNode().put("foo", "bar"))
+                                        .includeformat(true)
+                                        .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt).isNotNull()
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludeformat)
+                .containsExactly(true);
     }
 
     @Test

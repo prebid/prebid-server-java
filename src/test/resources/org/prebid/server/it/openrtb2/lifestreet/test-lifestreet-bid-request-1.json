@@ -71,7 +71,8 @@
           ]
         },
         "includewinners": true,
-        "includebidderkeys": true
+        "includebidderkeys": true,
+        "includeformat" : false
       },
       "cache": {
         "bids": {},

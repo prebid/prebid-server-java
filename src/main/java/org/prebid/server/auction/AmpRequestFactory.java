@@ -17,6 +17,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -167,6 +168,7 @@ public class AmpRequestFactory {
             setDefaultTargeting = targeting == null
                     || targeting.getIncludewinners() == null
                     || targeting.getIncludebidderkeys() == null
+                    || targeting.getIncludeformat() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
             setDefaultCache = cache == null || cache.equals(ExtRequestPrebidCache.EMPTY);
@@ -552,11 +554,14 @@ public class AmpRequestFactory {
         final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
                 || targeting.getIncludebidderkeys();
 
+        final boolean includeFormat = !isTargetingNull && BooleanUtils.toBoolean(targeting.getIncludeformat());
+
         return ExtRequestTargeting.builder()
                 .pricegranularity(outgoingPriceGranularityNode)
                 .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(includeWinners)
                 .includebidderkeys(includeBidderKeys)
+                .includeformat(includeFormat)
                 .build();
     }
 }

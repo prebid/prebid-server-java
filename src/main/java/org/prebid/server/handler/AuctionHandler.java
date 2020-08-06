@@ -409,7 +409,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
             final TargetingKeywordsCreator keywordsCreator =
-                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, true, false, 0);
+                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, true, false, false, 0);
 
             final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
                     .collect(Collectors.groupingBy(Bid::getCode));

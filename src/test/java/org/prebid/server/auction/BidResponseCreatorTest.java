@@ -864,6 +864,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
                 .includebidderkeys(true)
+                .includeformat(false)
                 .truncateattrchars(20)
                 .build();
 
@@ -941,6 +942,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .mediatypepricegranularity(mediaTypePriceGranuality)
                 .includewinners(true)
                 .includebidderkeys(true)
+                .includeformat(false)
                 .build();
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
@@ -1193,6 +1195,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(false)
                 .includebidderkeys(true)
+                .includeformat(false)
                 .build();
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
@@ -1233,6 +1236,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
                 .includebidderkeys(false)
+                .includeformat(false)
                 .build();
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
@@ -1587,6 +1591,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
                 .includebidderkeys(true)
+                .includeformat(false)
                 .build();
     }
 

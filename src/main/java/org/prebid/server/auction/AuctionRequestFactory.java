@@ -537,9 +537,11 @@ public class AuctionRequestFactory {
                 && targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = isTargetingNotNull && targeting.getIncludewinners() == null;
         final boolean isIncludeBidderKeysNull = isTargetingNotNull && targeting.getIncludebidderkeys() == null;
+        final boolean isIncludeFormatNull = isTargetingNotNull && targeting.getIncludeformat() == null;
 
         final ExtRequestTargeting result;
-        if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
+        if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull
+                || isIncludeFormatNull) {
             result = ExtRequestTargeting.builder()
                     .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
@@ -548,6 +550,7 @@ public class AuctionRequestFactory {
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
+                    .includeformat(isIncludeFormatNull ? false : targeting.getIncludeformat())
                     .build();
         } else {
             result = null;
