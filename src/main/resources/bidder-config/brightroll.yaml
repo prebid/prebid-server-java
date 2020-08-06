@@ -134,6 +134,7 @@ adapters:
           - IAB26-3
           - IAB26-4
         imp_battr: [1, 3, 8, 9, 10, 13, 14, 17]
+        bid_floor: 0.3
     usersync:
       url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
       redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
