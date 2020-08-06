@@ -105,6 +105,7 @@ public class SharethroughUriBuilderUtilTest {
                 .consentRequired(true)
                 .instantPlayCapable(true)
                 .consentString("1consentString1")
+                .usPrivacySignal("ccpa")
                 .bidID("2bidId2")
                 .pkey("3pkey3")
                 .theTradeDeskUserId("ttd123")
@@ -117,8 +118,9 @@ public class SharethroughUriBuilderUtilTest {
 
         // when
         final String expected = "http://uri.com?placement_key=3pkey3&bidId=2bidId2&consent_required=true&"
-                + "consent_string=1consentString1&instant_play_capable=true&stayInIframe=true&height=100&width=200&"
-                + "adRequestAt=testDate&supplyId=suId&strVersion=version&ttduid=ttd123&stxuid=uuid";
+                + "consent_string=1consentString1&us_privacy=ccpa&instant_play_capable=true&stayInIframe=true&"
+                + "height=100&width=200&adRequestAt=testDate&supplyId=suId&strVersion=version&ttduid=ttd123&"
+                + "stxuid=uuid";
         final String result = SharethroughUriBuilderUtil.buildSharethroughUrl(baseUri, supplyId, strVersion, "testDate",
                 strUriParameters);
 

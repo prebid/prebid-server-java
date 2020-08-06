@@ -325,13 +325,23 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
+    public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsMissing() {
+        // when
+        target.resultForVendorIds(singleton(1), "1", null, "ip", null, null);
+
+        // then
+        verify(tcf2Service).permissionsFor(any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
+        verifyZeroInteractions(gdprService);
+        verify(metrics).updatePrivacyTcfMissingMetric();
+    }
+
+    @Test
     public void resultForVendorIdsShouldReturnRestrictAllWhenConsentIsNotValid() {
         // when
         target.resultForVendorIds(singleton(1), "1", "consent", "ip", null, null);
 
         // then
-        verify(tcf2Service).permissionsFor(
-                any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
+        verify(tcf2Service).permissionsFor(any(), argThat(arg -> arg.getClass() == TCStringEmpty.class));
         verifyZeroInteractions(gdprService);
         verify(metrics).updatePrivacyTcfInvalidMetric();
     }

@@ -22,7 +22,7 @@ http-client:
   ssl: false
   jks-path:
   jks-password:
-external-url: http://localhost:8000
+external-url: http://localhost:8080
 host-id: localhost
 datacenter-region: local
 vendor: local
@@ -138,7 +138,7 @@ gdpr:
 ccpa:
   enforce: true
 geolocation:
-  enabled: true
+  enabled: false
   type: maxmind
   maxmind:
     remote-file-syncer:
@@ -157,3 +157,8 @@ health-check:
     enabled: false
   geolocation:
     enabled: false
+
+ipv6:
+  always-mask-right: 64
+  anon-left-mask-bits: 56
+  private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8

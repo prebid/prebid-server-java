@@ -19,6 +19,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -83,7 +84,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(validImps)
-                .ext(mapper.mapper().valueToTree(firstExtImp))
+                .ext(mapper.fillExtension(ExtRequest.empty(), firstExtImp))
                 .build();
         final String body = mapper.encode(outgoingRequest);
 

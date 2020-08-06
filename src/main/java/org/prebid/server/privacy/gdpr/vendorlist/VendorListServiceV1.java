@@ -7,6 +7,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV1;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV1;
 import org.prebid.server.vertx.http.HttpClient;
@@ -21,6 +22,8 @@ public class VendorListServiceV1 extends VendorListService<VendorListV1, VendorV
 
     private static final Logger logger = LoggerFactory.getLogger(VendorListServiceV1.class);
 
+    private static final int TCF_VERSION = 1;
+
     public VendorListServiceV1(String cacheDir,
                                String endpointTemplate,
                                int defaultTimeoutMs,
@@ -28,9 +31,11 @@ public class VendorListServiceV1 extends VendorListService<VendorListV1, VendorV
                                BidderCatalog bidderCatalog,
                                FileSystem fileSystem,
                                HttpClient httpClient,
+                               Metrics metrics,
                                JacksonMapper mapper) {
+
         super(cacheDir, endpointTemplate, defaultTimeoutMs, gdprHostVendorId, bidderCatalog, fileSystem, httpClient,
-                mapper);
+                metrics, mapper);
     }
 
     protected VendorListV1 toVendorList(String content) {
@@ -55,6 +60,11 @@ public class VendorListServiceV1 extends VendorListService<VendorListV1, VendorV
                 && vendorList.getLastUpdated() != null
                 && CollectionUtils.isNotEmpty(vendorList.getVendors())
                 && isValidVendors(vendorList.getVendors());
+    }
+
+    @Override
+    protected int getTcfVersion() {
+        return TCF_VERSION;
     }
 
     private static boolean isValidVendors(Collection<VendorV1> vendors) {
