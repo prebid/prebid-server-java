@@ -697,7 +697,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Set<String> bidderNames = new HashSet<>(asList(
                 requestBidder1Name, requestBidder1Alias, bidder2Alias, requestBidder3Name));
         verify(tcfDefinerService)
-                .resultForBidderNames(eq(bidderNames), any(), eq("1"), any(), any(), any(), isNull(), eq(timeout));
+                .resultForBidderNames(eq(bidderNames), any(), eq("1"), any(), any(), any(), any(), eq(timeout));
     }
 
     @Test
@@ -1020,7 +1020,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final AuctionContext context = auctionContext(bidRequest);
 
-        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap("someAlias", restrictDeviceAndUser()), null)));
 
