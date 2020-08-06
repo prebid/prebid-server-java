@@ -273,7 +273,8 @@ public class StoredResponseProcessor {
                     seatBid == null ? bidderSeatBid : makeBidderSeatBid(bidderSeatBid, seatBid, impIdToBidType),
                     bidderResponse.getResponseTime());
         } else {
-            return BidderResponse.of(seatBid.getSeat(), makeBidderSeatBid(null, seatBid, impIdToBidType), 0);
+            return BidderResponse.of(seatBid != null ? seatBid.getSeat() : null,
+                    makeBidderSeatBid(null, seatBid, impIdToBidType), 0);
         }
     }
 

@@ -2,7 +2,10 @@ package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 
 import java.util.List;
 
@@ -11,7 +14,9 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class ExtUser {
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class ExtUser extends FlexibleExtension {
 
     ExtUserPrebid prebid;
 
