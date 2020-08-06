@@ -414,7 +414,7 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
-    public void shouldTruncateTargetingKeywordsIfTruncateAttrCharsIsDefined() {
+    public void shouldTruncateTargetingBidderKeywordsIfTruncateAttrCharsIsDefined() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
@@ -425,6 +425,20 @@ public class TargetingKeywordsCreatorTest {
         // then
         assertThat(keywords).hasSize(2)
                 .containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
+    }
+
+    @Test
+    public void shouldTruncateTargetingWithoutBidderSuffixKeywordsIfTruncateAttrCharsIsDefined() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, false, false, 5)
+                .makeFor(bid, "bidder", true, null, null, null);
+
+        // then
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bi", "hb_pb");
     }
 
     @Test

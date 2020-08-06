@@ -333,7 +333,7 @@ public class TargetingKeywordsCreator {
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {
-                keys.add(prefix);
+                keys.add(truncateKey(prefix));
             }
             return keys;
         }
