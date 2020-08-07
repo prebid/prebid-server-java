@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -54,6 +55,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -83,6 +85,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class BidResponseCreator {
+
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
+            };
 
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
@@ -719,14 +725,28 @@ public class BidResponseCreator {
         final Events events = eventsEnabled && eventsAllowedByRequest
                 ? eventsService.createEvent(eventBidId, bidder, account.getId(), auctionTimestamp)
                 : null;
-
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(
-                generatedBidId, bidType, targetingKeywords, cache, storedVideo, events, null);
+        final ExtBidPrebid prebidExt = ExtBidPrebid
+                .builder()
+                .bidid(generatedBidId)
+                .type(bidType)
+                .targeting(targetingKeywords)
+                .cache(cache)
+                .storedRequestAttributes(storedVideo)
+                .events(events)
+                .video(getExtBidPrebidVideo(bid.getExt()))
+                .build();
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
 
         return bid;
+    }
+
+    private ExtBidPrebidVideo getExtBidPrebidVideo(ObjectNode bidExt) {
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = mapper.mapper()
+                .convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
+        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+        return extBidPrebid != null ? extBidPrebid.getVideo() : null;
     }
 
     private void addNativeMarkup(Bid bid, List<Imp> imps) {

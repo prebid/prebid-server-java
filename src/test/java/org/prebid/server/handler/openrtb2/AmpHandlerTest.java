@@ -349,8 +349,8 @@ public class AmpHandlerTest extends VertxTest {
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
         given(exchangeService.holdAuction(any()))
-                .willReturn(givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(
-                        null, null, targeting, null, null, null, null), null))));
+                .willReturn(givenBidResponse(mapper.valueToTree(ExtPrebid.of(
+                        ExtBidPrebid.builder().targeting(targeting).build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -381,7 +381,7 @@ public class AmpHandlerTest extends VertxTest {
                                 .bid(singletonList(Bid.builder()
                                         .ext(mapper.valueToTree(
                                                 ExtPrebid.of(
-                                                        ExtBidPrebid.of(null, null, targeting, null, null, null, null),
+                                                        ExtBidPrebid.builder().targeting(targeting).build(),
                                                         mapper.createObjectNode())))
                                         .build()))
                                 .build()))
@@ -461,7 +461,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -478,7 +478,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -495,7 +495,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
@@ -518,7 +518,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -537,7 +537,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -621,7 +621,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // simulate calling exception handler that is supposed to update networkerr timer value
         given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
@@ -644,7 +644,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         // when
         ampHandler.handle(routingContext);
@@ -661,7 +661,7 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, null, null, null, null, null), null))));
+                        ExtPrebid.of(ExtBidPrebid.builder().build(), null))));
 
         given(routingContext.response().closed()).willReturn(true);
 
@@ -728,8 +728,8 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponse(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.of(null, null, singletonMap("hb_cache_id_bidder1", "value1"),
-                                null, null, null, null),
+                        ExtPrebid.of(
+                                ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1")).build(),
                                 null))));
 
         // when
@@ -747,8 +747,8 @@ public class AmpHandlerTest extends VertxTest {
                 .bidResponse(BidResponse.builder().seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .ext(mapper.valueToTree(ExtPrebid.of(
-                                        ExtBidPrebid.of(null, null, singletonMap("hb_cache_id_bidder1", "value1"),
-                                                null, null, null, null),
+                                        ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                                                .build(),
                                         null)))
                                 .build()))
                         .build()))

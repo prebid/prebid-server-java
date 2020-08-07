@@ -57,6 +57,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -429,8 +430,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldOverrideBidIdWhenGenerateBidIdIsTurnedOn() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
-        final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.of(null, banner, null,
-                null, null, null, null), null);
+        final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null);
         final Bid bid = Bid.builder()
                 .id("123")
                 .impid("imp123")
@@ -483,7 +483,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .price(BigDecimal.ONE)
                         .adm("adm")
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                ExtBidPrebid.of(null, banner, null, null, null, null, null),
+                                ExtBidPrebid.builder().type(banner).build(),
                                 singletonMap("bidExt", 1))))
                         .build()))
                 .build());
@@ -761,7 +761,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .impid("i1")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(ExtBidPrebid.of(null, banner, null, null, null, null, null), null)))
+                                ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null)))
                         .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
@@ -932,13 +932,13 @@ public class BidResponseCreatorTest extends VertxTest {
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2,
                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                         BigDecimal.valueOf(0.5))));
-        final ExtMediaTypePriceGranularity mediaTypePriceGranuality = ExtMediaTypePriceGranularity.of(
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
                 mapper.valueToTree(
                         ExtPriceGranularity.of(3, singletonList(
                                 ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))), null, null);
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.valueToTree(priceGranularity))
-                .mediatypepricegranularity(mediaTypePriceGranuality)
+                .mediatypepricegranularity(mediaTypePriceGranularity)
                 .includewinners(true)
                 .includebidderkeys(true)
                 .build();
@@ -1100,6 +1100,33 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(events);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldAddExtPrebidVideo() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+        final ExtRequestTargeting targeting = givenTargeting();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").impid("i1")
+                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(
+                        ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(1, "category")).build()))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong())).willReturn("http://win-url");
+
+        final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, true, 0L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(responseBid -> toExtPrebid(responseBid.getExt()).getPrebid().getVideo())
+                .containsOnly(ExtBidPrebidVideo.of(1, "category"));
     }
 
     @Test
