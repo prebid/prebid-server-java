@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Imp;
@@ -12,6 +13,7 @@ import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,6 +49,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -75,13 +78,16 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     private VideoStoredRequestProcessor target;
 
     @Before
-    public void setUp() {
+    public void setUp() throws JsonProcessingException {
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
+
         target = VideoStoredRequestProcessor.create(
                 false,
                 emptyList(),
                 2000L,
                 "USD",
-                null,
+                "path/to/default/request.json",
                 fileSystem,
                 applicationSettings,
                 validator,
@@ -174,6 +180,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .build();
         final BidRequest expectedMergedRequest = BidRequest.builder()
                 .id("bid_id")
+                .at(1)
                 .imp(Arrays.asList(expectedImp1, expectedImp2))
                 .user(User.builder().buyeruid("appnexus").yob(123).gender("gender").keywords("keywords").build())
                 .site(Site.builder().id("siteId").content(content).build())
