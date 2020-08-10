@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
+import io.vertx.core.file.FileSystem;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,6 +21,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -63,6 +65,8 @@ public class StoredRequestProcessorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private FileSystem fileSystem;
+    @Mock
     private ApplicationSettings applicationSettings;
     @Mock
     private Metrics metrics;
@@ -72,12 +76,15 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Before
     public void setUp() {
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
-        storedRequestProcessor = new StoredRequestProcessor(
+        storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
+                null,
+                fileSystem,
                 applicationSettings,
                 metrics,
                 timeoutFactory,
-                jacksonMapper);
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
     }
 
     @Test

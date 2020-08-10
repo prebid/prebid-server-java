@@ -50,6 +50,9 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
+## Default bid request
+- `default-request.file.path` - path to a JSON file containing the default request
+
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.

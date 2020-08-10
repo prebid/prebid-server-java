@@ -1,4 +1,4 @@
-package org.prebid.server.util;
+package org.prebid.server.json;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,17 +6,15 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.json.JacksonMapper;
 
 import java.io.IOException;
 import java.util.Objects;
 
-// TODO: refactor to be instance instead of util
-public class JsonMergeUtil {
+public class JsonMerger {
 
     private final JacksonMapper mapper;
 
-    public JsonMergeUtil(JacksonMapper mapper) {
+    public JsonMerger(JacksonMapper mapper) {
         this.mapper = Objects.requireNonNull(mapper);
     }
 

@@ -35,10 +35,13 @@ public class VideoRequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
 
-    public VideoRequestFactory(int maxRequestSize, boolean enforceStoredRequest,
+    public VideoRequestFactory(int maxRequestSize,
+                               boolean enforceStoredRequest,
                                VideoStoredRequestProcessor storedRequestProcessor,
-                               AuctionRequestFactory auctionRequestFactory, TimeoutResolver timeoutResolver,
+                               AuctionRequestFactory auctionRequestFactory,
+                               TimeoutResolver timeoutResolver,
                                JacksonMapper mapper) {
+
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -132,6 +135,7 @@ public class VideoRequestFactory {
                                                                BidRequestVideo bidRequestVideo,
                                                                String storedVideoId,
                                                                Set<String> podConfigIds) {
+
         return storedRequestProcessor.processVideoRequest(storedVideoId, podConfigIds, bidRequestVideo)
                 .map(bidRequestToErrors -> fillImplicitParameters(routingContext, bidRequestToErrors))
                 .map(this::validateRequest);

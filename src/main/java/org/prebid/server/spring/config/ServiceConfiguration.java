@@ -1,9 +1,9 @@
 package org.prebid.server.spring.config;
 
-import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -39,6 +39,7 @@ import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -245,27 +246,39 @@ public class ServiceConfiguration {
 
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
-            ApplicationSettings applicationSettings,
             @Value("${auction.video.stored-required:#{false}}") boolean enforceStoredRequest,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
-            BidRequest defaultVideoBidRequest,
+            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            FileSystem fileSystem,
+            ApplicationSettings applicationSettings,
+            VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             TimeoutResolver timeoutResolver,
-            @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
-            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            JsonMerger jsonMerger) {
 
-        final List<String> blacklistedAccounts = splitCommaSeparatedString(blacklistedAccountsString);
-
-        return new VideoStoredRequestProcessor(applicationSettings, new VideoRequestValidator(), enforceStoredRequest,
-                blacklistedAccounts, defaultVideoBidRequest, metrics, timeoutFactory, timeoutResolver, defaultTimeoutMs,
-                adServerCurrency, mapper);
+        return VideoStoredRequestProcessor.create(
+                enforceStoredRequest,
+                splitCommaSeparatedString(blacklistedAccountsString),
+                defaultTimeoutMs,
+                adServerCurrency,
+                defaultBidRequestPath,
+                fileSystem,
+                applicationSettings,
+                videoRequestValidator,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                mapper,
+                jsonMerger);
     }
 
     @Bean
-    BidRequest defaultVideoBidRequest() {
-        return BidRequest.builder().build();
+    VideoRequestValidator videoRequestValidator() {
+        return new VideoRequestValidator();
     }
 
     @Bean
@@ -437,12 +450,23 @@ public class ServiceConfiguration {
     @Bean
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
+            FileSystem fileSystem,
             ApplicationSettings applicationSettings,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            JsonMerger jsonMerger) {
 
-        return new StoredRequestProcessor(defaultTimeoutMs, applicationSettings, metrics, timeoutFactory, mapper);
+        return StoredRequestProcessor.create(
+                defaultTimeoutMs,
+                defaultBidRequestPath,
+                fileSystem,
+                applicationSettings,
+                metrics,
+                timeoutFactory,
+                mapper,
+                jsonMerger);
     }
 
     @Bean

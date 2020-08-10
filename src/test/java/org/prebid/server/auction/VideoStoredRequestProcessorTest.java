@@ -12,6 +12,7 @@ import com.iab.openrtb.request.video.Pod;
 import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
+import io.vertx.core.file.FileSystem;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +23,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -58,6 +60,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private FileSystem fileSystem;
+    @Mock
     private ApplicationSettings applicationSettings;
     @Mock
     private VideoRequestValidator validator;
@@ -72,8 +76,20 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        target = new VideoStoredRequestProcessor(applicationSettings, validator, false, emptyList(),
-                BidRequest.builder().build(), metrics, timeoutFactory, timeoutResolver, 2000L, "USD", jacksonMapper);
+        target = VideoStoredRequestProcessor.create(
+                false,
+                emptyList(),
+                2000L,
+                "USD",
+                null,
+                fileSystem,
+                applicationSettings,
+                validator,
+                metrics,
+                timeoutFactory,
+                timeoutResolver,
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
     }
 
     @Test
