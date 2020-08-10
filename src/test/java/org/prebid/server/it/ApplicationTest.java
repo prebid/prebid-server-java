@@ -537,7 +537,7 @@ public class ApplicationTest extends IntegrationTest {
         given(ADMIN_SPEC)
                 .body(jsonFrom("cache/update/test-update-settings-request.json"))
                 .when()
-                .post("/pbs-admin/storedrequests/openrtb2")
+                .post("/storedrequests/openrtb2")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(""))
@@ -583,7 +583,7 @@ public class ApplicationTest extends IntegrationTest {
     @Test
     public void adminHandlerShouldRespondWithOk() {
         given(ADMIN_SPEC)
-                .get("/pbs-admin/admin?logging=error&records=1200")
+                .get("/admin?logging=error&records=1200")
                 .then()
                 .assertThat()
                 .statusCode(200);
@@ -597,7 +597,7 @@ public class ApplicationTest extends IntegrationTest {
         // ask endpoint after some time to ensure currency rates have already been fetched
         Vertx.vertx().setTimer(1000L, ignored -> {
             // when
-            final Response response = given(ADMIN_SPEC).get("/pbs-admin/currency-rates");
+            final Response response = given(ADMIN_SPEC).get("/currency-rates");
 
             // then
             final String lastUpdateValue = response.jsonPath().getString("last_update");
@@ -611,7 +611,7 @@ public class ApplicationTest extends IntegrationTest {
         given(ADMIN_SPEC)
                 .body("{\"requests\":[],\"imps\":[]}")
                 .when()
-                .delete("/pbs-admin/storedrequests/openrtb2")
+                .delete("/storedrequests/openrtb2")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(""))
@@ -623,7 +623,7 @@ public class ApplicationTest extends IntegrationTest {
         given(ADMIN_SPEC)
                 .body("{\"requests\":{},\"imps\":{}}")
                 .when()
-                .post("/pbs-admin/storedrequests/amp")
+                .post("/storedrequests/amp")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(""))
@@ -635,7 +635,7 @@ public class ApplicationTest extends IntegrationTest {
         given(ADMIN_SPEC)
                 .body("{\"requests\":[],\"imps\":[]}")
                 .when()
-                .delete("/pbs-admin/storedrequests/amp")
+                .delete("/storedrequests/amp")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(""))

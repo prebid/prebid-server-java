@@ -15,10 +15,36 @@ http:
 admin:
   port: 8060
 admin-endpoints:
-  currency-rates:
+  version:
+    enabled: false
+    path: /version
     on-application-port: false
-    protected: false
-
+    protected: true
+  currency-rates:
+    enabled: false
+    path: /currency-rates
+    on-application-port: false
+    protected: true
+  storedrequest:
+    enabled: false
+    path: /storedrequests/openrtb2
+    on-application-port: false
+    protected: true
+  storedrequest-amp:
+    enabled: false
+    path: /storedrequests/amp
+    on-application-port: false
+    protected: true
+  cache-invalidation:
+    enabled: false
+    path: /cache/invalidate
+    on-application-port: false
+    protected: true
+  logger-level-modifier:
+    enabled: false
+    path: /admin
+    on-application-port: false
+    protected: true
 http-client:
   max-pool-size: 4000
   connect-timeout-ms: 2500
@@ -162,7 +188,6 @@ health-check:
     enabled: false
   geolocation:
     enabled: false
-
 ipv6:
   always-mask-right: 64
   anon-left-mask-bits: 56

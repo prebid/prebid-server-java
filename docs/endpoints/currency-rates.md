@@ -1,10 +1,6 @@
 # Currency Rates
 
-Unavailable if currency conversion is disabled (`currency-converter.external-rates.enabled` config property)
-
-This `/pbs-admin/currency-rates` endpoint can be configured:
- - `admin-endpoints.currency-rates.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
- - `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+Unavailable if currency conversion is disabled (`currency-converter.external-rates.enabled` config property).
 
 This endpoint will return a json with the latest update timestamp.
 

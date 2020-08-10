@@ -62,7 +62,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Test
     public void routeShouldCallAuthAndHandlerWhenProtectedAndCredentialsProvided() {
         // given
-        target = new CustomizedAdminEndpoint(PATH, handler, true, true, adminEndpointCredentials);
+        target.withCredentials(adminEndpointCredentials);
 
         // when
         target.router(router);
@@ -71,6 +71,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
         verify(router).route(PATH);
         verify(route).handler(any(AuthHandler.class));
         verify(route).handler(handler);
+
         verifyNoMoreInteractions(route);
         verifyNoMoreInteractions(router);
     }
@@ -78,7 +79,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Test
     public void routeShouldCallRouterWhenProtectedAndNoCredentials() {
         // given
-        target = new CustomizedAdminEndpoint(PATH, handler, true, true, Collections.emptyMap());
+        target.withCredentials(Collections.emptyMap());
 
         // when
         target.router(router);
@@ -87,6 +88,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
         verify(router).route(PATH);
         verify(route).handler(any(AuthHandler.class));
         verify(route).handler(handler);
+
         verifyNoMoreInteractions(route);
         verifyNoMoreInteractions(router);
     }
@@ -94,7 +96,8 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Test
     public void routeShouldCallRouterWhenNotProtectedAndCredentialsProvided() {
         // given
-        target = new CustomizedAdminEndpoint(PATH, handler, true, false, adminEndpointCredentials);
+        target = new CustomizedAdminEndpoint(PATH, handler, true, false);
+        target.withCredentials(adminEndpointCredentials);
 
         // when
         target.router(router);
@@ -102,6 +105,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
         // then
         verify(router).route(PATH);
         verify(route).handler(handler);
+
         verifyNoMoreInteractions(route);
         verifyNoMoreInteractions(router);
     }

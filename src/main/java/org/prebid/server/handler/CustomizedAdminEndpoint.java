@@ -14,27 +14,23 @@ import java.util.Objects;
 
 public class CustomizedAdminEndpoint {
 
+    private final String path;
     private final Handler<RoutingContext> handler;
     private final boolean isOnApplicationPort;
     private final boolean isProtected;
-    private final String path;
-    private Map<String, String> adminEndpointCredentials;
+    private Map<String, String> credentials;
 
     public CustomizedAdminEndpoint(String path, Handler<RoutingContext> handler, boolean isOnApplicationPort,
                                    boolean isProtected) {
-        this.path = path;
-        this.handler = handler;
+        this.path = Objects.requireNonNull(path);
+        this.handler = Objects.requireNonNull(handler);
         this.isOnApplicationPort = isOnApplicationPort;
         this.isProtected = isProtected;
     }
 
-    public CustomizedAdminEndpoint(String path, Handler<RoutingContext> handler, boolean isOnApplicationPort,
-                                   boolean isProtected, Map<String, String> adminEndpointCredentials) {
-        this.path = path;
-        this.handler = handler;
-        this.isOnApplicationPort = isOnApplicationPort;
-        this.isProtected = isProtected;
-        this.adminEndpointCredentials = adminEndpointCredentials;
+    public CustomizedAdminEndpoint withCredentials(Map<String, String> credentials) {
+        this.credentials = credentials;
+        return this;
     }
 
     public boolean isOnApplicationPort() {
@@ -43,22 +39,23 @@ public class CustomizedAdminEndpoint {
 
     public void router(Router router) {
         if (isProtected) {
-            routeSecureToHandler(router);
+            routeToHandlerWithCredentials(router);
         } else {
             routeToHandler(router);
         }
     }
 
-    private void routeToHandler(Router router) {
-        router.route(path).handler(handler);
-    }
-
-    private void routeSecureToHandler(Router router) {
-        if (adminEndpointCredentials == null) {
+    private void routeToHandlerWithCredentials(Router router) {
+        if (credentials == null) {
             throw new IllegalArgumentException("Credentials for admin endpoint is empty.");
         }
-        final AuthProvider authProvider = createAuthProvider(adminEndpointCredentials);
+
+        final AuthProvider authProvider = createAuthProvider(credentials);
         router.route(path).handler(BasicAuthHandler.create(authProvider)).handler(handler);
+    }
+
+    private void routeToHandler(Router router) {
+        router.route(path).handler(handler);
     }
 
     private AuthProvider createAuthProvider(Map<String, String> credentials) {
@@ -67,8 +64,10 @@ public class CustomizedAdminEndpoint {
                 resultHandler.handle(Future.failedFuture("Credentials not set in configuration."));
                 return;
             }
+
             final String requestUsername = authInfo.getString("username");
             final String requestPassword = StringUtils.chomp(authInfo.getString("password"));
+
             final String storedPassword = credentials.get(requestUsername);
             if (StringUtils.isNotBlank(requestPassword) && Objects.equals(storedPassword, requestPassword)) {
                 resultHandler.handle(Future.succeededFuture());
