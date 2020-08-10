@@ -326,7 +326,7 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().h(50).w(0).build());
+                .containsOnly(Banner.builder().h(50).w(-1).build());
     }
 
     @Test
