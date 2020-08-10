@@ -347,7 +347,7 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormat() {
+    public void makeHttpRequestsShouldModifyImpBannerWhenHeightPresentedInFormatAndInterstitialIsNotOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                         .banner(Banner.builder().w(0)
@@ -364,7 +364,7 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().h(250).w(0).build());
+                .containsOnly(Banner.builder().h(250).w(-1).build());
     }
 
     @Test
