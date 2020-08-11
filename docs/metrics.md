@@ -86,3 +86,5 @@ Following metrics are collected and submitted if account is configured with `det
 - `privacy.tcf.(v1,v2).vendorlist.(missing|ok|err)` - number of processed vendor lists of particular version
 - `privacy.usp.specified` - number of requests with a valid US Privacy string (CCPA)
 - `privacy.usp.opt-out` - number of requests that required privacy enforcement according to CCPA rules
+- `privacy.lmt` - number of requests that required privacy enforcement according to LMT flag
+- `privacy.coppa` - number of requests that required privacy enforcement according to COPPA rules
