@@ -333,7 +333,7 @@ public class AuctionRequestFactory {
 
     private String sanitizeIp(String ip, IpAddress.IP version) {
         final IpAddress ipAddress = ip != null ? ipAddressHelper.toIpAddress(ip) : null;
-        return ipAddress != null && ipAddress.getVersion() == version ? ip : null;
+        return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
     private IpAddress findIpFromRequest(HttpServerRequest request) {
