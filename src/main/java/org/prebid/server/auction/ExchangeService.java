@@ -575,21 +575,30 @@ public class ExchangeService {
             return Collections.emptyMap();
         }
 
-        final Map<String, ExtRequestPrebidSchainSchain> bidderToPrebidSchains = new HashMap<>();
+        final Map<String, List<ExtRequestPrebidSchainSchain>> bidderToPrebidSchains = new HashMap<>();
         for (ExtRequestPrebidSchain schain : schains) {
             final List<String> bidders = schain.getBidders();
             if (CollectionUtils.isNotEmpty(bidders)) {
                 for (String bidder : bidders) {
-                    if (bidderToPrebidSchains.containsKey(bidder)) {
-                        bidderToPrebidSchains.remove(bidder);
-                        logger.debug("Schain bidder {0} is rejected since it was defined more than once", bidder);
-                        continue;
-                    }
-                    bidderToPrebidSchains.put(bidder, schain.getSchain());
+                    bidderToPrebidSchains.computeIfAbsent(bidder, key -> new ArrayList<>()).add(schain.getSchain());
                 }
             }
         }
-        return bidderToPrebidSchains;
+
+        return bidderToPrebidSchains.entrySet().stream()
+                .filter(bidderToSchains -> hasSingleValue(bidderToSchains.getKey(), bidderToSchains.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, bidderToSchains -> bidderToSchains.getValue().get(0)));
+    }
+
+    /**
+     * Returns false if bidder has more than one schain.
+     */
+    private static boolean hasSingleValue(String bidder, List<ExtRequestPrebidSchainSchain> schains) {
+        if (schains.size() > 1) {
+            logger.debug("Schain bidder {0} is rejected since it was defined more than once", bidder);
+            return false;
+        }
+        return true;
     }
 
     /**
