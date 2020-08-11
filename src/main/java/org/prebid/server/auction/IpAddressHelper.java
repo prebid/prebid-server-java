@@ -3,20 +3,23 @@ package org.prebid.server.auction;
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IPAddressStringParameters;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.auction.model.IpAddress;
 
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class IpAddressHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(IpAddressHelper.class);
+
+    private static final IPAddressStringParameters IP_ADDRESS_VALIDATION_OPTIONS =
+            IPAddressString.DEFAULT_VALIDATION_OPTIONS.toBuilder()
+                    .allowSingleSegment(false)
+                    .allowEmpty(false)
+                    .toParams();
 
     private final IPAddress ipv6AlwaysMaskAddress;
     private final IPAddress ipv6AnonLeftMaskAddress;
@@ -32,15 +35,6 @@ public class IpAddressHelper {
                 .collect(Collectors.toList());
     }
 
-    public String maskIpv6(String ip) {
-        try {
-            return new IPAddressString(ip).toAddress().mask(ipv6AlwaysMaskAddress).toCanonicalString();
-        } catch (AddressStringException e) {
-            logger.debug("Exception occurred while masking IPv6 address: {0}", e.getMessage());
-            return null;
-        }
-    }
-
     public String anonymizeIpv6(String ip) {
         try {
             return new IPAddressString(ip).toAddress().mask(ipv6AnonLeftMaskAddress).toCanonicalString();
@@ -51,23 +45,31 @@ public class IpAddressHelper {
     }
 
     public IpAddress toIpAddress(String ip) {
-        final InetAddress inetAddress = inetAddressByIp(ip);
+        final IPAddress ipAddress = toIpAddressInternal(ip);
+
+        if (ipAddress == null) {
+            return null;
+        }
 
         final IpAddress.IP version;
-        if (inetAddress instanceof Inet4Address) {
+        if (ipAddress.isIPv4()) {
             version = IpAddress.IP.v4;
-        } else if (inetAddress instanceof Inet6Address) {
+        } else if (ipAddress.isIPv6()) {
             version = IpAddress.IP.v6;
         } else {
             return null;
         }
 
-        if (isIpPublic(inetAddress, ip, version)) {
-            final String sanitizedIp = version == IpAddress.IP.v6 ? maskIpv6(ip) : ip;
+        if (isIpPublic(ipAddress)) {
+            final String sanitizedIp = version == IpAddress.IP.v6 ? maskIpv6(ipAddress) : ip;
             return IpAddress.of(sanitizedIp, version);
         }
 
         return null;
+    }
+
+    private String maskIpv6(IPAddress ipAddress) {
+        return ipAddress.mask(ipv6AlwaysMaskAddress).toCanonicalString();
     }
 
     private static int validateIpv6AlwaysMaskBits(int ipv6AlwaysMaskBits) {
@@ -98,33 +100,18 @@ public class IpAddressHelper {
         }
     }
 
-    private static InetAddress inetAddressByIp(String ip) {
+    private static IPAddress toIpAddressInternal(String ip) {
         try {
-            return InetAddress.getByName(ip);
-        } catch (UnknownHostException e) {
+            return new IPAddressString(ip, IP_ADDRESS_VALIDATION_OPTIONS).toAddress();
+        } catch (AddressStringException e) {
             return null;
         }
     }
 
-    private boolean isIpPublic(InetAddress inetAddress, String ip, IpAddress.IP version) {
-        switch (version) {
-            case v4:
-                return inetAddress != null
-                        && !inetAddress.isSiteLocalAddress()
-                        && !inetAddress.isLinkLocalAddress()
-                        && !inetAddress.isLoopbackAddress();
-            case v6:
-                try {
-                    final IPAddress ipAddress = new IPAddressString(ip).toAddress();
-                    return ipv6LocalNetworkMaskAddresses.stream().noneMatch(network -> network.contains(ipAddress));
-                } catch (AddressStringException e) {
-                    logger.debug(
-                            "Exception occurred while checking IPv6 address belongs to a local network: {0}",
-                            e.getMessage());
-                    return false;
-                }
-            default:
-                return false;
-        }
+    private boolean isIpPublic(IPAddress ipAddress) {
+        return ipAddress != null
+                && !ipAddress.isLocal()
+                && !ipAddress.isLoopback()
+                && ipv6LocalNetworkMaskAddresses.stream().noneMatch(network -> network.contains(ipAddress));
     }
 }
