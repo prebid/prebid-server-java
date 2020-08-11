@@ -60,6 +60,7 @@ public class PrivacyEnforcementService {
     private final boolean useGeoLocation;
     private final BidderCatalog bidderCatalog;
     private final TcfDefinerService tcfDefinerService;
+    private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
     private final boolean ccpaEnforce;
 
@@ -67,12 +68,14 @@ public class PrivacyEnforcementService {
 
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
                                      TcfDefinerService tcfDefinerService,
+                                     IpAddressHelper ipAddressHelper,
                                      Metrics metrics,
                                      boolean useGeoLocation,
                                      boolean ccpaEnforce) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
+        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
         this.useGeoLocation = useGeoLocation;
         this.ccpaEnforce = ccpaEnforce;
@@ -111,10 +114,10 @@ public class PrivacyEnforcementService {
         final MetricName requestType = auctionContext.getRequestTypeMetric();
 
         return getBidderToEnforcementAction(device, biddersToApplyTcf, aliases, extUser, regs, accountConfig, timeout)
-                .map(bidderToEnforcement -> updatePrivacyMetrics(bidderToEnforcement, requestType, bidderToUser,
-                        extUser, device))
-                .map(bidderToEnforcement -> getBidderToPrivacyResult(bidderToEnforcement, biddersToApplyTcf,
-                        bidderToUser, device))
+                .map(bidderToEnforcement -> updatePrivacyMetrics(
+                        bidderToEnforcement, aliases, requestType, bidderToUser, extUser, device))
+                .map(bidderToEnforcement -> getBidderToPrivacyResult(
+                        bidderToEnforcement, biddersToApplyTcf, bidderToUser, device))
                 .map(gdprResult -> merge(ccpaResult, gdprResult));
     }
 
@@ -163,11 +166,11 @@ public class PrivacyEnforcementService {
         return null;
     }
 
-    private static Device maskCcpaDevice(Device device) {
+    private Device maskCcpaDevice(Device device) {
         return device != null
                 ? device.toBuilder()
                 .ip(maskIpv4(device.getIp()))
-                .ipv6(maskIpv6(device.getIpv6(), 1))
+                .ipv6(maskIpv6(device.getIpv6()))
                 .geo(maskGeoDefault(device.getGeo()))
                 .ifa(null)
                 .macsha1(null).macmd5(null)
@@ -210,11 +213,11 @@ public class PrivacyEnforcementService {
         return null;
     }
 
-    private static Device maskCoppaDevice(Device device) {
+    private Device maskCoppaDevice(Device device) {
         return device != null
                 ? device.toBuilder()
                 .ip(maskIpv4(device.getIp()))
-                .ipv6(maskIpv6(device.getIpv6(), 2))
+                .ipv6(maskIpv6(device.getIpv6()))
                 .geo(maskGeoForCoppa(device.getGeo()))
                 .ifa(null)
                 .macsha1(null).macmd5(null)
@@ -253,7 +256,7 @@ public class PrivacyEnforcementService {
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
 
-        final VendorIdResolver vendorIdResolver = VendorIdResolver.of(bidderCatalog, aliases);
+        final VendorIdResolver vendorIdResolver = VendorIdResolver.of(aliases);
 
         return tcfDefinerService.resultForBidderNames(
                 Collections.unmodifiableSet(bidders),
@@ -300,7 +303,11 @@ public class PrivacyEnforcementService {
 
     private Map<String, PrivacyEnforcementAction> updatePrivacyMetrics(
             Map<String, PrivacyEnforcementAction> bidderToEnforcement,
-            MetricName requestType, Map<String, User> bidderToUser, ExtUser extUser, Device device) {
+            BidderAliases aliases,
+            MetricName requestType,
+            Map<String, User> bidderToUser,
+            ExtUser extUser,
+            Device device) {
 
         // Metrics should represent real picture of the bidding process, so if bidder request is blocked
         // by privacy then no reason to increment another metrics, like geo masked, etc.
@@ -322,7 +329,12 @@ public class PrivacyEnforcementService {
 
             final boolean analyticsBlocked = !requestBlocked && enforcement.isBlockAnalyticsReport();
 
-            metrics.updateAuctionTcfMetrics(bidder, requestType, userIdRemoved, geoMasked, analyticsBlocked,
+            metrics.updateAuctionTcfMetrics(
+                    aliases.resolveBidder(bidder),
+                    requestType,
+                    userIdRemoved,
+                    geoMasked,
+                    analyticsBlocked,
                     requestBlocked);
         }
 
@@ -436,13 +448,13 @@ public class PrivacyEnforcementService {
     /**
      * Returns masked device accordingly for each flag.
      */
-    private static Device maskTcfDevice(Device device, boolean maskIp, boolean maskGeo, boolean maskInfo) {
+    private Device maskTcfDevice(Device device, boolean maskIp, boolean maskGeo, boolean maskInfo) {
         if (device != null) {
             final Device.DeviceBuilder deviceBuilder = device.toBuilder();
             if (maskIp) {
                 deviceBuilder
                         .ip(maskIpv4(device.getIp()))
-                        .ipv6(maskIpv6(device.getIpv6(), 1));
+                        .ipv6(maskIpv6(device.getIpv6()));
             }
 
             if (maskGeo) {
@@ -513,8 +525,8 @@ public class PrivacyEnforcementService {
     /**
      * Masks ip v6 address by replacing last number of groups.
      */
-    private static String maskIpv6(String ip, Integer groupsNumber) {
-        return ip != null && InetAddressUtils.isIPv6Address(ip) ? maskIp(ip, ":", groupsNumber) : ip;
+    private String maskIpv6(String ip) {
+        return ip != null && InetAddressUtils.isIPv6Address(ip) ? ipAddressHelper.anonymizeIpv6(ip) : ip;
     }
 
     /**
