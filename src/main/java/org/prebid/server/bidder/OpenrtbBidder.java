@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -122,8 +123,8 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * such as setting some value from extension to impression itself, for example:
      * <p>
      * return imp.toBuilder()
-     *           .id(impExt.getSpecialId)
-     *           .build();
+     * .id(impExt.getSpecialId)
+     * .build();
      * <p>
      * NOTE: It's not the only place to apply bidder-specific changes to impressions.
      * Additionally, there's an option to do these impressions' transformations later,
@@ -191,9 +192,9 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * <p>
      * final String placementId = impExts.get(0).getPlacementId();
      * final List<Imp> impsWithTagId = modifiedImps.stream()
-     *              .map(Imp::toBuilder)
-     *              .map(impBuilder -> impBuilder.tagid(placementId).build())
-     *              .collect(Collectors.toList());
+     * .map(Imp::toBuilder)
+     * .map(impBuilder -> impBuilder.tagid(placementId).build())
+     * .collect(Collectors.toList());
      * requestBuilder.imp(impsWithTagId);
      *
      * @param bidRequest     - original incoming bid request
@@ -229,7 +230,8 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), getBidCurrency()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                        getBidCurrency(bidRequest.getCur(), bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 
@@ -269,8 +271,18 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      *
      * @return - bid currency
      */
-    protected String getBidCurrency() {
-        return DEFAULT_BID_CURRENCY;
+    protected String getBidCurrency(List<String> requestCurrencies, String responseCurrency) {
+        final String result;
+
+        if (responseCurrency != null) {
+            result = responseCurrency;
+        } else if (CollectionUtils.isNotEmpty(requestCurrencies)) {
+            result = requestCurrencies.get(0);
+        } else {
+            result = DEFAULT_BID_CURRENCY;
+        }
+
+        return result;
     }
 
     @Override

@@ -41,16 +41,17 @@ import java.util.stream.Collectors;
  * AdgenerationBidder {@link Bidder} implementation.
  */
 public class AdgenerationBidder implements Bidder<Void> {
-    private static final TypeReference<ExtPrebid<?, ExtImpAdgeneration>> ADGENERATION_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdgeneration>>() {
-            };
+
     private static final String VERSION = "1.0.0";
     private static final String DEFAULT_REQUEST_CURRENCY = "JPY";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final MultiMap HEADERS = HttpUtil.headers();
     private static final Pattern REPLACE_VAST_XML_PATTERN = Pattern.compile("/\\r?\\n/g", Pattern.CASE_INSENSITIVE);
     private static final Pattern APPEND_CHILD_TO_BODY_PATTERN = Pattern.compile("</\\s?body>",
             Pattern.CASE_INSENSITIVE);
+
+    private static final TypeReference<ExtPrebid<?, ExtImpAdgeneration>> ADGENERATION_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpAdgeneration>>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -131,8 +132,8 @@ public class AdgenerationBidder implements Bidder<Void> {
                 .collect(Collectors.joining(","));
     }
 
-    private String getCurrency(BidRequest request) {
-        final List<String> currencies = request.getCur();
+    private String getCurrency(BidRequest bidRequest) {
+        final List<String> currencies = bidRequest.getCur();
         return CollectionUtils.isEmpty(currencies)
                 ? DEFAULT_REQUEST_CURRENCY
                 : currencies.contains(DEFAULT_REQUEST_CURRENCY) ? DEFAULT_REQUEST_CURRENCY : currencies.get(0);
@@ -164,7 +165,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                 return Result.emptyWithError(BidderError.badServerResponse("Results object in BidResponse is empty"));
             }
 
-            return resultWithBidderBids(bidRequest.getImp(), adgenerationResponse);
+            return resultWithBidderBids(bidRequest, adgenerationResponse);
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -178,15 +179,16 @@ public class AdgenerationBidder implements Bidder<Void> {
         }
     }
 
-    private Result<List<BidderBid>> resultWithBidderBids(List<Imp> imps, AdgenerationResponse adgenerationResponse) {
-        for (Imp imp : imps) {
+    private Result<List<BidderBid>> resultWithBidderBids(BidRequest bidRequest,
+                                                         AdgenerationResponse adgenerationResponse) {
+        for (Imp imp : bidRequest.getImp()) {
             final ExtImpAdgeneration extImpAdgeneration = parseAndValidateImpExt(imp);
 
-            final String locationid = adgenerationResponse.getLocationid();
-            if (extImpAdgeneration.getId().equals(locationid)) {
+            final String locationId = adgenerationResponse.getLocationid();
+            if (extImpAdgeneration.getId().equals(locationId)) {
                 final String adm = getAdm(adgenerationResponse, imp.getId());
                 final Bid updatedBid = Bid.builder()
-                        .id(locationid)
+                        .id(locationId)
                         .impid(imp.getId())
                         .adm(adm)
                         .price(adgenerationResponse.getCpm())
@@ -195,7 +197,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                         .crid(adgenerationResponse.getCreativeid())
                         .dealid(adgenerationResponse.getDealid())
                         .build();
-                final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, DEFAULT_BID_CURRENCY);
+                final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, getCurrency(bidRequest));
                 return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
             }
         }
