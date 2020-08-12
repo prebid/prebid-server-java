@@ -257,7 +257,7 @@ public class AdgenerationBidderTest extends VertxTest {
                         .h(100)
                         .adm(adm)
                         .build(),
-                BidType.banner, "USD");
+                BidType.banner, "JPY");
 
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
