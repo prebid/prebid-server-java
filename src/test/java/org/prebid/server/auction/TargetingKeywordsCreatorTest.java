@@ -456,6 +456,35 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
+    public void shouldTruncateKeysFromResolver() {
+        // given
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
+                .id("bid1")
+                .price(BigDecimal.ONE)
+                .build();
+
+        final TargetingKeywordsResolver resolver = mock(TargetingKeywordsResolver.class);
+        given(resolver.resolve(any(), anyString())).willReturn(singletonMap("key_longer_than_twenty", "value1"));
+
+        // when
+        final Map<String, String> keywords = TargetingKeywordsCreator.create(
+                ExtPriceGranularity.of(
+                        2,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))),
+                true,
+                true,
+                false,
+                20,
+                null,
+                null,
+                resolver)
+                .makeFor(bid, "bidder1", true, null, null, null);
+
+        // then
+        assertThat(keywords).contains(entry("key_longer_than_twen", "value1"));
+    }
+
+    @Test
     public void shouldIncludeKeywordsFromResolver() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()

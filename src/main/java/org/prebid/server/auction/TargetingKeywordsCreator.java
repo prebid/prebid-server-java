@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Used throughout Prebid to create targeting keys as keys which can be used in an ad server like DFP.
@@ -181,7 +182,7 @@ public class TargetingKeywordsCreator {
      * Creates map of keywords for the given {@link Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
-        return makeFor(
+        return truncateKeys(makeFor(
                 bid.getBidder(),
                 bid.getBidId(),
                 winningBid,
@@ -192,7 +193,7 @@ public class TargetingKeywordsCreator {
                 bid.getCacheId(),
                 null,
                 bid.getDealId(),
-                null);
+                null));
     }
 
     /**
@@ -214,13 +215,13 @@ public class TargetingKeywordsCreator {
                 winUrl);
 
         if (resolver == null) {
-            return keywords;
+            return truncateKeys(keywords);
         }
 
         final Map<String, String> augmentedKeywords = new HashMap<>(keywords);
         augmentedKeywords.putAll(resolver.resolve(bid, bidder));
 
-        return augmentedKeywords;
+        return truncateKeys(augmentedKeywords);
     }
 
     /**
@@ -240,7 +241,7 @@ public class TargetingKeywordsCreator {
             String winUrl) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
-                truncateAttrChars, EXCLUDED_BIDDER_KEYS);
+                EXCLUDED_BIDDER_KEYS);
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         keywordMap.put(HB_PB_KEY, roundedCpm);
@@ -294,6 +295,19 @@ public class TargetingKeywordsCreator {
                 : null;
     }
 
+    private Map<String, String> truncateKeys(Map<String, String> keyValues) {
+        return truncateAttrChars > 0
+                ? keyValues.entrySet().stream()
+                .collect(Collectors.toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue))
+                : keyValues;
+    }
+
+    private String truncateKey(String key) {
+        return key.length() > truncateAttrChars
+                ? key.substring(0, truncateAttrChars)
+                : key;
+    }
+
     /**
      * Helper for targeting keywords.
      * <p>
@@ -305,19 +319,17 @@ public class TargetingKeywordsCreator {
         private final boolean winningBid;
         private final boolean includeWinners;
         private final boolean includeBidderKeys;
-        private final int truncateAttrChars;
         private final Set<String> excludedBidderKeys;
 
         private final Map<String, String> keywords;
 
         KeywordMap(String bidder, boolean winningBid, boolean includeWinners, boolean includeBidderKeys,
-                   int truncateAttrChars, Set<String> excludedBidderKeys) {
+                   Set<String> excludedBidderKeys) {
             this.bidder = bidder;
             this.winningBid = winningBid;
             this.includeWinners = includeWinners;
             this.includeBidderKeys = includeBidderKeys;
             this.excludedBidderKeys = excludedBidderKeys;
-            this.truncateAttrChars = truncateAttrChars;
 
             this.keywords = new HashMap<>();
         }
@@ -329,19 +341,13 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(truncateKey(String.format("%s_%s", prefix, bidder)));
+                keys.add(String.format("%s_%s", prefix, bidder));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {
-                keys.add(truncateKey(prefix));
+                keys.add(prefix);
             }
             return keys;
-        }
-
-        private String truncateKey(String key) {
-            return truncateAttrChars > 0 && key.length() > truncateAttrChars
-                    ? key.substring(0, truncateAttrChars)
-                    : key;
         }
 
         private Map<String, String> asMap() {
