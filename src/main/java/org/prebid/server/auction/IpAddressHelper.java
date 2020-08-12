@@ -112,6 +112,8 @@ public class IpAddressHelper {
         return ipAddress != null
                 && !ipAddress.isLocal()
                 && !ipAddress.isLoopback()
+                && !ipAddress.isMulticast()
+                && !ipAddress.isMax()
                 && ipv6LocalNetworkMaskAddresses.stream().noneMatch(network -> network.contains(ipAddress));
     }
 }
