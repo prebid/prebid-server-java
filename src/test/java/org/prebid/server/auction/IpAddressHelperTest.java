@@ -82,8 +82,38 @@ public class IpAddressHelperTest {
     }
 
     @Test
+    public void toIpAddressShouldReturnNullIfIpIsV4AndMulticast() {
+        assertThat(ipAddressHelper.toIpAddress("224.0.0.0/4")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV4AndZero() {
+        assertThat(ipAddressHelper.toIpAddress("0.0.0.0")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV4AndMax() {
+        assertThat(ipAddressHelper.toIpAddress("255.255.255.255")).isNull();
+    }
+
+    @Test
     public void toIpAddressShouldReturnNullIfIpIsV6AndLocal() {
         assertThat(ipAddressHelper.toIpAddress("fc00:0000:0000:0000:0000:0000:0000:0001")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV6AndMulticast() {
+        assertThat(ipAddressHelper.toIpAddress("ff00::/64")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV6AndZero() {
+        assertThat(ipAddressHelper.toIpAddress("0000:0000:0000:0000:0000:0000:0000:0000")).isNull();
+    }
+
+    @Test
+    public void toIpAddressShouldReturnNullIfIpIsV6AndMax() {
+        assertThat(ipAddressHelper.toIpAddress("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")).isNull();
     }
 
     @Test
