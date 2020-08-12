@@ -41,4 +41,8 @@ public class ConsumableBidRequest {
     Boolean enableBotFiltering;
 
     Boolean parallel;
+
+    String usPrivacy;
+
+    ConsumableBidGdpr gdpr;
 }
