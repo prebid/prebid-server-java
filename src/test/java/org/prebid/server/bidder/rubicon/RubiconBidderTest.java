@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -14,6 +15,7 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Metric;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -140,6 +142,49 @@ public class RubiconBidderTest extends VertxTest {
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "prebid-server/1.0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFilterImpressionsWithInvalidTypes() {
+        // given
+        final Imp imp1 = givenImp(builder -> builder.video(Video.builder().build()));
+        final Imp imp2 = givenImp(builder -> builder.id("2").xNative(Native.builder().build()));
+        final Imp imp3 = givenImp(builder -> builder.id("3").audio(Audio.builder().build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2, imp3)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(
+                        BidderError.of("Impression with id 2 rejected with invalid type `xNative`."
+                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+                        BidderError.of("Impression with id 3 rejected with invalid type `audio`."
+                                + " Allowed types are banner and video.", BidderError.Type.bad_input));
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFilterAllImpressionsAndReturnErrorMeessagesWithoutRequests() {
+        // given
+        final Imp imp1 = givenImp(builder -> builder.id("1").xNative(Native.builder().build()));
+        final Imp imp2 = givenImp(builder -> builder.id("2").audio(Audio.builder().build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(3)
+                .containsOnly(
+                        BidderError.of("Impression with id 1 rejected with invalid type `xNative`."
+                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+                        BidderError.of("Impression with id 2 rejected with invalid type `audio`."
+                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+                        BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
+                                BidderError.Type.bad_input));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -1426,6 +1471,7 @@ public class RubiconBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(builder -> builder.video(Video.builder().build())),
                         Imp.builder()
+                                .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
