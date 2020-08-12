@@ -194,9 +194,9 @@ where tcf_config column is json with next format
 {
   "enabled": true,
    "integration-enabled": {
-      "video": true
-      "web": true
-      "app": true
+      "video": true,
+      "web": true,
+      "app": true,
       "amp": true
    }
   "purpose-one-treatment-interpretation": "ignore"

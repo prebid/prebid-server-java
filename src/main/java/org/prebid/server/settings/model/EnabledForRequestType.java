@@ -26,16 +26,17 @@ public class EnabledForRequestType {
         if (requestType == null) {
             return null;
         }
-        if (MetricName.openrtb2web.equals(requestType)) {
-            return web;
-        } else if (MetricName.amp.equals(requestType)) {
-            return amp;
-        } else if (MetricName.openrtb2app.equals(requestType)) {
-            return app;
-        } else if (MetricName.video.equals(requestType)) {
-            return video;
-        } else {
-            return null;
+        switch (requestType) {
+            case openrtb2web:
+                return web;
+            case openrtb2app:
+                return app;
+            case amp:
+                return amp;
+            case video:
+                return video;
+            default:
+                return null;
         }
     }
 }
