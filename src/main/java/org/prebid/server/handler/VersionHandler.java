@@ -38,7 +38,18 @@ public class VersionHandler implements Handler<RoutingContext> {
             logger.error("Was not able to read revision file {0}. Reason: {1}", revisionFilePath, e.getMessage());
             revision = Revision.of(NOT_SET, NOT_SET);
         }
-        return new VersionHandler(revision, mapper);
+        return new VersionHandler(createRevisionResponseBody(revision, mapper));
+    }
+
+    private static String createRevisionResponseBody(Revision revision, JacksonMapper mapper) {
+        try {
+            return mapper.mapper().writeValueAsString(RevisionResponse.of(
+                    revision.commitHash != null ? revision.commitHash : NOT_SET,
+                    revision.pbsVersion != null ? revision.pbsVersion : NOT_SET));
+        } catch (JsonProcessingException e) {
+            logger.error("/version Critical error when trying to marshal revision response: %s", e.getMessage());
+            return null;
+        }
     }
 
     /**
