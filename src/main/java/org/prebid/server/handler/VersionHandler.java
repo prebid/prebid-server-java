@@ -21,9 +21,9 @@ public class VersionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionHandler.class);
 
-    private static final String DEFAULT_REVISION_VALUE = "not-set";
+    private static final String NOT_SET = "not-set";
 
-    private Revision revision;
+    private final Revision revision;
     private final JacksonMapper mapper;
 
     private VersionHandler(Revision revision, JacksonMapper mapper) {
@@ -37,9 +37,9 @@ public class VersionHandler implements Handler<RoutingContext> {
             revision = mapper.mapper().readValue(ResourceUtil.readFromClasspath(revisionFilePath), Revision.class);
         } catch (IllegalArgumentException | IOException e) {
             logger.warn("Was not able to read revision file {0}. Reason: {1}", revisionFilePath, e.getMessage());
-            revision = Revision.of(DEFAULT_REVISION_VALUE);
+            revision = Revision.of(NOT_SET, NOT_SET);
         }
-        return new VersionHandler(revision.commitHash == null ? Revision.of(DEFAULT_REVISION_VALUE) : revision, mapper);
+        return new VersionHandler(revision, mapper);
     }
 
     /**
@@ -47,7 +47,9 @@ public class VersionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext context) {
-        final RevisionResponse revisionResponse = RevisionResponse.of(revision.commitHash);
+        final RevisionResponse revisionResponse = RevisionResponse.of(
+                revision.commitHash != null ? revision.commitHash : NOT_SET,
+                revision.pbsVersion != null ? revision.pbsVersion : NOT_SET);
         final String revisionResponseJson;
         try {
             revisionResponseJson = mapper.mapper().writeValueAsString(revisionResponse);
@@ -65,6 +67,9 @@ public class VersionHandler implements Handler<RoutingContext> {
 
         @JsonProperty("git.commit.id")
         String commitHash;
+
+        @JsonProperty("git.build.version")
+        String pbsVersion;
     }
 
     @AllArgsConstructor(staticName = "of")
@@ -72,5 +77,7 @@ public class VersionHandler implements Handler<RoutingContext> {
     private static class RevisionResponse {
 
         String revision;
+
+        String version;
     }
 }

@@ -19,7 +19,7 @@ admin-endpoints:
     enabled: false
     path: /version
     on-application-port: false
-    protected: true
+    protected: false
   currency-rates:
     enabled: false
     path: /currency-rates
