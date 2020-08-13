@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.kubient;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -8,6 +9,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -18,6 +21,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -36,6 +41,10 @@ public class KubientBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
+    private static final TypeReference<ExtPrebid<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpKubient>>() {
+            };
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -46,6 +55,21 @@ public class KubientBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<BidderError> errors = new ArrayList<>();
+
+        if (CollectionUtils.isEmpty(request.getImp())) {
+            errors.add(BidderError.badInput("No valid impressions in the bid request"));
+            return Result.of(Collections.emptyList(), errors);
+        }
+
+        for (Imp imp : request.getImp()) {
+            try {
+                parseAndValidateImpExt(imp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
         String body;
         try {
             body = mapper.encode(request);
@@ -62,7 +86,21 @@ public class KubientBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(request)
                         .build()),
-                Collections.emptyList());
+                errors);
+    }
+
+    private void parseAndValidateImpExt(Imp imp) {
+        final ExtImpKubient extImpKubient;
+        try {
+            extImpKubient = mapper.mapper().convertValue(imp.getExt(), KUBIENT_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        if (StringUtils.isBlank(extImpKubient.getZoneId())) {
+            throw new PreBidException("zoneid is empty");
+        }
     }
 
     @Override

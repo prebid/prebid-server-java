@@ -17,10 +17,12 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,11 +46,61 @@ public class KubientBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(emptyList())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfEmptyZoneId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKubient.of(null))))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("zoneid is empty"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKubient.of("zoneId"))))
                         .build()))
                 .id("request_id")
                 .build();
