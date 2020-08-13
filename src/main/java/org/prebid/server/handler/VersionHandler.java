@@ -9,6 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.ResourceUtil;
 
@@ -23,12 +24,10 @@ public class VersionHandler implements Handler<RoutingContext> {
 
     private static final String NOT_SET = "not-set";
 
-    private final Revision revision;
-    private final JacksonMapper mapper;
+    private final String revisionResponseBody;
 
-    private VersionHandler(Revision revision, JacksonMapper mapper) {
-        this.revision = revision;
-        this.mapper = mapper;
+    private VersionHandler(String revisionResponseBody) {
+        this.revisionResponseBody = revisionResponseBody;
     }
 
     public static VersionHandler create(String revisionFilePath, JacksonMapper mapper) {
@@ -36,7 +35,7 @@ public class VersionHandler implements Handler<RoutingContext> {
         try {
             revision = mapper.mapper().readValue(ResourceUtil.readFromClasspath(revisionFilePath), Revision.class);
         } catch (IllegalArgumentException | IOException e) {
-            logger.warn("Was not able to read revision file {0}. Reason: {1}", revisionFilePath, e.getMessage());
+            logger.error("Was not able to read revision file {0}. Reason: {1}", revisionFilePath, e.getMessage());
             revision = Revision.of(NOT_SET, NOT_SET);
         }
         return new VersionHandler(revision, mapper);
@@ -47,18 +46,11 @@ public class VersionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext context) {
-        final RevisionResponse revisionResponse = RevisionResponse.of(
-                revision.commitHash != null ? revision.commitHash : NOT_SET,
-                revision.pbsVersion != null ? revision.pbsVersion : NOT_SET);
-        final String revisionResponseJson;
-        try {
-            revisionResponseJson = mapper.mapper().writeValueAsString(revisionResponse);
-        } catch (JsonProcessingException e) {
-            logger.error("/version Critical error when trying to marshal revision response: %s", e.getMessage());
+        if (StringUtils.isNotBlank(revisionResponseBody)) {
+            context.response().end(revisionResponseBody);
+        } else {
             context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
-            return;
         }
-        context.response().end(revisionResponseJson);
     }
 
     @AllArgsConstructor(staticName = "of")
