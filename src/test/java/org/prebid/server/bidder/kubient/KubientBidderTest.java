@@ -76,6 +76,7 @@ public class KubientBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test

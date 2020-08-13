@@ -58,15 +58,14 @@ public class KubientBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         if (CollectionUtils.isEmpty(request.getImp())) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
+            return Result.emptyWithError(BidderError.badInput("No valid impressions in the bid request"));
         }
 
         for (Imp imp : request.getImp()) {
             try {
-                parseAndValidateImpExt(imp);
+                validateImpExt(imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -86,10 +85,10 @@ public class KubientBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(request)
                         .build()),
-                errors);
+                Collections.emptyList());
     }
 
-    private void parseAndValidateImpExt(Imp imp) {
+    private void validateImpExt(Imp imp) {
         final ExtImpKubient extImpKubient;
         try {
             extImpKubient = mapper.mapper().convertValue(imp.getExt(), KUBIENT_EXT_TYPE_REFERENCE)
