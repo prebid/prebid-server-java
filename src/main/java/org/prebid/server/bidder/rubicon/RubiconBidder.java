@@ -394,15 +394,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ObjectNode contextDataNode = context != null ? context.getData() : null;
             if (contextDataNode != null) {
                 inventoryNode.setAll(contextDataNode);
-
-                // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
-                // leading slash
-                final JsonNode adSlotNode = contextDataNode.get("adslot");
-                if (adSlotNode != null && adSlotNode.isTextual()) {
-                    final String adSlot = adSlotNode.textValue();
-                    final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-                    inventoryNode.put("dfp_ad_unit_code", adUnitCode);
-                }
+                updateWithAdSlot(inventoryNode, contextDataNode);
             }
 
             // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
@@ -423,6 +415,42 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return inventoryNode.size() > 0 ? inventoryNode : null;
+    }
+
+    private void updateWithAdSlot(ObjectNode inventoryNode, ObjectNode contextDataNode) {
+        // copy adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
+        final String adSlot = ObjectUtils.firstNonNull(
+                getAdSlotFromContextData(contextDataNode, "adslot"),
+                getAdSlotFromAdServer(contextDataNode),
+                getAdSlotFromContextData(contextDataNode, "pbadslot"));
+        if (adSlot != null) {
+            updateInventoryWithAdSlot(inventoryNode, adSlot);
+        }
+    }
+
+    public String getAdSlotFromContextData(JsonNode contextDataNode, String path) {
+        final JsonNode adSlotNode = contextDataNode.get(path);
+        return adSlotNode != null && adSlotNode.isTextual() ? adSlotNode.textValue() : null;
+    }
+
+    public String getAdSlotFromAdServer(JsonNode contextDataNode) {
+        final JsonNode adServerNode = contextDataNode.get("adserver");
+        final JsonNode adServerNameNode = adServerNode != null ? adServerNode.get("name") : null;
+        final String adServerName = adServerNameNode != null && adServerNameNode.isTextual()
+                ? adServerNameNode.textValue()
+                : null;
+        if (Objects.equals(adServerName, "gam")) {
+            final JsonNode adServerAdSlotNode = adServerNode.get("adslot");
+            return adServerAdSlotNode != null && adServerAdSlotNode.isTextual()
+                    ? adServerAdSlotNode.textValue()
+                    : null;
+        }
+        return null;
+    }
+
+    private void updateInventoryWithAdSlot(ObjectNode inventoryNode, String adSlot) {
+        final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+        inventoryNode.put("dfp_ad_unit_code", adUnitCode);
     }
 
     private ExtImpContext extImpContext(Imp imp) {
