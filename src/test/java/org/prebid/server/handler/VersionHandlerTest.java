@@ -37,11 +37,11 @@ public class VersionHandlerTest extends VertxTest {
         versionHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set")));
+        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set", "not-set")));
     }
 
     @Test
-    public void handleShouldRespondWithInternalServerErrorWhenPropertyIsNotInFile() throws JsonProcessingException {
+    public void handleShouldRespondWithNotSetWhenPropertyIsNotInFile() throws JsonProcessingException {
         // given
         versionHandler = VersionHandler.create("org/prebid/server/handler/version/empty.json", jacksonMapper);
         given(routingContext.response()).willReturn(httpResponse);
@@ -50,7 +50,7 @@ public class VersionHandlerTest extends VertxTest {
         versionHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set")));
+        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set", "not-set")));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class VersionHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(mapper.writeValueAsString(
-                RevisionResponse.of("4df3f6192d7938ccdaac04df783c46c7e8847d08")));
+                RevisionResponse.of("4df3f6192d7938ccdaac04df783c46c7e8847d08", "1.41.0")));
     }
 
     @AllArgsConstructor(staticName = "of")
@@ -72,5 +72,7 @@ public class VersionHandlerTest extends VertxTest {
     private static class RevisionResponse {
 
         String revision;
+
+        String version;
     }
 }
