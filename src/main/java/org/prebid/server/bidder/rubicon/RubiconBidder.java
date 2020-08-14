@@ -394,15 +394,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ObjectNode contextDataNode = context != null ? context.getData() : null;
             if (contextDataNode != null) {
                 inventoryNode.setAll(contextDataNode);
-
-                // copy OPENRTB.imp[].ext.context.data.adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without
-                // leading slash
-                final JsonNode adSlotNode = contextDataNode.get("adslot");
-                if (adSlotNode != null && adSlotNode.isTextual()) {
-                    final String adSlot = adSlotNode.textValue();
-                    final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-                    inventoryNode.put("dfp_ad_unit_code", adUnitCode);
-                }
+                updateWithAdSlot(inventoryNode, contextDataNode);
             }
 
             // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
@@ -423,6 +415,37 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return inventoryNode.size() > 0 ? inventoryNode : null;
+    }
+
+    private void updateWithAdSlot(ObjectNode inventoryNode, ObjectNode contextDataNode) {
+        // copy adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
+        final String adSlot = ObjectUtils.firstNonNull(
+                getTextValueFromNodeByPath(contextDataNode, "adslot"),
+                getAdSlotFromAdServer(contextDataNode),
+                getTextValueFromNodeByPath(contextDataNode, "pbadslot"));
+        if (adSlot != null) {
+            updateInventoryWithAdSlot(inventoryNode, adSlot);
+        }
+    }
+
+    private static String getTextValueFromNodeByPath(JsonNode node, String path) {
+        final JsonNode nodeByPath = node != null ? node.get(path) : null;
+        return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
+    }
+
+    private static String getAdSlotFromAdServer(JsonNode contextDataNode) {
+        final JsonNode adServerNode = contextDataNode.get("adserver");
+
+        final String adServerName = getTextValueFromNodeByPath(adServerNode, "name");
+        if (Objects.equals(adServerName, "gam")) {
+            return getTextValueFromNodeByPath(adServerNode, "adslot");
+        }
+        return null;
+    }
+
+    private static void updateInventoryWithAdSlot(ObjectNode inventoryNode, String adSlot) {
+        final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+        inventoryNode.put("dfp_ad_unit_code", adUnitCode);
     }
 
     private ExtImpContext extImpContext(Imp imp) {
@@ -712,19 +735,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private ExtSite makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
-        ExtSite extSite = null;
-        if (site != null) {
-            try {
-                extSite = mapper.mapper().convertValue(site.getExt(), ExtSite.class);
-            } catch (IllegalArgumentException e) {
-                throw new PreBidException(e.getMessage(), e.getCause());
-            }
-        }
+        final ExtSite extSite = site != null ? extSite(site) : null;
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
 
         return mapper.fillExtension(
                 ExtSite.of(siteExtAmp, null),
                 RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
+    }
+
+    private ExtSite extSite(Site site) {
+        try {
+            return mapper.mapper().convertValue(site.getExt(), ExtSite.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e.getCause());
+        }
     }
 
     private App makeApp(App app, ExtImpRubicon rubiconImpExt) {
