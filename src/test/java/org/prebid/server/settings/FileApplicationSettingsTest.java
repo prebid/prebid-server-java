@@ -98,7 +98,9 @@ public class FileApplicationSettingsTest {
                         + "},"
                         + "purpose-one-treatment-interpretation: access-allowed"
                         + "},"
-                        + "analyticsSamplingFactor : '1'"
+                        + "analyticsSamplingFactor : '1',"
+                        + "truncateTargetAttr: '20',"
+                        + "defaultIntegration: 'web'"
                         + "}"
                         + "]"));
 
@@ -131,8 +133,9 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
+                .truncateTargetAttr(20)
+                .defaultIntegration("web")
                 .build());
-
     }
 
     @Test
