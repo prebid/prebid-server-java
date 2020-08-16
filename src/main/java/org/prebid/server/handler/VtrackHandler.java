@@ -15,6 +15,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
+import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -35,6 +36,8 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(VtrackHandler.class);
 
     private static final String ACCOUNT_PARAMETER = "a";
+    private static final String INTEGRATION_PARAMETER = "int";
+
 
     private final long defaultTimeout;
     private final boolean allowUnknownBidder;
@@ -65,9 +68,11 @@ public class VtrackHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext context) {
         final String accountId;
         final List<PutObject> vtrackPuts;
+        final String integration;
         try {
             accountId = accountId(context);
             vtrackPuts = vtrackPuts(context);
+            integration = integration(context);
         } catch (IllegalArgumentException e) {
             respondWithBadRequest(context, e.getMessage());
             return;
@@ -76,7 +81,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
-                .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout));
+                .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, integration, timeout));
     }
 
     private static String accountId(RoutingContext context) {
@@ -113,6 +118,11 @@ public class VtrackHandler implements Handler<RoutingContext> {
         return putObjects;
     }
 
+    public static String integration(RoutingContext context) {
+        EventUtil.validateIntegration(context);
+        return context.request().getParam(INTEGRATION_PARAMETER);
+    }
+
     /**
      * Returns fallback {@link Account} if account not found or propagate error if fetching failed.
      */
@@ -123,8 +133,13 @@ public class VtrackHandler implements Handler<RoutingContext> {
         return Future.failedFuture(exception);
     }
 
-    private void handleAccountResult(AsyncResult<Account> asyncAccount, RoutingContext context,
-                                     List<PutObject> vtrackPuts, String accountId, Timeout timeout) {
+    private void handleAccountResult(AsyncResult<Account> asyncAccount,
+                                     RoutingContext context,
+                                     List<PutObject> vtrackPuts,
+                                     String accountId,
+                                     String integration,
+                                     Timeout timeout) {
+
         if (asyncAccount.failed()) {
             respondWithServerError(context, "Error occurred while fetching account", asyncAccount.cause());
         } else {
@@ -132,7 +147,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             final Set<String> biddersAllowingVastUpdate = Objects.equals(asyncAccount.result().getEventsEnabled(), true)
                     ? biddersAllowingVastUpdate(vtrackPuts)
                     : Collections.emptySet();
-            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout)
+            cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, integration, timeout)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
         }
     }

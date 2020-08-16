@@ -228,10 +228,7 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context, TimeoutResolver timeoutResolver) {
-        final boolean hasApp = bidRequest.getApp() != null;
-        if (hasApp) {
-            checkBlacklistedApp(bidRequest.getApp());
-        }
+        checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
         final HttpServerRequest request = context.request();
@@ -240,7 +237,7 @@ public class AuctionRequestFactory {
         final Device populatedDevice = populateDevice(device, request);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = hasApp ? null : populateSite(site, request);
+        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
 
         final User user = bidRequest.getUser();
         final User populatedUser = populateUser(user);
@@ -284,8 +281,10 @@ public class AuctionRequestFactory {
         return result;
     }
 
-    private void checkBlacklistedApp(App app) {
-        final String appId = app.getId();
+    private void checkBlacklistedApp(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final String appId = app != null ? app.getId() : null;
+
         if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
             throw new BlacklistedAppException(
                     String.format("Prebid-server does not process requests from App ID: %s", appId));
@@ -464,30 +463,31 @@ public class AuctionRequestFactory {
      * Returns updated {@link ExtRequest} if required or null otherwise.
      */
     private ExtRequest populateRequestExt(ExtRequest ext, List<Imp> imps) {
-        if (ext != null) {
-            final ExtRequestPrebid prebid = ext.getPrebid();
-
-            final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
-            final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
-
-            final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
-            final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
-
-            if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
-                final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                        ? prebid.toBuilder()
-                        : ExtRequestPrebid.builder();
-
-                return ExtRequest.of(prebidBuilder
-                        .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                                getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
-                        .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                                getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                        .cache(ObjectUtils.defaultIfNull(updatedCache,
-                                getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                        .build());
-            }
+        if (ext == null) {
+            return null;
         }
+
+        final ExtRequestPrebid prebid = ext.getPrebid();
+
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, getImpMediaTypes(imps));
+        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
+
+        if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                    ? prebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+
+            return ExtRequest.of(prebidBuilder
+                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .cache(ObjectUtils.defaultIfNull(updatedCache,
+                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                    .build());
+        }
+
         return null;
     }
 

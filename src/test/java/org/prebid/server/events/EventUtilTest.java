@@ -14,6 +14,7 @@ import org.mockito.junit.MockitoRule;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class EventUtilTest {
@@ -165,6 +166,48 @@ public class EventUtilTest {
     }
 
     @Test
+    public void validateIntegrationShouldFailWhenIntegrationHasInvalidSymbol() {
+        // given
+        given(httpRequest.getParam(eq("int"))).willReturn("invalid-_123*");
+
+        // when and then
+        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateIntegration(routingContext))
+                .withMessage("Integration 'int' query parameter is not valid: invalid-_123*");
+    }
+
+    @Test
+    public void validateIntegrationShouldFailWhenIntegrationIsTooLong() {
+        // given
+        given(httpRequest.getParam(eq("int"))).willReturn(
+                "11111111112222222222333333333344444444445555555555666666666677777");
+
+        // when and then
+        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateIntegration(routingContext))
+                .withMessage("Integration 'int' query parameter is longer 64 symbols: "
+                        + "11111111112222222222333333333344444444445555555555666666666677777");
+    }
+
+    @Test
+    public void validateIntegrationShouldSucceedForEmptyValue() {
+        // given
+        given(httpRequest.getParam(eq("int"))).willReturn("");
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateIntegration(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateIntegrationShouldSucceedForAlphaNumericUnderscoreAndDash() {
+        // given
+        given(httpRequest.getParam(eq("int"))).willReturn("int_-123");
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateIntegration(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     public void fromShouldReturnExpectedEventRequest() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
@@ -225,6 +268,7 @@ public class EventUtilTest {
                 .bidder("bidder")
                 .bidId("bidId")
                 .format(EventRequest.Format.blank)
+                .integration("pbjs")
                 .analytics(EventRequest.Analytics.enabled)
                 .timestamp(1000L)
                 .build();
@@ -234,7 +278,8 @@ public class EventUtilTest {
 
         // then
         assertThat(result)
-                .isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&x=1");
+                .isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&int=pbjs&x" +
+                        "=1");
     }
 
     @Test
@@ -252,7 +297,7 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder");
+        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&int=");
     }
 
     @Test
@@ -270,6 +315,6 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&bidder=bidder");
+        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&bidder=bidder&int=");
     }
 }
