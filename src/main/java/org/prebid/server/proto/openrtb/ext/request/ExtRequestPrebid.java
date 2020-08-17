@@ -99,4 +99,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.integration
      */
     String integration;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.channel
+     */
+    ExtRequestPrebidChannel channel;
 }

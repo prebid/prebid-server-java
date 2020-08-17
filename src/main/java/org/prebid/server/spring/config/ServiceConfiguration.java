@@ -394,13 +394,17 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             @Value("${auction.generate-bid-id}") boolean generateBidId,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
+            Clock clock,
             JacksonMapper mapper) {
 
-        if (truncateAttrChars < 0 || truncateAttrChars > 255) {
-            throw new IllegalArgumentException("settings.targeting.truncate-attr-chars must be between 0 and 255");
-        }
-        return new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor, generateBidId,
+        return new BidResponseCreator(
+                cacheService,
+                bidderCatalog,
+                eventsService,
+                storedRequestProcessor,
+                generateBidId,
                 truncateAttrChars,
+                clock,
                 mapper);
     }
 
