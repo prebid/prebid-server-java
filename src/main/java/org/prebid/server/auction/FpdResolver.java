@@ -9,13 +9,17 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.request.Targeting;
 import org.prebid.server.util.JsonMergeUtil;
 
 import java.util.ArrayList;
@@ -176,24 +180,69 @@ public class FpdResolver {
         return mapper.mapper().valueToTree(resolvedExtImp);
     }
 
-    public ExtRequest resolveBidRequestExt(ExtRequest extRequest, List<String> fpdBidders) {
-        if (CollectionUtils.isEmpty(fpdBidders)) {
+    public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
+        if (targeting == null) {
             return extRequest;
         }
 
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null ? extRequestPrebid.getData() : null;
-        final List<String> originBidders = extRequestPrebidData != null
-                ? extRequestPrebidData.getBidders()
-                : Collections.emptyList();
+        final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null
+                ? extRequestPrebid.getData()
+                : null;
 
-        final List<String> resolvedBidders = CollectionUtils.isNotEmpty(originBidders)
-                ? mergeBidders(fpdBidders, originBidders)
-                : fpdBidders;
+        final ExtRequestPrebidData resolvedExtRequestPrebidData = resolveExtRequestPrebidData(extRequestPrebidData,
+                targeting.getBidders());
+        final List<ExtRequestPrebidBidderConfig> resolvedBidderConfig = createAllowedAllBidderConfig(targeting);
 
-        return ExtRequest.of(extRequestPrebid != null
-                ? extRequestPrebid.toBuilder().data(ExtRequestPrebidData.of(resolvedBidders)).build()
-                : ExtRequestPrebid.builder().data(ExtRequestPrebidData.of(resolvedBidders)).build());
+        if (resolvedExtRequestPrebidData != null || resolvedBidderConfig != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = extRequestPrebid != null
+                    ? extRequestPrebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+            return ExtRequest.of(prebidBuilder
+                    .data(resolvedExtRequestPrebidData != null
+                            ? resolvedExtRequestPrebidData
+                            : extRequestPrebidData)
+                    .bidderconfig(resolvedBidderConfig).build());
+        }
+
+        return extRequest;
+    }
+
+    private ExtRequestPrebidData resolveExtRequestPrebidData(ExtRequestPrebidData data, List<String> fpdBidders) {
+        if (CollectionUtils.isEmpty(fpdBidders) && data == null) {
+            return null;
+        }
+        final List<String> originBidders = data != null ? data.getBidders() : Collections.emptyList();
+        return CollectionUtils.isEmpty(originBidders)
+                ? ExtRequestPrebidData.of(fpdBidders)
+                : ExtRequestPrebidData.of(mergeBidders(fpdBidders, originBidders));
+    }
+
+    private List<ExtRequestPrebidBidderConfig> createAllowedAllBidderConfig(Targeting targeting) {
+        final ObjectNode userNode = targeting.getUser();
+        final ObjectNode siteNode = targeting.getSite();
+        if (userNode == null && siteNode == null) {
+            return null;
+        }
+
+        final List<String> bidders = Collections.singletonList("*");
+        final User user;
+
+        try {
+            user = userNode != null ? mapper.mapper().treeToValue(userNode, User.class) : null;
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Failed to decode targeting.user: %s", e.getMessage()));
+        }
+
+        final Site site;
+        try {
+            site = siteNode != null ? mapper.mapper().treeToValue(siteNode, Site.class) : null;
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Failed to decode targeting.site: %s", e.getMessage()));
+        }
+
+        return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
+                ExtBidderConfig.of(ExtBidderConfigFpd.of(site, null, user))));
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {

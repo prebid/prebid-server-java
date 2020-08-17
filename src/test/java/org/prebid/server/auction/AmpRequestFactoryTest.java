@@ -596,30 +596,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithSiteUpdatedByFpdResolver() throws JsonProcessingException {
-        // given
-        given(httpRequest.getParam("targeting"))
-                .willReturn(mapper.writeValueAsString(Targeting.of(null, mapper.createObjectNode(), null)));
-
-        given(fpdResolver.resolveSite(any(), any())).willReturn(Site.builder().id("siteId").build());
-
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty())
-                        .site(Site.builder().build()),
-                Imp.builder().build());
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        verify(fpdResolver).resolveSite(any(), any());
-        assertThat(request)
-                .extracting(BidRequest::getSite)
-                .containsOnly(Site.builder().id("siteId").build());
-    }
-
-    @Test
     public void shouldReturnRequestWithOverriddenBannerFormatByOverwriteWHParamsRespectingThemOverWH() {
         // given
         given(httpRequest.getParam("w")).willReturn("10");
@@ -1095,30 +1071,6 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         assertThat(firstResult.getUser()).isEqualTo(expectedUser);
         assertThat(secondResult.getUser()).isEqualTo(expectedUser);
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithUserUpdatedByFpdResolver() throws JsonProcessingException {
-        // given
-        given(httpRequest.getParam("targeting"))
-                .willReturn(mapper.writeValueAsString(Targeting.of(null, null, mapper.createObjectNode())));
-
-        given(fpdResolver.resolveUser(any(), any())).willReturn(User.builder().id("userId").build());
-
-        givenBidRequest(
-                builder -> builder
-                        .ext(ExtRequest.empty())
-                        .user(User.builder().build()),
-                Imp.builder().build());
-
-        // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        verify(fpdResolver).resolveUser(any(), any());
-        assertThat(request)
-                .extracting(BidRequest::getUser)
-                .containsOnly(User.builder().id("userId").build());
     }
 
     @Test
