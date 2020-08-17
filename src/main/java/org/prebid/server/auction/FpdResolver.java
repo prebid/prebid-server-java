@@ -166,8 +166,12 @@ public class FpdResolver {
                 : targeting;
         final ExtImp resolvedExtImp = ExtImp.of(extImp != null ? extImp.getPrebid() : null,
                 extImpContext != null
-                        ? ExtImpContext.of(extImpContext.getKeywords(), extImpContext.getSearch(), resolvedData)
-                        : ExtImpContext.of(null, null, resolvedData));
+                        ? ExtImpContext.of(
+                        extImpContext.getKeywords(),
+                        extImpContext.getSearch(),
+                        extImpContext.getAdserver(),
+                        resolvedData)
+                        : ExtImpContext.of(null, null, null, resolvedData));
 
         return mapper.mapper().valueToTree(resolvedExtImp);
     }

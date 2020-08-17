@@ -8,7 +8,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -338,27 +337,24 @@ public class RubiconAdapter extends OpenrtbAdapter {
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
         final ExtUser extUser = user == null ? null : user.getExt();
-        final ExtUser rubiconUserExt = makeUserExt(rubiconParams, user, extUser);
+        final ExtUser rubiconUserExt = makeUserExt(rubiconParams, extUser);
         return rubiconUserExt != null
                 ? userBuilder.ext(rubiconUserExt).build()
                 : userBuilder.build();
     }
 
-    private ExtUser makeUserExt(RubiconParams rubiconParams, User user, ExtUser extUser) {
+    private ExtUser makeUserExt(RubiconParams rubiconParams, ExtUser extUser) {
         final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
         final JsonNode visitorNode = rubiconParams.getVisitor();
         final JsonNode visitor = !visitorNode.isNull() && visitorNode.size() != 0 ? visitorNode : null;
-        final String gender = user != null ? user.getGender() : null;
-        final Integer yob = user != null ? user.getYob() : null;
-        final Geo geo = user != null ? user.getGeo() : null;
-        final boolean makeRp = visitor != null || gender != null || yob != null || geo != null;
+        final boolean makeRp = visitor != null;
 
-        if (digiTrust != null || visitor != null || gender != null || yob != null || geo != null) {
+        if (digiTrust != null || visitor != null) {
             final ExtUser userExt = extUser != null
                     ? ExtUser.builder().consent(extUser.getConsent()).eids(extUser.getEids()).build()
                     : ExtUser.builder().build();
             final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
-                    .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
+                    .rp(makeRp ? RubiconUserExtRp.of(visitor) : null)
                     .build();
             return mapper.fillExtension(userExt, rubiconUserExt);
         }
