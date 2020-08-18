@@ -405,7 +405,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ObjectNode impExt = mapper.createObjectNode()
                 .put(bidder1Name, "ignored1")
                 .put(bidder2Name, "ignored2")
-                .putPOJO("prebid", doubleMap(bidder1Name, 1, bidder2Name, 2));
+                .putPOJO("prebid", doubleMap(bidder1Name, mapper.createObjectNode().put("somefield", "bidder1"),
+                        bidder2Name, mapper.createObjectNode().put("somefield", "bidder2")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(impExt, identity())), identity());
 
@@ -417,13 +418,15 @@ public class ExchangeServiceTest extends VertxTest {
         verify(httpBidderRequester).requestBids(same(bidder1), bidRequest1Captor.capture(), any(), anyBoolean());
         assertThat(bidRequest1Captor.getValue().getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().get("prebid"))
-                .containsOnly(mapper.createObjectNode().put("bidder", 1));
+                .containsOnly(mapper.createObjectNode().set("bidder",
+                        mapper.createObjectNode().put("somefield", "bidder1")));
 
         final ArgumentCaptor<BidRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), anyBoolean());
         assertThat(bidRequest2Captor.getValue().getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().get("prebid"))
-                .containsOnly(mapper.createObjectNode().put("bidder", 2));
+                .containsOnly(mapper.createObjectNode().set("bidder",
+                        mapper.createObjectNode().put("somefield", "bidder2")));
     }
 
     @Test

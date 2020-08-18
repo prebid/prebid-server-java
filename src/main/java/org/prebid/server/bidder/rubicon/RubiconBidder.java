@@ -448,18 +448,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
         // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
         final ObjectNode contextDataNode = context.getData();
-        final JsonNode dataAdSlotNode = contextDataNode != null ? contextDataNode.get(FPD_ADSLOT_FIELD) : null;
-        final String dataAdSlot = dataAdSlotNode != null && dataAdSlotNode.isTextual()
-                ? dataAdSlotNode.textValue()
-                : null;
 
-        final ExtImpContextAdserver contextAdserver = context.getAdserver();
-        final String adserverAdSlot =
-                contextAdserver != null && Objects.equals(contextAdserver.getName(), FPD_ADSERVER_NAME_GAM)
-                        ? contextAdserver.getAdslot()
-                        : null;
+        final String adSlot = ObjectUtils.firstNonNull(
+                getTextValueFromNodeByPath(contextDataNode, "adslot"),
+                getAdSlotFromAdServer(context),
+                getTextValueFromNodeByPath(contextDataNode, "pbadslot"));
 
-        final String adSlot = ObjectUtils.firstNonNull(adserverAdSlot, dataAdSlot);
         if (StringUtils.isNotBlank(adSlot)) {
             final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
             result.put(FPD_DFP_AD_UNIT_CODE_FIELD, adUnitCode);
@@ -507,35 +501,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
         result.set(arrayField, stringsToStringArray(existingArrayValues.toArray(new String[0])));
     }
 
-    private void updateWithAdSlot(ObjectNode inventoryNode, ObjectNode contextDataNode) {
-        // copy adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
-        final String adSlot = ObjectUtils.firstNonNull(
-                getTextValueFromNodeByPath(contextDataNode, "adslot"),
-                getAdSlotFromAdServer(contextDataNode),
-                getTextValueFromNodeByPath(contextDataNode, "pbadslot"));
-        if (adSlot != null) {
-            updateInventoryWithAdSlot(inventoryNode, adSlot);
-        }
-    }
-
     private static String getTextValueFromNodeByPath(JsonNode node, String path) {
         final JsonNode nodeByPath = node != null ? node.get(path) : null;
         return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
     }
 
-    private static String getAdSlotFromAdServer(JsonNode contextDataNode) {
-        final JsonNode adServerNode = contextDataNode.get("adserver");
-
-        final String adServerName = getTextValueFromNodeByPath(adServerNode, "name");
-        if (Objects.equals(adServerName, "gam")) {
-            return getTextValueFromNodeByPath(adServerNode, "adslot");
-        }
-        return null;
-    }
-
-    private static void updateInventoryWithAdSlot(ObjectNode inventoryNode, String adSlot) {
-        final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-        inventoryNode.put("dfp_ad_unit_code", adUnitCode);
+    private static String getAdSlotFromAdServer(ExtImpContext context) {
+        final ExtImpContextAdserver contextAdserver = context.getAdserver();
+        return contextAdserver != null && Objects.equals(contextAdserver.getName(), FPD_ADSERVER_NAME_GAM)
+                ? contextAdserver.getAdslot()
+                : null;
     }
 
     private ExtImpContext extImpContext(Imp imp) {
@@ -964,7 +939,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private Float cpmOverrideFromImp(Imp imp) {
         final JsonNode extImpPrebidNode = imp.getExt().get(PREBID_EXT);
         final ExtImpPrebid prebid = extImpPrebidNode != null ? extImpPrebid(extImpPrebidNode) : null;
-        final RubiconImpExtPrebidBidder bidder = prebid != null ? extImpPrebidBidder(prebid.getBidder()) : null;
+        final RubiconImpExtPrebidBidder bidder = prebid != null
+                ? extImpPrebidBidder(prebid.getBidder())
+                : null;
         final RubiconImpExtPrebidRubiconDebug debug = bidder != null ? bidder.getDebug() : null;
         return debug != null ? debug.getCpmoverride() : null;
     }
@@ -977,7 +954,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private RubiconImpExtPrebidBidder extImpPrebidBidder(JsonNode extImpPrebidBidder) {
+    private RubiconImpExtPrebidBidder extImpPrebidBidder(ObjectNode extImpPrebidBidder) {
         try {
             return mapper.mapper().treeToValue(extImpPrebidBidder, RubiconImpExtPrebidBidder.class);
         } catch (JsonProcessingException e) {

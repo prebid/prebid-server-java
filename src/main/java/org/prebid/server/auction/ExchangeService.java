@@ -683,7 +683,7 @@ public class ExchangeService {
     private JsonNode prepareImpExtPrebid(String bidder, JsonNode extImpPrebidNode) {
         if (extImpPrebidNode != null && extImpPrebidNode.hasNonNull(bidder)) {
             final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode).toBuilder()
-                    .bidder(extImpPrebidNode.get(bidder)) // leave appropriate bidder related data
+                    .bidder((ObjectNode) extImpPrebidNode.get(bidder)) // leave appropriate bidder related data
                     .build();
             return mapper.mapper().valueToTree(extImpPrebid);
         }
