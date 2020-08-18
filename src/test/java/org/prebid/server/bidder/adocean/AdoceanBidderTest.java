@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -89,55 +90,18 @@ public class AdoceanBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetReturnErrorIfRequestExists() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA."
-                                        + "IFoEUQQgAIQwgIwQABAEAAAAOIAACAIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAA"
-                                        + "AFAAECAAAgAAQARAEQAAAAAJAAIAAgAAAYQEAAAQmAgBC3ZAYzUw").build())
-                        .build())
-                .imp(asList(Imp.builder()
-                                .id("ao-test")
-                                .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
-                                        .id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                        "adoceanmyaozpniqismex")))).build(),
-                        Imp.builder()
-                                .id("ao-test")
-                                .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
-                                        .id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                        "adoceanmyaozpniqis")))).build()))
-                .test(1)
-
-                .build();
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Request already exists");
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetExpectedRequestUrl() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAAC"
-                                        + "AIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAgA"
-                                        + "AAYQEAAAQmAgBC3ZAYzUw").build())
+                                .consent("consent").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
-                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
-                                .id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                        "adoceanmyaozpniqismex")))).build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "masterId",
+                                        "slaveId")))).build()))
                 .test(1)
                 .build();
 
@@ -148,7 +112,8 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://myao.adocean.pl/_10000000/ad.json?aid=adoceanmyaozpniqismex:ao-test&gdpr=1&gdpr_consent=COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAACAIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAgAAAYQEAAAQmAgBC3ZAYzUw&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&pbsrv_v=1.0.0");
+                .containsOnly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.0.0&id=masterId&nc=1&nosecure=1"
+                        + "&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1");
     }
 
     @Test
@@ -157,17 +122,17 @@ public class AdoceanBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAAC"
-                                        + "AIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAg"
-                                        + "AAAYQEAAAQmAgBC3ZAYzUw").build())
+                                .consent("consent").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
                                 .id("banner_id").build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                        "adoceanmyaozpniqismex")))).build()))
+                                ExtImpAdocean.of("myao.adocean.pl",
+                                        "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex"))))
+                        .build()))
                 .test(1)
                 .device(Device.builder().ip("192.168.1.1").build())
                 .site(Site.builder().page("http://www.example.com").build())
@@ -191,16 +156,14 @@ public class AdoceanBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
                         .ext(ExtUser.builder()
-                                .consent("COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAACA"
-                                        + "IAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAgAA"
-                                        + "AYQEAAAQmAgBC3ZAYzUw").build())
+                                .consent("consent").build())
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
-                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
-                                .id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                        "adoceanmyaozpniqismex")))).build()))
+                                        "adoceanmyaozpniqismex"))))
+                        .build()))
                 .test(1)
                 .device(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").build())
                 .site(Site.builder().page("http://www.example.com").build())
@@ -283,9 +246,8 @@ public class AdoceanBidderTest extends VertxTest {
                         .id("impId")
                         .build()))
                 .build();
-
         final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(AdoceanResponseAdUnit.builder()
-                .id("adoceanmyaozpniqismex")
+                .id("ad")
                 .price("1")
                 .winUrl("https://win-url.com")
                 .statsUrl("https://stats-url.com")
@@ -315,25 +277,24 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final StringBuilder admBuilder = new StringBuilder();
-        admBuilder.append(" <script>")
-                .append(" +function() {")
-                .append(" var wu = \"https://win-url.com\";")
-                .append(" var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now());")
-                .append(" if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {")
-                .append(" (new Image(1,1)).src = wu")
-                .append(" }")
-                .append(" if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {")
-                .append(" (new Image(1,1)).src = su")
-                .append(" }")
-                .append(" }();")
-                .append(" </script> ")
-                .append(" <!-- code 1 --> ");
-        final String adm = admBuilder.toString();
+        final String adm = "<script>\n"
+                + "\t\t+function() {\n"
+                + "\t\t\tvar wu = \"https://win-url.com\";\n"
+                + "\t\t\tvar su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now());\n"
+                + "\n"
+                + "\t\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n"
+                + "\t\t\t\t(new Image(1,1)).src = wu\n"
+                + "\t\t\t}\n"
+                + "\n"
+                + "\t\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n"
+                + "\t\t\t\t(new Image(1,1)).src = su\n"
+                + "\t\t\t}\n"
+                + "\t\t}();\n"
+                + "\t</script> <!-- code 1 --> ";
 
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
-                        .id("adoceanmyaozpniqismex")
+                        .id("ad")
                         .impid("ao-test")
                         .adm(adm)
                         .price(BigDecimal.valueOf(1))
@@ -345,6 +306,76 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListOfBids() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("impId")
+                        .build()))
+                .build();
+        final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(AdoceanResponseAdUnit.builder()
+                        .id("ad")
+                        .price("1")
+                        .winUrl("https://win-url.com")
+                        .statsUrl("https://stats-url.com")
+                        .code(" <!-- code 1 --> ")
+                        .currency("EUR")
+                        .width("300")
+                        .height("250")
+                        .crid("0af345b42983cc4bc0")
+                        .error("true")
+                        .build(),
+                AdoceanResponseAdUnit.builder()
+                        .id("adoceanmyaozpniqis")
+                        .price("1")
+                        .winUrl("https://win-url.com")
+                        .statsUrl("https://stats-url.com")
+                        .code(" <!-- code 1 --> ")
+                        .currency("EUR")
+                        .width("300")
+                        .height("250")
+                        .crid("0af345b42983cc4bc0")
+                        .error("false")
+                        .build());
+
+        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+
+        // when
+        final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        final String adm = "<script>\n"
+                + "\t\t+function() {\n"
+                + "\t\t\tvar wu = \"https://win-url.com\";\n"
+                + "\t\t\tvar su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now());\n"
+                + "\n"
+                + "\t\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n"
+                + "\t\t\t\t(new Image(1,1)).src = wu\n"
+                + "\t\t\t}\n"
+                + "\n"
+                + "\t\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n"
+                + "\t\t\t\t(new Image(1,1)).src = su\n"
+                + "\t\t\t}\n"
+                + "\t\t}();\n"
+                + "\t</script> <!-- code 1 --> ";
+
+        final BidderBid expected = BidderBid.of(
+                Bid.builder()
+                        .id("ad")
+                        .impid("ao-test")
+                        .adm(adm)
+                        .price(BigDecimal.valueOf(1))
+                        .crid("0af345b42983cc4bc0")
+                        .w(300)
+                        .h(250)
+                        .build(),
+                BidType.banner, "EUR");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEqualTo(Collections.emptyList());
     }
 
     private static BidRequest givenBidRequest(
@@ -373,7 +404,8 @@ public class AdoceanBidderTest extends VertxTest {
         return HttpCall.success(
                 HttpRequest.<Void>builder()
                         .body(requestBody)
-                        .uri("https://myao.adocean.pl/_10000000/ad.json?aid=adoceanmyaozpniqismex%3Aao-test&gdpr=1&gdpr_consent=COwK6gaOwK6gaFmAAAENAPCAAAAAAAAAAAAAAAAAAAAA.IFoEUQQgAIQwgIwQABAEAAAAOIAACAIAAAAQAIAgEAACEAAAAAgAQBAAAAAAAGBAAgAAAAAAAFAAECAAAgAAQARAEQAAAAAJAAIAAgAAAYQEAAAQmAgBC3ZAYzUw&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&pbsrv_v=1.0.0")
+                        .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"
+                                + "&nc=1&nosecure=1&pbsrv_v=1.0.0")
                         .build(),
                 HttpResponse.of(200, null, responseBody), null);
     }

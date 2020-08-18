@@ -12,6 +12,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.message.BasicNameValuePair;
 import org.prebid.server.bidder.Bidder;
@@ -49,6 +50,20 @@ public class AdoceanBidder implements Bidder<Void> {
     private static final String VERSION = "1.0.0";
     private static final int MAX_URI_LENGTH = 8000;
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String MEASUREMENT_CODE = "<script>\n"
+            + "\t\t+function() {\n"
+            + "\t\t\tvar wu = \"%s\";\n"
+            + "\t\t\tvar su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now());\n"
+            + "\n"
+            + "\t\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n"
+            + "\t\t\t\t(new Image(1,1)).src = wu\n"
+            + "\t\t\t}\n"
+            + "\n"
+            + "\t\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n"
+            + "\t\t\t\t(new Image(1,1)).src = su\n"
+            + "\t\t\t}\n"
+            + "\t\t}();\n"
+            + "\t</script>";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -73,7 +88,11 @@ public class AdoceanBidder implements Bidder<Void> {
         final List<HttpRequest<Void>> httpRequests = new ArrayList<>();
         for (Imp imp : request.getImp()) {
             try {
-                httpRequests.add(createSingleRequest(httpRequests, request, imp, consentString));
+                final ExtImpAdocean extImpAdocean = parseImpExt(imp);
+                if (isRequest(httpRequests, extImpAdocean, imp.getId())) {
+                    continue;
+                }
+                httpRequests.add(createSingleRequest(request, imp, extImpAdocean, consentString));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 return Result.of(Collections.emptyList(), errors);
@@ -83,20 +102,13 @@ public class AdoceanBidder implements Bidder<Void> {
         return Result.of(httpRequests, errors);
     }
 
-    private HttpRequest<Void> createSingleRequest(List<HttpRequest<Void>> httpRequests, BidRequest request, Imp imp,
+    private HttpRequest<Void> createSingleRequest(BidRequest request, Imp imp, ExtImpAdocean extImpAdocean,
                                                   String consentString) {
-        final ExtImpAdocean extImpAdocean = parseImpExt(imp);
-
-        if (isRequestAdded(httpRequests, extImpAdocean, imp.getId())) {
-            throw new PreBidException("Request already exists");
-        }
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
                 .uri(buildUrl(imp.getId(), extImpAdocean, consentString, request.getTest(), request.getUser()))
-                .body(null)
                 .headers(getHeaders(request))
-                .payload(null)
                 .build();
     }
 
@@ -108,22 +120,27 @@ public class AdoceanBidder implements Bidder<Void> {
         }
     }
 
-    private boolean isRequestAdded(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean, String impid) {
-        for (final HttpRequest request : httpRequests) {
+    private boolean isRequest(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean, String impid) {
+        for (HttpRequest<Void> request : httpRequests) {
             List<NameValuePair> params = null;
+            URIBuilder uriBuilder = null;
             try {
-                params = URLEncodedUtils.parse(new URI(request.getUri()), StandardCharsets.UTF_8);
+                uriBuilder = new URIBuilder(request.getUri());
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
-            final String masterId = params != null ? params.stream()
+            final List<NameValuePair> queryParams = uriBuilder != null ? uriBuilder.getQueryParams() : null;
+
+            final String masterId = queryParams != null
+                    ? queryParams.stream()
                     .filter(param -> param.getName().equals("id"))
                     .findFirst()
                     .map(NameValuePair::getValue)
-                    .orElse(null) : null;
+                    .orElse(null)
+                    : null;
 
             if (masterId != null && masterId.equals(extImpAdocean.getMasterId())) {
-                final String newSlaveId = params.stream()
+                final String newSlaveId = queryParams.stream()
                         .filter(param -> param.getName().equals("aid"))
                         .map(param -> param.getValue().split(":")[0])
                         .filter(slaveId -> slaveId.equals(extImpAdocean.getSlaveId()))
@@ -133,13 +150,11 @@ public class AdoceanBidder implements Bidder<Void> {
                     continue;
                 }
 
-                params.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
-
                 final String url = HttpUtil.encodeUrl(String.valueOf(params));
                 if (url.length() < MAX_URI_LENGTH) {
-                    request.builder().uri(url);
                     return true;
                 }
+                queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
             }
         }
         return false;
@@ -148,29 +163,29 @@ public class AdoceanBidder implements Bidder<Void> {
     private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, Integer test, User user) {
         final String url = endpointUrl.replace("{{Host}}", extImpAdocean.getEmitterDomain());
         int randomizedPart = 10000000 + (int) (Math.random() * (99999999 - 10000000));
-        if (test == 1) {
+        if (test != null && test == 1) {
             randomizedPart = 10000000;
         }
 
-        final String updateUrl = String.format("%s%s%s%s", url, "/_", randomizedPart, "/ad.json");
-
-        final List<String> params = new ArrayList<>();
-        params.add("pbsrv_v=" + VERSION);
-        params.add("id=" + extImpAdocean.getMasterId());
-        params.add("nc=1");
-        params.add("nosecure=1");
-        params.add("aid=" + extImpAdocean.getSlaveId() + ":" + impid);
+        final String updateUrl = String.format("%s/_%s/ad.json", url, randomizedPart);
+        final URIBuilder uriBuilder = new URIBuilder()
+                .setPath(updateUrl)
+                .addParameter("pbsrv_v", VERSION)
+                .addParameter("id", extImpAdocean.getMasterId())
+                .addParameter("nc", "1")
+                .addParameter("nosecure", "1")
+                .addParameter("aid", extImpAdocean.getSlaveId() + ":" + impid);
 
         if (StringUtils.isNotBlank(consentString)) {
-            params.add("gdpr_consent=" + consentString);
-            params.add("gdpr=1");
-        }
-        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            params.add("hcuserid=" + user.getBuyeruid());
+            uriBuilder.addParameter("gdpr_consent", consentString);
+            uriBuilder.addParameter("gdpr", "1");
         }
 
-        final String urlParams = params.stream().sorted().collect(Collectors.joining("&"));
-        return String.format("%s?%s", updateUrl, urlParams);
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
+            uriBuilder.addParameter("hcuserid", user.getBuyeruid());
+        }
+
+        return uriBuilder.toString();
     }
 
     private static MultiMap getHeaders(BidRequest request) {
@@ -225,36 +240,35 @@ public class AdoceanBidder implements Bidder<Void> {
                     .badServerResponse("Failed to decode: No content to map due to end-of-input"));
         }
 
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = new ArrayList<>();
-        for (final AdoceanResponseAdUnit adoceanResponse : adoceanResponses) {
-            if (adoceanResponse.getError().equals("true")) {
-                continue;
-            }
+        final List<BidderBid> bidderBids = adoceanResponses.stream()
+                .filter(adoceanResponse -> !adoceanResponse.getError().equals("true"))
+                .filter(adoceanResponse -> auctionIds != null
+                        && StringUtils.isNotBlank(auctionIds.get(adoceanResponse.getId())))
+                .map(adoceanResponse -> BidderBid.of(createBid(auctionIds, adoceanResponse), BidType.banner,
+                        getBidCurrency(adoceanResponse)))
+                .collect(Collectors.toList());
 
-            if (auctionIds != null && StringUtils.isNotBlank(auctionIds.get(adoceanResponse.getId()))) {
-                final BigDecimal price = new BigDecimal(adoceanResponse.getPrice());
-                final Integer width = Integer.valueOf(adoceanResponse.getWidth());
-                final Integer height = Integer.valueOf(adoceanResponse.getHeight());
+        return Result.of(bidderBids, Collections.emptyList());
+    }
 
-                final Bid updatedBid = Bid.builder()
-                        .id(adoceanResponse.getId())
-                        .impid(auctionIds.get(adoceanResponse.getId()))
-                        .adm(getAdm(adoceanResponse))
-                        .price(price)
-                        .w(width)
-                        .h(height)
-                        .crid(adoceanResponse.getCrid())
-                        .build();
+    private static Bid createBid(Map<String, String> auctionIds, AdoceanResponseAdUnit adoceanResponse) {
+        final String adm = String.format(MEASUREMENT_CODE, adoceanResponse.getWinUrl(), adoceanResponse.getStatsUrl())
+                + HttpUtil.decodeUrl(adoceanResponse.getCode());
+        return Bid.builder()
+                .id(adoceanResponse.getId())
+                .impid(auctionIds.get(adoceanResponse.getId()))
+                .adm(adm)
+                .price(new BigDecimal(adoceanResponse.getPrice()))
+                .w(Integer.valueOf(adoceanResponse.getWidth()))
+                .h(Integer.valueOf(adoceanResponse.getHeight()))
+                .crid(adoceanResponse.getCrid())
+                .build();
+    }
 
-                final String bidCurrency = adoceanResponse.getCurrency() != null
-                        ? adoceanResponse.getCurrency()
-                        : DEFAULT_BID_CURRENCY;
-                final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, bidCurrency);
-                bidderBids.add(bidderBid);
-            }
-        }
-        return Result.of(bidderBids, errors);
+    private static String getBidCurrency(AdoceanResponseAdUnit adoceanResponse) {
+        return adoceanResponse.getCurrency() != null
+                ? adoceanResponse.getCurrency()
+                : DEFAULT_BID_CURRENCY;
     }
 
     private List<AdoceanResponseAdUnit> getAdoceanResponseAdUnitList(String responseBody) {
@@ -265,25 +279,6 @@ public class AdoceanBidder implements Bidder<Void> {
         } catch (IOException ex) {
             throw new PreBidException(ex.getMessage());
         }
-    }
-
-    private String getAdm(AdoceanResponseAdUnit adoceanResponse) {
-        final StringBuilder measurementCode = new StringBuilder();
-        measurementCode.append(" <script>")
-                .append(" +function() {")
-                .append(" var wu = \"%s\";")
-                .append(" var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now());")
-                .append(" if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {")
-                .append(" (new Image(1,1)).src = wu")
-                .append(" }")
-                .append(" if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {")
-                .append(" (new Image(1,1)).src = su")
-                .append(" }")
-                .append(" }();")
-                .append(" </script> ");
-
-        return String.format(measurementCode.toString(), adoceanResponse.getWinUrl(), adoceanResponse.getStatsUrl())
-                + HttpUtil.decodeUrl(adoceanResponse.getCode());
     }
 
     @Override
