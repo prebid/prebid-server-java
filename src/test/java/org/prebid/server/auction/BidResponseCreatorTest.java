@@ -1078,7 +1078,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(
                 BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
-
         given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong(), any()))
                 .willReturn("http://win-url");
 
@@ -1159,7 +1158,6 @@ public class BidResponseCreatorTest extends VertxTest {
         given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong(), anyString()))
                 .willReturn("http://win-url");
 
-
         // when
         final BidResponse bidResponse =
                 bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, false).result();
@@ -1186,7 +1184,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
-
 
         // when
         final BidResponse bidResponse =

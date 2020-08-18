@@ -277,9 +277,8 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result)
-                .isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&int=pbjs&x" +
-                        "=1");
+        assertThat(result).isEqualTo(
+                "http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1");
     }
 
     @Test

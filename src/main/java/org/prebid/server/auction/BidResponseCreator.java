@@ -389,7 +389,6 @@ public class BidResponseCreator {
                                                           Long auctionTimestamp,
                                                           String integration) {
 
-
         if (!cacheInfo.isDoCaching()) {
             return Future.succeededFuture(CacheServiceResult.of(null, null, toMapBidsWithEmptyCacheIds(bidsToCache)));
         }

@@ -38,7 +38,6 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static final String ACCOUNT_PARAMETER = "a";
     private static final String INTEGRATION_PARAMETER = "int";
 
-
     private final long defaultTimeout;
     private final boolean allowUnknownBidder;
     private final ApplicationSettings applicationSettings;
