@@ -1,0 +1,25 @@
+adapters:
+  adhese:
+    enabled: false
+    endpoint: https://ads-{{AccountId}}.adhese.com/json
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: info@adhese.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adhese
+      type: redirect
+      support-cors: false

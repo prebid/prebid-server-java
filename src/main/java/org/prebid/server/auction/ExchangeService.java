@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -43,6 +44,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -162,33 +164,42 @@ public class ExchangeService {
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, requestTypeMetric))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
-                        .map(bidderRequest -> requestBids(bidderRequest,
-                                auctionTimeout(timeout, cacheInfo.isDoCaching()), debugEnabled, aliases,
-                                bidAdjustments(requestExt), currencyRates(requestExt)))
+                        .map(bidderRequest -> requestBids(
+                                bidderRequest,
+                                auctionTimeout(timeout, cacheInfo.isDoCaching()),
+                                debugEnabled,
+                                aliases,
+                                bidAdjustments(requestExt),
+                                currencyRates(requestExt), usepbsrates(requestExt)))
                         .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
-                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
                 .map(bidderResponses ->
                         storedResponseProcessor.mergeWithBidderResponses(bidderResponses, storedResponse, imps))
-                .compose(bidderResponses ->
-                        bidResponseCreator.create(bidderResponses, context, targeting, cacheInfo, account,
-                                eventsAllowedByRequest(requestExt), auctionTimestamp(requestExt), debugEnabled,
-                                timeout))
-                .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(routingContext, uidsCookie, bidRequest, bidResponse,
-                                account));
+                .compose(bidderResponses -> bidResponseCreator.create(
+                        bidderResponses,
+                        context,
+                        targeting,
+                        cacheInfo,
+                        account,
+                        eventsAllowedByRequest(requestExt),
+                        auctionTimestamp(requestExt),
+                        debugEnabled,
+                        timeout))
+                .compose(bidResponse -> bidResponsePostProcessor.postProcess(
+                        routingContext, uidsCookie, bidRequest, bidResponse, account));
     }
 
     /**
      * Extracts aliases from {@link ExtRequest}.
      */
-    private static BidderAliases aliases(ExtRequest requestExt) {
+    private BidderAliases aliases(ExtRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
-        return BidderAliases.of(aliases, aliasgvlids);
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
     }
 
     /**
@@ -206,6 +217,15 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
         return currency != null ? currency.getRates() : null;
+    }
+
+    /**
+     * Extracts usepbsrates flag from {@link ExtRequest}.
+     */
+    private static Boolean usepbsrates(ExtRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestCurrency currency = prebid != null ? prebid.getCurrency() : null;
+        return currency != null ? currency.getUsepbsrates() : null;
     }
 
     /**
@@ -649,7 +669,8 @@ public class ExchangeService {
      * </ul>
      */
     private ObjectNode prepareImpExt(String bidder, ObjectNode impExt) {
-        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExt.get(PREBID_EXT), impExt.get(bidder)));
+        final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
+        final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
 
         final JsonNode contextNode = impExt.get(CONTEXT_EXT);
         if (contextNode != null && !contextNode.isNull()) {
@@ -657,6 +678,27 @@ public class ExchangeService {
         }
 
         return result;
+    }
+
+    private JsonNode prepareImpExtPrebid(String bidder, JsonNode extImpPrebidNode) {
+        if (extImpPrebidNode != null && extImpPrebidNode.hasNonNull(bidder)) {
+            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode).toBuilder()
+                    .bidder(extImpPrebidNode.get(bidder)) // leave appropriate bidder related data
+                    .build();
+            return mapper.mapper().valueToTree(extImpPrebid);
+        }
+        return extImpPrebidNode;
+    }
+
+    /**
+     * Returns {@link ExtImpPrebid} from imp.ext.prebid {@link JsonNode}.
+     */
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+        try {
+            return mapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding imp.ext.prebid: %s", e.getMessage()), e);
+        }
     }
 
     /**
@@ -787,7 +829,8 @@ public class ExchangeService {
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, Timeout timeout,
                                                boolean debugEnabled, BidderAliases aliases,
                                                Map<String, BigDecimal> bidAdjustments,
-                                               Map<String, Map<String, BigDecimal>> currencyConversionRates) {
+                                               Map<String, Map<String, BigDecimal>> currencyConversionRates,
+                                               Boolean usepbsrates) {
         final String bidderName = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
         final List<String> cur = bidderRequest.getBidRequest().getCur();
@@ -798,7 +841,7 @@ public class ExchangeService {
         return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout, debugEnabled)
                 .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, cur))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
-                        bidPriceAdjustmentFactor))
+                        bidPriceAdjustmentFactor, usepbsrates))
                 .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)));
     }
 
@@ -844,7 +887,8 @@ public class ExchangeService {
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
                                                Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                               String adServerCurrency, BigDecimal priceAdjustmentFactor) {
+                                               String adServerCurrency, BigDecimal priceAdjustmentFactor,
+                                               Boolean usepbsrates) {
         final List<BidderBid> bidderBids = bidderSeatBid.getBids();
         if (bidderBids.isEmpty()) {
             return bidderSeatBid;
@@ -859,7 +903,8 @@ public class ExchangeService {
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal finalPrice =
-                        currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency);
+                        currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency,
+                                usepbsrates);
 
                 final BigDecimal adjustedPrice = priceAdjustmentFactor != null
                         && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0
@@ -870,10 +915,10 @@ public class ExchangeService {
                     bid.setPrice(adjustedPrice);
                 }
                 updatedBidderBids.add(bidderBid);
-            } catch (PreBidException ex) {
+            } catch (PreBidException e) {
                 errors.add(BidderError.generic(
                         String.format("Unable to covert bid currency %s to desired ad server currency %s. %s",
-                                bidCurrency, adServerCurrency, ex.getMessage())));
+                                bidCurrency, adServerCurrency, e.getMessage())));
             }
         }
 
@@ -904,9 +949,11 @@ public class ExchangeService {
      * This method should always be invoked after {@link ExchangeService#validBidderSeatBid(BidderSeatBid, List)}
      * to make sure {@link Bid#getPrice()} is not empty.
      */
-    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
+    private List<BidderResponse> updateMetricsFromResponses(
+            List<BidderResponse> bidderResponses, String publisherId, BidderAliases aliases) {
+
         for (final BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
+            final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
 
             metrics.updateAdapterResponseTime(bidder, publisherId, bidderResponse.getResponseTime());
 

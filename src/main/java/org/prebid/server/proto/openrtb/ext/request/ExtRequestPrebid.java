@@ -89,4 +89,14 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.bidders
      */
     ObjectNode bidders;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.amp
+     */
+    ExtRequestPrebidAmp amp;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.adservertargeting
+     */
+    List<ExtRequestPrebidAdservertargetingRule> adservertargeting;
 }
