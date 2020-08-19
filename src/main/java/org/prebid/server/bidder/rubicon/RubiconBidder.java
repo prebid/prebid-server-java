@@ -232,7 +232,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
         final List<String> bidders = data == null ? null : data.getBidders();
-        return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
+        return bidders == null || CollectionUtils.isNotEmpty(bidders); // this contains only current bidder or is null
     }
 
     private Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> parseRubiconImpExts(
@@ -374,9 +374,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app, boolean useFirstPartyData) {
         final ObjectNode inventory = rubiconImpExt.getInventory();
         final ObjectNode inventoryNode = inventory == null ? mapper.mapper().createObjectNode() : inventory;
-        final ExtImpContext context = extImpContext(imp);
 
         if (useFirstPartyData) {
+            final ExtImpContext context = extImpContext(imp);
+
             // copy OPENRTB.site.ext.data.* to every impression – XAPI.imp[].ext.rp.target.*
             final ExtSite siteExt = site != null ? site.getExt() : null;
             if (siteExt != null) {
@@ -393,6 +394,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ObjectNode contextDataNode = context != null ? context.getData() : null;
             if (contextDataNode != null) {
                 inventoryNode.setAll(contextDataNode);
+                copyAdslot(context, inventoryNode);
             }
 
             // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
@@ -410,11 +412,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
             if (StringUtils.isNotBlank(search)) {
                 inventoryNode.put("search", search);
             }
-        }
-
-        // ignore First Party Data restrictions for adslot
-        if (context != null) {
-            copyAdslot(context, inventoryNode);
         }
 
         return inventoryNode.size() > 0 ? inventoryNode : null;

@@ -1110,7 +1110,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.createObjectNode().put("dfp_ad_unit_code", "test"));
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
     }
 
     @Test
@@ -1140,7 +1140,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.createObjectNode().put("dfp_ad_unit_code", "test"));
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
     }
 
     @Test
@@ -1169,7 +1169,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(NullNode.getInstance());
+                .containsOnly(impExtContextDataNode);
     }
 
     @Test
@@ -1197,7 +1197,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.createObjectNode().put("dfp_ad_unit_code", "test"));
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
     }
 
     @Test
@@ -1224,7 +1224,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(NullNode.getInstance());
+                .containsOnly(impExtContextDataNode);
     }
 
     @Test
