@@ -232,7 +232,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
         final ExtRequestPrebidData data = prebid == null ? null : prebid.getData();
         final List<String> bidders = data == null ? null : data.getBidders();
-        return CollectionUtils.isNotEmpty(bidders); // this contains only current bidder
+        return bidders == null || CollectionUtils.isNotEmpty(bidders); // this contains only current bidder or is null
     }
 
     private Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> parseRubiconImpExts(
@@ -394,7 +394,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ObjectNode contextDataNode = context != null ? context.getData() : null;
             if (contextDataNode != null) {
                 inventoryNode.setAll(contextDataNode);
-                updateWithAdSlot(inventoryNode, contextDataNode);
+                copyAdslot(context, inventoryNode);
             }
 
             // copy OPENRTB.imp[].ext.context.keywords to XAPI.imp[].ext.rp.target.keywords
@@ -417,14 +417,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return inventoryNode.size() > 0 ? inventoryNode : null;
     }
 
-    private void updateWithAdSlot(ObjectNode inventoryNode, ObjectNode contextDataNode) {
-        // copy adslot to XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
+    private void copyAdslot(ExtImpContext context, ObjectNode result) {
+        // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
+        // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
+        final ObjectNode contextDataNode = context.getData();
+
         final String adSlot = ObjectUtils.firstNonNull(
                 getTextValueFromNodeByPath(contextDataNode, "adslot"),
                 getAdSlotFromAdServer(contextDataNode),
                 getTextValueFromNodeByPath(contextDataNode, "pbadslot"));
-        if (adSlot != null) {
-            updateInventoryWithAdSlot(inventoryNode, adSlot);
+
+        if (StringUtils.isNotBlank(adSlot)) {
+            final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
+            result.put("dfp_ad_unit_code", adUnitCode);
         }
     }
 
@@ -441,11 +446,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return getTextValueFromNodeByPath(adServerNode, "adslot");
         }
         return null;
-    }
-
-    private static void updateInventoryWithAdSlot(ObjectNode inventoryNode, String adSlot) {
-        final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
-        inventoryNode.put("dfp_ad_unit_code", adUnitCode);
     }
 
     private ExtImpContext extImpContext(Imp imp) {

@@ -1088,12 +1088,13 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCopyAndModifyImpExtContextDataFieldsToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value")
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode()
+                .put("property", "value")
                 .put("adslot", "/test");
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
 
@@ -1116,13 +1117,14 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCopyAdSlotFromAdServerToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
         final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
-        final ObjectNode adServer = mapper.createObjectNode().put("adslot", "/test");
-        adServer.put("name", "gam");
+        final ObjectNode adServer = mapper.createObjectNode()
+                .put("adslot", "/test")
+                .put("name", "gam");
         final ObjectNode impExtContextDataNode = mapper.createObjectNode().set("adserver", adServer);
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
 
@@ -1145,7 +1147,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotCopyAdSlotFromAdServerToRubiconImpExtRpTargetIfAdServerNameIsNotGam() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1174,7 +1176,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCopyAdSlotFromPbadslotImpExtContextDataFieldsToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1202,7 +1204,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotCopyAndModifyImpExtContextDataAdslotToRubiconImpExtRpTargetDfpAdUnitCode() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
