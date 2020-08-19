@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: https://ad.as.amanad.adtdp.com/v1/bid/4
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
