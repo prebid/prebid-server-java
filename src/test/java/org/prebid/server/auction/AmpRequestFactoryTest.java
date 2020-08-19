@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -28,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
@@ -36,7 +38,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -77,6 +81,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(routingContext.request()).willReturn(httpRequest);
 
         factory = new AmpRequestFactory(
@@ -1201,6 +1206,66 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getDebug)
                 .containsOnly(1);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldReturnBidRequestWithCreatedExtPrebidAmpData() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("queryParam1", "value1")
+                .add("queryParam2", "value2"));
+
+        givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(null)),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        final Map<String, String> expectedAmpData = new HashMap<>();
+        expectedAmpData.put("queryParam1", "value1");
+        expectedAmpData.put("queryParam2", "value2");
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAmp)
+                .extracting(ExtRequestPrebidAmp::getData)
+                .containsOnly(expectedAmpData);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldReturnBidRequestWithUpdatedExtPrebidAmpData() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("queryParam1", "value1")
+                .add("queryParam2", "value2"));
+
+        final Map<String, String> existingAmpData = new HashMap<>();
+        existingAmpData.put("queryParam2", "value2InRequest");
+        existingAmpData.put("queryParam3", "value3");
+        givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .amp(ExtRequestPrebidAmp.of(existingAmpData))
+                        .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        final Map<String, String> expectedAmpData = new HashMap<>();
+        expectedAmpData.put("queryParam1", "value1");
+        expectedAmpData.put("queryParam2", "value2");
+        expectedAmpData.put("queryParam3", "value3");
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getAmp)
+                .extracting(ExtRequestPrebidAmp::getData)
+                .containsOnly(expectedAmpData);
     }
 
     private void givenBidRequest(

@@ -21,6 +21,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
@@ -67,6 +68,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -136,6 +138,8 @@ public class BidResponseCreator {
                             null)))
                     .build());
         } else {
+            bidderResponses.forEach(BidResponseCreator::removeRedundantBids);
+
             final Set<Bid> winningBids = newOrEmptySet(targeting);
             final Set<Bid> winningBidsByBidder = newOrEmptySet(targeting);
 
@@ -186,6 +190,34 @@ public class BidResponseCreator {
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, bidRequest.getTmax(), null,
                 ExtBidResponsePrebid.of(auctionTimestamp));
+    }
+
+    private static void removeRedundantBids(BidderResponse bidderResponse) {
+        final List<BidderBid> responseBidderBids = bidderResponse.getSeatBid().getBids();
+        final Map<String, List<BidderBid>> impIdToBidderBid = responseBidderBids.stream()
+                .collect(Collectors.groupingBy(bidderBid -> bidderBid.getBid().getImpid()));
+
+        final List<BidderBid> mostValuableBids = impIdToBidderBid.values().stream()
+                .map(BidResponseCreator::mostValuableBid)
+                .collect(Collectors.toList());
+
+        responseBidderBids.retainAll(mostValuableBids);
+    }
+
+    private static BidderBid mostValuableBid(List<BidderBid> bidderBids) {
+        if (bidderBids.size() == 1) {
+            return bidderBids.get(0);
+        }
+
+        final List<BidderBid> dealBidderBids = bidderBids.stream()
+                .filter(bidderBid -> StringUtils.isNotBlank(bidderBid.getBid().getDealid()))
+                .collect(Collectors.toList());
+
+        List<BidderBid> processedBidderBids = dealBidderBids.isEmpty() ? bidderBids : dealBidderBids;
+
+        return processedBidderBids.stream()
+                .max(Comparator.comparing(bidderBid -> bidderBid.getBid().getPrice(), Comparator.naturalOrder()))
+                .orElse(bidderBids.get(0));
     }
 
     /**
@@ -663,15 +695,15 @@ public class BidResponseCreator {
                 bid.setAdm(null);
             }
 
-            final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp, account);
+            final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, isApp, bidRequest, account);
             final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
-                    keywordsCreatorByBidType(targeting, isApp, account);
+                    keywordsCreatorByBidType(targeting, isApp, bidRequest, account);
             final boolean isWinningBid = winningBids.contains(bid);
             final String winUrl = eventsEnabled && bidType != BidType.video
                     ? HttpUtil.encodeUrl(eventsService.winUrlTargeting(bidder, account.getId(), auctionTimestamp))
                     : null;
             targetingKeywords = keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator)
-                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, cacheHost, cachePath, winUrl);
+                    .makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId, winUrl);
 
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
@@ -731,6 +763,9 @@ public class BidResponseCreator {
             final Integer type = img != null ? img.getType() : null;
             if (type != null) {
                 responseAsset.getImg().setType(type);
+            } else {
+                throw new PreBidException(String.format("Response has an Image asset with ID:%s present that doesn't "
+                        + "exist in the request", responseAsset.getId()));
             }
         }
         if (responseAsset.getData() != null) {
@@ -738,6 +773,9 @@ public class BidResponseCreator {
             final Integer type = data != null ? data.getType() : null;
             if (type != null) {
                 responseAsset.getData().setType(type);
+            } else {
+                throw new PreBidException(String.format("Response has a Data asset with ID:%s present that doesn't "
+                        + "exist in the request", responseAsset.getId()));
             }
         }
     }
@@ -754,13 +792,69 @@ public class BidResponseCreator {
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
      * instance if it is present.
      */
-    private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp, Account account) {
+    private TargetingKeywordsCreator keywordsCreator(
+            ExtRequestTargeting targeting, boolean isApp, BidRequest bidRequest, Account account) {
+
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
                 ? null
-                : TargetingKeywordsCreator.create(parsePriceGranularity(priceGranularityNode),
-                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp,
-                resolveTruncateAttrChars(targeting, account));
+                : createKeywordsCreator(targeting, isApp, priceGranularityNode, bidRequest, account);
+    }
+
+    /**
+     * Returns a map of {@link BidType} to correspondent {@link TargetingKeywordsCreator}
+     * extracted from {@link ExtRequestTargeting} if it exists.
+     */
+    private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
+                                                                            boolean isApp,
+                                                                            BidRequest bidRequest,
+                                                                            Account account) {
+
+        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
+
+        if (mediaTypePriceGranularity == null) {
+            return Collections.emptyMap();
+        }
+
+        final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
+        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
+
+        final ObjectNode banner = mediaTypePriceGranularity.getBanner();
+        final boolean isBannerNull = banner == null || banner.isNull();
+        if (!isBannerNull) {
+            result.put(BidType.banner, createKeywordsCreator(targeting, isApp, banner, bidRequest, account));
+        }
+
+        final ObjectNode video = mediaTypePriceGranularity.getVideo();
+        final boolean isVideoNull = video == null || video.isNull();
+        if (!isVideoNull) {
+            result.put(BidType.video, createKeywordsCreator(targeting, isApp, video, bidRequest, account));
+        }
+
+        final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
+        final boolean isNativeNull = xNative == null || xNative.isNull();
+        if (!isNativeNull) {
+            result.put(BidType.xNative, createKeywordsCreator(targeting, isApp, xNative, bidRequest, account));
+        }
+
+        return result;
+    }
+
+    private TargetingKeywordsCreator createKeywordsCreator(ExtRequestTargeting targeting,
+                                                           boolean isApp,
+                                                           JsonNode priceGranularity,
+                                                           BidRequest bidRequest,
+                                                           Account account) {
+
+        return TargetingKeywordsCreator.create(
+                parsePriceGranularity(priceGranularity),
+                targeting.getIncludewinners(),
+                targeting.getIncludebidderkeys(),
+                isApp,
+                resolveTruncateAttrChars(targeting, account),
+                cacheHost,
+                cachePath,
+                TargetingKeywordsResolver.create(bidRequest, mapper));
     }
 
     /**
@@ -775,45 +869,6 @@ public class BidResponseCreator {
 
     private static Integer truncateAttrCharsOrNull(Integer value) {
         return value != null && value >= 0 && value <= 255 ? value : null;
-    }
-
-    /**
-     * Returns a map of {@link BidType} to correspondent {@link TargetingKeywordsCreator}
-     * extracted from {@link ExtRequestTargeting} if it exists.
-     */
-    private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
-                                                                            boolean isApp, Account account) {
-        final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
-
-        if (mediaTypePriceGranularity == null) {
-            return Collections.emptyMap();
-        }
-
-        final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
-        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
-
-        final ObjectNode banner = mediaTypePriceGranularity.getBanner();
-        final boolean isBannerNull = banner == null || banner.isNull();
-        if (!isBannerNull) {
-            result.put(BidType.banner, TargetingKeywordsCreator.create(parsePriceGranularity(banner),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, resolvedTruncateAttrChars));
-        }
-
-        final ObjectNode video = mediaTypePriceGranularity.getVideo();
-        final boolean isVideoNull = video == null || video.isNull();
-        if (!isVideoNull) {
-            result.put(BidType.video, TargetingKeywordsCreator.create(parsePriceGranularity(video),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, resolvedTruncateAttrChars));
-        }
-
-        final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
-        final boolean isNativeNull = xNative == null || xNative.isNull();
-        if (!isNativeNull) {
-            result.put(BidType.xNative, TargetingKeywordsCreator.create(parsePriceGranularity(xNative),
-                    targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp, resolvedTruncateAttrChars));
-        }
-
-        return result;
     }
 
     /**

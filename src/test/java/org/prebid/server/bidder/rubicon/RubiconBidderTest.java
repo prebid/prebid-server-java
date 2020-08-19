@@ -39,6 +39,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconImpExtPrebidBidder;
+import org.prebid.server.bidder.rubicon.proto.RubiconImpExtPrebidRubiconDebug;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
@@ -53,7 +55,9 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -82,6 +86,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.math.BigDecimal.ONE;
+import static java.math.BigDecimal.TEN;
 import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -1108,6 +1113,92 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCopyAdSlotFromAdServerToRubiconImpExtRpTarget() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode adServer = mapper.createObjectNode().put("adslot", "/test");
+        adServer.put("name", "gam");
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().set("adserver", adServer);
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotCopyAdSlotFromAdServerToRubiconImpExtRpTargetIfAdServerNameIsNotGam() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode adServer = mapper.createObjectNode().put("adslot", "/test");
+        adServer.put("name", "otherName");
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().set("adserver", adServer);
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(impExtContextDataNode);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCopyAdSlotFromPbadslotImpExtContextDataFieldsToRubiconImpExtRpTarget() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExtContextDataNode = mapper.createObjectNode().put("property", "value")
+                .put("pbadslot", "/test");
+        impExt.set("context", mapper.valueToTree(ExtImpContext.of(null, null, impExtContextDataNode)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getTarget)
+                .containsOnly(impExtContextDataNode.put("dfp_ad_unit_code", "test"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotCopyAndModifyImpExtContextDataAdslotToRubiconImpExtRpTargetDfpAdUnitCode() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1575,7 +1666,7 @@ public class RubiconBidderTest extends VertxTest {
                 HttpResponse.of(204, null, null), null);
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result).isEqualTo(Result.of(Collections.emptyList(), Collections.emptyList()));
@@ -1587,7 +1678,7 @@ public class RubiconBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -1603,7 +1694,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidResponse(ONE));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1622,7 +1713,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidResponse(ONE));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1642,7 +1733,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidResponse(ONE));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1658,7 +1749,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidResponse(ONE));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1673,11 +1764,68 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidResponse(ZERO));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithOverriddenCpmFromRequest() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                givenBidResponse(TEN));
+
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("debug",
+                                mapper.createObjectNode().put("cpmoverride", 5.55)))))
+                .build());
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                identity(),
+                identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsOnly(BigDecimal.valueOf(5.55));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithOverriddenCpmFromImp() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                givenBidResponse(TEN));
+
+        final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidders(mapper.valueToTree(ExtPrebidBidders.of(
+                        mapper.createObjectNode().set("debug",
+                                mapper.createObjectNode().put("cpmoverride", 5.55))))) // will be ignored
+                .build());
+
+        final ExtImp extImp = ExtImp.of(ExtImpPrebid.builder()
+                .bidder(mapper.valueToTree(
+                        RubiconImpExtPrebidBidder.of(RubiconImpExtPrebidRubiconDebug.of(4.44f))))
+                .build(), null);
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(
+                builder -> builder.ext(extBidRequest),
+                builder -> builder.ext(mapper.valueToTree(extImp)),
+                identity()));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsOnly(BigDecimal.valueOf(4.44));
     }
 
     @Test
@@ -1692,7 +1840,7 @@ public class RubiconBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1712,7 +1860,7 @@ public class RubiconBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1734,7 +1882,7 @@ public class RubiconBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
         assertThat(result.getErrors()).isEmpty();
