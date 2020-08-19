@@ -59,21 +59,6 @@ public class NinthdecimalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No impression in the bid request"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()

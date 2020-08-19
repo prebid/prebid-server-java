@@ -55,12 +55,8 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
-        }
-
         final List<BidderError> errors = new ArrayList<>();
-        List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         try {
             final Map<ExtImpNinthdecimal, List<Imp>> impToExtImp = getImpToExtImp(request, errors);
             httpRequests.addAll(buildBidderRequests(request, impToExtImp));
@@ -153,9 +149,9 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
                                                                Map<ExtImpNinthdecimal, List<Imp>> impExtToListOfImps) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        for (Map.Entry<ExtImpNinthdecimal, List<Imp>> impExtAndListOfImo : impExtToListOfImps.entrySet()) {
-            final ExtImpNinthdecimal extImpNinthdecimal = impExtAndListOfImo.getKey();
-            final List<Imp> imps = impExtAndListOfImo.getValue();
+        for (Map.Entry<ExtImpNinthdecimal, List<Imp>> impExtAndListOfImp : impExtToListOfImps.entrySet()) {
+            final ExtImpNinthdecimal extImpNinthdecimal = impExtAndListOfImp.getKey();
+            final List<Imp> imps = impExtAndListOfImp.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpNinthdecimal, imps);
 
             final String body = mapper.encode(updatedBidRequest);
@@ -180,13 +176,6 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
     private static BidRequest makeBidRequest(BidRequest preBidRequest, ExtImpNinthdecimal extImpNinthdecimal,
                                              List<Imp> imps) {
         final BidRequest.BidRequestBuilder bidRequestBuilder = preBidRequest.toBuilder();
-
-        final List<Imp> modifiedImps = imps.stream()
-                .map(imp -> imp.toBuilder().tagid(extImpNinthdecimal.getPlacement()).build())
-                .collect(Collectors.toList());
-
-        bidRequestBuilder.imp(modifiedImps);
-
         final Site site = preBidRequest.getSite();
         if (site != null) {
             bidRequestBuilder.site(site.toBuilder().publisher(null).domain("").build());
@@ -196,7 +185,13 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
         if (app != null) {
             bidRequestBuilder.app(app.toBuilder().publisher(null).build());
         }
-        return bidRequestBuilder.build();
+        return bidRequestBuilder.imp(updateImps(imps, extImpNinthdecimal.getPlacement())).build();
+    }
+
+    private static List<Imp> updateImps(List<Imp> imps, String placement) {
+        return imps.stream()
+                .map(imp -> imp.toBuilder().tagid(placement).build())
+                .collect(Collectors.toList());
     }
 
     @Override
