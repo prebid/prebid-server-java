@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -14,6 +15,7 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.consumable.model.ConsumableBidGdpr;
 import org.prebid.server.bidder.consumable.model.ConsumableBidRequest;
 import org.prebid.server.bidder.consumable.model.ConsumableBidResponse;
 import org.prebid.server.bidder.consumable.model.ConsumableContents;
@@ -27,6 +29,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -225,6 +229,21 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectGdprParameters() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), ConsumableBidRequest.class))
+                .flatExtracting(ConsumableBidRequest::getGdpr)
+                .containsOnly(ConsumableBidGdpr.builder().applies(true).consent("consent").build());
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = HttpCall.success(null,
@@ -327,6 +346,9 @@ public class ConsumableBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                                         ExtImpConsumable.of(123, 234, 345, "unit"))))
                                 .build()))
+                .user(User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build())
                 .build();
     }
 
@@ -335,7 +357,11 @@ public class ConsumableBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                .imp(singletonList(givenImp(impCustomizer)))
+                .regs(Regs.of(null, ExtRegs.of(1, null)))
+                .user(User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build()))
                 .build();
     }
 
