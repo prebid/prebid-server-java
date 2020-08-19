@@ -50,6 +50,16 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
 - `<SERVICE>.remote-file-syncer.http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 
+## General settings
+- `host-id` - the  ID of node where prebid server deployed.
+- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
+- `admin.port` - the port to listen on administration requests.
+
+## Auction (Legacy)
+- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
+- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
+- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
+
 ## Auction (OpenRTB)
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
@@ -61,6 +71,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
+- `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
+- `auction.id-generator-type` - if generate-bid-id is on, then this defines how the ID should be generated. Currently onlye `uuid` is supported.
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
@@ -102,7 +114,7 @@ There are several typical keys:
 
 But feel free to add additional bidder's specific options.
 
-## Admin
+## Logger Level Modifier
 - `logger-level-modifier.enabled` - enable the `/admin` endpoint.
 
 ## Currency Converter
@@ -110,6 +122,39 @@ But feel free to add additional bidder's specific options.
 - `currency-converter.external-rates.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `currency-converter.external-rates.default-timeout-ms` - default operation timeout for fetching currency rates.
 - `currency-converter.external-rates.refresh-period-ms` - default refresh period for currency rates updates.
+
+## Admin Endpoints
+- `admin-endpoints.version.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.version.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.version.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.version.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.currency-rates.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.currency-rates.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.currency-rates.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.storedrequest.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.storedrequest.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.storedrequest.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.storedrequest.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.storedrequest-amp.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.storedrequest-amp.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.storedrequest-amp.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.storedrequest-amp.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.cache-invalidation.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.cache-invalidation.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.cache-invalidation.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.logger-level-modifier.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.logger-level-modifier.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.logger-level-modifier.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.logger-level-modifier.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
@@ -216,6 +261,9 @@ contain 'WHERE last_updated > ?' to fetch only the records that were updated sin
 - `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
 
+For targeting available next options:
+- `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).
+
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
 - `host-cookie.optout-cookie.value` - set the cookie value for optout checking.
@@ -254,6 +302,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
 - `gdpr.vendorlist.vN.http-default-timeout-ms` - default operation timeout for obtaining new vendor list.
+- `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
+- `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
 - `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
@@ -268,13 +318,3 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
-
-## Auction (Legacy)
-- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
-- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
-- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
-
-## General settings
-- `host-id` - the  ID of node where prebid server deployed.
-- `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
-- `admin.port` - the port to listen on administration requests.
