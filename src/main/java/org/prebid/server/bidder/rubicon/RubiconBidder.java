@@ -421,9 +421,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // copy OPENRTB.imp[].ext.context.data.adslot or imp[].ext.context.adserver.adslot to
         // XAPI.imp[].ext.rp.target.dfp_ad_unit_code without leading slash
         final ObjectNode contextDataNode = context.getData();
-        if (contextDataNode == null) {
-            return;
-        }
 
         final String adSlot = ObjectUtils.firstNonNull(
                 getTextValueFromNodeByPath(contextDataNode, "adslot"),
