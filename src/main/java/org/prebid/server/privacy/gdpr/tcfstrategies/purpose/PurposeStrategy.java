@@ -34,14 +34,32 @@ public abstract class PurposeStrategy {
 
     public abstract int getPurposeId();
 
+    /**
+     * This method is allow permission for purpose when account and server config was used.
+     */
     public abstract void allow(PrivacyEnforcementAction privacyEnforcementAction);
 
+    /**
+     * This method represents allowance of permission that purpose should provide after full enforcement
+     * (can downgrade to basic if GCL failed) despite of host company or account configuration.
+     */
+    public abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
+
     public Collection<VendorPermission> processTypePurposeStrategy(
-            TCString vendorConsent, Purpose purpose, Collection<VendorPermissionWithGvl> vendorPermissions) {
+            TCString vendorConsent, Purpose purpose, Collection<VendorPermissionWithGvl> vendorPermissions,
+            boolean wasDowngraded) {
 
         allowedByTypeStrategy(vendorConsent, purpose, vendorPermissions).stream()
                 .map(VendorPermission::getPrivacyEnforcementAction)
                 .forEach(this::allow);
+
+        final Collection<VendorPermission> naturalVendorPermission = wasDowngraded
+                ? allowedByBasicTypeStrategy(vendorConsent, true, vendorPermissions, Collections.emptyList())
+                : allowedByFullTypeStrategy(vendorConsent, true, vendorPermissions, Collections.emptyList());
+
+        naturalVendorPermission.stream()
+                .map(VendorPermission::getPrivacyEnforcementAction)
+                .forEach(this::allowNaturally);
 
         return vendorPermissions.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)

@@ -11,6 +11,7 @@ import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,20 +19,18 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 
-@Configuration
-@ConditionalOnProperty(prefix = "geolocation", name = "enabled", havingValue = "true")
 public class GeoLocationConfiguration {
 
-    @Bean
-    @ConfigurationProperties(prefix = "geolocation.circuit-breaker")
-    @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "true")
-    CircuitBreakerProperties geolocationCircuitBreakerProperties() {
-        return new CircuitBreakerProperties();
-    }
-
     @Configuration
-    @ConditionalOnProperty(prefix = "geolocation", name = "type", havingValue = "maxmind")
+    @ConditionalOnExpression("${geolocation.enabled} == true and '${geolocation.type}' == 'maxmind'")
     static class MaxMindGeoLocationConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "true")
+        @ConfigurationProperties(prefix = "geolocation.circuit-breaker")
+        CircuitBreakerProperties maxMindCircuitBreakerProperties() {
+            return new CircuitBreakerProperties();
+        }
 
         @Bean
         @ConfigurationProperties(prefix = "geolocation.maxmind.remote-file-syncer")
@@ -39,9 +38,6 @@ public class GeoLocationConfiguration {
             return new RemoteFileSyncerProperties();
         }
 
-        /**
-         * Default geolocation service implementation.
-         */
         @Bean
         @ConditionalOnProperty(prefix = "geolocation.circuit-breaker", name = "enabled", havingValue = "false",
                 matchIfMissing = true)
@@ -57,7 +53,7 @@ public class GeoLocationConfiguration {
                 Vertx vertx,
                 Metrics metrics,
                 RemoteFileSyncerProperties fileSyncerProperties,
-                @Qualifier("geolocationCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
+                @Qualifier("maxMindCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
                 Clock clock) {
 
             return new CircuitBreakerSecuredGeoLocationService(vertx,

@@ -36,6 +36,7 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -234,7 +235,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody()).willReturn(
                 givenRequestBody(CookieSyncRequest.of(emptyList(), null, null, null, null, null, "account")));
 
-        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder().enabled(true).build();
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true)).build();
         final Account account = Account.builder().gdpr(accountGdprConfig).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -569,7 +571,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(true, null, null,
-                        null, null, 2, true, false));
+                        null, null, 2, true, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -601,7 +603,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(true, null, null,
-                        null, null, 2, true, false));
+                        null, null, 2, true, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -1092,7 +1094,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void handleShouldRespondWithNoCookieWhenCcpaIsEnforced() throws IOException {
+    public void handleShouldRespondWithNoCookieWhenBothCcpaAndGdprRejectBidders() throws IOException {
         // given
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
                 Uids.builder().uids(emptyMap()).build(), jacksonMapper));
@@ -1109,11 +1111,14 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(BidderInfo.create(true, null, null,
-                null, null, 2, true, false));
+                null, null, 2, true, true, false));
         given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(BidderInfo.create(true, null, null,
-                null, null, 2, true, false));
+                null, null, 2, true, false, false));
 
-        given(privacyEnforcementService.isCcpaEnforced(any())).willReturn(true);
+        given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(emptySet());
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -1123,7 +1128,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         assertThat(cookieSyncResponse.getStatus()).isEqualTo("no_cookie");
         assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2)
                 .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
-                .containsOnly(tuple(APPNEXUS, "Rejected by CCPA"), tuple(RUBICON, "Rejected by CCPA"));
+                .containsOnly(tuple(APPNEXUS, "Rejected by TCF"), tuple(RUBICON, "Rejected by CCPA"));
     }
 
     private void givenTcfServiceReturningVendorIdResult(Set<Integer> vendorIds) {
