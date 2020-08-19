@@ -51,7 +51,7 @@ public class SharethroughTest extends IntegrationTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("Android Chrome/60"))
-                .withHeader("X-Forwarded-For", equalTo("127.0.0.1"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("Origin", equalTo("http://www.example.com"))
                 .withHeader("Referer", equalTo("http://www.example.com"))
                 .withRequestBody(equalTo(jsonFrom("openrtb2/sharethrough/test-sharethrough-request.json")

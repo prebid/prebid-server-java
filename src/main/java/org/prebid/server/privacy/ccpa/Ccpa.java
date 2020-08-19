@@ -30,7 +30,7 @@ public class Ccpa {
     public boolean isEnforced() {
         try {
             validateUsPrivacy(usPrivacy);
-        } catch (PreBidException ex) {
+        } catch (PreBidException e) {
             return false;
         }
 
