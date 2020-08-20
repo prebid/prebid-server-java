@@ -50,20 +50,10 @@ public class AdoceanBidder implements Bidder<Void> {
     private static final String VERSION = "1.0.0";
     private static final int MAX_URI_LENGTH = 8000;
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String MEASUREMENT_CODE = "<script>\n"
-            + "\t\t+function() {\n"
-            + "\t\t\tvar wu = \"%s\";\n"
-            + "\t\t\tvar su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now());\n"
-            + "\n"
-            + "\t\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n"
-            + "\t\t\t\t(new Image(1,1)).src = wu\n"
-            + "\t\t\t}\n"
-            + "\n"
-            + "\t\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n"
-            + "\t\t\t\t(new Image(1,1)).src = su\n"
-            + "\t\t\t}\n"
-            + "\t\t}();\n"
-            + "\t</script>";
+    private static final String MEASUREMENT_CODE = " <script> +function() { var wu = \"%s\";"
+            + " var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now()); if (wu && !(navigator.sendBeacon"
+            + " && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon"
+            + " && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script> ";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -84,22 +74,69 @@ public class AdoceanBidder implements Bidder<Void> {
         final String consent = extUser != null ? extUser.getConsent() : null;
         final String consentString = StringUtils.isNotBlank(consent) ? consent : "";
 
-        final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<Void>> httpRequests = new ArrayList<>();
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdocean extImpAdocean = parseImpExt(imp);
-                if (isRequest(httpRequests, extImpAdocean, imp.getId())) {
+                if (addRequestAndCheckIfDuplicates(httpRequests, extImpAdocean, imp.getId())) {
                     continue;
                 }
                 httpRequests.add(createSingleRequest(request, imp, extImpAdocean, consentString));
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-                return Result.of(Collections.emptyList(), errors);
+                return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(httpRequests, errors);
+        return Result.of(httpRequests, Collections.emptyList());
+    }
+
+    private ExtImpAdocean parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ADOCEAN_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private boolean addRequestAndCheckIfDuplicates(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean,
+                                                   String impid) {
+        for (HttpRequest<Void> request : httpRequests) {
+            List<NameValuePair> params = null;
+            try {
+                URIBuilder uriBuilder = new URIBuilder(request.getUri());
+                final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
+
+                final String masterId = queryParams != null
+                        ? queryParams.stream()
+                        .filter(param -> param.getName().equals("id"))
+                        .findFirst()
+                        .map(NameValuePair::getValue)
+                        .orElse(null)
+                        : null;
+
+                if (masterId != null && masterId.equals(extImpAdocean.getMasterId())) {
+                    final String newSlaveId = queryParams.stream()
+                            .filter(param -> param.getName().equals("aid"))
+                            .map(param -> param.getValue().split(":")[0])
+                            .filter(slaveId -> slaveId.equals(extImpAdocean.getSlaveId()))
+                            .findFirst()
+                            .orElse(null);
+                    if (StringUtils.isNotBlank(newSlaveId)) {
+                        continue;
+                    }
+
+                    final String url = HttpUtil.encodeUrl(String.valueOf(params));
+                    if (url.length() < MAX_URI_LENGTH) {
+                        return true;
+                    }
+                    queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
+                }
+
+            } catch (URISyntaxException e) {
+                throw new PreBidException(e.getMessage());
+            }
+        }
+        return false;
     }
 
     private HttpRequest<Void> createSingleRequest(BidRequest request, Imp imp, ExtImpAdocean extImpAdocean,
@@ -112,61 +149,9 @@ public class AdoceanBidder implements Bidder<Void> {
                 .build();
     }
 
-    private ExtImpAdocean parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), ADOCEAN_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private boolean isRequest(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean, String impid) {
-        for (HttpRequest<Void> request : httpRequests) {
-            List<NameValuePair> params = null;
-            URIBuilder uriBuilder = null;
-            try {
-                uriBuilder = new URIBuilder(request.getUri());
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
-            final List<NameValuePair> queryParams = uriBuilder != null ? uriBuilder.getQueryParams() : null;
-
-            final String masterId = queryParams != null
-                    ? queryParams.stream()
-                    .filter(param -> param.getName().equals("id"))
-                    .findFirst()
-                    .map(NameValuePair::getValue)
-                    .orElse(null)
-                    : null;
-
-            if (masterId != null && masterId.equals(extImpAdocean.getMasterId())) {
-                final String newSlaveId = queryParams.stream()
-                        .filter(param -> param.getName().equals("aid"))
-                        .map(param -> param.getValue().split(":")[0])
-                        .filter(slaveId -> slaveId.equals(extImpAdocean.getSlaveId()))
-                        .findFirst()
-                        .orElse(null);
-                if (StringUtils.isNotBlank(newSlaveId)) {
-                    continue;
-                }
-
-                final String url = HttpUtil.encodeUrl(String.valueOf(params));
-                if (url.length() < MAX_URI_LENGTH) {
-                    return true;
-                }
-                queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
-            }
-        }
-        return false;
-    }
-
     private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, Integer test, User user) {
         final String url = endpointUrl.replace("{{Host}}", extImpAdocean.getEmitterDomain());
-        int randomizedPart = 10000000 + (int) (Math.random() * (99999999 - 10000000));
-        if (test != null && test == 1) {
-            randomizedPart = 10000000;
-        }
-
+        final int randomizedPart = test != null && test == 1 ? 10000000 : 10000000 + (int) (Math.random() * 89999999);
         final String updateUrl = String.format("%s/_%s/ad.json", url, randomizedPart);
         final URIBuilder uriBuilder = new URIBuilder()
                 .setPath(updateUrl)
@@ -232,6 +217,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 .filter(param -> param.getName().equals("aid"))
                 .map(param -> param.getValue().split(":"))
                 .collect(Collectors.toMap(name -> name[0], value -> value[1])) : null;
+
         List<AdoceanResponseAdUnit> adoceanResponses;
         try {
             adoceanResponses = getAdoceanResponseAdUnitList(httpCall.getResponse().getBody());

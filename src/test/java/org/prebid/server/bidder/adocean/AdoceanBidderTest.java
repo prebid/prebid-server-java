@@ -277,20 +277,7 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = "<script>\n"
-                + "\t\t+function() {\n"
-                + "\t\t\tvar wu = \"https://win-url.com\";\n"
-                + "\t\t\tvar su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now());\n"
-                + "\n"
-                + "\t\t\tif (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) {\n"
-                + "\t\t\t\t(new Image(1,1)).src = wu\n"
-                + "\t\t\t}\n"
-                + "\n"
-                + "\t\t\tif (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) {\n"
-                + "\t\t\t\t(new Image(1,1)).src = su\n"
-                + "\t\t\t}\n"
-                + "\t\t}();\n"
-                + "\t</script> <!-- code 1 --> ";
+        final String adm = " <script> +function() { var wu = \"https://win-url.com\"; var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now()); if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script>  <!-- code 1 --> ";
 
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
@@ -361,19 +348,6 @@ public class AdoceanBidderTest extends VertxTest {
                 + "\t\t\t}\n"
                 + "\t\t}();\n"
                 + "\t</script> <!-- code 1 --> ";
-
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .id("ad")
-                        .impid("ao-test")
-                        .adm(adm)
-                        .price(BigDecimal.valueOf(1))
-                        .crid("0af345b42983cc4bc0")
-                        .w(300)
-                        .h(250)
-                        .build(),
-                BidType.banner, "EUR");
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEqualTo(Collections.emptyList());
     }
