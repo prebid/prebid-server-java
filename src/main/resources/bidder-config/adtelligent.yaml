@@ -3,6 +3,7 @@ adapters:
     enabled: false
     endpoint: http://hb.adtelligent.com/auction
     pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases:
@@ -10,6 +11,7 @@ adapters:
       maintainer-email: hb@adtelligent.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
         - video

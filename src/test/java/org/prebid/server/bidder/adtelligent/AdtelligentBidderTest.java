@@ -59,9 +59,9 @@ public class AdtelligentBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(null, ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3))))).build()))
                 .user(User.builder()
-                        .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                        .ext(ExtUser.builder().consent("consent").build())
                         .build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .regs(Regs.of(0, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -86,9 +86,9 @@ public class AdtelligentBidderTest extends VertxTest {
                                                 ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                         .build()))
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                        .regs(Regs.of(0, ExtRegs.of(1, null)))
                         .build()));
     }
 

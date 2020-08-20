@@ -53,6 +53,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Mock
     private Bidder<BidRequest> bidder;
     @Mock
+    private TimeoutBidder<BidRequest> timeoutBidder;
+    @Mock
     private HttpClient httpClient;
 
     private HttpBidderRequester bidderHttpConnector;
@@ -327,6 +329,27 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .extracting(BidderError::getMessage)
                 .containsOnly("Timeout has been exceeded");
         verifyZeroInteractions(httpClient);
+    }
+
+    @Test
+    public void shouldSendTimeoutNotificationIfTimeoutBidder() {
+        // given
+        given(timeoutBidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(MultiMap.caseInsensitiveMultiMap())
+                        .build()),
+                emptyList()));
+
+        givenHttpClientProducesException(new TimeoutException("Timeout error"));
+
+        // when
+        bidderHttpConnector.requestBids(timeoutBidder, BidRequest.builder().build(), timeout, false);
+
+        // then
+        verify(timeoutBidder).makeTimeoutNotification(any());
     }
 
     @Test

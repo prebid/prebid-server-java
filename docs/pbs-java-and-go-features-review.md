@@ -4,30 +4,38 @@
 
  Feature | Java | Go 
 | --- | :---: | :---:|
-First Party data |+|-
+GDPR TCF1.1 |+|+
+GDPR TCF2 |+|+
+Geo location (used for GDPR) |+|-
+COPPA |+|+
+CCPA |+|+
+AMP |+|+
 Stored Requests |+|+
 Stored Responses |+|-
+PBJS First Party data |+|-
 Currency Conversion** |+|+
-Geo location (used for GDPR) |+|-
-Circuit Breaker (Http, DB) |+|-
-Passing Bidder ext in `imp[...].ext.prebid.bidder` |-|+
-Passing `request.ext.prebid.bidders.BIDDER` to corresponding bidder |+|-
-Media Type Price Granularity |+|-
-Cache only-winning-bids flag |+|-
-User ID Module |+|+
-Bid Categories |-|+
-Apps/Accounts Blacklist  |+|+
+Multiple root schains |+|-
+Price Granularity |+|+
+Price Granularity per MediaType|+|-
+User ID Module support |+|+
+Account exclude list  |+|+
 Event Notification endpoint |+|-
-Video Auction endpoint |-|+
+Video ad support |+|+
+Long-form video endpoint |-|+
+IAB advertiser category mapping |-|+
+Aliases |+|+
 Video Impression Tracking endpoint |+|-
-GDPR |+|+
-COPPA |+|+
-CCPA |+|-
 Cooperative Cookie Syncing |+|-
+Circuit Breaker (Http, DB) |+|-
+Operational metrics |+|+
+Supports both "debug" and "test" flags |+|-
 All adapters ported to OpenRTB |+|-
+Echo stored request video attributes in response |+|-
+Accept account ID on AMP requests |+|-
+Cache only-winning-bids flag |+|-
 Remote File Downloader |+|-
 Bidder Generator |+|-
-
+Passing `request.ext.prebid.bidders.BIDDER` to corresponding bidder |+|-
 
 **
 * PBS-Java Currency conversion supports finding intermediate conversion rate;

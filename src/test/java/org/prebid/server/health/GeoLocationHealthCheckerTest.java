@@ -30,7 +30,6 @@ import static org.mockito.Mockito.verify;
 public class GeoLocationHealthCheckerTest {
 
     private static final String NAME = "geolocation";
-    private static final String TEST_TIME_STRING = ZonedDateTime.now(Clock.systemUTC()).toString();
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -40,14 +39,15 @@ public class GeoLocationHealthCheckerTest {
 
     @Mock
     private GeoLocationService geoLocationService;
+    private Clock clock;
 
     private GeoLocationHealthChecker geoLocationHealthChecker;
 
     @Before
     public void setUp() {
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        geoLocationHealthChecker = new GeoLocationHealthChecker(vertx, 1L, geoLocationService, timeoutFactory);
+        geoLocationHealthChecker = new GeoLocationHealthChecker(vertx, 1L, geoLocationService, timeoutFactory, clock);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class GeoLocationHealthCheckerTest {
     }
 
     @Test
-    public void getLastStatusShouldReturnStatusUpAndLastUpdatedAfterTestTime() {
+    public void getLastStatusShouldReturnStatusUpAndLastUpdatedNow() {
         // given
         given(geoLocationService.lookup(any(), any())).willReturn(
                 Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("USA").build()));
@@ -72,11 +72,11 @@ public class GeoLocationHealthCheckerTest {
         // then
         final StatusResponse status = geoLocationHealthChecker.status();
         assertThat(status.getStatus()).isEqualTo("UP");
-        assertThat(status.getLastUpdated()).isAfter(TEST_TIME_STRING);
+        assertThat(status.getLastUpdated()).isEqualTo(ZonedDateTime.now(clock));
     }
 
     @Test
-    public void getLastStatusShouldReturnStatusDownAndLastUpdatedAfterTestTime() {
+    public void getLastStatusShouldReturnStatusDownAndLastUpdatedNow() {
         // given
         given(geoLocationService.lookup(any(), any())).willReturn(Future.failedFuture("failed"));
 
@@ -86,7 +86,7 @@ public class GeoLocationHealthCheckerTest {
         // then
         final StatusResponse lastStatus = geoLocationHealthChecker.status();
         assertThat(lastStatus.getStatus()).isEqualTo("DOWN");
-        assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
+        assertThat(lastStatus.getLastUpdated()).isEqualTo(ZonedDateTime.now(clock));
     }
 
     @Test

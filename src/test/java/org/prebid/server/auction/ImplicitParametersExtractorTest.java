@@ -113,39 +113,26 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
-    public void ipFromShouldReturnSingleIpFromXForwardedFor() {
+    public void ipFromShouldReturnIpFromHeadersAndRemoteAddress() {
         // given
-        httpRequest.headers().set("X-Forwarded-For", " 193.168.144.1 ");
+        httpRequest.headers().set("True-Client-IP", "192.168.144.1 ");
+        httpRequest.headers().set("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ");
+        httpRequest.headers().set("X-Real-IP", "192.168.144.4 ");
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.144.5"));
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("193.168.144.1");
+        assertThat(extractor.ipFrom(httpRequest)).containsExactly(
+                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", "192.168.144.5");
     }
 
     @Test
-    public void ipFromShouldReturnFirstValidIpFromXForwardedFor() {
+    public void ipFromShouldNotReturnNullsAndEmptyValues() {
         // given
-        httpRequest.headers().set("X-Forwarded-For", "192.168.144.1 , 192.168.244.2 , 193.168.44.1 ");
+        httpRequest.headers().set("X-Real-IP", " ");
+        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.144.5"));
 
         // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("193.168.44.1");
-    }
-
-    @Test
-    public void ipFromShouldReturnRemoteAddress() {
-        // given
-        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "193.168.244.1"));
-
-        // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("193.168.244.1");
-    }
-
-    @Test
-    public void ipFromShouldReturnIpFromXRealIP() {
-        // given
-        httpRequest.headers().set("X-Real-IP", " 192.168.44.1 ");
-
-        // when and then
-        assertThat(extractor.ipFrom(httpRequest)).isEqualTo("192.168.44.1");
+        assertThat(extractor.ipFrom(httpRequest)).containsExactly("192.168.144.5");
     }
 
     @Test

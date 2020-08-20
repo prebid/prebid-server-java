@@ -5,11 +5,13 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.GdprInfoWithCountry;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -17,6 +19,7 @@ import org.prebid.server.privacy.gdpr.model.TCStringEmpty;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.Collection;
@@ -77,6 +80,7 @@ public class TcfDefinerService {
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
+                null,
                 timeout,
                 country -> createAllowAllTcfResponse(vendorIds, country),
                 (consentString, country) -> tcf2Service.permissionsFor(vendorIds, consentString)
@@ -92,12 +96,14 @@ public class TcfDefinerService {
                                                             String gdprConsent,
                                                             String ipAddress,
                                                             AccountGdprConfig accountGdprConfig,
+                                                            MetricName requestType,
                                                             Timeout timeout) {
         return resultForInternal(
                 gdpr,
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
+                requestType,
                 timeout,
                 country -> createAllowAllTcfResponse(bidderNames, country),
                 (consentString, country) ->
@@ -121,6 +127,7 @@ public class TcfDefinerService {
                 gdprConsent,
                 ipAddress,
                 accountGdprConfig,
+                null,
                 timeout);
     }
 
@@ -129,12 +136,13 @@ public class TcfDefinerService {
             String gdprConsent,
             String ipAddress,
             AccountGdprConfig accountGdprConfig,
+            MetricName requestType,
             Timeout timeout,
             Function<String, Future<TcfResponse<T>>> allowAllTcfResponseCreator,
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
             BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
 
-        if (!isGdprEnabled(accountGdprConfig)) {
+        if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return allowAllTcfResponseCreator.apply(null);
         }
 
@@ -143,10 +151,20 @@ public class TcfDefinerService {
                         dispatchToService(gdprInfoWithCountry, allowAllTcfResponseCreator, tcf2Strategy, gdprStrategy));
     }
 
-    private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig) {
-        return accountGdprConfig != null && accountGdprConfig.getEnabled() != null
-                ? accountGdprConfig.getEnabled()
-                : gdprEnabled;
+    private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig, MetricName requestType) {
+        final Boolean accountGdprEnabled = accountGdprConfig != null ? accountGdprConfig.getEnabled() : null;
+        if (requestType == null) {
+            return ObjectUtils.firstNonNull(accountGdprEnabled, gdprEnabled);
+        }
+
+        final EnabledForRequestType enabledForRequestType = accountGdprConfig != null
+                ? accountGdprConfig.getEnabledForRequestType()
+                : null;
+
+        final Boolean enabledForType = enabledForRequestType != null
+                ? enabledForRequestType.isEnabledFor(requestType)
+                : null;
+        return ObjectUtils.firstNonNull(enabledForType, accountGdprEnabled, gdprEnabled);
     }
 
     private Future<GdprInfoWithCountry<String>> toGdprInfo(String gdpr,
@@ -190,7 +208,10 @@ public class TcfDefinerService {
     }
 
     private GdprInfoWithCountry<String> updateMetricsAndReturnDefault(Throwable exception, String gdprConsent) {
-        logger.info("Geolocation lookup failed", exception);
+        final String message = String.format("Geolocation lookup failed: %s", exception.getMessage());
+        logger.warn(message);
+        logger.debug(message, exception);
+
         metrics.updateGeoLocationMetric(false);
         return defaultGdprInfoWithCountry(gdprConsent);
     }
@@ -205,33 +226,17 @@ public class TcfDefinerService {
             BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
             BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
 
-        TCString tcString = decodeTcString(gdprInfoWithCountry.getConsent());
-
-        updatePrivacyTcfMetrics(gdprInfoWithCountry, tcString);
-
         final String country = gdprInfoWithCountry.getCountry();
         if (!inScope(gdprInfoWithCountry)) {
             return allowAllTcfResponseCreator.apply(country);
         }
 
-        // parsing TC string should not fail the entire request, assume the user does not consent
-        if (tcString == null) {
-            tcString = new TCStringEmpty(2);
-        }
+        final TCString tcString = parseConsentString(gdprInfoWithCountry.getConsent());
+        metrics.updatePrivacyTcfGeoMetric(tcString.getVersion(), gdprInfoWithCountry.getInEea());
 
-        if (tcString.getVersion() == 2) {
-            return tcf2Strategy.apply(tcString, country);
-        }
-
-        return gdprStrategy.apply(gdprInfoWithCountry.getConsent(), country);
-    }
-
-    private void updatePrivacyTcfMetrics(GdprInfoWithCountry<String> gdprInfoWithCountry, TCString tcString) {
-        if (tcString == null) {
-            metrics.updatePrivacyTcfInvalidMetric();
-        } else {
-            metrics.updatePrivacyTcfGeoMetric(tcString.getVersion(), gdprInfoWithCountry.getInEea());
-        }
+        return tcString.getVersion() == 2
+                ? tcf2Strategy.apply(tcString, country)
+                : gdprStrategy.apply(gdprInfoWithCountry.getConsent(), country);
     }
 
     private <T> Future<TcfResponse<T>> createAllowAllTcfResponse(Set<T> keys, String country) {
@@ -321,11 +326,31 @@ public class TcfDefinerService {
         return Objects.equals(gdprInfo.getGdpr(), GDPR_ONE);
     }
 
-    private static TCString decodeTcString(String consentString) {
+    /**
+     * Returns decoded {@link TCString} or {@link TCStringEmpty} in case of empty consent or error occurred.
+     * <p>
+     * Note: parsing TC string should not fail the entire request, but assume the user does not consent.
+     */
+    private TCString parseConsentString(String consentString) {
+        if (StringUtils.isBlank(consentString)) {
+            metrics.updatePrivacyTcfMissingMetric();
+            return TCStringEmpty.create();
+        }
+
+        final TCString tcString = decodeTcString(consentString);
+        if (tcString == null) {
+            metrics.updatePrivacyTcfInvalidMetric();
+            return TCStringEmpty.create();
+        }
+
+        return tcString;
+    }
+
+    private TCString decodeTcString(String consentString) {
         try {
-            return StringUtils.isBlank(consentString) ? null : TCString.decode(consentString);
+            return TCString.decode(consentString);
         } catch (Throwable e) {
-            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            logger.info("Parsing consent string ''{0}'' failed: {1}", consentString, e.getMessage());
             return null;
         }
     }

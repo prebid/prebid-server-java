@@ -1,0 +1,23 @@
+adapters:
+  telaria:
+    enabled: false
+    endpoint: https://ads.tremorhub.com/ad/rtb/prebid
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: github@telaria.com
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 202
+    usersync:
+      url: https://pbs.publishers.tremorhub.com/pubsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
+      redirect-url: /setuid?bidder=telaria&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[tvid]
+      cookie-family-name: telaria
+      type: redirect
+      support-cors: false

@@ -36,11 +36,20 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private final HttpClient httpClient;
     private final Metrics metrics;
 
-    public CircuitBreakerSecuredHttpClient(Vertx vertx, HttpClient httpClient, Metrics metrics,
-                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs,
+    public CircuitBreakerSecuredHttpClient(Vertx vertx,
+                                           HttpClient httpClient,
+                                           Metrics metrics,
+                                           int openingThreshold,
+                                           long openingIntervalMs,
+                                           long closingIntervalMs,
                                            Clock clock) {
-        circuitBreakerCreator = name -> new CircuitBreaker("http-client-circuit-breaker-" + name,
-                Objects.requireNonNull(vertx), openingThreshold, openingIntervalMs, closingIntervalMs,
+
+        circuitBreakerCreator = name -> new CircuitBreaker(
+                "http-client-circuit-breaker-" + name,
+                Objects.requireNonNull(vertx),
+                openingThreshold,
+                openingIntervalMs,
+                closingIntervalMs,
                 Objects.requireNonNull(clock))
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
@@ -55,7 +64,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private void circuitOpened(String name) {
         conditionalLogger.warn(String.format("Http client request to %s is failed, circuit opened.", name),
                 LOG_PERIOD_SECONDS, TimeUnit.SECONDS);
-        metrics.updateHttpClientCircuitBreakerMetric(true);
+        metrics.updateHttpClientCircuitBreakerMetric(idFrom(name), true);
     }
 
     private void circuitHalfOpened(String name) {
@@ -64,7 +73,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private void circuitClosed(String name) {
         logger.warn("Http client request to {0} becomes succeeded, circuit closed.", name);
-        metrics.updateHttpClientCircuitBreakerMetric(false);
+        metrics.updateHttpClientCircuitBreakerMetric(idFrom(name), false);
     }
 
     @Override
@@ -78,6 +87,11 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
         final URL url = parseUrl(urlAsString);
         return url.getProtocol() + "://" + url.getHost()
                 + (url.getPort() != -1 ? ":" + url.getPort() : "") + url.getPath();
+    }
+
+    private static String idFrom(String urlAsString) {
+        final URL url = parseUrl(urlAsString);
+        return url.getHost().replaceAll("[^\\w]", "_");
     }
 
     private static URL parseUrl(String url) {

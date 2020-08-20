@@ -9,19 +9,7 @@
         "adm": "adm6",
         "crid": "crid6",
         "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "894859517",
-        "impid": "impId6",
-        "price": 3.75,
-        "adm": "adm6",
-        "crid": "crid6",
-        "w": 600,
-        "h": 480
+        "h": 250
       }
     }
   ]

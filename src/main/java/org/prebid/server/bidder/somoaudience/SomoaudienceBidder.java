@@ -22,6 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -46,13 +47,13 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private final ObjectNode requestExtension;
+    private final ExtRequest requestExtension;
 
     public SomoaudienceBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.requestExtension = mapper.mapper().valueToTree(SomoaudienceReqExt.of(CONFIG));
+        this.requestExtension = mapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of(CONFIG));
     }
 
     @Override

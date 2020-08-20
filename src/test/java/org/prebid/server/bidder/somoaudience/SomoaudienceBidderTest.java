@@ -27,6 +27,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.somoaudience.proto.SomoaudienceReqExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -39,6 +40,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -63,9 +65,9 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
-                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
+                .regs(Regs.of(0, ExtRegs.of(1, null)))
                 .build();
 
         // when
@@ -92,10 +94,10 @@ public class SomoaudienceBidderTest extends VertxTest {
                                 .bidfloor(BigDecimal.valueOf(1.39))
                                 .build()))
                         .user(User.builder()
-                                .ext(mapper.valueToTree(ExtUser.builder().consent("consent").build()))
+                                .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1, null))))
-                        .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
+                        .regs(Regs.of(0, ExtRegs.of(1, null)))
+                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                         .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language("en").build())
                         .build()));
     }
@@ -109,7 +111,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39)))))
                         .build()))
-                .user(User.builder().ext(mapper.valueToTree(ExtUser.builder().consent("consent").build())).build())
+                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().ua("User Agent").ip("ip").dnt(1).language(null).build())
                 .build();
 
@@ -157,17 +159,17 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .imp(asList(
                         Imp.builder().banner(Banner.builder().build()).bidfloor(BigDecimal.valueOf(1.54)).build(),
                         Imp.builder().banner(Banner.builder().build()).bidfloor(BigDecimal.valueOf(1.33)).build()))
-                .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
+                .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
         final String expectedVideoSting = mapper.writeValueAsString(BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder().video(Video.builder().build()).bidfloor(BigDecimal.valueOf(1.97)).build()))
-                .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
+                .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
         final String expectedNativeString = mapper.writeValueAsString(BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder().xNative(Native.builder().build()).bidfloor(BigDecimal.valueOf(2.52)).build()))
-                .ext(mapper.valueToTree(SomoaudienceReqExt.of("hb_pbs_1.0.0")))
+                .ext(jacksonMapper.fillExtension(ExtRequest.empty(), SomoaudienceReqExt.of("hb_pbs_1.0.0")))
                 .build());
 
         assertThat(result.getErrors()).isEmpty();
@@ -243,10 +245,11 @@ public class SomoaudienceBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("http://somoaudience.com?s=placementId");
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getId)
-                .containsExactly("impId2");
+                .extracting(HttpRequest::getBody)
+                .containsOnly(jacksonMapper.encode(BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("impId2").banner(Banner.builder().build()).build()))
+                        .ext(jacksonMapper.fillExtension(ExtRequest.empty(), singletonMap("prebid", "hb_pbs_1.0.0")))
+                        .build()));
     }
 
     @Test
