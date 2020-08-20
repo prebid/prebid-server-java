@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -13,9 +12,9 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
@@ -268,18 +267,11 @@ public class StoredRequestProcessor {
      * format throws {@link InvalidRequestException}
      */
     private ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
-        final ObjectNode ext = bidRequest.getExt();
+        final ExtRequest ext = bidRequest.getExt();
         if (ext != null) {
-            try {
-                final ExtBidRequest extBidRequest = mapper.mapper().treeToValue(ext, ExtBidRequest.class);
-                final ExtRequestPrebid prebid = extBidRequest.getPrebid();
-                if (prebid != null) {
-                    return prebid.getStoredrequest();
-                }
-            } catch (JsonProcessingException e) {
-                throw new InvalidRequestException(
-                        String.format("Incorrect bid request extension format for bidRequest with id %s",
-                                bidRequest.getId()));
+            final ExtRequestPrebid prebid = ext.getPrebid();
+            if (prebid != null) {
+                return prebid.getStoredrequest();
             }
         }
         return null;

@@ -53,21 +53,6 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfRequestAppHasBlankOrMissingId() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("Missing app id"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldSkipInvalidImpAndAddErrorIfImpHasNoBannerOrVideo() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -116,9 +101,8 @@ public class ConversantBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(BidderError.badInput("Missing site id"),
-                        BidderError.badInput("No valid impressions"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Missing site id"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -143,10 +127,10 @@ public class ConversantBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetAppIdFromExtSiteId() {
+    public void makeHttpRequestsShouldSetAppIdFromExtSiteIdIfAppIdIsNullOrEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.app(App.builder().id("app_id").build()),
+                requestBuilder -> requestBuilder.app(App.builder().id("").build()),
                 identity(),
                 identity());
 
@@ -159,6 +143,27 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getId)
+                .containsOnly("site id");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSiteIdFromExtSiteIdIfSiteIdIsNullOrEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder.site(Site.builder().id(null).build()),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpConversant.builder().mobile(123).siteId("site id").build()))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getId)
                 .containsOnly("site id");
     }
 

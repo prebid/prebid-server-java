@@ -35,10 +35,10 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -303,10 +303,10 @@ public class AuctionHandlerTest extends VertxTest {
         final ExtMediaTypePriceGranularity priceGranuality = ExtMediaTypePriceGranularity.of(
                 mapper.valueToTree(priceGranularity), null, mapper.createObjectNode());
         final BidRequest resolvedRequest = BidRequest.builder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder().mediatypepricegranularity(priceGranuality).build())
                         .auctiontimestamp(0L)
-                        .build())))
+                        .build()))
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()

@@ -83,6 +83,10 @@ public enum MetricName {
     out_geo("out-geo"),
     unknown_geo("unknown-geo"),
 
+    // vendor list
+    missing,
+    fallback,
+
     // stored data
     stored_requests_found,
     stored_requests_missing,

@@ -18,6 +18,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -66,7 +67,8 @@ public class VideoRequestFactory {
         final Set<String> podConfigIds = podConfigIds(incomingBidRequest);
         return createBidRequest(routingContext, incomingBidRequest, storedRequestId, podConfigIds)
                 .compose(bidRequestToPodError -> auctionRequestFactory
-                        .toAuctionContext(routingContext, bidRequestToPodError.getData(), startTime, timeoutResolver)
+                        .toAuctionContext(routingContext, bidRequestToPodError.getData(), new ArrayList<>(),
+                                startTime, timeoutResolver)
                         .map(auctionContext -> WithPodErrors.of(auctionContext, bidRequestToPodError.getPodErrors())));
     }
 

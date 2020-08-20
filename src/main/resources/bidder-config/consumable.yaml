@@ -14,7 +14,7 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 65535
+      vendor-id: 591
     usersync:
       url: https://e.serverbid.com/udb/9969/match?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
       redirect-url: /setuid?bidder=consumable&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=

@@ -225,12 +225,12 @@ public class BeachfrontBidder implements Bidder<Void> {
         final ExtImpBeachfrontAppIds appIds = extImpBeachfront.getAppIds();
         final String bannerAppId = appIds != null ? appIds.getBanner() : null;
         if (isBanner && StringUtils.isNotBlank(bannerAppId)) {
-            return appIds.getBanner();
+            return bannerAppId;
         }
 
         final String videoAppId = appIds != null ? appIds.getVideo() : null;
         if (StringUtils.isNotBlank(videoAppId)) {
-            return appIds.getVideo();
+            return videoAppId;
         }
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
     }
