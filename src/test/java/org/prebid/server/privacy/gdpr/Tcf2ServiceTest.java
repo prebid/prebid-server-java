@@ -6,7 +6,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -37,6 +36,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -89,7 +89,7 @@ public class Tcf2ServiceTest extends VertxTest {
     private List<SpecialFeaturesStrategy> specialFeaturesStrategies;
 
     @Before
-    public void setUp() throws NoSuchFieldException {
+    public void setUp() {
         given(tcString.getVendorListVersion()).willReturn(10);
         given(purposeStrategyOne.getPurposeId()).willReturn(1);
         given(purposeStrategyTwo.getPurposeId()).willReturn(2);
@@ -105,12 +105,8 @@ public class Tcf2ServiceTest extends VertxTest {
         initPurposes();
         initSpecialFeatures();
         initGdpr();
-        target = new Tcf2Service(gdprConfig, vendorListService, bidderCatalog);
-
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedPurposeStrategies"), purposeStrategies);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedSpecialFeatureStrategies"), specialFeaturesStrategies);
+        target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
+                bidderCatalog);
     }
 
     private void initPurposes() {
@@ -184,14 +180,14 @@ public class Tcf2ServiceTest extends VertxTest {
         final VendorPermissionWithGvl expectedVendorPermissionWitGvl = VendorPermissionWithGvl.of(
                 expectedVendorPermission, VendorV2.empty(1));
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(expectedVendorPermissionWitGvl);
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls, true);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls, true);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls, true);
 
         final Purpose expectedDowngradedPurpose = Purpose.of(EnforcePurpose.basic, purpose7.getEnforceVendors(),
                 purpose1.getVendorExceptions());
         verify(purposeStrategySeven).processTypePurposeStrategy(tcString, expectedDowngradedPurpose,
-                vendorPermissionWithGvls);
+                vendorPermissionWithGvls, true);
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(bidderCatalog).nameByVendorId(1);
@@ -224,7 +220,8 @@ public class Tcf2ServiceTest extends VertxTest {
         verify(purposeStrategyOne).processTypePurposeStrategy(
                 tcString,
                 accountPurposeOne,
-                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(null))));
+                singletonList(VendorPermissionWithGvl.of(expectedVendorPermission, VendorV2.empty(null))),
+                false);
         verify(tcString).getVendorListVersion();
         verify(vendorListService).forVersion(10);
     }
@@ -317,23 +314,18 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     @Test
-    public void permissionsForShouldReturnAllDeniedWhenP1TIIsNoAccessAllowed() throws NoSuchFieldException {
+    public void permissionsForShouldReturnAllDeniedWhenP1TIIsNoAccessAllowed() {
         // given
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
 
         given(tcString.getPurposeOneTreatment()).willReturn(true);
 
-        target = new Tcf2Service(
-                GdprConfig.builder()
-                        .purposes(purposes)
-                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.noAccessAllowed)
-                        .build(),
-                vendorListService,
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .purposes(purposes)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.noAccessAllowed)
+                .build();
+        target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
                 bidderCatalog);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedPurposeStrategies"), purposeStrategies);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedSpecialFeatureStrategies"), specialFeaturesStrategies);
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
@@ -342,83 +334,73 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(
                 singletonList(VendorPermission.of(1, "rubicon", PrivacyEnforcementAction.restrictAll())));
 
-        verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
 
         verify(specialFeaturesStrategyOne).processSpecialFeaturesStrategy(any(), any(), anyCollection());
     }
 
     @Test
-    public void permissionsForShouldAllowAllWhenP1TIIsAccessAllowed() throws NoSuchFieldException {
+    public void permissionsForShouldAllowAllWhenP1TIIsAccessAllowed() {
         // given
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
 
         given(tcString.getPurposeOneTreatment()).willReturn(true);
 
-        target = new Tcf2Service(
-                GdprConfig.builder()
-                        .purposes(purposes)
-                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
-                        .build(),
-                vendorListService,
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .purposes(purposes)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                .build();
+        target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
                 bidderCatalog);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedPurposeStrategies"), purposeStrategies);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedSpecialFeatureStrategies"), specialFeaturesStrategies);
 
         // when
         target.permissionsFor(singleton(1), tcString);
 
         // then
-        verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne, never()).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
         verify(purposeStrategyOne).allow(any());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
 
         verify(specialFeaturesStrategyOne).processSpecialFeaturesStrategy(any(), any(), anyCollection());
     }
 
     @Test
-    public void permissionsForShouldNotAllowAllWhenP1TIsFalseAndP1TIIsAccessAllowed() throws NoSuchFieldException {
+    public void permissionsForShouldNotAllowAllWhenP1TIsFalseAndP1TIIsAccessAllowed() {
         // given
         given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
 
         given(tcString.getPurposeOneTreatment()).willReturn(false);
 
-        target = new Tcf2Service(
-                GdprConfig.builder()
-                        .purposes(purposes)
-                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
-                        .build(),
-                vendorListService,
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .purposes(purposes)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                .build();
+        target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
                 bidderCatalog);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedPurposeStrategies"), purposeStrategies);
-        FieldSetter.setField(target,
-                target.getClass().getDeclaredField("supportedSpecialFeatureStrategies"), specialFeaturesStrategies);
 
         // when
         target.permissionsFor(singleton(1), tcString);
 
         // then
         verify(purposeStrategyOne, never()).allow(any());
-        verify(purposeStrategyOne).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection());
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection());
+        verify(purposeStrategyOne).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
 
         verify(specialFeaturesStrategyOne).processSpecialFeaturesStrategy(any(), any(), anyCollection());
     }
 
     public void verifyEachPurposeStrategyReceive(List<VendorPermissionWithGvl> vendorPermissionWithGvls) {
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, vendorPermissionWithGvls);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, vendorPermissionWithGvls, false);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls, false);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls, false);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, vendorPermissionWithGvls, false);
     }
 
     public void verifyEachSpecialFeatureStrategyReceive(List<VendorPermission> vendorPermission) {

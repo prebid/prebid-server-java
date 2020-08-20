@@ -34,7 +34,7 @@ public class ConsumableTest extends IntegrationTest {
                 .withHeader("Referer", equalTo("http://www.example.com"))
                 .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("Host", equalTo("localhost:8090"))
-                .withHeader("Content-Length", equalTo("302"))
+                .withHeader("Content-Length", equalTo("372"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withCookie("azk", equalTo("CS-UID"))
                 // The "time" field in consumable bid request is not being checked as its value is Instance.now()
@@ -65,7 +65,6 @@ public class ConsumableTest extends IntegrationTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/consumable/test-auction-consumable-response.json",
                 response, singletonList("consumable")).replaceAll("\\{\\{time}}", timeMs);
-
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }

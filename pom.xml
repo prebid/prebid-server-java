@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.36.0-SNAPSHOT</version>
+    <version>1.41.1-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -35,6 +35,7 @@
         <commons.collections.version>4.1</commons.collections.version>
         <commons.compress.version>1.19</commons.compress.version>
         <httpclient.version>4.5.5</httpclient.version>
+        <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.9</jsonpatch.version>
@@ -53,7 +54,8 @@
         <junit.version>4.12</junit.version>
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
-        <wiremock.version>2.11.0</wiremock.version>
+        <wiremock.version>2.26.3</wiremock.version>
+        <jetty.version>9.4.28.v20200408</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
 
@@ -132,6 +134,11 @@
             <version>${vertx.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-auth-common</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
@@ -156,6 +163,11 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.seancfoley</groupId>
+            <artifactId>ipaddress</artifactId>
+            <version>${ipaddress.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -302,6 +314,66 @@
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock</artifactId>
             <version>${wiremock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlets</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-webapp</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-http</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-io</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-security</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-continuation</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-util</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-xml</artifactId>
+            <version>${jetty.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

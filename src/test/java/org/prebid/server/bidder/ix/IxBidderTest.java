@@ -23,6 +23,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -396,11 +397,31 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithOriginalBidSize() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").w(300).h(200))));
+
+        // when
+        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWithRequestImpSizeWhenBidSizeIsEmpty() throws JsonProcessingException {
+        // given
+        final Banner banner = Banner.builder().w(300).h(200).build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(banner).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -411,7 +432,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(300).h(200).build(), BidType.banner, "USD"));
     }
 
     @Test

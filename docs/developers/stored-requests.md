@@ -18,7 +18,7 @@ settings:
 
 Choose an ID to reference your stored request data. Throughout this doc, replace {id} with the ID you've chosen.
 
-Add the file `stored_requests/data/by_id/stored_imps/{id}.json` and populate it with some [Imp](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=17) data.
+Add the file `stored_imps/{id}.json` and populate it with some [Imp](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=17) data.
 
 ```json
 {
@@ -43,14 +43,7 @@ Add the file `stored_requests/data/by_id/stored_imps/{id}.json` and populate it 
 }
 ```
 
-Start your server.
-
-```bash
-go build .
-./prebid-server
-```
-
-And then `POST` to [`/openrtb2/auction`](../endpoints/openrtb2/auction.md) with your chosen ID.
+Start your server and then `POST` to [`/openrtb2/auction`](../endpoints/openrtb2/auction.md) with your chosen ID.
 
 ```json
 {
@@ -69,7 +62,7 @@ And then `POST` to [`/openrtb2/auction`](../endpoints/openrtb2/auction.md) with 
 }
 ```
 
-The auction will occur as if the HTTP request had included the content from `stored_requests/data/by_id/{id}.json` instead.
+The auction will occur as if the HTTP request had included the content from `stored_requests/{id}.json` instead.
 
 ## Partially Stored Requests
 

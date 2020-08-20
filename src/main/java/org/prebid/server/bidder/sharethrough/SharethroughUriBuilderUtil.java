@@ -25,6 +25,7 @@ class SharethroughUriBuilderUtil {
                 .addParameter("bidId", params.getBidID())
                 .addParameter("consent_required", getBooleanStringValue(params.getConsentRequired()))
                 .addParameter("consent_string", params.getConsentString())
+                .addParameter("us_privacy", params.getUsPrivacySignal())
                 .addParameter("instant_play_capable", getBooleanStringValue(params.getInstantPlayCapable()))
                 .addParameter("stayInIframe", getBooleanStringValue(params.getIframe()))
                 .addParameter("height", String.valueOf(params.getHeight()))

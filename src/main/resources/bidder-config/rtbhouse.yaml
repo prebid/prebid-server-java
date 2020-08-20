@@ -8,7 +8,7 @@ adapters:
     deprecated-names:
     aliases:
     meta-info:
-      maintainer-email: inventory.devel@rtbhouse.com
+      maintainer-email: prebid@rtbhouse.com
       app-media-types:
       site-media-types:
         - banner

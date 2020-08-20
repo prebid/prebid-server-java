@@ -24,6 +24,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.util.HttpUtil;
@@ -324,15 +325,15 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .containsOnly(mapper.valueToTree(
-                        PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))));
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtRequest.empty(), PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))));
     }
 
     @Test
     public void makeHttpRequestsShouldNotChangeExtIfWrapExtIsMissing() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(mapper.createObjectNode()),
+                bidRequestBuilder -> bidRequestBuilder.ext(ExtRequest.empty()),
                 identity(),
                 identity());
 
@@ -344,7 +345,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .containsOnly(mapper.createObjectNode());
+                .containsOnly(ExtRequest.empty());
     }
 
     @Test

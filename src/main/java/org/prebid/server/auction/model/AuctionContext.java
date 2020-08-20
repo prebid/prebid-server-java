@@ -33,5 +33,7 @@ public class AuctionContext {
 
     MetricName requestTypeMetric;
 
+    List<String> prebidErrors;
+
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 }

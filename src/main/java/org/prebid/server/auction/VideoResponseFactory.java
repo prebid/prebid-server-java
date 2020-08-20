@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -13,7 +12,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -144,22 +143,9 @@ public class VideoResponseFactory {
         if (Objects.equals(bidRequest.getTest(), 1)) {
             return true;
         }
-        final ExtBidRequest extBidRequest = extBidRequestFrom(bidRequest);
-        final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from {@link BidRequest}.
-     */
-    private ExtBidRequest extBidRequestFrom(BidRequest bidRequest) {
-        try {
-            return bidRequest.getExt() != null
-                    ? mapper.mapper().treeToValue(bidRequest.getExt(), ExtBidRequest.class)
-                    : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
-        }
     }
 
     private ExtBidResponse extResponseFrom(BidResponse bidResponse) {
