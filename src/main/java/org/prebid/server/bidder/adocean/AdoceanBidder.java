@@ -50,10 +50,12 @@ public class AdoceanBidder implements Bidder<Void> {
     private static final String VERSION = "1.0.0";
     private static final int MAX_URI_LENGTH = 8000;
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String MEASUREMENT_CODE = " <script> +function() { var wu = \"%s\";"
-            + " var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now()); if (wu && !(navigator.sendBeacon"
-            + " && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon"
-            + " && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script> ";
+    private static final String MEASUREMENT_CODE_TEMPLATE = " <script> +function() { "
+            + "var wu = \"%s\"; "
+            + "var su = \"%s\".replace(/\\[TIMESTAMP\\]/, Date.now()); "
+            + "if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } "
+            + "if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); "
+            + "</script> ";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -106,13 +108,11 @@ public class AdoceanBidder implements Bidder<Void> {
                 URIBuilder uriBuilder = new URIBuilder(request.getUri());
                 final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
 
-                final String masterId = queryParams != null
-                        ? queryParams.stream()
+                final String masterId = queryParams.stream()
                         .filter(param -> param.getName().equals("id"))
                         .findFirst()
                         .map(NameValuePair::getValue)
-                        .orElse(null)
-                        : null;
+                        .orElse(null);
 
                 if (masterId != null && masterId.equals(extImpAdocean.getMasterId())) {
                     final String newSlaveId = queryParams.stream()
@@ -238,8 +238,8 @@ public class AdoceanBidder implements Bidder<Void> {
     }
 
     private static Bid createBid(Map<String, String> auctionIds, AdoceanResponseAdUnit adoceanResponse) {
-        final String adm = String.format(MEASUREMENT_CODE, adoceanResponse.getWinUrl(), adoceanResponse.getStatsUrl())
-                + HttpUtil.decodeUrl(adoceanResponse.getCode());
+        final String adm = String.format(MEASUREMENT_CODE_TEMPLATE, adoceanResponse.getWinUrl(),
+                adoceanResponse.getStatsUrl()) + HttpUtil.decodeUrl(adoceanResponse.getCode());
         return Bid.builder()
                 .id(adoceanResponse.getId())
                 .impid(auctionIds.get(adoceanResponse.getId()))
