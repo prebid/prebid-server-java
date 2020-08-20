@@ -24,6 +24,7 @@ import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroug
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
@@ -122,7 +123,7 @@ public class SharethroughBidderTest extends VertxTest {
                                 ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20), BigDecimal.ONE))))
                         .banner(Banner.builder().w(40).h(30).build())
                         .build()))
-                .app(App.builder().ext(mapper.createObjectNode()).build())
+                .app(App.builder().ext(ExtApp.of(null, null)).build())
                 .site(Site.builder().page(pageString).build())
                 .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
                 .badv(singletonList("testBlocked"))
@@ -136,8 +137,8 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string="
-                + "&instant_play_capable=true&stayInIframe=false&height=10&width=20"
-                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=7";
+                + "&us_privacy=&instant_play_capable=true&stayInIframe=false&height=10&width=20"
+                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=8";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
                 DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
 
@@ -178,7 +179,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
-                .user(User.builder().buyeruid("buyer").ext(mapper.valueToTree(extUser)).build())
+                .user(User.builder().buyeruid("buyer").ext(extUser).build())
                 .test(1)
                 .tmax(TIMEOUT)
                 .build();
@@ -189,9 +190,9 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent"
-                + "&instant_play_capable=false&stayInIframe=false&height=1&width=1"
+                + "&us_privacy=&instant_play_capable=false&stayInIframe=false&height=1&width=1"
                 + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
-                + "&supplyId=FGMrCMMc&strVersion=7&ttduid=first&stxuid=buyer";
+                + "&supplyId=FGMrCMMc&strVersion=8&ttduid=first&stxuid=buyer";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
                 DEADLINE_FORMATTED_TIME, true, null);
 

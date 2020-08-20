@@ -156,7 +156,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(tcfDefinerService.resultForVendorIds(anySet(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
 
-        privacyExtractor = new PrivacyExtractor(jacksonMapper);
+        privacyExtractor = new PrivacyExtractor();
 
         auctionHandler = new AuctionHandler(
                 applicationSettings,

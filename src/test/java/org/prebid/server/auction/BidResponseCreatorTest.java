@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
@@ -49,6 +50,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
@@ -67,6 +71,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -93,6 +98,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
@@ -125,7 +131,6 @@ public class BidResponseCreatorTest extends VertxTest {
 
         given(storedRequestProcessor.videoStoredDataResult(any(), any(), any()))
                 .willReturn(Future.succeededFuture(VideoStoredDataResult.empty()));
-
         bidResponseCreator = new BidResponseCreator(cacheService, bidderCatalog, eventsService, storedRequestProcessor,
                 false, 0, jacksonMapper);
 
@@ -135,7 +140,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPassOriginalTimeoutToCacheServiceIfCachingIsRequested() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = AuctionContext.builder().bidRequest(givenBidRequest()).build();
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -146,7 +151,8 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of(null, null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 1000L, false, timeout);
+        bidResponseCreator.create(bidderResponses, auctionContext, null, cacheInfo, ACCOUNT, false, 1000L, false,
+                timeout);
 
         // then
         verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), same(timeout));
@@ -155,7 +161,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldRequestCacheServiceWithExpectedArguments() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
@@ -179,7 +185,8 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid1, CacheIdInfo.of(null, null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 1000L, false, timeout);
+        bidResponseCreator.create(bidderResponses, auctionContext, null, cacheInfo, ACCOUNT, false, 1000L, false,
+                timeout);
 
         // then
         Map<String, List<String>> biddersToCacheBidIds = new HashMap<>();
@@ -204,7 +211,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldRequestCacheServiceWithWinningBidsOnlyWhenWinningonlyIsTrue() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
@@ -224,7 +231,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid1, CacheIdInfo.of(null, null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo, ACCOUNT, false, 1000L, false,
+        bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo, ACCOUNT, false, 1000L, false,
                 timeout);
 
         // then
@@ -248,7 +255,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Imp imp1 = Imp.builder().id("impId1").video(Video.builder().build()).build();
         final Imp imp2 = Imp.builder().id("impId2").video(Video.builder().build()).build();
-        final BidRequest bidRequest = givenBidRequest(imp1, imp2);
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(imp1, imp2));
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
@@ -268,7 +275,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed(eq("bidder1"))).willReturn(true);
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, account, true, 1000L, false, timeout);
+        bidResponseCreator.create(bidderResponses, auctionContext, null, cacheInfo, account, true, 1000L, false,
+                timeout);
 
         // then
         Map<String, List<String>> biddersToCacheBidIds = new HashMap<>();
@@ -290,7 +298,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldCallCacheServiceEvenRoundedCpmIsZero() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(0.05)).build();
         final List<BidderResponse> bidderResponses = singletonList(
@@ -301,7 +309,8 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid1, CacheIdInfo.of(null, null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT, false, 1000L, false, timeout);
+        bidResponseCreator.create(bidderResponses, auctionContext, null, cacheInfo, ACCOUNT, false, 1000L, false,
+                timeout);
 
         // then
         verify(cacheService).cacheBidsOpenrtb(
@@ -319,12 +328,12 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSetExpectedConstantResponseFields() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1", givenSeatBid(), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, null, ACCOUNT,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, null, ACCOUNT,
                 false, 1000L, false, timeout).result();
 
         // then
@@ -346,11 +355,11 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSetNbrValueTwoAndEmptySeatbidWhenIncomingBidResponsesAreEmpty() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(emptyList(), bidRequest, null, null, ACCOUNT, false,
-                0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(emptyList(), auctionContext, null, null, ACCOUNT,
+                false, 0L, false, timeout).result();
 
         // then
         assertThat(bidResponse).returns(0, BidResponse::getNbr);
@@ -362,12 +371,12 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSetNbrValueTwoAndEmptySeatbidWhenIncomingBidResponsesDoNotContainAnyBids() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1", givenSeatBid(), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, null, ACCOUNT,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, null, ACCOUNT,
                 false, 1000L, false, timeout).result();
 
         // then
@@ -380,14 +389,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSetNbrNullAndPopulateSeatbidWhenAtLeastOneBidIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
-        final Bid bid = Bid.builder().build();
+        final Bid bid = Bid.builder().impid("imp1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, null, null)), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
@@ -400,14 +409,15 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSkipBidderResponsesWhereSeatBidContainEmptyBids() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
 
+        final Bid bid = Bid.builder().impid("imp1").build();
         final List<BidderResponse> bidderResponses = asList(
                 BidderResponse.of("bidder1", givenSeatBid(), 0),
-                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(Bid.builder().build(), banner, "USD")), 0));
+                BidderResponse.of("bidder2", givenSeatBid(BidderBid.of(bid, banner, "USD")), 0));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
@@ -419,8 +429,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldOverrideBidIdWhenGenerateBidIdIsTurnedOn() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
-
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtPrebid<ExtBidPrebid, ?> prebid = ExtPrebid.of(ExtBidPrebid.of(null, banner, null,
                 null, null, null, null), null);
         final Bid bid = Bid.builder()
@@ -435,7 +444,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 storedRequestProcessor, true, 0, jacksonMapper);
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext,
                 null, CACHE_INFO, ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
@@ -455,15 +464,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSetExpectedResponseSeatBidAndBidFields() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
-
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).adm("adm")
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).adm("adm").impid("i1")
                 .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
@@ -472,6 +480,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .group(0)
                 .bid(singletonList(Bid.builder()
                         .id("bidId")
+                        .impid("i1")
                         .price(BigDecimal.ONE)
                         .adm("adm")
                         .ext(mapper.valueToTree(ExtPrebid.of(
@@ -481,6 +490,47 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build());
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldFilterByDealsAndPriceBidsWhenImpIdsAreEqual() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+        final ExtRequestTargeting targeting = givenTargeting();
+
+        final Bid simpleBidImp1 = Bid.builder().id("bidId1i1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
+        final Bid simpleBid1Imp2 = Bid.builder().id("bidId1i2").price(BigDecimal.valueOf(15.67)).impid("i2").build();
+        final Bid simpleBid2Imp2 = Bid.builder().id("bidId2i2").price(BigDecimal.valueOf(17.67)).impid("i2").build();
+        final Bid dealBid1Imp1 = Bid.builder().id("bidId1i1d").dealid("d1").price(BigDecimal.valueOf(4.98)).impid("i1")
+                .build();
+        final Bid dealBid2Imp1 = Bid.builder().id("bidId2i1d").dealid("d2").price(BigDecimal.valueOf(5.00)).impid("i1")
+                .build();
+        final BidderSeatBid seatBidWithDeals = givenSeatBid(
+                BidderBid.of(simpleBidImp1, banner, null),
+                BidderBid.of(simpleBid1Imp2, banner, null),
+                BidderBid.of(simpleBid2Imp2, banner, null), // will stay (top price)
+                BidderBid.of(dealBid2Imp1, banner, null),   // will stay (deal + topPrice)
+                BidderBid.of(dealBid1Imp1, banner, null));
+
+        final Bid simpleBid3Imp2 = Bid.builder().id("bidId3i2").price(BigDecimal.valueOf(7.25)).impid("i2").build();
+        final Bid simpleBid4Imp2 = Bid.builder().id("bidId4i2").price(BigDecimal.valueOf(7.26)).impid("i2").build();
+        final BidderSeatBid seatBidWithSimpleBids = givenSeatBid(
+                BidderBid.of(simpleBid3Imp2, banner, null),
+                BidderBid.of(simpleBid4Imp2, banner, null)); // will stay (top price)
+
+        final List<BidderResponse> bidderResponses = asList(
+                BidderResponse.of("bidder1", seatBidWithDeals, 100),
+                BidderResponse.of("bidder2", seatBidWithSimpleBids, 111));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, ACCOUNT, false, 0L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(3)
+                .extracting(Bid::getId)
+                .containsOnly("bidId2i2", "bidId2i1d", "bidId4i2");
     }
 
     @Test
@@ -503,6 +553,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
                         .build()))
                 .build();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
 
         final Response responseAdm = Response.builder()
                 .assets(singletonList(com.iab.openrtb.response.Asset.builder()
@@ -519,7 +570,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
@@ -538,12 +589,112 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnEmptyAssetIfImageTypeIsEmpty() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(123)
+                        .img(ImageObject.builder().type(null).build())
+                        .data(DataObject.builder().type(2).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id("imp1")
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(123)
+                        .img(com.iab.openrtb.response.ImageObject.builder().type(null).build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid("imp1")
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
+                ACCOUNT, false, 1000L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets)
+                .isEmpty();
+    }
+
+    @Test
+    public void shouldReturnEmptyAssetIfDataTypeIsEmpty() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(123)
+                        .img(ImageObject.builder().type(1).build())
+                        .data(DataObject.builder().type(null).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id("imp1")
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(123)
+                        .img(com.iab.openrtb.response.ImageObject.builder().build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid("imp1")
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
+                ACCOUNT, false, 1000L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets)
+                .isEmpty();
+    }
+
+    @Test
     public void shouldSetBidAdmToNullIfCacheIdIsPresentAndReturnCreativeBidsIsFalse() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().price(BigDecimal.ONE).adm("adm").build();
+        final Bid bid = Bid.builder().price(BigDecimal.ONE).adm("adm").impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -552,7 +703,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -567,10 +718,10 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldSetBidAdmToNullIfVideoCacheIdIsPresentAndReturnCreativeVideoBidsIsFalse() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().price(BigDecimal.ONE).adm("adm").build();
+        final Bid bid = Bid.builder().price(BigDecimal.ONE).adm("adm").impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -579,7 +730,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("id", null)));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -594,14 +745,13 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldTolerateMissingExtInSeatBidAndBid() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
-
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).build();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.ONE).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
@@ -609,6 +759,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .containsOnly(Bid.builder()
                         .id("bidId")
+                        .impid("i1")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(ExtBidPrebid.of(null, banner, null, null, null, null, null), null)))
@@ -620,16 +771,16 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateTargetingKeywords() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                ACCOUNT, false, 1000L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -649,10 +800,10 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldTruncateTargetingKeywordsByGlobalConfig() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -660,8 +811,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 eventsService, storedRequestProcessor, false, 20, jacksonMapper);
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                ACCOUNT, false, 1000L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, ACCOUNT, false, 1000L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -679,17 +830,17 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldTruncateTargetingKeywordsByAccountConfig() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
         final Account account = Account.builder().id("accountId").truncateTargetAttr(20).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                account, false, 1000L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, false, 1000L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -707,7 +858,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldTruncateTargetingKeywordsByRequestPassedValue() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.valueToTree(
                         ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
@@ -717,14 +868,14 @@ public class BidResponseCreatorTest extends VertxTest {
                 .truncateattrchars(20)
                 .build();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("someVeryLongBidderName",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
         final Account account = Account.builder().id("accountId").truncateTargetAttr(25).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                account, false, 1000L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, false, 1000L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -742,12 +893,12 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateTargetingKeywordsForWinningBidsAndWinningBidsByBidder() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid firstBid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
-        final Bid secondBid = Bid.builder().id("bidId2").price(BigDecimal.valueOf(4.98)).build();
-        final Bid thirdBid = Bid.builder().id("bidId3").price(BigDecimal.valueOf(7.25)).build();
+        final Bid firstBid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
+        final Bid secondBid = Bid.builder().id("bidId2").price(BigDecimal.valueOf(4.98)).impid("i2").build();
+        final Bid thirdBid = Bid.builder().id("bidId3").price(BigDecimal.valueOf(7.25)).impid("i2").build();
         final List<BidderResponse> bidderResponses = asList(
                 BidderResponse.of("bidder1",
                         givenSeatBid(BidderBid.of(firstBid, banner, null),
@@ -756,8 +907,8 @@ public class BidResponseCreatorTest extends VertxTest {
                         givenSeatBid(BidderBid.of(thirdBid, banner, null)), 111));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                ACCOUNT, false, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, ACCOUNT, false, 0L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -768,8 +919,8 @@ public class BidResponseCreatorTest extends VertxTest {
                         bid -> toTargetingByKey(bid, "hb_bidder_bidder1"),
                         bid -> toTargetingByKey(bid, "hb_bidder_bidder2"))
                 .containsOnly(
-                        tuple("bidId1", null, "bidder1", null),
-                        tuple("bidId2", null, null, null),
+                        tuple("bidId1", "bidder1", "bidder1", null),
+                        tuple("bidId2", null, "bidder1", null),
                         tuple("bidId3", "bidder2", null, "bidder2"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
@@ -778,7 +929,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateTargetingKeywordsFromMediaTypePriceGranularities() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(2,
                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                         BigDecimal.valueOf(0.5))));
@@ -793,13 +944,13 @@ public class BidResponseCreatorTest extends VertxTest {
                 .includebidderkeys(true)
                 .build();
 
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                ACCOUNT, false, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, ACCOUNT, false, 0L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -819,10 +970,10 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateCacheIdHostPathAndUuidTargetingKeywords() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
@@ -830,7 +981,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", "videoId")));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -859,10 +1010,10 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateTargetingKeywordsWithEventsUrl() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -871,8 +1022,8 @@ public class BidResponseCreatorTest extends VertxTest {
         given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong())).willReturn("http://win-url");
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                account, true, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, true, 0L, false, timeout).result();
 
         // then
         verify(eventsService).winUrlTargeting(eq("bidder1"), eq("accountId"), eq(0L));
@@ -894,12 +1045,42 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldAddExtPrebidEvents() {
+    public void shouldPopulateTargetingKeywordsWithAdditionalValuesFromRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(BidRequest.builder()
+                .cur(singletonList("USD"))
+                .imp(emptyList())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .adservertargeting(singletonList(ExtRequestPrebidAdservertargetingRule.of(
+                                "static_keyword1", xStatic, "static_keyword1")))
+                        .build()))
+                .build());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                "bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, ACCOUNT, false, 1000L, false, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("static_keyword1", "static_keyword1"));
+    }
+
+    @Test
+    public void shouldAddExtPrebidEvents() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
+        final ExtRequestTargeting targeting = givenTargeting();
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -910,8 +1091,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                account, true, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, true, 0L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -925,18 +1106,18 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotAddExtPrebidEventsIfEventsAreNotEnabled() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         final Account account = Account.builder().id("accountId").eventsEnabled(false).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                account, true, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, true, 0L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -948,10 +1129,10 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotAddExtPrebidEventsIfExtRequestPrebidEventsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -959,8 +1140,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, CACHE_INFO,
-                account, false, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
+                CACHE_INFO, account, false, 0L, false, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -972,10 +1153,10 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldReturnCacheEntityInExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -988,7 +1169,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", "videoId")));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -1006,7 +1187,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotPopulateWinningBidTargetingIfIncludeWinnersFlagIsFalse() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.valueToTree(
                         ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
@@ -1015,7 +1196,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .includebidderkeys(true)
                 .build();
 
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -1028,7 +1209,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", "videoId")));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -1046,7 +1227,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotPopulateBidderKeysTargetingIfIncludeBidderKeysFlagIsFalse() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.valueToTree(
                         ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
@@ -1055,7 +1236,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .includebidderkeys(false)
                 .build();
 
-        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid("i1").build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
@@ -1068,7 +1249,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(bid, CacheIdInfo.of("cacheId", "videoId")));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -1086,7 +1267,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotPopulateCacheIdTargetingKeywordsIfBidCpmIsZero() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
         final Bid firstBid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.ZERO).build();
@@ -1101,7 +1282,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(secondBid, CacheIdInfo.of("cacheId2", null)));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -1120,7 +1301,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotCacheNonDealBidWithCpmIsZeroAndCacheDealBidWithZeroCpm() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest());
         final ExtRequestTargeting targeting = givenTargeting();
 
         final Bid firstBid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.ZERO).build();
@@ -1135,7 +1316,7 @@ public class BidResponseCreatorTest extends VertxTest {
         givenCacheServiceResult(singletonMap(secondBid, CacheIdInfo.of("cacheId2", null)));
 
         // when
-        bidResponseCreator.create(bidderResponses, bidRequest, targeting, cacheInfo,
+        bidResponseCreator.create(bidderResponses, auctionContext, targeting, cacheInfo,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -1156,6 +1337,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .app(App.builder().build())
                 .imp(emptyList())
                 .build();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").adm("[]").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -1167,8 +1349,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 CacheHttpCall.of(null, null, 666), new RuntimeException("cacheError"), emptyMap()));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT,
-                false, 0L, false, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, cacheInfo,
+                ACCOUNT, false, 0L, false, timeout).result();
 
         // then
         final ExtBidResponse responseExt = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -1204,7 +1386,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 null
                         )))
                 .build();
-        final BidRequest bidRequest = givenBidRequest(imp);
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(imp));
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -1214,7 +1396,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 Future.failedFuture("Fetch failed"));
 
         // when
-        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 0L, false, timeout);
 
         // then
@@ -1248,6 +1430,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 .build(), null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1, imp2, imp3);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(2)).build();
@@ -1265,7 +1448,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         VideoStoredDataResult.of(singletonMap("impId1", storedVideo), emptyList())));
 
         // when
-        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 0L, false, timeout);
 
         // then
@@ -1289,6 +1472,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
 
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderBid> bidderBids = singletonList(
@@ -1300,7 +1484,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .willReturn(Future.failedFuture("Bad timeout"));
 
         // when
-        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 0L, false, timeout);
 
         // then
@@ -1321,6 +1505,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(Imp.builder()
                 .ext(mapper.valueToTree(singletonMap(invalidBidderName, 0)))
                 .build());
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
 
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1", givenSeatBid(), 100));
 
@@ -1329,7 +1514,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 "invalid has been deprecated and is no longer available. Use valid instead.");
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, CACHE_INFO,
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
                 ACCOUNT, false, 0L, false, timeout).result();
 
         // then
@@ -1343,9 +1528,34 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldProcessRequestAndAddErrorFromAuctionContext() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest())
+                .toBuilder().prebidErrors(singletonList("privacy error")).build();
+
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderBid> bidderBids = singletonList(
+                BidderBid.of(bid1, banner, "USD"));
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", BidderSeatBid.of(bidderBids, emptyList(), emptyList()), 100));
+
+        // when
+        final Future<BidResponse> result = bidResponseCreator.create(bidderResponses, auctionContext, null, CACHE_INFO,
+                ACCOUNT, false, 0L, false, timeout);
+
+        // then
+        assertThat(result.result().getExt()).isEqualTo(
+                mapper.valueToTree(ExtBidResponse.of(null, singletonMap(
+                        "prebid", singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                                "privacy error"))), singletonMap("bidder1", 100), 1000L, null,
+                        ExtBidResponsePrebid.of(0L))));
+    }
+
+    @Test
     public void shouldPopulateBidResponseDebugExtensionIfDebugIsEnabled() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         givenCacheServiceResult(CacheServiceResult.of(
                 CacheHttpCall.of(CacheHttpRequest.of("test.uri", null), CacheHttpResponse.of(500, null), null),
                 null, emptyMap()));
@@ -1358,8 +1568,8 @@ public class BidResponseCreatorTest extends VertxTest {
                         singletonList(ExtHttpCall.builder().status(200).build()), null), 100));
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, bidRequest, null, cacheInfo, ACCOUNT,
-                false, 0L, true, timeout).result();
+        final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, null, cacheInfo,
+                ACCOUNT, false, 0L, true, timeout).result();
 
         // then
         final ExtBidResponse responseExt = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -1373,6 +1583,10 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
+    }
+
+    private AuctionContext givenAuctionContext(BidRequest bidRequest) {
+        return AuctionContext.builder().bidRequest(bidRequest).prebidErrors(emptyList()).build();
     }
 
     private void givenCacheServiceResult(Map<Bid, CacheIdInfo> cacheBids) {
@@ -1394,7 +1608,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private static BidderSeatBid givenSeatBid(BidderBid... bids) {
-        return BidderSeatBid.of(asList(bids), emptyList(), emptyList());
+        return BidderSeatBid.of(new ArrayList<>(asList(bids)), emptyList(), emptyList());
     }
 
     private static ExtRequestTargeting givenTargeting() {

@@ -149,18 +149,10 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
         final String id = publisher.getId();
         publisherId = StringUtils.isBlank(id) ? UNKONWN_PUBLSIHER_ID : id;
 
-        final ObjectNode publisherExt = publisher.getExt();
-        if (publisherExt != null) {
-            final ExtPublisher extPublisher;
-            try {
-                extPublisher = mapper.mapper().convertValue(publisherExt, ExtPublisher.class);
-                final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
-                if (extPublisherPrebid != null && StringUtils.isNotBlank(extPublisherPrebid.getParentAccount())) {
-                    return extPublisherPrebid.getParentAccount();
-                }
-            } catch (IllegalArgumentException ignored) {
-                return publisherId;
-            }
+        final ExtPublisher publisherExt = publisher.getExt();
+        final ExtPublisherPrebid extPublisherPrebid = publisherExt != null ? publisherExt.getPrebid() : null;
+        if (extPublisherPrebid != null && StringUtils.isNotBlank(extPublisherPrebid.getParentAccount())) {
+            return extPublisherPrebid.getParentAccount();
         }
 
         return publisherId;
