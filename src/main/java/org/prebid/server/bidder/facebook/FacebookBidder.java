@@ -309,14 +309,14 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bid, imps, errors))
+                .map(bid -> toBidderBid(bid, imps, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         return Result.of(bidderBids, errors);
     }
 
-    private BidderBid toBidderBid(Bid bid, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
         final String bidId;
         try {
             if (StringUtils.isBlank(bid.getAdm())) {
@@ -332,7 +332,8 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             bid.setAdid(bidId);
             bid.setCrid(bidId);
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), DEFAULT_BID_CURRENCY);
+            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), StringUtils.defaultIfBlank(currency,
+                    DEFAULT_BID_CURRENCY));
 
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));

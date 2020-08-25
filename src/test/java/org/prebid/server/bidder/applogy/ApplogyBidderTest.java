@@ -373,6 +373,71 @@ public class ApplogyBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123")
+                        .banner(Banner.builder().build())
+                        .build()))
+                .build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("EUR")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .impid("123")
+                                        .build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall,
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsOnly("EUR");
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank() throws
+            JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123")
+                        .banner(Banner.builder().build())
+                        .build()))
+                .build();
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .impid("123")
+                                        .build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall,
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                        .build());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsOnly("USD");
+    }
+
+    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(applogyBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }

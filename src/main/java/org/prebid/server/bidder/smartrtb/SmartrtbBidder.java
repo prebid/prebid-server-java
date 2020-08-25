@@ -161,7 +161,8 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                                 "Unsupported creative type %s.", smartrtbResponseExt.getFormat())));
                 }
                 final Bid updatedBid = bid.toBuilder().ext(null).build();
-                final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, DEFAULT_BID_CURRENCY);
+                final BidderBid bidderBid = BidderBid.of(updatedBid, bidType,
+                        StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY));
                 bidderBids.add(bidderBid);
             }
         }

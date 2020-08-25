@@ -122,7 +122,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> createBid(bid, impTypes))
+                    .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
                     .collect(Collectors.toList());
             return Result.of(bidderBids, Collections.emptyList());
         } catch (PreBidException e) {
@@ -160,12 +160,13 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         return impTypes;
     }
 
-    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes) {
+    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes, String currency) {
         if (impTypes.get(bid.getImpid()) == null) {
             throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
         }
         validateResponseVideoExt(bid, impTypes);
-        return BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
+        return BidderBid.of(bid, impTypes.get(bid.getImpid()), StringUtils.defaultIfBlank(currency,
+                DEFAULT_BID_CURRENCY));
     }
 
     private void validateResponseVideoExt(Bid bid, Map<String, BidType> impTypes) {

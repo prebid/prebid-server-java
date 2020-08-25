@@ -9,6 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -127,7 +128,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                     final TripleliftResponseExt tripleliftResponseExt = mapper.mapper().treeToValue(ext,
                             TripleliftResponseExt.class);
                     final BidderBid bidderBid = BidderBid.of(bid, getBidType(tripleliftResponseExt),
-                            DEFAULT_BID_CURRENCY);
+                            StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY));
                     bidderBids.add(bidderBid);
                 } catch (JsonProcessingException e) {
                     errors.add(BidderError.badServerResponse(e.getMessage()));

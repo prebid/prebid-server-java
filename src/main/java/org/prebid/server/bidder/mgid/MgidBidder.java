@@ -159,7 +159,8 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), StringUtils.defaultIfBlank(bidResponse.getCur(),
+                        DEFAULT_BID_CURRENCY)))
                 .collect(Collectors.toList());
     }
 

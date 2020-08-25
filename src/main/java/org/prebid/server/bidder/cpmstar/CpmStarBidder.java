@@ -9,6 +9,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -119,16 +120,17 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, errors);
+        final List<BidderBid> result = bidsFromResponse(request.getImp(), responseBids, bidResponse.getCur(), errors);
         return Result.of(result, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(List<Imp> imps, List<Bid> responseBids, List<BidderError> errors) {
+    private static List<BidderBid> bidsFromResponse(List<Imp> imps, List<Bid> responseBids, String currency,
+                                                    List<BidderError> errors) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (Bid bid : responseBids) {
             try {
                 final BidType bidType = resolveBidType(bid.getImpid(), imps);
-                bidderBids.add(BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY));
+                bidderBids.add(BidderBid.of(bid, bidType, StringUtils.defaultIfBlank(currency, DEFAULT_BID_CURRENCY)));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(
                         String.format("bid id=%s %s", bid.getId(), e.getMessage()))

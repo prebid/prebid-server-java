@@ -431,6 +431,59 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("EUR")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .impid("123")
+                                        .build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsOnly("EUR");
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .impid("123")
+                                        .build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsOnly("USD");
+    }
+
+    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(emxDigitalBidder.extractTargeting(mapper.createObjectNode()))
                 .isEqualTo(emptyMap());
