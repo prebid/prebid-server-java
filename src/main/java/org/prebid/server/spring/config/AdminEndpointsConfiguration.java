@@ -14,6 +14,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.manager.AdminManager;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.util.VersionInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -31,6 +32,7 @@ public class AdminEndpointsConfiguration {
     @Bean
     @ConditionalOnExpression("${admin-endpoints.version.enabled} == true")
     CustomizedAdminEndpoint versionEndpoint(
+            VersionInfo versionInfo,
             JacksonMapper mapper,
             @Value("${admin-endpoints.version.path}") String path,
             @Value("${admin-endpoints.version.on-application-port}") boolean isOnApplicationPort,
@@ -39,7 +41,7 @@ public class AdminEndpointsConfiguration {
 
         return new CustomizedAdminEndpoint(
                 path,
-                VersionHandler.create("git-revision.json", mapper),
+                VersionHandler.create(versionInfo.getVersion(), versionInfo.getCommitHash(), mapper),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
