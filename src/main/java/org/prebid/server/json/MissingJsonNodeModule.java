@@ -15,6 +15,7 @@ public class MissingJsonNodeModule extends SimpleModule {
 
     private static class JsonNodeDeserializer extends com.fasterxml.jackson.databind.deser.std.JsonNodeDeserializer {
 
+        @Override
         public JsonNode getNullValue(DeserializationContext ctxt) {
             return null;
         }
