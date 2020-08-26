@@ -193,7 +193,8 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         return Result.of(bidderBids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, Map<String, ConsumableDecision> impIdToDecisions) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               Map<String, ConsumableDecision> impIdToDecisions) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (Map.Entry<String, ConsumableDecision> entry : impIdToDecisions.entrySet()) {
             final ConsumableDecision decision = entry.getValue();
