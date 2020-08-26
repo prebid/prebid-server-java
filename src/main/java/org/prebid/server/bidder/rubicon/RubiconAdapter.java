@@ -226,7 +226,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static JsonNode makeInventory(RubiconParams rubiconParams) {
         final JsonNode inventory = rubiconParams.getInventory();
-        return !inventory.isNull() && inventory.size() != 0 ? inventory : null;
+        return inventory != null && !inventory.isNull() && inventory.size() != 0 ? inventory : null;
     }
 
     private static RubiconImpExtRpTrack makeImpExtRpTrack(PreBidRequestContext preBidRequestContext) {
@@ -346,7 +346,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private ExtUser makeUserExt(RubiconParams rubiconParams, ExtUser extUser) {
         final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
         final JsonNode visitorNode = rubiconParams.getVisitor();
-        final JsonNode visitor = !visitorNode.isNull() && visitorNode.size() != 0 ? visitorNode : null;
+        final JsonNode visitor = visitorNode != null && !visitorNode.isNull() && visitorNode.size() != 0
+                ? visitorNode
+                : null;
         final boolean makeRp = visitor != null;
 
         if (digiTrust != null || visitor != null) {
