@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -28,6 +27,8 @@ import java.util.function.Function;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -44,7 +45,7 @@ public class MobilefuseBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        Assertions.assertThatIllegalArgumentException().isThrownBy(()
+        assertThatIllegalArgumentException().isThrownBy(()
                 -> new MobilefuseBidder("invalid_url", jacksonMapper));
     }
 
@@ -59,9 +60,9 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
 
         // then
-        Assertions.assertThat(result.getErrors()).hasSize(1);
-        Assertions.assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid ExtImpMobilefuse value");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -77,9 +78,9 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).hasSize(1);
-        Assertions.assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/openrtb?pub_id=2");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/openrtb?pub_id=2");
     }
 
     @Test
@@ -97,9 +98,9 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).hasSize(1);
-        Assertions.assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
                 .isEqualTo("https://test.endpoint.com/openrtb?pub_id=2&tagid_src=ext");
     }
 
@@ -119,8 +120,8 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
@@ -142,13 +143,13 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsNull();
-        Assertions.assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
@@ -164,11 +165,11 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobilefuseBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).hasSize(1);
-        Assertions.assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage())
                 .startsWith("Failed to decode: Unrecognized token");
-        Assertions.assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -181,8 +182,8 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobilefuseBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -195,8 +196,8 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobilefuseBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -213,8 +214,8 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobilefuseBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue())
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
@@ -231,8 +232,8 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobilefuseBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue())
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
@@ -246,13 +247,13 @@ public class MobilefuseBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mobilefuseBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
-        Assertions.assertThat(mobilefuseBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+        assertThat(mobilefuseBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(
