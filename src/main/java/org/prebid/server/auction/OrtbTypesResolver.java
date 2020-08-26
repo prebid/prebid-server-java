@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -25,6 +24,7 @@ import java.util.stream.StreamSupport;
  * Service resolves types inconsistency and cast them if possible to ortb2 protocol.
  */
 public class OrtbTypesResolver {
+
     private static final Logger logger = LoggerFactory.getLogger(OrtbTypesResolver.class);
 
     private static final String USER = "user";
@@ -51,7 +51,7 @@ public class OrtbTypesResolver {
      * Resolves fields types inconsistency to ortb2 protocol for {@param fpdContainerNode}.
      * Mutates both parameters, {@param fpdContainerNode} and {@param warnings}.
      */
-    public void normalizeFpdFields(JsonNode fpdContainerNode, List<String> warnings) {
+    void normalizeFpdFields(JsonNode fpdContainerNode, List<String> warnings) {
         if (fpdContainerNode != null && fpdContainerNode.isObject()) {
             final ObjectNode fpdContainerObjectNode = (ObjectNode) fpdContainerNode;
             updateWithNormalizedNode(fpdContainerObjectNode, USER, warnings);
@@ -149,8 +149,9 @@ public class OrtbTypesResolver {
 
     private void handleWarning(String message, List<String> warnings) {
         warnings.add(message);
-        final int random = ThreadLocalRandom.current().nextInt(0, 100);
-        if (random == 0) {
+
+        // log only 1% of cases
+        if (System.currentTimeMillis() % 100 == 0) {
             logger.warn(message);
         }
     }
