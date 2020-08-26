@@ -52,19 +52,36 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> result = new ArrayList<>();
+        final List<Imp> imps = new ArrayList<>();
 
+        ExtImpMobilefuse firstExtImpMobilefuse = null;
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpMobilefuse extImpMobilefuse = parseImpExt(imp);
-                final Imp validImp = validateImp(imp, extImpMobilefuse);
-                result.add(createSingleRequest(validImp, request, makeUrl(extImpMobilefuse)));
+                firstExtImpMobilefuse = firstExtImpMobilefuse == null ? extImpMobilefuse : firstExtImpMobilefuse;
+                final Imp modifiedImp = modifyImp(imp, extImpMobilefuse);
+                imps.add(modifiedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(result, errors);
+        if (firstExtImpMobilefuse == null) {
+            return Result.emptyWithError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        }
+
+        final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
+        final String body = mapper.encode(outgoingRequest);
+
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(makeUrl(firstExtImpMobilefuse))
+                        .headers(HttpUtil.headers())
+                        .payload(outgoingRequest)
+                        .body(body)
+                        .build()),
+                errors);
     }
 
     private ExtImpMobilefuse parseImpExt(Imp imp) {
@@ -75,7 +92,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp validateImp(Imp imp, ExtImpMobilefuse extImpMobilefuse) {
+    private Imp modifyImp(Imp imp, ExtImpMobilefuse extImpMobilefuse) {
         Imp.ImpBuilder impBuilder = imp.toBuilder();
 
         if (imp.getBanner() != null || imp.getVideo() != null) {
@@ -95,20 +112,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         return Objects.equals(extImpMobilefuse.getTagidSrc(), "ext")
                 ? String.format("%s%s", baseUrl, "&tagid_src=ext")
                 : baseUrl;
-    }
-
-    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
-        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-
-        final String body = mapper.encode(outgoingRequest);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(url)
-                .headers(HttpUtil.headers())
-                .body(body)
-                .payload(outgoingRequest)
-                .build();
     }
 
     @Override
