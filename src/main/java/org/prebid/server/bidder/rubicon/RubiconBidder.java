@@ -119,15 +119,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String PREBID_EXT = "prebid";
 
-    public static final String FPD_SECTIONCAT_FIELD = "sectioncat";
-    public static final String FPD_PAGECAT_FIELD = "pagecat";
-    public static final String FPD_PAGE_FIELD = "page";
-    public static final String FPD_REF_FIELD = "ref";
-    public static final String FPD_SEARCH_FIELD = "search";
-    public static final String FPD_ADSLOT_FIELD = "adslot";
-    public static final String FPD_ADSERVER_NAME_GAM = "gam";
-    public static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
-    public static final String FPD_KEYWORDS_FIELD = "keywords";
+    private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
+    private static final String FPD_PAGECAT_FIELD = "pagecat";
+    private static final String FPD_PAGE_FIELD = "page";
+    private static final String FPD_REF_FIELD = "ref";
+    private static final String FPD_SEARCH_FIELD = "search";
+    private static final String FPD_ADSLOT_FIELD = "adslot";
+    private static final String FPD_PBADSLOT_FIELD = "pbadslot";
+    private static final String FPD_ADSERVER_NAME_GAM = "gam";
+    private static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
+    private static final String FPD_KEYWORDS_FIELD = "keywords";
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpRubicon>>() {
@@ -450,9 +451,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode contextDataNode = context.getData();
 
         final String adSlot = ObjectUtils.firstNonNull(
-                getTextValueFromNodeByPath(contextDataNode, "adslot"),
+                getTextValueFromNodeByPath(contextDataNode, FPD_ADSLOT_FIELD),
                 getAdSlotFromAdServer(context),
-                getTextValueFromNodeByPath(contextDataNode, "pbadslot"));
+                getTextValueFromNodeByPath(contextDataNode, FPD_PBADSLOT_FIELD));
 
         if (StringUtils.isNotBlank(adSlot)) {
             final String adUnitCode = adSlot.indexOf('/') == 0 ? adSlot.substring(1) : adSlot;
@@ -857,14 +858,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return mapper.fillExtension(
                 ExtSite.of(siteExtAmp, null),
                 RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId())));
-    }
-
-    private ExtSite extSite(Site site) {
-        try {
-            return mapper.mapper().convertValue(site.getExt(), ExtSite.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e.getCause());
-        }
     }
 
     private App makeApp(App app, ExtImpRubicon rubiconImpExt) {

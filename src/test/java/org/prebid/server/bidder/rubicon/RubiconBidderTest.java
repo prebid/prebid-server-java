@@ -1271,7 +1271,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotCopyAdSlotFromAdServerToRubiconImpExtRpTargetIfAdServerNameIsNotGam() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
@@ -1301,7 +1301,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCopyAdSlotFromPbadslotImpExtContextDataFieldsToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.ext(givenExtBidRequestWithRubiconFirstPartyData()),
+                identity(),
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
