@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Arrays;
@@ -22,6 +24,8 @@ import java.util.stream.StreamSupport;
  * Service resolves types inconsistency and cast them if possible to ortb2 protocol.
  */
 public class OrtbTypesResolver {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrtbTypesResolver.class);
 
     private static final String USER = "user";
     private static final String APP = "app";
@@ -47,7 +51,7 @@ public class OrtbTypesResolver {
      * Resolves fields types inconsistency to ortb2 protocol for {@param fpdContainerNode}.
      * Mutates both parameters, {@param fpdContainerNode} and {@param warnings}.
      */
-    public void normalizeFpdFields(JsonNode fpdContainerNode, List<String> warnings) {
+    void normalizeFpdFields(JsonNode fpdContainerNode, List<String> warnings) {
         if (fpdContainerNode != null && fpdContainerNode.isObject()) {
             final ObjectNode fpdContainerObjectNode = (ObjectNode) fpdContainerNode;
             updateWithNormalizedNode(fpdContainerObjectNode, USER, warnings);
@@ -97,9 +101,9 @@ public class OrtbTypesResolver {
         if (node.isArray()) {
             final ArrayNode arrayNode = (ArrayNode) node;
             if (!arrayNode.isEmpty() && isTextualArray(arrayNode)) {
-                warnings.add(String.format("Incorrect type for first party data field %s.%s, expected is string, but"
+                handleWarning(String.format("Incorrect type for first party data field %s.%s, expected is string, but"
                                 + " was an array of strings. Converted to string by taking first element of array.",
-                        containerName, fieldName));
+                        containerName, fieldName), warnings);
                 return new TextNode(arrayNode.get(0).asText());
             }
         }
@@ -118,9 +122,9 @@ public class OrtbTypesResolver {
         if (node.isArray()) {
             final ArrayNode arrayNode = (ArrayNode) node;
             if (!arrayNode.isEmpty() && isTextualArray(arrayNode)) {
-                warnings.add(String.format("Incorrect type for first party data field %s.%s, expected is string, but"
+                handleWarning(String.format("Incorrect type for first party data field %s.%s, expected is string, but"
                                 + " was an array of strings. Converted to string by separating values with comma.",
-                        containerName, fieldName));
+                        containerName, fieldName), warnings);
                 return new TextNode(StreamSupport.stream(arrayNode.spliterator(), false)
                         .map(jsonNode -> (TextNode) jsonNode)
                         .map(TextNode::textValue)
@@ -134,12 +138,21 @@ public class OrtbTypesResolver {
 
     private void warnForExpectedStringArrayType(String fieldName, String containerName, List<String> warnings,
                                                 JsonNodeType nodeType) {
-        warnings.add(String.format("Incorrect type for first party data field %s.%s, expected strings, but was `%s`."
+        handleWarning(String.format("Incorrect type for first party data field %s.%s, expected strings, but was `%s`."
                         + " Failed to convert to correct type.", containerName, fieldName,
-                nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()));
+                nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()), warnings);
     }
 
     private static boolean isTextualArray(ArrayNode arrayNode) {
         return StreamSupport.stream(arrayNode.spliterator(), false).allMatch(JsonNode::isTextual);
+    }
+
+    private void handleWarning(String message, List<String> warnings) {
+        warnings.add(message);
+
+        // log only 1% of cases
+        if (System.currentTimeMillis() % 100 == 0) {
+            logger.warn(message);
+        }
     }
 }
