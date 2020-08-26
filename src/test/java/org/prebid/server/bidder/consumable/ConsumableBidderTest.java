@@ -290,6 +290,7 @@ public class ConsumableBidderTest extends VertxTest {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
+                        .width(120).height(90)
                         .contents(singletonList(ConsumableContents.of("contents_body"))));
 
         // when
