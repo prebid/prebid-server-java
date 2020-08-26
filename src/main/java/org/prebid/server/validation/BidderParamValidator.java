@@ -118,8 +118,8 @@ public class BidderParamValidator {
         final String path = schemaDirectory + FILE_SEP + bidder + JSON_FILE_EXT;
         try {
             result = toJsonNode(ResourceUtil.readFromClasspath(path), bidder, mapper);
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path), ex);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path), e);
         } catch (IOException | RuntimeException e) {
             throw new IllegalArgumentException(
                     String.format("Failed to load %s json schema at %s", bidder, path), e);

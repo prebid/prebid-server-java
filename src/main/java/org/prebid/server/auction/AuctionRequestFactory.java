@@ -170,7 +170,7 @@ public class AuctionRequestFactory {
         return updateBidRequest(routingContext, incomingBidRequest)
                 .compose(bidRequest ->
                         toAuctionContext(routingContext, bidRequest, errors, startTime,
-                        timeoutResolver));
+                                timeoutResolver));
     }
 
     /**
@@ -211,8 +211,8 @@ public class AuctionRequestFactory {
         }
 
         final JsonNode bidRequestNode;
-        try {
-            bidRequestNode = mapper.mapper().readTree(new ByteBufInputStream(body.getByteBuf()));
+        try (ByteBufInputStream inputStream = new ByteBufInputStream(body.getByteBuf())) {
+            bidRequestNode = mapper.mapper().readTree(inputStream);
         } catch (IOException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
         }
@@ -600,8 +600,8 @@ public class AuctionRequestFactory {
             final PriceGranularity priceGranularity;
             try {
                 priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
-            } catch (PreBidException ex) {
-                throw new InvalidRequestException(ex.getMessage());
+            } catch (PreBidException e) {
+                throw new InvalidRequestException(e.getMessage());
             }
             return mapper.mapper().valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
