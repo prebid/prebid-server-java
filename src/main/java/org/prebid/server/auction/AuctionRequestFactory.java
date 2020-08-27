@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -32,9 +33,12 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -95,6 +99,7 @@ public class AuctionRequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final IdGenerator idGenerator;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
 
@@ -116,6 +121,7 @@ public class AuctionRequestFactory {
                                  TimeoutFactory timeoutFactory,
                                  ApplicationSettings applicationSettings,
                                  IdGenerator idGenerator,
+                                 PrivacyEnforcementService privacyEnforcementService,
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
@@ -136,6 +142,7 @@ public class AuctionRequestFactory {
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -168,9 +175,13 @@ public class AuctionRequestFactory {
         }
 
         return updateBidRequest(routingContext, incomingBidRequest)
-                .compose(bidRequest ->
-                        toAuctionContext(routingContext, bidRequest, errors, startTime,
-                                timeoutResolver));
+                .compose(bidRequest -> toAuctionContext(
+                        routingContext,
+                        bidRequest,
+                        requestTypeMetric(bidRequest),
+                        errors,
+                        startTime,
+                        timeoutResolver));
     }
 
     /**
@@ -178,20 +189,29 @@ public class AuctionRequestFactory {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+    Future<AuctionContext> toAuctionContext(RoutingContext routingContext,
+                                            BidRequest bidRequest,
+                                            MetricName requestTypeMetric,
                                             List<String> errors,
-                                            long startTime, TimeoutResolver timeoutResolver) {
+                                            long startTime,
+                                            TimeoutResolver timeoutResolver) {
+
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, routingContext)
-                .map(account -> AuctionContext.builder()
-                        .routingContext(routingContext)
-                        .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
-                        .bidRequest(bidRequest)
-                        .timeout(timeout)
-                        .account(account)
-                        .prebidErrors(errors)
-                        .build());
+                .compose(account -> privacyEnforcementService.contextFromBidRequest(
+                        bidRequest, account, requestTypeMetric, timeout)
+                        .map(privacyContext -> AuctionContext.builder()
+                                .routingContext(routingContext)
+                                .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
+                                .bidRequest(enrichRequestWithIpAndCountry(bidRequest, privacyContext))
+                                .requestTypeMetric(requestTypeMetric)
+                                .timeout(timeout)
+                                .account(account)
+                                .prebidErrors(errors)
+                                .privacyContext(privacyContext)
+                                .geoInfo(privacyContext.getTcfContext().getGeoInfo())
+                                .build()));
     }
 
     /**
@@ -814,5 +834,41 @@ public class AuctionRequestFactory {
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Unauthorized account id: %s", accountId), accountId))
                 : Future.succeededFuture(Account.empty(accountId));
+    }
+
+    private static MetricName requestTypeMetric(BidRequest bidRequest) {
+        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+    }
+
+    private BidRequest enrichRequestWithIpAndCountry(BidRequest bidRequest, PrivacyContext privacyContext) {
+        final String ipAddress = privacyContext.getIpAddress();
+        final String country = getIfNotNull(privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+
+        final Device device = bidRequest.getDevice();
+        final String ipAddressInRequest = getIfNotNull(device, Device::getIp);
+
+        final Geo geo = getIfNotNull(device, Device::getGeo);
+        final String countryFromRequest = getIfNotNull(geo, Geo::getCountry);
+
+        final boolean shouldUpdateIp = ipAddress != null && !Objects.equals(ipAddressInRequest, ipAddress);
+        final boolean shouldUpdateCountry = country != null && !Objects.equals(countryFromRequest, country);
+
+        if (shouldUpdateIp || shouldUpdateCountry) {
+            final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
+
+            if (shouldUpdateIp) {
+                deviceBuilder.ip(ipAddress);
+            }
+
+            if (shouldUpdateCountry) {
+                final Geo.GeoBuilder geoBuilder = geo != null ? geo.toBuilder() : Geo.builder();
+                geoBuilder.country(country);
+                deviceBuilder.geo(geoBuilder.build());
+            }
+
+            return bidRequest.toBuilder().device(deviceBuilder.build()).build();
+        }
+
+        return bidRequest;
     }
 }

@@ -768,6 +768,7 @@ public class AmpHandlerTest extends VertxTest {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
+                .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
                 .build();
     }

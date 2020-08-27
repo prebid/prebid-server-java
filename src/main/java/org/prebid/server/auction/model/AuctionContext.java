@@ -7,7 +7,9 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
@@ -32,4 +34,8 @@ public class AuctionContext {
     MetricName requestTypeMetric;
 
     List<String> prebidErrors;
+
+    PrivacyContext privacyContext;
+
+    GeoInfo geoInfo;
 }

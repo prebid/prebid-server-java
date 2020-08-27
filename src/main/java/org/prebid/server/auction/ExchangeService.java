@@ -400,7 +400,7 @@ public class ExchangeService {
                 prepareUsers(bidders, context, aliases, bidRequest, extUser, uidsBody, biddersToConfigs);
 
         return privacyEnforcementService
-                .mask(context, bidderToUser, extUser, bidders, aliases)
+                .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getBidderRequests(bidderToPrivacyResult, bidRequest, imps, biddersToConfigs));
     }

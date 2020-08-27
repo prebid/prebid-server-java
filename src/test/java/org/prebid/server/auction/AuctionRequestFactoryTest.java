@@ -40,6 +40,10 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -69,6 +73,7 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -107,6 +112,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private ApplicationSettings applicationSettings;
     @Mock
     private IdGenerator idGenerator;
+    @Mock
+    private PrivacyEnforcementService privacyEnforcementService;
 
     private AuctionRequestFactory factory;
     @Mock
@@ -131,6 +138,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
+        given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(
+                        Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                        TcfContext.empty())));
+
         factory = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
                 false,
@@ -150,6 +162,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
     }
 
@@ -190,6 +203,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         givenValidBidRequest();
@@ -228,6 +242,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -275,6 +290,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
@@ -900,6 +916,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
         givenBidRequest(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
@@ -942,6 +959,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -983,6 +1001,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1024,6 +1043,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1091,6 +1111,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         givenBidRequest(BidRequest.builder()
@@ -1134,6 +1155,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 timeoutFactory,
                 applicationSettings,
                 idGenerator,
+                privacyEnforcementService,
                 jacksonMapper);
 
         final ExtRequest extBidRequest = ExtRequest.of(ExtRequestPrebid.builder()
