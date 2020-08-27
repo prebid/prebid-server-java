@@ -499,10 +499,11 @@ public class ExchangeService {
             }
 
             if (shouldUpdateUserExt) {
-                userBuilder.ext(extUser.toBuilder()
+                final ExtUser updatedExtUser = extUser.toBuilder()
                         .prebid(null)
                         .data(null)
-                        .build());
+                        .build();
+                userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
             }
 
             maskedUser = userBuilder.build();
@@ -709,12 +710,17 @@ public class ExchangeService {
         final ExtApp appExt = app != null ? app.getExt() : null;
 
         final App maskedApp = appExt != null && appExt.getData() != null && !useFirstPartyData
-                ? app.toBuilder().ext(ExtApp.of(appExt.getPrebid(), null)).build()
+                ? app.toBuilder().ext(maskExtApp(appExt)).build()
                 : app;
 
         final App fpdApp = fpdConfig == null ? null : fpdConfig.getApp();
 
         return fpdResolver.resolveApp(maskedApp, fpdApp);
+    }
+
+    private ExtApp maskExtApp(ExtApp appExt) {
+        final ExtApp maskedExtApp = ExtApp.of(appExt.getPrebid(), null);
+        return maskedExtApp.isEmpty() ? null : maskedExtApp;
     }
 
     /**
@@ -725,12 +731,17 @@ public class ExchangeService {
         final ExtSite siteExt = site != null ? site.getExt() : null;
 
         final Site maskedSite = siteExt != null && siteExt.getData() != null && !useFirstPartyData
-                ? site.toBuilder().ext(ExtSite.of(siteExt.getAmp(), null)).build()
+                ? site.toBuilder().ext(maskExtSite(siteExt)).build()
                 : site;
 
         final Site fpdSite = fpdConfig == null ? null : fpdConfig.getSite();
 
         return fpdResolver.resolveSite(maskedSite, fpdSite);
+    }
+
+    private ExtSite maskExtSite(ExtSite siteExt) {
+        final ExtSite maskedExtSite = ExtSite.of(siteExt.getAmp(), null);
+        return maskedExtSite.isEmpty() ? null : maskedExtSite;
     }
 
     /**
