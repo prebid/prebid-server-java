@@ -310,10 +310,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         // when
-        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        factory.fromRequest(routingContext, 0L).result();
 
         // then
-        verify(ortbTypesResolver).normalizeFpdFields(any(), any());
+        verify(ortbTypesResolver).normalizeBidRequest(any(), any());
     }
 
     @Test

@@ -249,7 +249,7 @@ public class AmpRequestFactory {
 
         final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
         final ObjectNode targetingNode = readTargeting(requestTargeting);
-        ortbTypesResolver.normalizeFpdFields(targetingNode, errors);
+        ortbTypesResolver.normalizeStandardFpdFields(targetingNode, errors, "targeting");
         final Targeting targeting = parseTargeting(targetingNode);
 
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
