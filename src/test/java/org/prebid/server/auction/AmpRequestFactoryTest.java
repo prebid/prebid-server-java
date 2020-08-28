@@ -53,6 +53,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -91,9 +92,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(routingContext.request()).willReturn(httpRequest);
-        given(fpdResolver.resolveApp(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(fpdResolver.resolveSite(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(fpdResolver.resolveUser(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveApp(any(), any(), anyBoolean()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveSite(any(), any(), anyBoolean()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveUser(any(), any(), anyBoolean()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));

@@ -71,32 +71,78 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, fpdUser);
+        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser), true);
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
                 .id("id")
-                .buyeruid("buyeruid")
+                .keywords("fpdkeywords")
                 .yob(2)
                 .gender("fpdgender")
+                .buyeruid("buyeruid")
                 .language("language")
-                .keywords("fpdkeywords")
                 .customdata("customdata")
+                .geo(Geo.builder().country("country").build())
+                .data(Collections.singletonList(Data.of("id", null, null, null)))
+                .ext(ExtUser.builder().data(mapper.createObjectNode()
+                        .set("geo", mapper.createObjectNode().put("country", "fpdcountry"))).build())
+                .build());
+    }
+
+    @Test
+    public void resolveUserShouldOverrideFpdFieldsFromFpdUserExceptDataExtWhenUseFpdFalse() {
+        // given
+        final User originUser = User.builder()
+                .id("id")
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .language("language")
+                .keywords("keywords")
+                .customdata("customdata")
+                .geo(Geo.builder().country("country").build())
+                .data(Collections.singletonList(Data.of("id", null, null, null)))
+                .build();
+
+        final User fpdUser = User.builder()
+                .id("fpdid")
+                .buyeruid("fpdbuyeruid")
+                .yob(2)
+                .gender("fpdgender")
+                .language("fpdlanguage")
+                .keywords("fpdkeywords")
+                .customdata("fpdcustomdata")
                 .geo(Geo.builder().country("fpdcountry").build())
+                .data(Collections.singletonList(Data.of("fpdid", null, null, null)))
+                .build();
+
+        // when
+        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser), false);
+
+        // then
+        assertThat(resultUser).isEqualTo(User.builder()
+                .id("id")
+                .keywords("fpdkeywords")
+                .yob(2)
+                .gender("fpdgender")
+                .buyeruid("buyeruid")
+                .language("language")
+                .customdata("customdata")
+                .geo(Geo.builder().country("country").build())
                 .data(Collections.singletonList(Data.of("id", null, null, null)))
                 .build());
     }
 
     @Test
     public void resolveUserShouldReturnOriginUserIfFpdUserIsNull() {
-        assertThat(fpdResolver.resolveUser(User.builder().id("origin").build(), null))
+        assertThat(fpdResolver.resolveUser(User.builder().id("origin").build(), null, true))
                 .isEqualTo(User.builder().id("origin").build());
     }
 
     @Test
     public void resolveUserShouldReturnFpdUserIfOriginUserIsNull() {
-        assertThat(fpdResolver.resolveUser(null, User.builder().id("fpd").build()))
-                .isEqualTo(User.builder().id("fpd").build());
+        assertThat(fpdResolver.resolveUser(null, mapper.valueToTree(User.builder().gender("male").build()), true))
+                .isEqualTo(User.builder().gender("male").build());
     }
 
     @Test
@@ -115,7 +161,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, fpdUser);
+        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser), true);
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
@@ -140,7 +186,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, fpdUser);
+        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser), true);
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
@@ -164,7 +210,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, fpdUser);
+        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser), true);
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
@@ -212,12 +258,15 @@ public class FpdResolverTest extends VertxTest {
                 .keywords("fpdKeywords")
                 .build();
         // when
-        final App resultApp = fpdResolver.resolveApp(originApp, fpdApp);
+        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp), true);
 
         // then
+        final ObjectNode dataResult = mapper.createObjectNode().put("id", "fpdId").put("privacypolicy", 2)
+                .set("publisher", mapper.createObjectNode().put("id", "fpdId"));
+        dataResult.set("content", mapper.createObjectNode().put("language", "fpdLan"));
         assertThat(resultApp)
                 .isEqualTo(App.builder()
-                        .id("fpdId")
+                        .id("originId")
                         .name("fpdName")
                         .bundle("fpdBundle")
                         .domain("fpdDomain")
@@ -225,25 +274,86 @@ public class FpdResolverTest extends VertxTest {
                         .cat(Collections.singletonList("fpdCat"))
                         .sectioncat(Collections.singletonList("fpdSectionCat"))
                         .pagecat(Collections.singletonList("fpdPageCat"))
+                        .publisher(Publisher.builder().id("originId").build())
+                        .content(Content.builder().language("originLan").build())
                         .ver("originVer")
-                        .privacypolicy(2)
+                        .privacypolicy(1)
                         .paid(1)
-                        .publisher(Publisher.builder().id("fpdId").build())
-                        .content(Content.builder().language("fpdLan").build())
+                        .keywords("fpdKeywords")
+                        .ext(ExtApp.of(null, dataResult))
+                        .build());
+    }
+
+    @Test
+    public void resolveAppShouldOverrideFpdFieldsFromFpdAppExceptExtDataWhenUseFpdFalse() {
+        // given
+        final App originApp = App.builder()
+                .id("originId")
+                .name("originName")
+                .bundle("originBundle")
+                .domain("originDomain")
+                .storeurl("originStoreUrl")
+                .cat(Collections.singletonList("originCat"))
+                .sectioncat(Collections.singletonList("originSectionCat"))
+                .pagecat(Collections.singletonList("originPageCat"))
+                .ver("originVer")
+                .privacypolicy(1)
+                .paid(1)
+                .publisher(Publisher.builder().id("originId").build())
+                .content(Content.builder().language("originLan").build())
+                .keywords("originKeywords")
+                .build();
+
+        final App fpdApp = App.builder()
+                .id("fpdId")
+                .name("fpdName")
+                .bundle("fpdBundle")
+                .domain("fpdDomain")
+                .storeurl("fpdStoreUrl")
+                .cat(Collections.singletonList("fpdCat"))
+                .sectioncat(Collections.singletonList("fpdSectionCat"))
+                .pagecat(Collections.singletonList("fpdPageCat"))
+                .ver("fpdVer")
+                .privacypolicy(2)
+                .paid(2)
+                .publisher(Publisher.builder().id("fpdId").build())
+                .content(Content.builder().language("fpdLan").build())
+                .keywords("fpdKeywords")
+                .build();
+        // when
+        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp), false);
+
+        // then
+
+        assertThat(resultApp)
+                .isEqualTo(App.builder()
+                        .id("originId")
+                        .name("fpdName")
+                        .bundle("fpdBundle")
+                        .domain("fpdDomain")
+                        .storeurl("fpdStoreUrl")
+                        .cat(Collections.singletonList("fpdCat"))
+                        .sectioncat(Collections.singletonList("fpdSectionCat"))
+                        .pagecat(Collections.singletonList("fpdPageCat"))
+                        .publisher(Publisher.builder().id("originId").build())
+                        .content(Content.builder().language("originLan").build())
+                        .ver("originVer")
+                        .privacypolicy(1)
+                        .paid(1)
                         .keywords("fpdKeywords")
                         .build());
     }
 
     @Test
     public void resolveAppShouldReturnOriginAppIfFpdAppIsNull() {
-        assertThat(fpdResolver.resolveApp(App.builder().id("origin").build(), null))
+        assertThat(fpdResolver.resolveApp(App.builder().id("origin").build(), null, true))
                 .isEqualTo(App.builder().id("origin").build());
     }
 
     @Test
     public void resolveAppShouldReturnFpdAppIfOriginAppIsNull() {
-        assertThat(fpdResolver.resolveApp(null, App.builder().id("fpd").build()))
-                .isEqualTo(App.builder().id("fpd").build());
+        assertThat(fpdResolver.resolveApp(null, mapper.valueToTree(App.builder().name("fpd").build()), true))
+                .isEqualTo(App.builder().name("fpd").build());
     }
 
     @Test
@@ -262,7 +372,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final App resultApp = fpdResolver.resolveApp(originApp, fpdApp);
+        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp), true);
 
         // then
         assertThat(resultApp).isEqualTo(App.builder()
@@ -274,7 +384,7 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveSite() {
+    public void resolveSiteShouldOverrideFpdFieldsFromFpdSite() {
         // given
         final Site originSite = Site.builder()
                 .id("originId")
@@ -311,38 +421,102 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Site resultSite = fpdResolver.resolveSite(originSite, fpdSite);
+        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite), true);
+
+        // then
+        final ObjectNode extData = mapper.createObjectNode().put("id", "fpdId").put("privacypolicy", 2).put("mobile", 2)
+                .set("publisher", mapper.createObjectNode().put("id", "fpdId"));
+        extData.set("content", mapper.createObjectNode().put("language", "fpdLan"));
+        assertThat(resultSite).isEqualTo(
+                Site.builder()
+                        .name("fpdName")
+                        .domain("fpdDomain")
+                        .cat(Collections.singletonList("fpdCat"))
+                        .sectioncat(Collections.singletonList("fpdSectionCat"))
+                        .pagecat(Collections.singletonList("fpdPageCat"))
+                        .page("fpdPage")
+                        .ref("fpdRef")
+                        .search("fpdSearch")
+                        .keywords("fpdKeywords")
+                        .id("originId")
+                        .content(Content.builder().language("originLan").build())
+                        .publisher(Publisher.builder().id("originId").build())
+                        .privacypolicy(1)
+                        .mobile(1)
+                        .ext(ExtSite.of(null, extData))
+                        .build());
+    }
+
+    @Test
+    public void resolveSiteShouldOverrideFpdFieldsFromFpdSiteExceptExtDateWhenUseFpdFalse() {
+        // given
+        final Site originSite = Site.builder()
+                .id("originId")
+                .name("originName")
+                .ref("originRef")
+                .search("originSearch")
+                .domain("originDomain")
+                .cat(Collections.singletonList("originCat"))
+                .page("originPage")
+                .sectioncat(Collections.singletonList("originSectionCat"))
+                .pagecat(Collections.singletonList("originPageCat"))
+                .mobile(1)
+                .privacypolicy(1)
+                .publisher(Publisher.builder().id("originId").build())
+                .content(Content.builder().language("originLan").build())
+                .keywords("originKeywords")
+                .build();
+
+        final Site fpdSite = Site.builder()
+                .id("fpdId")
+                .name("fpdName")
+                .ref("fpdRef")
+                .search("fpdSearch")
+                .domain("fpdDomain")
+                .cat(Collections.singletonList("fpdCat"))
+                .page("fpdPage")
+                .sectioncat(Collections.singletonList("fpdSectionCat"))
+                .pagecat(Collections.singletonList("fpdPageCat"))
+                .mobile(2)
+                .privacypolicy(2)
+                .publisher(Publisher.builder().id("fpdId").build())
+                .content(Content.builder().language("fpdLan").build())
+                .keywords("fpdKeywords")
+                .build();
+
+        // when
+        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite), false);
 
         // then
         assertThat(resultSite).isEqualTo(
                 Site.builder()
-                        .id("fpdId")
                         .name("fpdName")
-                        .ref("fpdRef")
-                        .search("fpdSearch")
                         .domain("fpdDomain")
                         .cat(Collections.singletonList("fpdCat"))
-                        .page("fpdPage")
                         .sectioncat(Collections.singletonList("fpdSectionCat"))
                         .pagecat(Collections.singletonList("fpdPageCat"))
-                        .mobile(2)
-                        .privacypolicy(2)
-                        .publisher(Publisher.builder().id("fpdId").build())
-                        .content(Content.builder().language("fpdLan").build())
+                        .page("fpdPage")
+                        .ref("fpdRef")
+                        .search("fpdSearch")
                         .keywords("fpdKeywords")
+                        .id("originId")
+                        .content(Content.builder().language("originLan").build())
+                        .publisher(Publisher.builder().id("originId").build())
+                        .privacypolicy(1)
+                        .mobile(1)
                         .build());
     }
 
     @Test
     public void resolveSiteShouldReturnOriginSiteIfFpdSiteIsNull() {
-        assertThat(fpdResolver.resolveApp(App.builder().id("origin").build(), null))
+        assertThat(fpdResolver.resolveApp(App.builder().id("origin").build(), null, true))
                 .isEqualTo(App.builder().id("origin").build());
     }
 
     @Test
     public void resolveSiteShouldReturnFpdSiteIfOriginSiteIsNull() {
-        assertThat(fpdResolver.resolveSite(null, Site.builder().id("fpd").build()))
-                .isEqualTo(Site.builder().id("fpd").build());
+        assertThat(fpdResolver.resolveSite(null, mapper.valueToTree(Site.builder().name("fpd").build()), true))
+                .isEqualTo(Site.builder().name("fpd").build());
     }
 
     @Test
@@ -361,7 +535,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Site resultSite = fpdResolver.resolveSite(originSite, fpdSite);
+        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite), true);
 
         // then
         assertThat(resultSite).isEqualTo(Site.builder()
@@ -560,7 +734,8 @@ public class FpdResolverTest extends VertxTest {
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
                         Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                Site.builder().id("id").build(), null, User.builder().id("id").build()))))).build()));
+                                mapper.valueToTree(Site.builder().id("id").build()), null,
+                                mapper.valueToTree(User.builder().id("id").build())))))).build()));
     }
 
     @Test
@@ -592,6 +767,7 @@ public class FpdResolverTest extends VertxTest {
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "adform")))
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
                         Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                Site.builder().id("id").build(), null, User.builder().id("id").build()))))).build()));
+                                mapper.valueToTree(Site.builder().id("id").build()), null,
+                                mapper.valueToTree(User.builder().id("id").build())))))).build()));
     }
 }
