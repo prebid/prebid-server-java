@@ -27,6 +27,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -114,10 +115,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-    private static final String ADSERVER_EID = "adserver.org";
-    private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String PREBID_EXT = "prebid";
+
+    private static final String ADSERVER_EID = "adserver.org";
+    private static final String LIVEINTENT_EID = "liveintent.com";
+    private static final String LIVERAMP_EID = "liveramp.com";
 
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
     private static final String FPD_PAGECAT_FIELD = "pagecat";
@@ -671,8 +674,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 : null;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
+        final String liverampId = extractLiverampId(sourceToUserEidExt);
 
-        if (userExtRp == null && userExtTpIds == null && userExtData == null) {
+        if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null) {
             return user;
         }
 
@@ -687,6 +691,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                 .rp(userExtRp)
                 .tpid(userExtTpIds)
+                .liverampIdl(liverampId)
                 .build();
 
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
@@ -703,9 +708,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(eids)) {
             return null;
         }
-
         return eids.stream()
-                .filter(extUserEid -> StringUtils.equalsAny(extUserEid.getSource(), ADSERVER_EID, LIVEINTENT_EID))
+                .filter(extUserEid -> StringUtils.equalsAny(extUserEid.getSource(),
+                        ADSERVER_EID, LIVEINTENT_EID, LIVERAMP_EID))
                 .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
                 .collect(Collectors.groupingBy(ExtUserEid::getSource));
     }
@@ -765,7 +770,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         populateFirstPartyDataAttributes(visitor, result);
 
-        copyLiveIntentSegment(sourceToUserEidExt, result);
+        copyLiveintentSegment(sourceToUserEidExt, result);
 
         mergeFirstPartyDataFromUser(user, result);
 
@@ -783,7 +788,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
     }
 
-    private void copyLiveIntentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
+    private static void copyLiveintentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
         if (sourceToUserEidExt != null && CollectionUtils.isNotEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
             final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
             final JsonNode segment = ext != null ? ext.get("segments") : null;
@@ -800,6 +805,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
         }
+    }
+
+    private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
+        final List<ExtUserEid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
+        for (ExtUserEid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
+            final ExtUserEidUid eidUid = extUserEid != null
+                    ? CollectionUtils.emptyIfNull(extUserEid.getUids()).stream().findFirst().orElse(null)
+                    : null;
+
+            final String id = eidUid != null ? eidUid.getId() : null;
+            if (StringUtils.isNotEmpty(id)) {
+                return id;
+            }
+        }
+        return null;
     }
 
     private Device makeDevice(Device device) {
