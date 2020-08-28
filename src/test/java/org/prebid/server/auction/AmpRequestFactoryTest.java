@@ -222,7 +222,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         factory.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        verify(ortbTypesResolver).normalizeFpdFields(any(), anyList());
+        verify(ortbTypesResolver).normalizeStandardFpdFields(any(), anyList(), any());
     }
 
     @Test
