@@ -290,7 +290,7 @@ public class ConsumableBidderTest extends VertxTest {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
                 decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
-                        .width(120).height(90)
+                        .width(300).height(250)
                         .contents(singletonList(ConsumableContents.of("contents_body"))));
 
         // when
@@ -303,7 +303,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .contains(BidderBid.of(
                         Bid.builder()
                                 .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
-                                .adm("contents_body").w(120).h(90).exp(30).crid("123").build(),
+                                .adm("contents_body").w(300).h(250).exp(30).crid("123").build(),
                         BidType.banner, null));
     }
 
