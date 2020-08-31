@@ -216,15 +216,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private List<Imp> extractValidImps(BidRequest bidRequest, List<BidderError> errors) {
-        final List<Imp> imps = bidRequest.getImp();
-        final List<BidderError> typeValidationErrors = imps.stream()
-                .filter(imp -> !isValidType(imp))
+        final Map<Boolean, List<Imp>> isValidToImps = bidRequest.getImp().stream()
+                .collect(Collectors.groupingBy(RubiconBidder::isValidType));
+
+        isValidToImps.getOrDefault(false, Collections.emptyList()).stream()
                 .map(this::impTypeErrorMessage)
-                .collect(Collectors.toList());
-        errors.addAll(typeValidationErrors);
-        return bidRequest.getImp().stream()
-                .filter(RubiconBidder::isValidType)
-                .collect(Collectors.toList());
+                .forEach(errors::add);
+
+        return isValidToImps.get(true);
     }
 
     private static boolean isValidType(Imp imp) {
