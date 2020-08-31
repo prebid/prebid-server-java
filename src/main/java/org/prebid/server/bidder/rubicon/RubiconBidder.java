@@ -223,7 +223,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .map(this::impTypeErrorMessage)
                 .forEach(errors::add);
 
-        return isValidToImps.get(true);
+        return isValidToImps.getOrDefault(true, Collections.emptyList());
     }
 
     private static boolean isValidType(Imp imp) {
