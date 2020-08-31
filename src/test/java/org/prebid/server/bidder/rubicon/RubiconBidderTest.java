@@ -917,6 +917,62 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateUserExtLiverampId() throws JsonProcessingException {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .eids(asList(
+                        ExtUserEid.of("liveramp.com", null,
+                                asList(
+                                        ExtUserEidUid.of("firstId", null),
+                                        ExtUserEidUid.of("ignored", null)), null),
+                        ExtUserEid.of("liveramp.com", null,
+                                singletonList(ExtUserEidUid.of("ignored", null)), null)))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().ext(extUser).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .containsOnly(User.builder()
+                        .ext(jacksonMapper.fillExtension(
+                                extUser,
+                                RubiconUserExt.builder().liverampIdl("firstId").build()))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIgnoreLiverampIdIfMissingEidUidId() throws JsonProcessingException {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .eids(asList(
+                        ExtUserEid.of("liveramp.com", null, null, null),
+                        ExtUserEid.of("liveramp.com", null, emptyList(), null)))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().ext(extUser).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .containsOnly(User.builder().ext(extUser).build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotCreateUserExtTpIdWithUnknownEidSource() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
