@@ -43,7 +43,14 @@ public class FpdResolver {
     private static final String BIDDERS = "bidders";
     private static final String APP = "app";
     private static final Set<String> KNOWN_FPD_ATTRIBUTES = new HashSet<>(Arrays.asList(USER, SITE, APP, BIDDERS));
-    public static final String ALLOW_ALL_BIDDERS = "*";
+    private static final String ALLOW_ALL_BIDDERS = "*";
+    private static final String EXT = "ext";
+    private static final String DATA = "data";
+    private static final Set<String> USER_DATA_ATTR = Collections.singleton("geo");
+    private static final Set<String> APP_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
+            "privacypolicy"));
+    private static final Set<String> SITE_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
+            "privacypolicy", "mobile"));
 
     private final JacksonMapper jacksonMapper;
     private final JsonMergeUtil jsonMergeUtil;
@@ -71,7 +78,7 @@ public class FpdResolver {
     private ExtUser resolveUserExt(ObjectNode fpdUser, User originUser, boolean useFirstPartyData) {
         final ExtUser originExtUser = originUser.getExt();
         final ObjectNode resolvedData = useFirstPartyData
-                ? mergeExtData(fpdUser.path("ext").path("data"), originExtUser != null ? originExtUser.getData() : null)
+                ? mergeExtData(fpdUser.path(EXT).path(DATA), originExtUser != null ? originExtUser.getData() : null)
                 : null;
 
         return useFirstPartyData ? updateUserExtDataWithFpdAttr(fpdUser, originExtUser, resolvedData) : originExtUser;
@@ -80,7 +87,7 @@ public class FpdResolver {
     private ExtUser updateUserExtDataWithFpdAttr(ObjectNode fpdUser, ExtUser originExtUser, ObjectNode extData) {
 
         ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
-        setAttr(fpdUser, resultData, "geo");
+        USER_DATA_ATTR.forEach(attribute -> setAttr(fpdUser, resultData, attribute));
         return originExtUser != null
                 ? originExtUser.toBuilder().data(resultData.isEmpty() ? null : resultData).build()
                 : resultData.isEmpty() ? null : ExtUser.builder().data(resultData).build();
@@ -108,7 +115,7 @@ public class FpdResolver {
     private ExtApp resolveAppExt(ObjectNode fpdApp, App originApp, boolean useFirstPartyData) {
         final ExtApp originExtApp = originApp.getExt();
         final ObjectNode resolvedData = useFirstPartyData
-                ? mergeExtData(fpdApp.path("ext").path("data"), originExtApp != null ? originExtApp.getData() : null)
+                ? mergeExtData(fpdApp.path(EXT).path(DATA), originExtApp != null ? originExtApp.getData() : null)
                 : null;
 
         return useFirstPartyData ? updateAppExtDataWithFpdAttr(fpdApp, originExtApp, resolvedData) : originExtApp;
@@ -116,10 +123,7 @@ public class FpdResolver {
 
     private ExtApp updateAppExtDataWithFpdAttr(ObjectNode fpdApp, ExtApp originExtApp, ObjectNode extData) {
         final ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
-        setAttr(fpdApp, resultData, "id");
-        setAttr(fpdApp, resultData, "content");
-        setAttr(fpdApp, resultData, "publisher");
-        setAttr(fpdApp, resultData, "privacypolicy");
+        APP_DATA_ATTR.forEach(attribute -> setAttr(fpdApp, resultData, attribute));
         return originExtApp != null
                 ? ExtApp.of(originExtApp.getPrebid(), resultData.isEmpty() ? null : resultData)
                 : resultData.isEmpty() ? null : ExtApp.of(null, resultData);
@@ -149,7 +153,7 @@ public class FpdResolver {
     private ExtSite resolveSiteExt(ObjectNode fpdSite, Site originSite, boolean useFirstPartyData) {
         final ExtSite originExtSite = originSite.getExt();
         final ObjectNode resolvedData = useFirstPartyData
-                ? mergeExtData(fpdSite.path("ext").path("data"), originExtSite != null ? originExtSite.getData() : null)
+                ? mergeExtData(fpdSite.path(EXT).path(DATA), originExtSite != null ? originExtSite.getData() : null)
                 : null;
 
         return useFirstPartyData ? updateSiteExtDataWithFpdAttr(fpdSite, originExtSite, resolvedData) : originExtSite;
@@ -157,11 +161,7 @@ public class FpdResolver {
 
     private ExtSite updateSiteExtDataWithFpdAttr(ObjectNode fpdSite, ExtSite originExtSite, ObjectNode extData) {
         final ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
-        setAttr(fpdSite, resultData, "id");
-        setAttr(fpdSite, resultData, "content");
-        setAttr(fpdSite, resultData, "publisher");
-        setAttr(fpdSite, resultData, "privacypolicy");
-        setAttr(fpdSite, resultData, "mobile");
+        SITE_DATA_ATTR.forEach(attribute -> setAttr(fpdSite, resultData, attribute));
         return originExtSite != null
                 ? ExtSite.of(originExtSite.getAmp(), resultData.isEmpty() ? null : resultData)
                 : resultData.isEmpty() ? null : ExtSite.of(null, resultData);
