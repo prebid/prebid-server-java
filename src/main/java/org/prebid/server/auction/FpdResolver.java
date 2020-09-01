@@ -61,12 +61,12 @@ public class FpdResolver {
         this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
     }
 
-    public User resolveUser(User originUser, ObjectNode fpdUser, boolean useFirstPartyData) {
-        final User resultUser = originUser == null ? User.builder().build() : originUser;
+    public User resolveUser(User originUser, ObjectNode fpdUser) {
         if (fpdUser == null) {
             return originUser;
         }
-        final ExtUser resolvedExtUser = resolveUserExt(fpdUser, resultUser, useFirstPartyData);
+        final User resultUser = originUser == null ? User.builder().build() : originUser;
+        final ExtUser resolvedExtUser = resolveUserExt(fpdUser, resultUser);
         return resultUser.toBuilder()
                 .keywords(getFirstNotNull(getString(fpdUser, "keywords"), resultUser.getKeywords()))
                 .gender(getFirstNotNull(getString(fpdUser, "gender"), resultUser.getGender()))
@@ -75,13 +75,12 @@ public class FpdResolver {
                 .build();
     }
 
-    private ExtUser resolveUserExt(ObjectNode fpdUser, User originUser, boolean useFirstPartyData) {
+    private ExtUser resolveUserExt(ObjectNode fpdUser, User originUser) {
         final ExtUser originExtUser = originUser.getExt();
-        final ObjectNode resolvedData = useFirstPartyData
-                ? mergeExtData(fpdUser.path(EXT).path(DATA), originExtUser != null ? originExtUser.getData() : null)
-                : null;
+        final ObjectNode resolvedData =
+                mergeExtData(fpdUser.path(EXT).path(DATA), originExtUser != null ? originExtUser.getData() : null);
 
-        return useFirstPartyData ? updateUserExtDataWithFpdAttr(fpdUser, originExtUser, resolvedData) : originExtUser;
+        return updateUserExtDataWithFpdAttr(fpdUser, originExtUser, resolvedData);
     }
 
     private ExtUser updateUserExtDataWithFpdAttr(ObjectNode fpdUser, ExtUser originExtUser, ObjectNode extData) {
@@ -93,12 +92,12 @@ public class FpdResolver {
                 : resultData.isEmpty() ? null : ExtUser.builder().data(resultData).build();
     }
 
-    public App resolveApp(App originApp, ObjectNode fpdApp, boolean useFirstPartyData) {
-        final App resultApp = originApp == null ? App.builder().build() : originApp;
+    public App resolveApp(App originApp, ObjectNode fpdApp) {
         if (fpdApp == null) {
             return originApp;
         }
-        final ExtApp resolvedExtApp = resolveAppExt(fpdApp, resultApp, useFirstPartyData);
+        final App resultApp = originApp == null ? App.builder().build() : originApp;
+        final ExtApp resolvedExtApp = resolveAppExt(fpdApp, resultApp);
         return resultApp.toBuilder()
                 .name(getFirstNotNull(getString(fpdApp, "name"), resultApp.getName()))
                 .bundle(getFirstNotNull(getString(fpdApp, "bundle"), resultApp.getName()))
@@ -112,13 +111,12 @@ public class FpdResolver {
                 .build();
     }
 
-    private ExtApp resolveAppExt(ObjectNode fpdApp, App originApp, boolean useFirstPartyData) {
+    private ExtApp resolveAppExt(ObjectNode fpdApp, App originApp) {
         final ExtApp originExtApp = originApp.getExt();
-        final ObjectNode resolvedData = useFirstPartyData
-                ? mergeExtData(fpdApp.path(EXT).path(DATA), originExtApp != null ? originExtApp.getData() : null)
-                : null;
+        final ObjectNode resolvedData =
+                mergeExtData(fpdApp.path(EXT).path(DATA), originExtApp != null ? originExtApp.getData() : null);
 
-        return useFirstPartyData ? updateAppExtDataWithFpdAttr(fpdApp, originExtApp, resolvedData) : originExtApp;
+        return updateAppExtDataWithFpdAttr(fpdApp, originExtApp, resolvedData);
     }
 
     private ExtApp updateAppExtDataWithFpdAttr(ObjectNode fpdApp, ExtApp originExtApp, ObjectNode extData) {
@@ -129,13 +127,12 @@ public class FpdResolver {
                 : resultData.isEmpty() ? null : ExtApp.of(null, resultData);
     }
 
-    public Site resolveSite(Site originSite, ObjectNode fpdSite, boolean useFirstPartyData) {
-        final Site resultSite = originSite == null ? Site.builder().build() : originSite;
+    public Site resolveSite(Site originSite, ObjectNode fpdSite) {
         if (fpdSite == null) {
             return originSite;
         }
-
-        final ExtSite resolvedExtSite = resolveSiteExt(fpdSite, resultSite, useFirstPartyData);
+        final Site resultSite = originSite == null ? Site.builder().build() : originSite;
+        final ExtSite resolvedExtSite = resolveSiteExt(fpdSite, resultSite);
         return resultSite.toBuilder()
                 .name(getFirstNotNull(getString(fpdSite, "name"), resultSite.getName()))
                 .domain(getFirstNotNull(getString(fpdSite, "domain"), resultSite.getDomain()))
@@ -150,13 +147,12 @@ public class FpdResolver {
                 .build();
     }
 
-    private ExtSite resolveSiteExt(ObjectNode fpdSite, Site originSite, boolean useFirstPartyData) {
+    private ExtSite resolveSiteExt(ObjectNode fpdSite, Site originSite) {
         final ExtSite originExtSite = originSite.getExt();
-        final ObjectNode resolvedData = useFirstPartyData
-                ? mergeExtData(fpdSite.path(EXT).path(DATA), originExtSite != null ? originExtSite.getData() : null)
-                : null;
+        final ObjectNode resolvedData =
+                mergeExtData(fpdSite.path(EXT).path(DATA), originExtSite != null ? originExtSite.getData() : null);
 
-        return useFirstPartyData ? updateSiteExtDataWithFpdAttr(fpdSite, originExtSite, resolvedData) : originExtSite;
+        return updateSiteExtDataWithFpdAttr(fpdSite, originExtSite, resolvedData);
     }
 
     private ExtSite updateSiteExtDataWithFpdAttr(ObjectNode fpdSite, ExtSite originExtSite, ObjectNode extData) {
@@ -242,7 +238,17 @@ public class FpdResolver {
         final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
         return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(ExtBidderConfigFpd.of(siteNode, null, userNode))));
+                ExtBidderConfig.of(ExtBidderConfigFpd.of(
+                        moveDataAttributesToExtData(siteNode), null, moveDataAttributesToExtData(userNode)))));
+    }
+
+    private ObjectNode moveDataAttributesToExtData(ObjectNode source) {
+        final JsonNode dataNode = source != null ? source.get(DATA) : null;
+        if (dataNode != null) {
+            source.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, dataNode));
+            source.remove(DATA);
+        }
+        return source;
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {

@@ -186,9 +186,9 @@ public class ExchangeServiceTest extends VertxTest {
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any(), any()))
                 .willReturn(Future.succeededFuture(emptyList()));
 
-        given(fpdResolver.resolveUser(any(), any(), anyBoolean())).willAnswer(invocation -> invocation.getArgument(0));
-        given(fpdResolver.resolveSite(any(), any(), anyBoolean())).willAnswer(invocation -> invocation.getArgument(0));
-        given(fpdResolver.resolveApp(any(), any(), anyBoolean())).willAnswer(invocation -> invocation.getArgument(0));
+        given(fpdResolver.resolveUser(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
@@ -1495,10 +1495,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .geo(Geo.builder().country("GB").city("London").build())
                 .build();
 
-        given(fpdResolver.resolveSite(any(), any(), anyBoolean())).willReturn(mergedSite);
-        given(fpdResolver.resolveApp(any(), any(), anyBoolean()))
+        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
+        given(fpdResolver.resolveApp(any(), any()))
                 .willReturn(mapper.treeToValue(bidderConfigApp, App.class));
-        given(fpdResolver.resolveUser(any(), any(), anyBoolean())).willReturn(mergedUser);
+        given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -1561,9 +1561,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
         final User mergedUser = User.builder().id("userFromConfig").buyeruid("testBuyerId").build();
 
-        given(fpdResolver.resolveSite(any(), any(), anyBoolean())).willReturn(mergedSite);
-        given(fpdResolver.resolveApp(any(), any(), anyBoolean())).willReturn(mergedApp);
-        given(fpdResolver.resolveUser(any(), any(), anyBoolean())).willReturn(mergedUser);
+        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
+        given(fpdResolver.resolveApp(any(), any())).willReturn(mergedApp);
+        given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
