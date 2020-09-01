@@ -857,7 +857,7 @@ public class ExchangeService {
         final long startTime = clock.millis();
 
         return httpBidderRequester.requestBids(bidder, bidRequest, timeout, debugEnabled)
-                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, bidderRequest, account))
+                .map(bidderSeatBid -> validBidderSeatBid(bidderSeatBid, bidderRequest, account, aliases))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor, usepbsrates))
                 .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)));
@@ -871,7 +871,7 @@ public class ExchangeService {
      * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
      */
     private BidderSeatBid validBidderSeatBid(
-            BidderSeatBid bidderSeatBid, BidderRequest bidderRequest, Account account) {
+            BidderSeatBid bidderSeatBid, BidderRequest bidderRequest, Account account, BidderAliases aliases) {
 
         final BidRequest bidRequest = bidderRequest.getBidRequest();
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
@@ -887,7 +887,8 @@ public class ExchangeService {
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
 
         for (final BidderBid bid : bids) {
-            final ValidationResult validationResult = responseBidValidator.validate(bid, bidderRequest, account);
+            final ValidationResult validationResult =
+                    responseBidValidator.validate(bid, bidderRequest, account, aliases);
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
                     errors.add(BidderError.generic(error));

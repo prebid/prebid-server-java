@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.json.DecodeException;
@@ -48,16 +49,18 @@ public class ResponseBidValidator {
         this.shouldValidateSecureMarkup = shouldValidateSecureMarkup;
     }
 
-    public ValidationResult validate(BidderBid bidderBid, BidderRequest bidderRequest, Account account) {
+    public ValidationResult validate(
+            BidderBid bidderBid, BidderRequest bidderRequest, Account account, BidderAliases aliases) {
+
         try {
             validateCommonFields(bidderBid.getBid());
 
             if (shouldValidateBanner(bidderBid)) {
-                validateBannerFields(bidderBid, bidderRequest, account);
+                validateBannerFields(bidderBid, bidderRequest, account, aliases);
             }
 
             if (shouldValidateSecureMarkup) {
-                validateSecureMarkup(bidderBid, bidderRequest, account);
+                validateSecureMarkup(bidderBid, bidderRequest, account, aliases);
             }
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
@@ -107,13 +110,16 @@ public class ResponseBidValidator {
         return bidderBid.getType() == BidType.banner && shouldValidateBanner;
     }
 
-    private void validateBannerFields(
-            BidderBid bidderBid, BidderRequest bidderRequest, Account account) throws ValidationException {
+    private void validateBannerFields(BidderBid bidderBid,
+                                      BidderRequest bidderRequest,
+                                      Account account,
+                                      BidderAliases aliases) throws ValidationException {
 
         final Bid bid = bidderBid.getBid();
 
         if (bannerSizeIsNotValid(bid, validBannerSizes(account))) {
-            metrics.updateValidationErrorMetrics(bidderRequest.getBidder(), account.getId(), MetricName.size);
+            metrics.updateValidationErrorMetrics(
+                    aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.size);
 
             throw new ValidationException(
                     "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
@@ -137,14 +143,17 @@ public class ResponseBidValidator {
         return Objects.equals(bid.getW(), size.getWidth()) && Objects.equals(bid.getH(), size.getHeight());
     }
 
-    private void validateSecureMarkup(
-            BidderBid bidderBid, BidderRequest bidderRequest, Account account) throws ValidationException {
+    private void validateSecureMarkup(BidderBid bidderBid,
+                                      BidderRequest bidderRequest,
+                                      Account account,
+                                      BidderAliases aliases) throws ValidationException {
 
         final Bid bid = bidderBid.getBid();
         final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bidderBid.getBid());
 
         if (isImpSecure(imp) && markupIsNotSecure(bid)) {
-            metrics.updateValidationErrorMetrics(bidderRequest.getBidder(), account.getId(), MetricName.secure);
+            metrics.updateValidationErrorMetrics(
+                    aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.secure);
 
             throw new ValidationException(
                     "Bid \"%s\" has has insecure creative but should be in secure context", bid.getId());

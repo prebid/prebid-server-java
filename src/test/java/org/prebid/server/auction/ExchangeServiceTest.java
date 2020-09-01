@@ -190,7 +190,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
-        given(responseBidValidator.validate(any(), any(), any())).willReturn(ValidationResult.success());
+        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
         given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
         given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
@@ -968,7 +968,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any(), any(), any()))
+        given(responseBidValidator.validate(any(), any(), any(), any()))
                 .willReturn(ValidationResult.error("bid validation error"));
 
         final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
