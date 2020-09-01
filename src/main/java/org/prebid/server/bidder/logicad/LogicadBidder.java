@@ -106,7 +106,7 @@ public class LogicadBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Map.Entry<ExtImpLogicad, List<Imp>> impExtAndListOfImps : impExtToListOfImps.entrySet()) {
-            final BidRequest updatedBidRequest = BidRequest.builder().imp(impExtAndListOfImps.getValue()).build();
+            final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(impExtAndListOfImps.getValue()).build();
             final String body = mapper.encode(updatedBidRequest);
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)

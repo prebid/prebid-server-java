@@ -33,7 +33,7 @@ public class LogicadConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    @Qualifier("admixerConfigurationProperties")
+    @Qualifier("logicadConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
     @Bean("logicadConfigurationProperties")
