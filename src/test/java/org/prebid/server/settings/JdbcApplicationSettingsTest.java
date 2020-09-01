@@ -25,6 +25,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.validation.model.Size;
@@ -121,7 +122,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
                 + "tcf_config, analytics_sampling_factor, truncate_target_attr, bid_validations) "
-                + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true}', 1, 0, "
+                + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
+                + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
                 + "'{\"banner-creative-allowed-sizes\": [\"1x1\", \"2x2\"]}');");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
@@ -176,6 +178,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .enforceCcpa(true)
                     .gdpr(AccountGdprConfig.builder()
                             .enabled(true)
+                            .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                             .build())
                     .truncateTargetAttr(0)
                     .bidValidations(AccountBidValidationConfig.of(asList(Size.of(1, 1), Size.of(2, 2))))

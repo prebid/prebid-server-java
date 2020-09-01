@@ -1,6 +1,7 @@
-## This code is being used in production by multiple Prebid.org members, but is not the "official" version. See https://github.com/prebid/prebid-server/
+### This code is being used in production by multiple Prebid.org members, but is not the "official" version. See https://github.com/prebid/prebid-server/
 
 # Prebid Server
+
 [![GitHub version](https://badge.fury.io/gh/rubicon-project%2fprebid-server-java.svg)](http://badge.fury.io/gh/rubicon-project%2fprebid-server-java)
 [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/context:java)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/rubicon-project/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/rubicon-project/prebid-server-java/alerts/)
@@ -21,9 +22,7 @@ For more information, see:
 - [Getting started with Prebid Server](http://prebid.org/dev-docs/get-started-with-prebid-server.html)
 - [Current Bidders](http://prebid.org/dev-docs/prebid-server-bidders.html)
 
-## Usage
-
-When running, the server responds to several HTTP [endpoints](docs/endpoints).
+# Getting Started
 
 The server makes the following assumptions:
 - No ranking or decisioning is performed by this server. It just proxies requests.
@@ -32,25 +31,81 @@ The server makes the following assumptions:
 - This server does no logging.
 - This server has not user profiling or user data collection capabilities.
 
-## Development
-
 This project is built upon [Vert.x](http://vertx.io) to achieve high request throughput. 
 We use [Maven](https://maven.apache.org) and attempt to introduce minimal dependencies.
 
-## Getting Started
+When running, the server responds to several HTTP [endpoints](docs/endpoints).
 
 To start the Prebid Server you need to do the following steps:
-- Build all-in-one JAR file from sources as described [here](docs/build.md).
-- Check minimal needed configuration file `sample/prebid-config.yaml`.
-- Also, check the Data Cache settings file `sample/sample-app-settings.yaml`.
+
+## Building
+
+Follow next steps to create JAR file which can be deployed locally.
+
+- Download or clone a project:
+```bash
+git clone https://github.com/rubicon-project/prebid-server-java.git
+```
+
+- Move to project directory:
+```bash
+cd prebid-server-java
+```
+
+- Run below command to build project:
+```bash
+mvn clean package
+```
+
+For more information how to configure the server follow [documentation](docs/build.md).
+
+## Configuration
+
+The source code includes minimal required configuration file `sample/prebid-config.yaml`.
+Also, check the account settings file `sample/sample-app-settings.yaml`.
+
 For more information how to configure the server follow [documentation](docs/config.md).
 
-- Run your server with the next command:
-```
+
+## Running
+
+Run your local server with the command:
+```bash
 java -jar target/prebid-server.jar --spring.config.additional-location=sample/prebid-config.yaml
 ```
-For more information how to start the server follow [documentation](docs/run.md).
 
-- To verify everything is OK go to `http://localhost:8080/status` and check response status is `200 OK`.
+For more options how to start the server, please follow [documentation](docs/run.md).
 
-##### More detailed project documentation can be found [here](docs/TOC.md).
+## Verifying
+
+To check the server is started go to [http://localhost:8080/status](http://localhost:8080/status) 
+and verify response status is `200 OK`.
+
+# Documentation
+
+## Development
+- [Differences Between Prebid Server Go and Java](differenceBetweenPBSGo-and-Java.md)
+- [Endpoints](endpoints)
+- [Adding new bidder](developers/add-new-bidder.md)
+- [Adding new analytics module](developers/add-new-analytics-module.md)
+- [Adding viewability support](developers/add-viewability-vendors.md)
+- [Auction result post-processing](developers/auction-result-post-processing.md)
+- [Cookie Syncs](developers/cookie-syncs.md)
+- [Stored Requests](developers/stored-requests.md)
+- [Unit Tests](developers/unit-tests.md)
+- [GDPR](developers/gdpr.md)
+
+## Maintenance
+- [Build for local](build.md)
+- [Build for AWS](build-aws.md)
+- [Configure application](config.md)
+  - [Full list of configuration options](config-app.md)
+  - [Application settings](application-settings.md)
+- [Run with optimizations](run.md)
+- [Metrics](metrics.md)
+
+## Contributing
+- [Contributing](contributing.md)
+- [Code Style](code-style.md)
+- [Code Review](code-reviews.md)
+- [Versioning](versioning.md)

@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
@@ -82,7 +83,13 @@ public class FileApplicationSettingsTest {
                         + "eventsEnabled: 'true',"
                         + "enforceCcpa: 'true',"
                         + "gdpr: {"
-                        + "enabled: true,"
+                        + "enabled: 'true',"
+                        + "integration-enabled: {"
+                        + "amp: 'true',"
+                        + "web: 'true',"
+                        + "video: 'true',"
+                        + "app: 'true'"
+                        + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
                         + "p2: {enforce-purpose: full,enforce-vendors: true,vendor-exceptions: [openx]}"
@@ -117,6 +124,7 @@ public class FileApplicationSettingsTest {
                 .enforceCcpa(true)
                 .gdpr(AccountGdprConfig.builder()
                         .enabled(true)
+                        .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                         .purposes(Purposes.builder()
                                 .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
                                 .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))

@@ -89,6 +89,7 @@ public enum MetricName {
 
     // vendor list
     missing,
+    fallback,
 
     // stored data
     stored_requests_found,
