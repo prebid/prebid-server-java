@@ -165,8 +165,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
         }
         validateResponseVideoExt(bid, impTypes);
-        return BidderBid.of(bid, impTypes.get(bid.getImpid()), StringUtils.defaultIfBlank(currency,
-                DEFAULT_BID_CURRENCY));
+        return BidderBid.of(bid, impTypes.get(bid.getImpid()), StringUtils.stripToNull(currency));
     }
 
     private void validateResponseVideoExt(Bid bid, Map<String, BidType> impTypes) {

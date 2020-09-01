@@ -2,7 +2,6 @@ package org.prebid.server.bidder.smartrtb;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -187,63 +186,6 @@ public class SmartrtbBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("BANNER"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .ext(ext)
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final ObjectNode ext = mapper.valueToTree(SmartrtbResponseExt.of("BANNER"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .ext(ext)
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
-    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(smartrtbBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
@@ -271,6 +213,7 @@ public class SmartrtbBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();

@@ -231,61 +231,6 @@ public class EngagebdrBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123").build()))
-                .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = engagebdrBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123").build()))
-                .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = engagebdrBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
-    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(engagebdrBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
@@ -311,6 +256,7 @@ public class EngagebdrBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

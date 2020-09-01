@@ -464,14 +464,14 @@ public class BeachfrontBidder implements Bidder<Void> {
         if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
             return Result.of(updateVideoBids(bids, imps).stream()
                             .map(bid -> BidderBid.of(bid, BidType.video,
-                                    StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY)))
+                                    StringUtils.stripToNull(bidResponse.getCur())))
                             .collect(Collectors.toList()),
                     Collections.emptyList());
         } else {
             return Result.of(bids.stream()
                             .peek(bid -> bid.setId(bid.getImpid() + "AdmVideo"))
                             .map(bid -> BidderBid.of(bid, BidType.video,
-                                    StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY)))
+                                    StringUtils.stripToNull(bidResponse.getCur())))
                             .collect(Collectors.toList()),
                     Collections.emptyList());
         }

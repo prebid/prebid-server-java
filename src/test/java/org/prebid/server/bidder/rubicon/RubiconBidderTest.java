@@ -1847,7 +1847,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, null));
     }
 
     @Test
@@ -1867,7 +1867,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, null));
     }
 
     @Test
@@ -1920,7 +1920,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
+    public void makeBidsShouldReturnBidderBidWithEmptyCurrencyIfBidResponseCurrencyIsBlank()
             throws JsonProcessingException {
         // given
         rubiconBidder = new RubiconBidder(
@@ -1941,7 +1941,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
+                .containsNull();
     }
 
     @Test
@@ -2025,6 +2025,7 @@ public class RubiconBidderTest extends VertxTest {
 
     private static String givenBidResponse(BigDecimal price) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .price(price)

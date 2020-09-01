@@ -162,7 +162,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                 }
                 final Bid updatedBid = bid.toBuilder().ext(null).build();
                 final BidderBid bidderBid = BidderBid.of(updatedBid, bidType,
-                        StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY));
+                        StringUtils.stripToNull(bidResponse.getCur()));
                 bidderBids.add(bidderBid);
             }
         }

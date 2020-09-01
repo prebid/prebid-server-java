@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.pubnative;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -330,59 +329,6 @@ public class PubnativeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
-    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(pubnativeBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
@@ -410,6 +356,7 @@ public class PubnativeBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

@@ -147,6 +147,7 @@ public class AdponeBidderTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId").build();
         final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -159,53 +160,6 @@ public class AdponeBidderTest extends VertxTest {
         Assertions.assertThat(result.getErrors()).isEmpty();
         Assertions.assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(bid, BidType.banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
-
-        // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
-
-        // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
     }
 
     @Test

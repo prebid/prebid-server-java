@@ -81,8 +81,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.defaultIfBlank(bidResponse.getCur(),
-                        DEFAULT_BID_CURRENCY)))
+                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 

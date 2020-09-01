@@ -163,7 +163,7 @@ public class KidozBidder implements Bidder<BidRequest> {
     private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, String currency, List<BidderError> errors) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), imps);
-            return BidderBid.of(bid, bidType, StringUtils.defaultIfBlank(currency, DEFAULT_BID_CURRENCY));
+            return BidderBid.of(bid, bidType, StringUtils.stripToNull(currency));
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

@@ -116,7 +116,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
                 final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
                 if (bidType == BidType.banner || bidType == BidType.video) {
                     final BidderBid bidderBid = BidderBid.of(bid, bidType,
-                            StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY));
+                            StringUtils.stripToNull(bidResponse.getCur()));
                     bidderBids.add(bidderBid);
                 }
             }

@@ -155,8 +155,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.defaultIfBlank(bidResponse.getCur(),
-                        DEFAULT_BID_CURRENCY)))
+                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 

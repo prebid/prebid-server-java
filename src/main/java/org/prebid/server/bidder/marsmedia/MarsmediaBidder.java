@@ -184,8 +184,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
         return seatbid.get(0).getBid().stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps),
-                        StringUtils.defaultIfBlank(currency, DEFAULT_BID_CURRENCY)))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), StringUtils.stripToNull(currency)))
                 .collect(Collectors.toList());
     }
 

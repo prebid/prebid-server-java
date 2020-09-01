@@ -699,59 +699,6 @@ public class FacebookBidderTest extends VertxTest {
                 .containsOnly(BidType.audio);
     }
 
-    @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(null).audio(Audio.builder().build()), identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("imp1")
-                                        .adm("{\"bid_id\":\"10\"}")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.banner(null).audio(Audio.builder().build()), identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("imp1")
-                                        .adm("{\"bid_id\":\"10\"}")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer,
@@ -784,6 +731,7 @@ public class FacebookBidderTest extends VertxTest {
 
     private static HttpCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(asList(bids))
                         .build()))

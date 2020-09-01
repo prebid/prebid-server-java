@@ -43,4 +43,14 @@ public class ResponseBidValidator {
             throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
         }
     }
+
+    private static void validateCurrency(String currency) {
+        try {
+            if (StringUtils.isNotBlank(currency)) {
+                Currency.getInstance(currency);
+            }
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("BidResponse currency is not valid: %s", currency), e);
+        }
+    }
 }

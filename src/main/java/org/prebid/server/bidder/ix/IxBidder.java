@@ -202,8 +202,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> prepareBid(bid, bidRequest))
-                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.defaultIfBlank(bidResponse.getCur(),
-                        DEFAULT_BID_CURRENCY)))
+                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 

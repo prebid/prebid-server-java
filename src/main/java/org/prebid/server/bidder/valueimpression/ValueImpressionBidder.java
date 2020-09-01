@@ -132,7 +132,7 @@ public class ValueImpressionBidder implements Bidder<BidRequest> {
         for (Bid bid : responseBids) {
             try {
                 final BidType bidType = resolveBidType(bid.getImpid(), imps);
-                bidderBids.add(BidderBid.of(bid, bidType, StringUtils.defaultIfBlank(currency, DEFAULT_BID_CURRENCY)));
+                bidderBids.add(BidderBid.of(bid, bidType, StringUtils.stripToNull(currency)));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(
                         String.format("bid id=%s %s", bid.getId(), e.getMessage()))

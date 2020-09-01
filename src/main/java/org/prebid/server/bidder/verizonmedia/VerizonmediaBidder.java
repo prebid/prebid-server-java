@@ -184,8 +184,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(bid -> checkBid(bid.getImpid(), imps))
-                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.defaultIfBlank(bidResponse.getCur(),
-                        DEFAULT_BID_CURRENCY)))
+                .map(bid -> BidderBid.of(bid, BidType.banner, StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 

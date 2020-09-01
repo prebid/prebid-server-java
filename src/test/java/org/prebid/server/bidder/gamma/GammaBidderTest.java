@@ -254,6 +254,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().build()))
                                 .build()))
@@ -275,6 +276,7 @@ public class GammaBidderTest extends VertxTest {
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .id("id")
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(Bid.builder().build()))
                                 .build()))
@@ -287,59 +289,6 @@ public class GammaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().build(), banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123").build()))
-                .build();
-        final HttpCall<Void> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123").build()))
-                .build();
-        final HttpCall<Void> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder()
-                                        .impid("123")
-                                        .build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
     }
 
     @Test

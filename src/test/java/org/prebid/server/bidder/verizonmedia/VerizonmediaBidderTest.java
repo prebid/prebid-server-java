@@ -324,6 +324,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(asList(Bid.builder().impid("123").build(),
                                         Bid.builder().impid("321").build()))
@@ -337,59 +338,6 @@ public class VerizonmediaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(asList(Imp.builder().id("123").build(),
-                                Imp.builder().banner(Banner.builder().build()).id("321").build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("EUR")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(asList(Bid.builder().impid("123").build(),
-                                        Bid.builder().impid("321").build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(asList(Imp.builder().id("123").build(),
-                                Imp.builder().banner(Banner.builder().build()).id("321").build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
-                        .cur("")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(asList(Bid.builder().impid("123").build(),
-                                        Bid.builder().impid("321").build()))
-                                .build()))
-                        .build()));
-
-        // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
     }
 
     @Test
@@ -416,6 +364,7 @@ public class VerizonmediaBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

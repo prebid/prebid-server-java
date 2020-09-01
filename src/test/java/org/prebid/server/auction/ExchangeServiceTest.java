@@ -971,6 +971,39 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRejectBidIfCurrencyIsNotValid() throws JsonProcessingException {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build(),
+                        "USDD"))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        given(responseBidValidator.validate(any()))
+                .willReturn(ValidationResult.error("BidResponse currency is not valid: USDD"));
+
+        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                "BidResponse currency is not valid: USDD"));
+        givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1)
+                .containsOnly(entry("bidder1", bidderErrors));
+        assertThat(bidResponse.getSeatbid())
+                .extracting(SeatBid::getBid)
+                .isEmpty();
+    }
+
+    @Test
     public void shouldCreateRequestsFromImpsReturnedByStoredResponseProcessor() {
         // given
         givenBidder(givenEmptySeatBid());

@@ -99,7 +99,7 @@ public class KubientBidder implements Bidder<BidRequest> {
     private BidderBid toBidderBid(BidRequest bidRequest, Bid bid, String currency, List<BidderError> errors) {
         try {
             final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-            return BidderBid.of(bid, bidType, StringUtils.defaultIfBlank(currency, DEFAULT_BID_CURRENCY));
+            return BidderBid.of(bid, bidType, StringUtils.stripToNull(currency));
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

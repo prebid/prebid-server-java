@@ -432,74 +432,6 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
-        // given
-        final BidResponse bidResponse = BidResponse.builder()
-                .cur("EUR")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("123")
-                                .build()))
-                        .build()))
-                .build();
-        final BeachfrontVideoRequest videoRequest = BeachfrontVideoRequest.builder()
-                .request(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().build()))
-                        .build())
-                .build();
-
-        final HttpCall<Void> httpCall = HttpCall.success(
-                HttpRequest.<Void>builder()
-                        .body(mapper.writeValueAsString(videoRequest))
-                        .uri("url").build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
-
-        // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("EUR");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithDefaultCurrencyIfBidResponseCurrencyIsBlank()
-            throws JsonProcessingException {
-        // given
-        // given
-        final BidResponse bidResponse = BidResponse.builder()
-                .cur("")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("123")
-                                .build()))
-                        .build()))
-                .build();
-        final BeachfrontVideoRequest videoRequest = BeachfrontVideoRequest.builder()
-                .request(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().build()))
-                        .build())
-                .build();
-
-        final HttpCall<Void> httpCall = HttpCall.success(
-                HttpRequest.<Void>builder()
-                        .body(mapper.writeValueAsString(videoRequest))
-                        .uri("url").build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
-
-        // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
-    @Test
     public void extractTargetingShouldReturnEmptyMap() {
         // given, when and then
         assertThat(beachfrontBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
@@ -532,6 +464,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))

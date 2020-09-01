@@ -124,7 +124,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
                     .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                            StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY)))
+                            StringUtils.stripToNull(bidResponse.getCur())))
                     .collect(Collectors.toList());
             return Result.of(bidderBids, Collections.emptyList());
         } catch (PreBidException e) {

@@ -230,7 +230,7 @@ public class GammaBidder implements Bidder<Void> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bidResponse.getId(), bidRequest.getImp()),
-                        StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY)))
+                        StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 
