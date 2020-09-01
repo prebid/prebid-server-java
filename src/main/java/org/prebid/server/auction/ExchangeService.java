@@ -822,7 +822,7 @@ public class ExchangeService {
         }
 
         for (BidderBid bid : bids) {
-            final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
+            final ValidationResult validationResult = responseBidValidator.validate(bid);
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
                     errors.add(BidderError.generic(error));

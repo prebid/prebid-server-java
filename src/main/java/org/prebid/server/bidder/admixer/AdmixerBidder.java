@@ -133,15 +133,16 @@ public class AdmixerBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 || CollectionUtils.isEmpty(bidResponse.getSeatbid().get(0).getBid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
-                        StringUtils.defaultIfBlank(bidResponse.getCur(), DEFAULT_BID_CURRENCY)))
+                        StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
+
         return Result.of(bidderBids, Collections.emptyList());
     }
 

@@ -3,6 +3,8 @@ package org.prebid.server.validation;
 import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -10,6 +12,7 @@ import java.util.function.Function;
 
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 public class ResponseBidValidatorTest {
 
@@ -21,8 +24,21 @@ public class ResponseBidValidatorTest {
     }
 
     @Test
+    public void validateShouldFailedIfBidderBidCurrencyIsIncorrect() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                responseBidValidator.validate(BidderBid.of(
+                        Bid.builder()
+                                .id("bidId1")
+                                .impid("impId1")
+                                .crid("crid1")
+                                .price(BigDecimal.ONE).build(),
+                        null,
+                        "USDD")));
+    }
+
+    @Test
     public void validateShouldFailedIfMissingBid() {
-        final ValidationResult result = responseBidValidator.validate(null);
+        final ValidationResult result = responseBidValidator.validate(BidderBid.of(null, null, "USD"));
 
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Empty bid object submitted.");
@@ -76,12 +92,16 @@ public class ResponseBidValidatorTest {
         assertThat(result.hasErrors()).isFalse();
     }
 
-    private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer, BidType mediaType) {
         final Bid.BidBuilder bidBuilder = Bid.builder()
                 .id("bidId1")
                 .impid("impId1")
                 .crid("crid1")
                 .price(BigDecimal.ONE);
-        return bidCustomizer.apply(bidBuilder).build();
+        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), mediaType, "USD");
+    }
+
+    private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return givenBid(bidCustomizer, null);
     }
 }

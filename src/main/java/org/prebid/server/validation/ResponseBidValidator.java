@@ -2,18 +2,21 @@ package org.prebid.server.validation;
 
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 
 /**
  * Validator for response {@link Bid} object.
  */
 public class ResponseBidValidator {
 
-    public ValidationResult validate(Bid bid) {
+    public ValidationResult validate(BidderBid bidderBid) {
         try {
-            validateFieldsFor(bid);
+            validateFieldsFor(bidderBid.getBid());
+            validateCurrency(bidderBid.getBidCurrency());
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
