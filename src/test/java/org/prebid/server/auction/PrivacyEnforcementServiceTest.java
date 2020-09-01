@@ -4,8 +4,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerRequest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,28 +16,35 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.TCStringEmpty;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.request.CookieSyncRequest;
+import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.model.Account;
 
@@ -60,7 +70,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -105,6 +118,188 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, tcfDefinerService, ipAddressHelper, metrics, false);
+    }
+
+    @Test
+    public void contextFromBidRequestShouldReturnCoppaContext() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .regs(Regs.of(1, null))
+                .build();
+
+        // when
+        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
+                bidRequest, Account.empty("account"), null, null);
+
+        // then
+        FutureAssertion.assertThat(privacyContext).succeededWith(
+                PrivacyContext.of(Privacy.of(EMPTY, EMPTY, Ccpa.EMPTY, 1), TcfContext.empty()));
+    }
+
+    @Test
+    public void contextFromBidRequestShouldReturnTcfContext() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent")
+                                .build())
+                        .build())
+                .build();
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .consent(TCStringEmpty.create())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
+
+        // when
+        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
+                bidRequest, Account.empty("account"), MetricName.openrtb2web, null);
+
+        // then
+        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
+
+        verify(tcfDefinerService).resolveTcfContext(
+                eq(privacy), isNull(), isNull(), isNull(), same(MetricName.openrtb2web), isNull());
+    }
+
+    @Test
+    public void contextFromBidRequestShouldReturnTcfContextWithIpMasked() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent")
+                                .build())
+                        .build())
+                .device(Device.builder()
+                        .lmt(1)
+                        .ip("ip")
+                        .build())
+                .build();
+
+        given(ipAddressHelper.maskIpv4(any())).willReturn("ip-masked");
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .consent(TCStringEmpty.create())
+                .ipAddress("ip-masked")
+                .inEea(false)
+                .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
+
+        // when
+        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(
+                bidRequest, Account.empty("account"), MetricName.openrtb2web, null);
+
+        // then
+        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext, "ip-masked"));
+
+        verify(tcfDefinerService).resolveTcfContext(
+                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), isNull());
+    }
+
+    @Test
+    public void contextFromLegacyRequestShouldReturnContext() {
+        // given
+        final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder()
+                .preBidRequest(PreBidRequest.builder()
+                        .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
+                        .user(User.builder()
+                                .ext(ExtUser.builder()
+                                        .consent("consent")
+                                        .build())
+                                .build())
+                        .build())
+                .ip("ip")
+                .build();
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .consent(TCStringEmpty.create())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
+
+        // when
+        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromLegacyRequest(
+                preBidRequestContext, Account.empty("account"));
+
+        // then
+        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
+
+        verify(tcfDefinerService).resolveTcfContext(eq(privacy), eq("ip"), isNull(), isNull());
+    }
+
+    @Test
+    public void contextFromSetuidRequestShouldReturnContext() {
+        // given
+        final HttpServerRequest request = mock(HttpServerRequest.class);
+        given(request.getParam("gdpr")).willReturn("1");
+        given(request.getParam("gdpr_consent")).willReturn("consent");
+        given(request.headers()).willReturn(MultiMap.caseInsensitiveMultiMap().add("X-Forwarded-For", "ip"));
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .consent(TCStringEmpty.create())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
+
+        // when
+        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromSetuidRequest(
+                request, Account.empty("account"), null);
+
+        // then
+        final Privacy privacy = Privacy.of("1", "consent", Ccpa.EMPTY, 0);
+        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
+
+        verify(tcfDefinerService).resolveTcfContext(eq(privacy), eq("ip"), isNull(), isNull());
+    }
+
+    @Test
+    public void contextFromCookieSyncRequestShouldReturnContext() {
+        // given
+        final HttpServerRequest httpServerRequest = mock(HttpServerRequest.class);
+        given(httpServerRequest.headers())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("X-Forwarded-For", "ip"));
+
+        final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
+                .gdpr(1)
+                .gdprConsent("consent")
+                .usPrivacy("1YYY")
+                .build();
+
+        final TcfContext tcfContext = TcfContext.builder()
+                .gdpr("1")
+                .consentString("consent")
+                .consent(TCStringEmpty.create())
+                .build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
+
+        // when
+        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromCookieSyncRequest(
+                cookieSyncRequest, httpServerRequest, Account.empty("account"), null);
+
+        // then
+        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
+        FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
+
+        verify(tcfDefinerService).resolveTcfContext(eq(privacy), eq("ip"), isNull(), isNull());
     }
 
     @Test

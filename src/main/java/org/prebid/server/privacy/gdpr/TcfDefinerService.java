@@ -216,7 +216,7 @@ public class TcfDefinerService {
     }
 
     private static boolean shouldMaskIp(TCString consent) {
-        return isConsentValid(consent) && consent.getVersion() == 2 && consent.getSpecialFeatureOptIns().contains(1);
+        return isConsentValid(consent) && consent.getVersion() == 2 && !consent.getSpecialFeatureOptIns().contains(1);
     }
 
     private TcfContext tcfContextFromGeo(GeoInfo geoInfo, String consentString, TCString consent, String ipAddress) {

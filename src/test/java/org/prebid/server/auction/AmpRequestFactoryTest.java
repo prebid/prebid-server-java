@@ -25,6 +25,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -1380,7 +1381,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(auctionRequestFactory.fillImplicitParameters(any(), any(), any())).willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.toAuctionContext(any(), any(), any(), anyList(), anyLong(), any()))
+        given(auctionRequestFactory.toAuctionContext(any(), any(), eq(MetricName.amp), anyList(), anyLong(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         AuctionContext.builder()
                                 .bidRequest((BidRequest) invocationOnMock.getArguments()[1])

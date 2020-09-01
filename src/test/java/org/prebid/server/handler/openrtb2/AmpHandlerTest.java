@@ -146,20 +146,6 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetRequestTypeMetricToAuctionContext() {
-        // given
-        given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
-
-        // when
-        ampHandler.handle(routingContext);
-
-        // then
-        final AuctionContext auctionContext = captureAuctionContext();
-        assertThat(auctionContext.getRequestTypeMetric()).isNotNull();
-    }
-
-    @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))

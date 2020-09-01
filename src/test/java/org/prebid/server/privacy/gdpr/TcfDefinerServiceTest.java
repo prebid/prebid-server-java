@@ -152,7 +152,6 @@ public class TcfDefinerServiceTest {
         verifyZeroInteractions(metrics);
     }
 
-
     @Test
     public void resolveTcfContextShouldCheckAccountConfigValueWhenRequestTypeIsUnknown() {
         // given
@@ -241,15 +240,11 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
-    public void resolveTcfContextShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
-        // given
-        final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").country("ua").build();
-        given(geoLocationService.lookup(anyString(), any())).willReturn(Future.succeededFuture(
-                geoInfo));
+    public void resolveTcfContextShouldReturnGdprFromCountryWhenGdprFromRequestIsNotValid() {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(EMPTY, "consent", null, null), "ip", null, null);
+                Privacy.of(EMPTY, "consent", null, null), EEA_COUNTRY, "ip", null, null, null);
 
         // then
         assertThat(result).isSucceeded();
@@ -259,9 +254,38 @@ public class TcfDefinerServiceTest {
                 TcfContext::getGeoInfo,
                 TcfContext::getInEea,
                 TcfContext::getIpAddress)
-                .containsExactly("1", "consent", geoInfo, true, "ip");
+                .containsExactly("1", "consent", null, true, "ip");
 
-        verify(geoLocationService).lookup(eq("ip"), any());
+        verifyZeroInteractions(geoLocationService);
+        verify(metrics).updatePrivacyTcfGeoMetric(2, true);
+    }
+
+    @Test
+    public void resolveTcfContextShouldReturnGdprFromGeoLocationServiceWhenGdprFromRequestIsNotValid() {
+        // given
+        given(ipAddressHelper.maskIpv4(anyString())).willReturn("ip-masked");
+
+        final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").country("ua").build();
+        given(geoLocationService.lookup(eq("ip"), any())).willReturn(Future.succeededFuture(geoInfo));
+
+        final String consentString = "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA";
+
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.of(EMPTY, consentString, null, null), "ip", null, null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).extracting(
+                TcfContext::getGdpr,
+                TcfContext::getConsentString,
+                TcfContext::getGeoInfo,
+                TcfContext::getInEea,
+                TcfContext::getIpAddress)
+                .containsExactly("1", consentString, geoInfo, true, "ip-masked");
+
+        verify(ipAddressHelper).maskIpv4(eq("ip"));
+        verify(geoLocationService).lookup(eq("ip-masked"), any());
         verify(metrics).updateGeoLocationMetric(true);
         verify(metrics).updatePrivacyTcfGeoMetric(2, true);
     }

@@ -28,7 +28,6 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
-import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.ApplicationSettings;

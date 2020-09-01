@@ -7,6 +7,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -25,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
@@ -39,7 +41,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -1500,6 +1504,61 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(account).isEqualTo(Account.builder().id("").build());
         verifyZeroInteractions(applicationSettings);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithWebRequestTypeMetric() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
+
+        // then
+        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
+    }
+
+    @Test
+    public void shouldReturnAuctionContextWithAppRequestTypeMetric() {
+        // given
+        givenBidRequest(BidRequest.builder().app(App.builder().build()).build());
+
+        // when
+        final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
+
+        // then
+        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+        assertThat(auctionContextFuture.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2app);
+    }
+
+    @Test
+    public void shouldEnrichRequestWithIpAddressAndCountryAndSaveAuctionContext() {
+        // given
+        givenBidRequest(BidRequest.builder().build());
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.of(EMPTY, EMPTY, Ccpa.EMPTY, 0),
+                TcfContext.builder()
+                        .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
+                        .build(),
+                "ip");
+        given(privacyEnforcementService.contextFromBidRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(privacyContext));
+
+        // when
+        final Future<AuctionContext> auctionContextFuture = factory.fromRequest(routingContext, 0L);
+
+        // then
+        FutureAssertion.assertThat(auctionContextFuture).isSucceeded();
+
+        final AuctionContext auctionContext = auctionContextFuture.result();
+        assertThat(auctionContext.getBidRequest().getDevice()).isEqualTo(
+                Device.builder()
+                        .ip("ip")
+                        .geo(Geo.builder().country("ua").build())
+                        .build());
+        assertThat(auctionContext.getPrivacyContext()).isSameAs(privacyContext);
     }
 
     private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {

@@ -63,7 +63,6 @@ public class PrivacyEnforcementService {
     private final Metrics metrics;
     private final boolean ccpaEnforce;
 
-
     public PrivacyEnforcementService(BidderCatalog bidderCatalog,
                                      PrivacyExtractor privacyExtractor,
                                      TcfDefinerService tcfDefinerService,

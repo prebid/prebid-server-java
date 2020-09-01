@@ -48,13 +48,6 @@ public class PrivacyExtractor {
         return extractPrivacy(preBidRequest.getRegs(), preBidRequest.getUser());
     }
 
-    public Privacy validPrivacyFromSetuidRequest(HttpServerRequest request) {
-        final String gdpr = request.getParam(SETUID_GDPR_PARAM);
-        final String gdprConsent = request.getParam(SETUID_GDPR_CONSENT_PARAM);
-
-        return toValidPrivacy(gdpr, gdprConsent, null, null);
-    }
-
     public Privacy validPrivacyFrom(CookieSyncRequest request) {
         final Integer gdprAsInteger = request.getGdpr();
         final String gdpr = gdprAsInteger != null ? gdprAsInteger.toString() : null;
@@ -62,6 +55,13 @@ public class PrivacyExtractor {
         final String usPrivacy = request.getUsPrivacy();
 
         return toValidPrivacy(gdpr, gdprConsent, usPrivacy, null);
+    }
+
+    public Privacy validPrivacyFromSetuidRequest(HttpServerRequest request) {
+        final String gdpr = request.getParam(SETUID_GDPR_PARAM);
+        final String gdprConsent = request.getParam(SETUID_GDPR_CONSENT_PARAM);
+
+        return toValidPrivacy(gdpr, gdprConsent, null, null);
     }
 
     private Privacy extractPrivacy(Regs regs, User user) {
