@@ -581,7 +581,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
         privacyEnforcementAction.setBlockAnalyticsReport(true);
 
-        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
@@ -606,7 +606,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyEnforcementAction.setMaskGeo(true);
         privacyEnforcementAction.setBlockAnalyticsReport(true);
 
-        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
@@ -636,7 +636,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
         privacyEnforcementAction.setRemoveUserIds(true);
 
-        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
@@ -665,7 +665,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.allowAll();
         privacyEnforcementAction.setMaskGeo(true);
 
-        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resultForBidderNames(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
