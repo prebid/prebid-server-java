@@ -14,6 +14,37 @@ http:
   jks-password:
 admin:
   port: 8060
+admin-endpoints:
+  version:
+    enabled: false
+    path: /version
+    on-application-port: false
+    protected: true
+  currency-rates:
+    enabled: false
+    path: /currency/rates
+    on-application-port: false
+    protected: true
+  storedrequest:
+    enabled: false
+    path: /storedrequests/openrtb2
+    on-application-port: false
+    protected: true
+  storedrequest-amp:
+    enabled: false
+    path: /storedrequests/amp
+    on-application-port: false
+    protected: true
+  cache-invalidation:
+    enabled: false
+    path: /cache/invalidate
+    on-application-port: false
+    protected: true
+  logger-level-modifier:
+    enabled: false
+    path: /admin
+    on-application-port: false
+    protected: true
 http-client:
   max-pool-size: 4000
   connect-timeout-ms: 2500
@@ -22,7 +53,7 @@ http-client:
   ssl: false
   jks-path:
   jks-password:
-external-url: http://localhost:8000
+external-url: http://localhost:8080
 host-id: localhost
 datacenter-region: local
 vendor: local
@@ -95,9 +126,11 @@ gdpr:
     v1:
       http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
       http-default-timeout-ms: 2000
+      refresh-missing-list-period-ms: 3600000
     v2:
       http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       http-default-timeout-ms: 2000
+      refresh-missing-list-period-ms: 3600000
   purposes:
     p1:
       enforce-purpose: full
@@ -138,7 +171,7 @@ gdpr:
 ccpa:
   enforce: true
 geolocation:
-  enabled: true
+  enabled: false
   type: maxmind
   maxmind:
     remote-file-syncer:
@@ -157,3 +190,7 @@ health-check:
     enabled: false
   geolocation:
     enabled: false
+ipv6:
+  always-mask-right: 64
+  anon-left-mask-bits: 56
+  private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8

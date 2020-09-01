@@ -31,7 +31,7 @@ public class EmxdigitalTest extends IntegrationTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("User-Agent", equalTo("Android Chrome/60"))
-                .withHeader("X-Forwarded-For", equalTo("127.0.0.1"))
+                .withHeader("X-Forwarded-For", equalTo("193.168.244.1"))
                 .withHeader("Referer", equalTo("http://www.example.com"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Accept-Language", equalTo("en"))

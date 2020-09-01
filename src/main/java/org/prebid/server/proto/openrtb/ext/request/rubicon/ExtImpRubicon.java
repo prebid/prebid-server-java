@@ -32,4 +32,6 @@ public class ExtImpRubicon {
     RubiconVideoParams video;
 
     String pchain;
+
+    List<String> keywords;
 }
