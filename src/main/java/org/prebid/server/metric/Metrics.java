@@ -346,6 +346,10 @@ public class Metrics extends UpdatableMetrics {
         updatePrivacyTcfVendorListMetric(version, MetricName.err);
     }
 
+    public void updatePrivacyTcfVendorListFallbackMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.fallback);
+    }
+
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
         final TcfMetrics tcfMetrics = privacy().tcf();
         final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = version == 2 ? tcfMetrics.v2() : tcfMetrics.v1();

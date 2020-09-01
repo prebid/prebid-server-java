@@ -112,8 +112,8 @@ public class PrivacyEnforcementService {
         final AccountGdprConfig accountConfig = auctionContext.getAccount().getGdpr();
         final Timeout timeout = auctionContext.getTimeout();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
-
-        return getBidderToEnforcementAction(device, biddersToApplyTcf, aliases, extUser, regs, accountConfig, timeout)
+        return getBidderToEnforcementAction(device, biddersToApplyTcf, aliases, extUser, regs, accountConfig,
+                requestType, timeout)
                 .map(bidderToEnforcement -> updatePrivacyMetrics(
                         bidderToEnforcement, aliases, requestType, bidderToUser, extUser, device))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(
@@ -248,6 +248,7 @@ public class PrivacyEnforcementService {
             ExtUser extUser,
             Regs regs,
             AccountGdprConfig accountConfig,
+            MetricName requestType,
             Timeout timeout) {
 
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
@@ -265,6 +266,7 @@ public class PrivacyEnforcementService {
                 gdprConsent,
                 ipAddress,
                 accountConfig,
+                requestType,
                 timeout)
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
