@@ -589,7 +589,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
+    public void currencyRatesHandlerShouldReturnExpectedResponse() {
         given(ADMIN_SPEC)
                 .when()
                 .get("/currency/rates")
