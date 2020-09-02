@@ -42,8 +42,6 @@ public class LifestreetBidder implements Bidder<BidRequest> {
             TypeReference<ExtPrebid<?, ExtImpLifestreet>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

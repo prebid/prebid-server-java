@@ -57,7 +57,6 @@ public class ConversantBidder implements Bidder<BidRequest> {
     // Position of the ad as a relative measure of visibility or prominence
     private static final Set<Integer> AD_POSITIONS = IntStream.range(0, 8).boxed().collect(Collectors.toSet());
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String DISPLAY_MANAGER = "prebid-s2s";
     private static final String DISPLAY_MANAGER_VER = "1.0.1";
 

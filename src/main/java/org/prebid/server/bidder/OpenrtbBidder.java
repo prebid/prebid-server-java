@@ -29,8 +29,6 @@ import java.util.stream.Collectors;
 
 public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final RequestCreationStrategy requestCreationStrategy;
     private final Class<T> extType;

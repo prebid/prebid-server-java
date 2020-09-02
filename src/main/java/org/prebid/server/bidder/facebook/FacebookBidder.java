@@ -59,7 +59,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private static final String TIMEOUT_NOTIFICATION_URL =
             "https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2";
 

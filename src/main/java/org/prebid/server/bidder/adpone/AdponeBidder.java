@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 public class AdponeBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String OPENRTB_VERSION = "2.5";
 
     private final String endpointUrl;

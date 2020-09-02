@@ -44,8 +44,6 @@ public class GammaBidder implements Bidder<Void> {
             new TypeReference<ExtPrebid<?, ExtImpGamma>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

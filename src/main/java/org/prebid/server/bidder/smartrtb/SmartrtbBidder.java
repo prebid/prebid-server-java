@@ -43,7 +43,6 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpSmartrtb>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String CREATIVE_TYPE_BANNER = "BANNER";
     private static final String CREATIVE_TYPE_VIDEO = "VIDEO";
 

@@ -46,7 +46,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(PubmaticBidder.class);
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String BID_TYPE_EXT_KEY = "BidType";
     private static final TypeReference<ExtPrebid<?, ExtImpPubmatic>> PUBMATIC_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubmatic>>() {

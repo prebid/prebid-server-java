@@ -36,8 +36,6 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpRhythmone>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

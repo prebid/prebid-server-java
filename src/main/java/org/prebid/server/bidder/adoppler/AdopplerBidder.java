@@ -46,8 +46,6 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointTemplate;
     private final JacksonMapper mapper;
 

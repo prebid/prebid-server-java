@@ -35,8 +35,6 @@ import java.util.stream.Collectors;
 
 public class MgidBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

@@ -140,7 +140,8 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getMediaType(bid.getImpid(), requestImps), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getMediaType(bid.getImpid(), requestImps),
+                        StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 

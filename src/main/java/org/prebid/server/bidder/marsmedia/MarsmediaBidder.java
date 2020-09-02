@@ -42,8 +42,6 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpMarsmedia>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

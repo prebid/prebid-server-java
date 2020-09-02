@@ -48,8 +48,6 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

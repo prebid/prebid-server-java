@@ -41,7 +41,6 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

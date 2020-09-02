@@ -280,7 +280,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private static List<BidderBid> createBiddersBid(BidResponse bidResponse, List<Imp> imps) {
 
         return bidResponse.getSeatbid().get(0).getBid().stream().filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidderType(imps, bid.getImpid()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidderType(imps, bid.getImpid()),
+                        StringUtils.stripToNull(bidResponse.getCur())))
                 .collect(Collectors.toList());
     }
 
