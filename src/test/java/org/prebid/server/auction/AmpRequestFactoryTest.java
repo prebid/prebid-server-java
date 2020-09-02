@@ -91,9 +91,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(routingContext.request()).willReturn(httpRequest);
-        given(fpdResolver.resolveApp(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(fpdResolver.resolveSite(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(fpdResolver.resolveUser(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveApp(any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveSite(any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(fpdResolver.resolveUser(any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
