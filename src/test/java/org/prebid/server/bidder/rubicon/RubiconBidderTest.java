@@ -925,10 +925,10 @@ public class RubiconBidderTest extends VertxTest {
                 .eids(asList(
                         ExtUserEid.of("liveramp.com", null,
                                 asList(
-                                        ExtUserEidUid.of("firstId", null),
-                                        ExtUserEidUid.of("ignored", null)), null),
+                                        ExtUserEidUid.of("firstId", null, null),
+                                        ExtUserEidUid.of("ignored", null, null)), null),
                         ExtUserEid.of("liveramp.com", null,
-                                singletonList(ExtUserEidUid.of("ignored", null)), null)))
+                                singletonList(ExtUserEidUid.of("ignored", null, null)), null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(extUser).build()),
