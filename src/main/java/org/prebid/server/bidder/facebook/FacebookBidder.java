@@ -97,6 +97,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
         }
 
+        if (bidRequest.getSite() != null) {
+            return Result.emptyWithError(BidderError.badInput("Site impressions are not supported."));
+        }
+
         final MultiMap headers = HttpUtil.headers()
                 .add("X-Fb-Pool-Routing-Token", bidRequest.getUser().getBuyeruid());
 
@@ -120,7 +124,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
         final String publisherId = resolvedImpExt.getPublisherId();
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(modifiedImp))
-                .site(makeSite(bidRequest.getSite(), publisherId))
                 .app(makeApp(bidRequest.getApp(), publisherId))
                 .ext(mapper.fillExtension(
                         ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
@@ -260,15 +263,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .api(xNative.getApi())
                 .battr(xNative.getBattr())
                 .ext(xNative.getExt())
-                .build();
-    }
-
-    private static Site makeSite(Site site, String pubId) {
-        if (site == null) {
-            return null;
-        }
-        return site.toBuilder()
-                .publisher(Publisher.builder().id(pubId).build())
                 .build();
     }
 
