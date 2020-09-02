@@ -488,8 +488,9 @@ public class ExchangeService {
                              ExtBidderConfigFpd fpdConfig) {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
-        final boolean shouldUpdateUserExt = extUser != null
-                && (extUser.getPrebid() != null || (extUser.getData() != null && !useFirstPartyData));
+        final boolean shouldCleanPrebid = extUser != null && extUser.getPrebid() != null;
+        final boolean shouldCleanData = extUser != null && extUser.getData() != null && !useFirstPartyData;
+        final boolean shouldUpdateUserExt = shouldCleanData || shouldCleanPrebid;
 
         User maskedUser = user;
         if (updatedBuyerUid != null || shouldUpdateUserExt) {
@@ -500,8 +501,8 @@ public class ExchangeService {
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
-                        .prebid(null)
-                        .data(null)
+                        .prebid(shouldCleanPrebid ? null : extUser.getPrebid())
+                        .data(shouldCleanData ? null : extUser.getData())
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
             }

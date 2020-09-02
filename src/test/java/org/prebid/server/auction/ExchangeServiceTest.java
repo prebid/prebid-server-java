@@ -1268,6 +1268,39 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotCleanRequestExtPrebidDataWhenFpdAllowedAndPrebidIsNotNull() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
+        final ExtUser extUser = ExtUser.builder().prebid(ExtUserPrebid.of(emptyMap())).data(dataNode).build();
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder")))
+                                .build()))
+                        .user(User.builder()
+                                .ext(extUser)
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsOnly(ExtUser.builder().data(dataNode).build());
+    }
+
+    @Test
     public void shouldMaskUserExtIfDataBiddersListIsEmpty() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
