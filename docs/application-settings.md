@@ -9,6 +9,10 @@ There are two ways to configure application settings: database and file. This do
 - `events-enabled` - enables events for account if true
 - `enforce-ccpa` - enforces ccpa if true. Has higher priority than configuration in application.yaml.
 - `gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
+- `gdpr.integration-enabled.web` - overrides `gdpr.enabled` property behaviour for web requests type.
+- `gdpr.integration-enabled.amp` - overrides `gdpr.enabled` property behaviour for amp requests type.
+- `gdpr.integration-enabled.app` - overrides `gdpr.enabled` property behaviour for app requests type.
+- `gdpr.integration-enabled.video` - overrides `gdpr.enabled` property behaviour for video requests type.
 - `gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
 - `gdpr.purposes.[p1-p10].enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
 - `gdpr.purposes.[p1-p10].vendor-exceptions[]` - bidder names that will be treated opposite to `pN.enforce-vendors` value.
@@ -61,6 +65,11 @@ accounts:
     truncateTargetAttr: 40
     gdpr:
       enabled: true
+      integration-enabled:
+        video: true
+        web: true
+        app: true
+        amp: true
       purposes:
         p1:
           enforce-purpose: full
@@ -184,6 +193,12 @@ where tcf_config column is json with next format
 ```
 {
   "enabled": true,
+   "integration-enabled": {
+      "video": true,
+      "web": true,
+      "app": true,
+      "amp": true
+   }
   "purpose-one-treatment-interpretation": "ignore"
   "purposes": {
     "p1": {

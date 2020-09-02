@@ -86,7 +86,26 @@
       "cache": {
         "bids": {}
       },
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 1000,
+      "amp": {
+        "data": {
+          "curl": "https%3A%2F%2Fgoogle.com",
+          "consent_string": "1YNN",
+          "ow": "980",
+          "oh": "120",
+          "tag_id": "test-amp-stored-request",
+          "slot": "overwrite-tagId",
+          "account": "accountId",
+          "timeout": "10000000"
+        }
+      },
+      "adservertargeting": [
+        {
+          "key": "static_keyword1",
+          "source": "static",
+          "value": "static_value1"
+        }
+      ]
     }
   }
 }

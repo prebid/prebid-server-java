@@ -195,14 +195,6 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    private String resolveMetricsBidderName(String bidder) {
-        if (bidderCatalog.isValidName(bidder)) {
-            return bidder;
-        }
-        final String nameByAlias = bidderCatalog.nameByAlias(bidder);
-        return nameByAlias != null ? nameByAlias : METRICS_UNKNOWN_BIDDER;
-    }
-
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
         final String metricsBidderName = resolveMetricsBidderName(bidder);
         final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
@@ -288,7 +280,7 @@ public class Metrics extends UpdatableMetrics {
                                         boolean requestBlocked,
                                         boolean analyticsBlocked) {
 
-        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
+        final TcfMetrics tcf = forAdapter(resolveMetricsBidderName(bidder)).requestType(requestType).tcf();
 
         if (useridRemoved) {
             tcf.incCounter(MetricName.userid_removed);
@@ -349,6 +341,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updatePrivacyTcfVendorListErrorMetric(int version) {
         updatePrivacyTcfVendorListMetric(version, MetricName.err);
+    }
+
+    public void updatePrivacyTcfVendorListFallbackMetric(int version) {
+        updatePrivacyTcfVendorListMetric(version, MetricName.fallback);
     }
 
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
@@ -428,5 +424,9 @@ public class Metrics extends UpdatableMetrics {
         } else {
             timeoutNotificationMetrics.incCounter(MetricName.failed);
         }
+    }
+
+    private String resolveMetricsBidderName(String bidder) {
+        return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
     }
 }
