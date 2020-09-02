@@ -510,9 +510,9 @@ public class ExchangeService {
             maskedUser = userBuilder.build();
         }
 
-        final User fpdUser = fpdConfig == null ? null : fpdConfig.getUser();
-
-        return fpdResolver.resolveUser(maskedUser, fpdUser);
+        return useFirstPartyData
+                ? fpdResolver.resolveUser(maskedUser, fpdConfig == null ? null : fpdConfig.getUser())
+                : maskedUser;
     }
 
     /**
@@ -714,9 +714,9 @@ public class ExchangeService {
                 ? app.toBuilder().ext(maskExtApp(appExt)).build()
                 : app;
 
-        final App fpdApp = fpdConfig == null ? null : fpdConfig.getApp();
-
-        return fpdResolver.resolveApp(maskedApp, fpdApp);
+        return useFirstPartyData
+                ? fpdResolver.resolveApp(maskedApp, fpdConfig == null ? null : fpdConfig.getApp())
+                : maskedApp;
     }
 
     private ExtApp maskExtApp(ExtApp appExt) {
@@ -735,9 +735,9 @@ public class ExchangeService {
                 ? site.toBuilder().ext(maskExtSite(siteExt)).build()
                 : site;
 
-        final Site fpdSite = fpdConfig == null ? null : fpdConfig.getSite();
-
-        return fpdResolver.resolveSite(maskedSite, fpdSite);
+        return useFirstPartyData
+                ? fpdResolver.resolveSite(maskedSite, fpdConfig == null ? null : fpdConfig.getSite())
+                : maskedSite;
     }
 
     private ExtSite maskExtSite(ExtSite siteExt) {

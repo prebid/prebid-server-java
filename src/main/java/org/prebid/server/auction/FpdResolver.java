@@ -1,6 +1,8 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Site;
@@ -30,6 +32,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class FpdResolver {
 
@@ -38,118 +43,124 @@ public class FpdResolver {
     private static final String BIDDERS = "bidders";
     private static final String APP = "app";
     private static final Set<String> KNOWN_FPD_ATTRIBUTES = new HashSet<>(Arrays.asList(USER, SITE, APP, BIDDERS));
+    private static final String ALLOW_ALL_BIDDERS = "*";
+    private static final String EXT = "ext";
+    private static final String DATA = "data";
+    private static final Set<String> USER_DATA_ATTR = Collections.singleton("geo");
+    private static final Set<String> APP_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
+            "privacypolicy"));
+    private static final Set<String> SITE_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
+            "privacypolicy", "mobile"));
 
-    private final JacksonMapper mapper;
+    private final JacksonMapper jacksonMapper;
     private final JsonMergeUtil jsonMergeUtil;
 
-    public FpdResolver(JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
+    public FpdResolver(JacksonMapper jacksonMapper) {
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
 
-        this.jsonMergeUtil = new JsonMergeUtil(mapper);
+        this.jsonMergeUtil = new JsonMergeUtil(jacksonMapper);
     }
 
-    public User resolveUser(User originUser, User fpdUser) {
-        if (originUser == null) {
-            return fpdUser;
-        }
+    public User resolveUser(User originUser, ObjectNode fpdUser) {
         if (fpdUser == null) {
             return originUser;
         }
-        final ExtUser originExtUser = originUser.getExt();
-        final ObjectNode resolvedData = mergeExtData(originExtUser, fpdUser.getExt(),
-                extUser -> extUser != null ? extUser.getData() : null);
-
-        final ExtUser resolvedExtUser;
-        if (resolvedData != null) {
-            resolvedExtUser = originExtUser != null
-                    ? originExtUser.toBuilder().data(resolvedData).build()
-                    : ExtUser.builder().data(resolvedData).build();
-        } else {
-            resolvedExtUser = null;
-        }
-
-        return originUser.toBuilder()
-                .keywords(getFirstNotNull(fpdUser, originUser, User::getKeywords))
-                .gender(getFirstNotNull(fpdUser, originUser, User::getGender))
-                .yob(getFirstNotNull(fpdUser, originUser, User::getYob))
-                .geo(getFirstNotNull(fpdUser, originUser, User::getGeo))
+        final User resultUser = originUser == null ? User.builder().build() : originUser;
+        final ExtUser resolvedExtUser = resolveUserExt(fpdUser, resultUser);
+        return resultUser.toBuilder()
+                .keywords(getFirstNotNull(getString(fpdUser, "keywords"), resultUser.getKeywords()))
+                .gender(getFirstNotNull(getString(fpdUser, "gender"), resultUser.getGender()))
+                .yob(getFirstNotNull(getInteger(fpdUser, "yob"), resultUser.getYob()))
                 .ext(resolvedExtUser)
                 .build();
     }
 
-    public App resolveApp(App originApp, App fpdApp) {
-        if (originApp == null) {
-            return fpdApp;
-        }
+    private ExtUser resolveUserExt(ObjectNode fpdUser, User originUser) {
+        final ExtUser originExtUser = originUser.getExt();
+        final ObjectNode resolvedData =
+                mergeExtData(fpdUser.path(EXT).path(DATA), originExtUser != null ? originExtUser.getData() : null);
+
+        return updateUserExtDataWithFpdAttr(fpdUser, originExtUser, resolvedData);
+    }
+
+    private ExtUser updateUserExtDataWithFpdAttr(ObjectNode fpdUser, ExtUser originExtUser, ObjectNode extData) {
+
+        ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
+        USER_DATA_ATTR.forEach(attribute -> setAttr(fpdUser, resultData, attribute));
+        return originExtUser != null
+                ? originExtUser.toBuilder().data(resultData.isEmpty() ? null : resultData).build()
+                : resultData.isEmpty() ? null : ExtUser.builder().data(resultData).build();
+    }
+
+    public App resolveApp(App originApp, ObjectNode fpdApp) {
         if (fpdApp == null) {
             return originApp;
         }
-        final ExtApp originExtApp = originApp.getExt();
-        final ObjectNode resolvedData = mergeExtData(originExtApp, fpdApp.getExt(),
-                extApp -> extApp != null ? extApp.getData() : null);
-
-        final ExtApp resolvedExtApp;
-        if (resolvedData != null) {
-            resolvedExtApp = originExtApp != null
-                    ? ExtApp.of(originExtApp.getPrebid(), resolvedData)
-                    : ExtApp.of(null, resolvedData);
-        } else {
-            resolvedExtApp = null;
-        }
-        return originApp.toBuilder()
-                .id(getFirstNotNull(fpdApp, originApp, App::getId))
-                .name(getFirstNotNull(fpdApp, originApp, App::getName))
-                .bundle(getFirstNotNull(fpdApp, originApp, App::getBundle))
-                .storeurl(getFirstNotNull(fpdApp, originApp, App::getStoreurl))
-                .domain(getFirstNotNull(fpdApp, originApp, App::getDomain))
-                .cat(getFirstNotNull(fpdApp, originApp, App::getCat))
-                .sectioncat(getFirstNotNull(fpdApp, originApp, App::getSectioncat))
-                .pagecat(getFirstNotNull(fpdApp, originApp, App::getPagecat))
-                .content(getFirstNotNull(fpdApp, originApp, App::getContent))
-                .publisher(getFirstNotNull(fpdApp, originApp, App::getPublisher))
-                .keywords(getFirstNotNull(fpdApp, originApp, App::getKeywords))
-                .privacypolicy(getFirstNotNull(fpdApp, originApp, App::getPrivacypolicy))
+        final App resultApp = originApp == null ? App.builder().build() : originApp;
+        final ExtApp resolvedExtApp = resolveAppExt(fpdApp, resultApp);
+        return resultApp.toBuilder()
+                .name(getFirstNotNull(getString(fpdApp, "name"), resultApp.getName()))
+                .bundle(getFirstNotNull(getString(fpdApp, "bundle"), resultApp.getName()))
+                .storeurl(getFirstNotNull(getString(fpdApp, "storeurl"), resultApp.getStoreurl()))
+                .domain(getFirstNotNull(getString(fpdApp, "domain"), resultApp.getDomain()))
+                .cat(getFirstNotNull(getStrings(fpdApp, "cat"), resultApp.getCat()))
+                .sectioncat(getFirstNotNull(getStrings(fpdApp, "sectioncat"), resultApp.getSectioncat()))
+                .pagecat(getFirstNotNull(getStrings(fpdApp, "pagecat"), resultApp.getPagecat()))
+                .keywords(getFirstNotNull(getString(fpdApp, "keywords"), resultApp.getKeywords()))
                 .ext(resolvedExtApp)
                 .build();
     }
 
-    public Site resolveSite(Site originSite, Site fpdSite) {
-        if (originSite == null) {
-            return fpdSite;
-        }
+    private ExtApp resolveAppExt(ObjectNode fpdApp, App originApp) {
+        final ExtApp originExtApp = originApp.getExt();
+        final ObjectNode resolvedData =
+                mergeExtData(fpdApp.path(EXT).path(DATA), originExtApp != null ? originExtApp.getData() : null);
+
+        return updateAppExtDataWithFpdAttr(fpdApp, originExtApp, resolvedData);
+    }
+
+    private ExtApp updateAppExtDataWithFpdAttr(ObjectNode fpdApp, ExtApp originExtApp, ObjectNode extData) {
+        final ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
+        APP_DATA_ATTR.forEach(attribute -> setAttr(fpdApp, resultData, attribute));
+        return originExtApp != null
+                ? ExtApp.of(originExtApp.getPrebid(), resultData.isEmpty() ? null : resultData)
+                : resultData.isEmpty() ? null : ExtApp.of(null, resultData);
+    }
+
+    public Site resolveSite(Site originSite, ObjectNode fpdSite) {
         if (fpdSite == null) {
             return originSite;
         }
-
-        final ExtSite originExtSite = originSite.getExt();
-        final ObjectNode resolvedData = mergeExtData(originExtSite, fpdSite.getExt(),
-                extSite -> extSite != null ? extSite.getData() : null);
-
-        final ExtSite resolvedExtSite;
-        if (resolvedData != null) {
-            resolvedExtSite = originExtSite != null
-                    ? ExtSite.of(originExtSite.getAmp(), resolvedData)
-                    : ExtSite.of(null, resolvedData);
-        } else {
-            resolvedExtSite = null;
-        }
-        return originSite.toBuilder()
-                .id(getFirstNotNull(fpdSite, originSite, Site::getId))
-                .name(getFirstNotNull(fpdSite, originSite, Site::getName))
-                .domain(getFirstNotNull(fpdSite, originSite, Site::getDomain))
-                .cat(getFirstNotNull(fpdSite, originSite, Site::getCat))
-                .sectioncat(getFirstNotNull(fpdSite, originSite, Site::getSectioncat))
-                .pagecat(getFirstNotNull(fpdSite, originSite, Site::getPagecat))
-                .page(getFirstNotNull(fpdSite, originSite, Site::getPage))
-                .ref(getFirstNotNull(fpdSite, originSite, Site::getRef))
-                .search(getFirstNotNull(fpdSite, originSite, Site::getSearch))
-                .content(getFirstNotNull(fpdSite, originSite, Site::getContent))
-                .publisher(getFirstNotNull(fpdSite, originSite, Site::getPublisher))
-                .keywords(getFirstNotNull(fpdSite, originSite, Site::getKeywords))
-                .mobile(getFirstNotNull(fpdSite, originSite, Site::getMobile))
-                .privacypolicy(getFirstNotNull(fpdSite, originSite, Site::getPrivacypolicy))
+        final Site resultSite = originSite == null ? Site.builder().build() : originSite;
+        final ExtSite resolvedExtSite = resolveSiteExt(fpdSite, resultSite);
+        return resultSite.toBuilder()
+                .name(getFirstNotNull(getString(fpdSite, "name"), resultSite.getName()))
+                .domain(getFirstNotNull(getString(fpdSite, "domain"), resultSite.getDomain()))
+                .cat(getFirstNotNull(getStrings(fpdSite, "cat"), resultSite.getCat()))
+                .sectioncat(getFirstNotNull(getStrings(fpdSite, "sectioncat"), resultSite.getSectioncat()))
+                .pagecat(getFirstNotNull(getStrings(fpdSite, "pagecat"), resultSite.getPagecat()))
+                .page(getFirstNotNull(getString(fpdSite, "page"), resultSite.getPage()))
+                .keywords(getFirstNotNull(getString(fpdSite, "keywords"), resultSite.getKeywords()))
+                .ref(getFirstNotNull(getString(fpdSite, "ref"), resultSite.getRef()))
+                .search(getFirstNotNull(getString(fpdSite, "search"), resultSite.getRef()))
                 .ext(resolvedExtSite)
                 .build();
+    }
+
+    private ExtSite resolveSiteExt(ObjectNode fpdSite, Site originSite) {
+        final ExtSite originExtSite = originSite.getExt();
+        final ObjectNode resolvedData =
+                mergeExtData(fpdSite.path(EXT).path(DATA), originExtSite != null ? originExtSite.getData() : null);
+
+        return updateSiteExtDataWithFpdAttr(fpdSite, originExtSite, resolvedData);
+    }
+
+    private ExtSite updateSiteExtDataWithFpdAttr(ObjectNode fpdSite, ExtSite originExtSite, ObjectNode extData) {
+        final ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
+        SITE_DATA_ATTR.forEach(attribute -> setAttr(fpdSite, resultData, attribute));
+        return originExtSite != null
+                ? ExtSite.of(originExtSite.getAmp(), resultData.isEmpty() ? null : resultData)
+                : resultData.isEmpty() ? null : ExtSite.of(null, resultData);
     }
 
     public ObjectNode resolveImpExt(ObjectNode impExt, ObjectNode targeting) {
@@ -177,7 +188,7 @@ public class FpdResolver {
                         resolvedData)
                         : ExtImpContext.of(null, null, null, resolvedData));
 
-        return mapper.mapper().valueToTree(resolvedExtImp);
+        return jacksonMapper.mapper().valueToTree(resolvedExtImp);
     }
 
     public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
@@ -224,25 +235,20 @@ public class FpdResolver {
         if (userNode == null && siteNode == null) {
             return null;
         }
-
-        final List<String> bidders = Collections.singletonList("*");
-        final User user;
-
-        try {
-            user = userNode != null ? mapper.mapper().treeToValue(userNode, User.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Failed to decode targeting.user: %s", e.getMessage()));
-        }
-
-        final Site site;
-        try {
-            site = siteNode != null ? mapper.mapper().treeToValue(siteNode, Site.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException(String.format("Failed to decode targeting.site: %s", e.getMessage()));
-        }
+        final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
         return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(ExtBidderConfigFpd.of(site, null, user))));
+                ExtBidderConfig.of(ExtBidderConfigFpd.of(
+                        moveDataAttributesToExtData(siteNode), null, moveDataAttributesToExtData(userNode)))));
+    }
+
+    private ObjectNode moveDataAttributesToExtData(ObjectNode source) {
+        final JsonNode dataNode = source != null ? source.get(DATA) : null;
+        if (dataNode != null) {
+            source.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, dataNode));
+            source.remove(DATA);
+        }
+        return source;
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
@@ -251,29 +257,64 @@ public class FpdResolver {
         return new ArrayList<>(resolvedBidders);
     }
 
-    private <T> ObjectNode mergeExtData(T originExt, T fpdExt, Function<T, ObjectNode> dataRetriever) {
-        final ObjectNode fpdData = dataRetriever.apply(fpdExt);
-        final ObjectNode originData = dataRetriever.apply(originExt);
-
-        if (fpdData == null) {
-            return originData;
+    private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {
+        if (fpdData.isMissingNode() || !fpdData.isObject()) {
+            return originData != null && originData.isObject() ? (ObjectNode) originData : null;
         }
-        if (originData != null) {
+
+        if (originData != null && originData.isObject()) {
             return (ObjectNode) jsonMergeUtil.merge(fpdData, originData);
         }
-        return fpdData;
+        return fpdData.isObject() ? (ObjectNode) fpdData : null;
     }
 
     private ExtImp getExtImp(ObjectNode extImp) {
         try {
-            return mapper.mapper().treeToValue(extImp, ExtImp.class);
+            return jacksonMapper.mapper().treeToValue(extImp, ExtImp.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Failed to decode imp.ext: %s", e.getMessage()));
         }
     }
 
-    private static <T, R> R getFirstNotNull(T firstItem, T secondItem, Function<T, R> getter) {
-        final R firstValue = getter.apply(firstItem);
-        return firstValue != null ? firstValue : getter.apply(secondItem);
+    private static void setAttr(ObjectNode source, ObjectNode dest, String fieldName) {
+        final JsonNode field = source.get(fieldName);
+        if (field != null) {
+            dest.set(fieldName, field);
+        }
+    }
+
+    private static List<String> getStrings(JsonNode firstItem, String fieldName) {
+        final JsonNode valueNode = firstItem.get(fieldName);
+        final ArrayNode arrayNode = valueNode != null && valueNode.isArray() ? (ArrayNode) valueNode : null;
+        return arrayNode != null && isTextualArray(arrayNode)
+                ? StreamSupport.stream(arrayNode.spliterator(), false)
+                .map(JsonNode::asText)
+                .collect(Collectors.toList())
+                : null;
+    }
+
+    private static boolean isTextualArray(ArrayNode arrayNode) {
+        return StreamSupport.stream(arrayNode.spliterator(), false).allMatch(JsonNode::isTextual);
+    }
+
+    private static String getString(ObjectNode firstItem, String fieldName) {
+        return getValueFromJsonNode(firstItem, fieldName, JsonNode::asText, JsonNode::isTextual);
+    }
+
+    private static Integer getInteger(ObjectNode firstItem, String fieldName) {
+        return getValueFromJsonNode(firstItem, fieldName, JsonNode::asInt, JsonNode::isInt);
+    }
+
+    private static <T> T getValueFromJsonNode(ObjectNode firstItem, String fieldName,
+                                              Function<JsonNode, T> nodeConverter,
+                                              Predicate<JsonNode> isCorrectType) {
+        final JsonNode valueNode = firstItem.get(fieldName);
+        return valueNode != null && isCorrectType.test(valueNode)
+                ? nodeConverter.apply(valueNode)
+                : null;
+    }
+
+    private static <T> T getFirstNotNull(T firstValue, T secondValue) {
+        return firstValue != null ? firstValue : secondValue;
     }
 }
