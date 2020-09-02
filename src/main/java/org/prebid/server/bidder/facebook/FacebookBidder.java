@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -20,7 +19,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
@@ -367,11 +365,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         final App app = bidRequest.getApp();
-        final Publisher appPublisher = app != null ? app.getPublisher() : null;
-        final Site site = bidRequest.getSite();
-        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
-
-        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final Publisher publisher = app != null ? app.getPublisher() : null;
         final String publisherId = publisher != null ? publisher.getId() : null;
 
         if (StringUtils.isEmpty(publisherId)) {

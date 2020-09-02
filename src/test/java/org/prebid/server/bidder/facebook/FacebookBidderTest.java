@@ -713,7 +713,7 @@ public class FacebookBidderTest extends VertxTest {
     public void makeTimeoutNotificationShouldGenerateRequest() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(), identity()).toBuilder()
-                .site(Site.builder().publisher(Publisher.builder().id("test").build()).build())
+                .app(App.builder().publisher(Publisher.builder().id("test").build()).build())
                 .build();
         final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
                 .body(mapper.writeValueAsString(bidRequest))
