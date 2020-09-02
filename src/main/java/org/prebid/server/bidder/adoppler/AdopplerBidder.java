@@ -122,7 +122,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
+                    .map(bid -> createBid(bid, impTypes, StringUtils.stripToNull(bidResponse.getCur())))
                     .collect(Collectors.toList());
             return Result.of(bidderBids, Collections.emptyList());
         } catch (PreBidException e) {
