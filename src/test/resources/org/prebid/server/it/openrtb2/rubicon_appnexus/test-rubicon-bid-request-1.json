@@ -38,6 +38,9 @@
             ],
             "prodtype": [
               "tech"
+            ],
+            "page": [
+              "http://www.example.com"
             ]
           },
           "track": {
