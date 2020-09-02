@@ -1,27 +1,28 @@
 package org.prebid.server.validation;
 
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
-import org.prebid.server.validation.model.Size;
+import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Validator for response {@link Bid} object.
@@ -30,22 +31,19 @@ public class ResponseBidValidator {
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
 
-    private final boolean shouldValidateBanner;
-    private final List<Size> bannerAllowedSizes;
+    private final BannerMaxSizeEnforcement bannerMaxSizeEnforcement;
     private final boolean shouldValidateSecureMarkup;
     private final Metrics metrics;
     private final JacksonMapper mapper;
 
-    public ResponseBidValidator(boolean shouldValidateBanner,
-                                List<String> bannerAllowedSizes,
+    public ResponseBidValidator(BannerMaxSizeEnforcement bannerMaxSizeEnforcement,
                                 boolean shouldValidateSecureMarkup,
                                 Metrics metrics,
                                 JacksonMapper mapper) {
 
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
-        this.shouldValidateBanner = shouldValidateBanner;
-        this.bannerAllowedSizes = toSizes(bannerAllowedSizes);
+        this.bannerMaxSizeEnforcement = Objects.requireNonNull(bannerMaxSizeEnforcement);
         this.shouldValidateSecureMarkup = shouldValidateSecureMarkup;
     }
 
@@ -55,7 +53,7 @@ public class ResponseBidValidator {
         try {
             validateCommonFields(bidderBid.getBid());
 
-            if (shouldValidateBanner(bidderBid)) {
+            if (bidderBid.getType() == BidType.banner) {
                 validateBannerFields(bidderBid, bidderRequest, account, aliases);
             }
 
@@ -66,20 +64,6 @@ public class ResponseBidValidator {
             return ValidationResult.error(e.getMessage());
         }
         return ValidationResult.success();
-    }
-
-    private List<Size> toSizes(List<String> bannerAllowedSizes) {
-        return CollectionUtils.emptyIfNull(bannerAllowedSizes).stream()
-                .map(this::parseSize)
-                .collect(Collectors.toList());
-    }
-
-    private Size parseSize(String size) {
-        try {
-            return mapper.decodeValue(StringUtils.wrap(size, '\"'), Size.class);
-        } catch (DecodeException e) {
-            throw new IllegalArgumentException("Invalid size format", e);
-        }
     }
 
     private static void validateCommonFields(Bid bid) throws ValidationException {
@@ -106,10 +90,6 @@ public class ResponseBidValidator {
         }
     }
 
-    private boolean shouldValidateBanner(BidderBid bidderBid) {
-        return bidderBid.getType() == BidType.banner && shouldValidateBanner;
-    }
-
     private void validateBannerFields(BidderBid bidderBid,
                                       BidderRequest bidderRequest,
                                       Account account,
@@ -117,7 +97,8 @@ public class ResponseBidValidator {
 
         final Bid bid = bidderBid.getBid();
 
-        if (bannerSizeIsNotValid(bid, validBannerSizes(account))) {
+        final BannerMaxSizeEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
+        if (bannerMaxSizeEnforcement != BannerMaxSizeEnforcement.skip && bannerSizeIsNotValid(bid, bidderRequest)) {
             metrics.updateValidationErrorMetrics(
                     aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.size);
 
@@ -127,20 +108,39 @@ public class ResponseBidValidator {
         }
     }
 
-    private List<Size> validBannerSizes(Account account) {
+    private BannerMaxSizeEnforcement effectiveBannerMaxSizeEnforcement(Account account) {
         final AccountBidValidationConfig validationConfig = account.getBidValidations();
-        final List<Size> accountValidBannerSizes =
-                validationConfig != null ? validationConfig.getBannerCreativeAllowedSizes() : null;
+        final BannerMaxSizeEnforcement accountBannerMaxSizeEnforcement =
+                validationConfig != null ? validationConfig.getBannerMaxSizeEnforcement() : null;
 
-        return accountValidBannerSizes != null ? accountValidBannerSizes : bannerAllowedSizes;
+        return ObjectUtils.defaultIfNull(accountBannerMaxSizeEnforcement, bannerMaxSizeEnforcement);
     }
 
-    private static boolean bannerSizeIsNotValid(Bid bid, List<Size> validBannerSizes) {
-        return validBannerSizes.stream().noneMatch(size -> bidHasEqualSize(bid, size));
+    private static boolean bannerSizeIsNotValid(Bid bid, BidderRequest bidderRequest) throws ValidationException {
+        final Format maxSize = maxSizeForBanner(bid, bidderRequest);
+        final Integer bidW = bid.getW();
+        final Integer bidH = bid.getH();
+
+        return bidW == null || bidW > maxSize.getW()
+                || bidH == null || bidH > maxSize.getH();
     }
 
-    private static boolean bidHasEqualSize(Bid bid, Size size) {
-        return Objects.equals(bid.getW(), size.getWidth()) && Objects.equals(bid.getH(), size.getHeight());
+    private static Format maxSizeForBanner(Bid bid, BidderRequest bidderRequest) throws ValidationException {
+        int maxW = 0;
+        int maxH = 0;
+        for (final Format size : bannerFormats(bid, bidderRequest)) {
+            maxW = Math.max(0, size.getW());
+            maxH = Math.max(0, size.getH());
+        }
+
+        return Format.builder().w(maxW).h(maxH).build();
+    }
+
+    private static List<Format> bannerFormats(Bid bid, BidderRequest bidderRequest) throws ValidationException {
+        final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bid);
+        final Banner banner = imp.getBanner();
+
+        return ListUtils.emptyIfNull(banner != null ? banner.getFormat() : null);
     }
 
     private void validateSecureMarkup(BidderBid bidderBid,

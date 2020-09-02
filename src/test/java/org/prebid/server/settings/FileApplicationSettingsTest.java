@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -20,7 +21,6 @@ import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.validation.model.Size;
 
 import java.util.HashSet;
 
@@ -102,7 +102,7 @@ public class FileApplicationSettingsTest {
                         + "},"
                         + "analyticsSamplingFactor : '1',"
                         + "bidValidations: {"
-                        + "banner-creative-allowed-sizes: ['1x1', '2x2']"
+                        + "banner-creative-max-size: 'enforce'"
                         + "}"
                         + "}"
                         + "]"));
@@ -136,7 +136,7 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
-                .bidValidations(AccountBidValidationConfig.of(asList(Size.of(1, 1), Size.of(2, 2))))
+                .bidValidations(AccountBidValidationConfig.of(BannerMaxSizeEnforcement.enforce))
                 .build());
     }
 

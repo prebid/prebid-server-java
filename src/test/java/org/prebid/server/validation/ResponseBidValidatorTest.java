@@ -1,6 +1,8 @@
 package org.prebid.server.validation;
 
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.junit.Before;
@@ -18,14 +20,12 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
-import org.prebid.server.validation.model.Size;
+import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +35,6 @@ import static org.mockito.Mockito.verify;
 
 public class ResponseBidValidatorTest extends VertxTest {
 
-    private static final List<String> BANNER_ALLOWED_SIZES = asList("1x1", "2x2");
     private static final String BIDDER_NAME = "bidder";
     private static final String ACCOUNT_ID = "account";
 
@@ -52,7 +51,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        responseBidValidator = new ResponseBidValidator(true, BANNER_ALLOWED_SIZES, true, metrics, jacksonMapper);
+        responseBidValidator = new ResponseBidValidator(BannerMaxSizeEnforcement.enforce, true, metrics, jacksonMapper);
 
         given(bidderAliases.resolveBidder(anyString())).willReturn(BIDDER_NAME);
     }
@@ -64,8 +63,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 BidderBid.of(null, null, null), givenBidderRequest(identity()), givenAccount(), bidderAliases);
 
         // then
-        assertThat(result.getErrors())
-                .containsOnly("Empty bid object submitted.");
+        assertThat(result.getErrors()).containsOnly("Empty bid object submitted.");
     }
 
     @Test
@@ -75,32 +73,33 @@ public class ResponseBidValidatorTest extends VertxTest {
                 givenBid(builder -> builder.id(null)), givenBidderRequest(identity()), givenAccount(), bidderAliases);
 
         // then
-        assertThat(result.getErrors())
-                .containsOnly("Bid missing required field 'id'");
+        assertThat(result.getErrors()).containsOnly("Bid missing required field 'id'");
     }
 
     @Test
     public void validateShouldFailIfBidHasNoImpId() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.impid(null)), givenBidderRequest(identity()), givenAccount(),
+                givenBid(builder -> builder.impid(null)),
+                givenBidderRequest(identity()),
+                givenAccount(),
                 bidderAliases);
 
         // then
-        assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" missing required field 'impid'");
+        assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing required field 'impid'");
     }
 
     @Test
     public void validateShouldFailIfBidHasNoPrice() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(null)), givenBidderRequest(identity()), givenAccount(),
+                givenBid(builder -> builder.price(null)),
+                givenBidderRequest(identity()),
+                givenAccount(),
                 bidderAliases);
 
         // then
-        assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+        assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
     }
 
     @Test
@@ -113,8 +112,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+        assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
     }
 
     @Test
@@ -124,15 +122,16 @@ public class ResponseBidValidatorTest extends VertxTest {
                 givenBid(builder -> builder.crid(null)), givenBidderRequest(identity()), givenAccount(), bidderAliases);
 
         // then
-        assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" missing creative ID");
+        assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing creative ID");
     }
 
     @Test
     public void validateShouldFailIfBannerBidHasNoWidthAndHeight() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(null).h(null)), givenBidderRequest(identity()), givenAccount(),
+                givenBid(builder -> builder.w(null).h(null)),
+                givenBidderRequest(identity()),
+                givenAccount(),
                 bidderAliases);
 
         // then
@@ -141,14 +140,31 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailIfBannerBidHasNotAllowedWidthAndHeight() {
+    public void validateShouldFailIfBannerBidWidthIsGreaterThanImposedByImp() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(3).h(3)), givenBidderRequest(identity()), givenAccount(), bidderAliases);
+                givenBid(builder -> builder.w(150).h(150)),
+                givenBidderRequest(identity()),
+                givenAccount(),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '3x3'");
+                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '150x150'");
+    }
+
+    @Test
+    public void validateShouldFailIfBannerBidHeightIsGreaterThanImposedByImp() {
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.w(50).h(250)),
+                givenBidderRequest(identity()),
+                givenAccount(),
+                bidderAliases);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '50x250'");
     }
 
     @Test
@@ -165,13 +181,13 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnSuccessIfBannerBidHasAllowedByAccountWidthAndHeight() {
+    public void validateShouldReturnSuccessIfBannerBidHasInvalidSizeButAccountDoesNotEnforceValidation() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(3).h(3)),
+                givenBid(builder -> builder.w(150).h(150)),
                 givenBidderRequest(identity()),
                 givenAccount(builder -> builder.bidValidations(
-                        AccountBidValidationConfig.of(singletonList(Size.of(3, 3))))),
+                        AccountBidValidationConfig.of(BannerMaxSizeEnforcement.skip))),
                 bidderAliases);
 
         // then
@@ -250,11 +266,11 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(false, null, true, metrics, jacksonMapper);
+        responseBidValidator = new ResponseBidValidator(BannerMaxSizeEnforcement.skip, true, metrics, jacksonMapper);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(null).h(null)),
+                givenBid(identity()),
                 givenBidderRequest(identity()),
                 givenAccount(),
                 bidderAliases);
@@ -266,7 +282,8 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(true, BANNER_ALLOWED_SIZES, false, metrics, jacksonMapper);
+        responseBidValidator = new ResponseBidValidator(
+                BannerMaxSizeEnforcement.enforce, false, metrics, jacksonMapper);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -283,7 +300,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldIncrementValidationErrorSizeMetrics() {
         // when
         responseBidValidator.validate(
-                givenBid(builder -> builder.w(3).h(3)), givenBidderRequest(identity()), givenAccount(), bidderAliases);
+                givenBid(builder -> builder.w(150).h(200)),
+                givenBidderRequest(identity()),
+                givenAccount(),
+                bidderAliases);
 
         // then
         verify(metrics).updateValidationErrorMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.size);
@@ -321,7 +341,10 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     private static BidderRequest givenBidderRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         final Imp.ImpBuilder impBuilder = Imp.builder()
-                .id("impId1");
+                .id("impId1")
+                .banner(Banner.builder()
+                        .format(singletonList(Format.builder().w(100).h(200).build()))
+                        .build());
 
         return BidderRequest.of(
                 BIDDER_NAME,

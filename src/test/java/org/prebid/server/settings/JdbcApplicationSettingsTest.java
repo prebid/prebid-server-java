@@ -25,10 +25,10 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.validation.model.Size;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
@@ -124,7 +124,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "tcf_config, analytics_sampling_factor, truncate_target_attr, bid_validations) "
                 + "values ('accountId','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
-                + "'{\"banner-creative-allowed-sizes\": [\"1x1\", \"2x2\"]}');");
+                + "'{\"banner-creative-max-size\": \"enforce\"}');");
         connection.createStatement().execute("insert into s2sconfig_config (uuid, config)"
                 + " values ('adUnitConfigId', 'config');");
         connection.createStatement().execute("insert into stored_requests (reqid, requestData) values ('1','value1');");
@@ -181,7 +181,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                             .build())
                     .truncateTargetAttr(0)
-                    .bidValidations(AccountBidValidationConfig.of(asList(Size.of(1, 1), Size.of(2, 2))))
+                    .bidValidations(AccountBidValidationConfig.of(BannerMaxSizeEnforcement.enforce))
                     .build());
             async.complete();
         }));

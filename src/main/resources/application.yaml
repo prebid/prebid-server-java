@@ -74,7 +74,7 @@ auction:
     expected-request-time-ms: 10
     only-winning-bids: false
   validations:
-    banner-creative-size: false
+    banner-creative-max-size: skip
     secure-markup: false
 video:
   stored-requests-timeout-ms: 90

@@ -47,6 +47,7 @@ import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -520,18 +521,12 @@ public class ServiceConfiguration {
 
     @Bean
     ResponseBidValidator responseValidator(
-            @Value("${auction.validations.banner-creative-size}") boolean shouldValidateBanner,
-            @Value("${auction.validations.banner-creative-allowed-sizes:#{null}}") String bannerAllowedSizesAsString,
+            @Value("${auction.validations.banner-creative-max-size}") BannerMaxSizeEnforcement bannerMaxSizeEnforcement,
             @Value("${auction.validations.secure-markup}") boolean shouldValidateSecureMarkup,
             Metrics metrics,
             JacksonMapper mapper) {
 
-        return new ResponseBidValidator(
-                shouldValidateBanner,
-                splitToList(bannerAllowedSizesAsString),
-                shouldValidateSecureMarkup,
-                metrics,
-                mapper);
+        return new ResponseBidValidator(bannerMaxSizeEnforcement, shouldValidateSecureMarkup, metrics, mapper);
     }
 
     @Bean

@@ -21,7 +21,7 @@ There are two ways to configure application settings: database and file. This do
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow. Values: ignore, no-access-allowed, access-allowed.
 - `analytics-sampling-factor` - Analytics sampling factor value. 
 - `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
-- `bid-validations.banner-creative-allowed-sizes` - Defines valid banner sizes.
+- `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
 
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
@@ -200,8 +200,8 @@ where tcf_config column is json with next format
       "web": true,
       "app": true,
       "amp": true
-   }
-  "purpose-one-treatment-interpretation": "ignore"
+   },
+  "purpose-one-treatment-interpretation": "ignore",
   "purposes": {
     "p1": {
       "enforce-purpose": "full",
@@ -307,7 +307,7 @@ and bid_validations column is json with next format
 
 ```json
 {
-  "banner-creative-allowed-sizes": ["1x1", "2x2"]
+  "banner-creative-max-size": "enforce"
 }
 ```
 
