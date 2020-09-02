@@ -65,13 +65,14 @@ class AdformRequestUtil {
         final Map<String, Map<String, Integer>> eidsMap = new HashMap<>();
         if (CollectionUtils.isNotEmpty(eids)) {
             for (ExtUserEid eid : eids) {
-                final Map<String, Integer> uidMap = new HashMap<>();
+                final Map<String, Integer> uidMap = eidsMap.computeIfAbsent(eid.getSource(),
+                        ignored -> new HashMap<>());
                 for (ExtUserEidUid uid : eid.getUids()) {
                     uidMap.put(uid.getId(), uid.getAtype());
                 }
-                eidsMap.put(eid.getSource(), uidMap);
             }
         }
+
         final String encodedEids = mapper.encode(eidsMap);
 
         return ObjectUtils
