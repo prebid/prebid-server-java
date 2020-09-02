@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -92,8 +91,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             return Result.emptyWithError(BidderError.badInput("Missing bidder token in 'user.buyeruid'"));
         }
 
-        final Site site = bidRequest.getSite();
-        if (site != null) {
+        if (bidRequest.getSite() != null) {
             return Result.emptyWithError(BidderError.badInput("Site impressions are not supported."));
         }
 
