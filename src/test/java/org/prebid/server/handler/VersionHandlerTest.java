@@ -37,7 +37,7 @@ public class VersionHandlerTest extends VertxTest {
         versionHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set", "not-set")));
+        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("undefined", "undefined")));
     }
 
     @Test
@@ -50,7 +50,7 @@ public class VersionHandlerTest extends VertxTest {
         versionHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("not-set", "not-set")));
+        verify(httpResponse).end(mapper.writeValueAsString(RevisionResponse.of("undefined", "undefined")));
     }
 
     @Test
