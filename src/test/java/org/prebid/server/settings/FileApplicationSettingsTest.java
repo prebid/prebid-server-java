@@ -11,7 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
-import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -136,7 +136,7 @@ public class FileApplicationSettingsTest {
                         .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                         .build())
                 .analyticsSamplingFactor(1)
-                .bidValidations(AccountBidValidationConfig.of(BannerMaxSizeEnforcement.enforce))
+                .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                 .build());
     }
 

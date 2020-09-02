@@ -74,7 +74,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
 - `auction.id-generator-type` - if generate-bid-id is on, then this defines how the ID should be generated. Currently onlye `uuid` is supported.
 - `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
-- `auction.validations.secure-markup` - enables secure markup validation. Default is `false`.
+- `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.

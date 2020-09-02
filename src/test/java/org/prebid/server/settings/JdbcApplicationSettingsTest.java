@@ -25,7 +25,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
-import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -181,7 +181,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                             .build())
                     .truncateTargetAttr(0)
-                    .bidValidations(AccountBidValidationConfig.of(BannerMaxSizeEnforcement.enforce))
+                    .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                     .build());
             async.complete();
         }));

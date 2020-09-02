@@ -11,13 +11,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
-import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -30,21 +29,19 @@ import java.util.Objects;
 public class ResponseBidValidator {
 
     private static final String[] INSECURE_MARKUP_MARKERS = {"http:", "http%3A"};
+    private static final String[] SECURE_MARKUP_MARKERS = {"https:", "https%3A"};
 
-    private final BannerMaxSizeEnforcement bannerMaxSizeEnforcement;
-    private final boolean shouldValidateSecureMarkup;
+    private final BidValidationEnforcement bannerMaxSizeEnforcement;
+    private final BidValidationEnforcement secureMarkupEnforcement;
     private final Metrics metrics;
-    private final JacksonMapper mapper;
 
-    public ResponseBidValidator(BannerMaxSizeEnforcement bannerMaxSizeEnforcement,
-                                boolean shouldValidateSecureMarkup,
-                                Metrics metrics,
-                                JacksonMapper mapper) {
+    public ResponseBidValidator(BidValidationEnforcement bannerMaxSizeEnforcement,
+                                BidValidationEnforcement secureMarkupEnforcement,
+                                Metrics metrics) {
 
-        this.metrics = Objects.requireNonNull(metrics);
-        this.mapper = Objects.requireNonNull(mapper);
         this.bannerMaxSizeEnforcement = Objects.requireNonNull(bannerMaxSizeEnforcement);
-        this.shouldValidateSecureMarkup = shouldValidateSecureMarkup;
+        this.secureMarkupEnforcement = Objects.requireNonNull(secureMarkupEnforcement);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     public ValidationResult validate(
@@ -57,9 +54,7 @@ public class ResponseBidValidator {
                 validateBannerFields(bidderBid, bidderRequest, account, aliases);
             }
 
-            if (shouldValidateSecureMarkup) {
-                validateSecureMarkup(bidderBid, bidderRequest, account, aliases);
-            }
+            validateSecureMarkup(bidderBid, bidderRequest, account, aliases);
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
@@ -97,8 +92,8 @@ public class ResponseBidValidator {
 
         final Bid bid = bidderBid.getBid();
 
-        final BannerMaxSizeEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
-        if (bannerMaxSizeEnforcement != BannerMaxSizeEnforcement.skip && bannerSizeIsNotValid(bid, bidderRequest)) {
+        final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
+        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip && bannerSizeIsNotValid(bid, bidderRequest)) {
             metrics.updateValidationErrorMetrics(
                     aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.size);
 
@@ -108,9 +103,9 @@ public class ResponseBidValidator {
         }
     }
 
-    private BannerMaxSizeEnforcement effectiveBannerMaxSizeEnforcement(Account account) {
+    private BidValidationEnforcement effectiveBannerMaxSizeEnforcement(Account account) {
         final AccountBidValidationConfig validationConfig = account.getBidValidations();
-        final BannerMaxSizeEnforcement accountBannerMaxSizeEnforcement =
+        final BidValidationEnforcement accountBannerMaxSizeEnforcement =
                 validationConfig != null ? validationConfig.getBannerMaxSizeEnforcement() : null;
 
         return ObjectUtils.defaultIfNull(accountBannerMaxSizeEnforcement, bannerMaxSizeEnforcement);
@@ -148,6 +143,10 @@ public class ResponseBidValidator {
                                       Account account,
                                       BidderAliases aliases) throws ValidationException {
 
+        if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
+            return;
+        }
+
         final Bid bid = bidderBid.getBid();
         final Imp imp = findCorrespondingImp(bidderRequest.getBidRequest(), bidderBid.getBid());
 
@@ -173,6 +172,9 @@ public class ResponseBidValidator {
     }
 
     private static boolean markupIsNotSecure(Bid bid) {
-        return StringUtils.containsAny(bid.getAdm(), INSECURE_MARKUP_MARKERS);
+        final String adm = bid.getAdm();
+
+        return StringUtils.containsAny(adm, INSECURE_MARKUP_MARKERS)
+                || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
     }
 }

@@ -7,5 +7,5 @@ import lombok.Value;
 public class AccountBidValidationConfig {
 
     @JsonProperty("banner-creative-max-size")
-    BannerMaxSizeEnforcement bannerMaxSizeEnforcement;
+    BidValidationEnforcement bannerMaxSizeEnforcement;
 }

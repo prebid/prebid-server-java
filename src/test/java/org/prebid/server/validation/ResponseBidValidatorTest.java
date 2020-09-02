@@ -20,7 +20,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
-import org.prebid.server.settings.model.BannerMaxSizeEnforcement;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -32,6 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
+import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
 
 public class ResponseBidValidatorTest extends VertxTest {
 
@@ -51,7 +52,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        responseBidValidator = new ResponseBidValidator(BannerMaxSizeEnforcement.enforce, true, metrics, jacksonMapper);
+        responseBidValidator = new ResponseBidValidator(enforce, enforce, metrics);
 
         given(bidderAliases.resolveBidder(anyString())).willReturn(BIDDER_NAME);
     }
@@ -187,7 +188,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 givenBid(builder -> builder.w(150).h(150)),
                 givenBidderRequest(identity()),
                 givenAccount(builder -> builder.bidValidations(
-                        AccountBidValidationConfig.of(BannerMaxSizeEnforcement.skip))),
+                        AccountBidValidationConfig.of(skip))),
                 bidderAliases);
 
         // then
@@ -209,10 +210,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailIfBidHasInsecureCreativeInSecureContext() {
+    public void validateShouldFailIfBidHasInsecureMarkerInCreativeInSecureContext() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
+                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 givenBidderRequest(builder -> builder.secure(1)),
                 givenAccount(),
                 bidderAliases);
@@ -223,10 +224,24 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailIfBidHasInsecureEncodedCreativeInSecureContext() {
+    public void validateShouldFailIfBidHasInsecureEncodedMarkerInCreativeInSecureContext() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.adm("<tag>>http%3A//site.com/creative.jpg</tag>")),
+                givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>")),
+                givenBidderRequest(builder -> builder.secure(1)),
+                givenAccount(),
+                bidderAliases);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly("Bid \"bidId1\" has has insecure creative but should be in secure context");
+    }
+
+    @Test
+    public void validateShouldFailIfBidHasNoSecureMarkersInCreativeInSecureContext() {
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>")),
                 givenBidderRequest(builder -> builder.secure(1)),
                 givenAccount(),
                 bidderAliases);
@@ -240,7 +255,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldReturnSuccessIfBidHasInsecureCreativeInInsecureContext() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
+                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 givenBidderRequest(identity()),
                 givenAccount(),
                 bidderAliases);
@@ -266,7 +281,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(BannerMaxSizeEnforcement.skip, true, metrics, jacksonMapper);
+        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -282,12 +297,11 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(
-                BannerMaxSizeEnforcement.enforce, false, metrics, jacksonMapper);
+        responseBidValidator = new ResponseBidValidator(enforce, skip, metrics);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
+                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 givenBidderRequest(builder -> builder.secure(1)),
                 givenAccount(),
                 bidderAliases);
@@ -313,7 +327,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldIncrementValidationErrorSecureMetrics() {
         // when
         responseBidValidator.validate(
-                givenBid(builder -> builder.adm("<tag>>http://site.com/creative.jpg</tag>")),
+                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 givenBidderRequest(builder -> builder.secure(1)),
                 givenAccount(),
                 bidderAliases);

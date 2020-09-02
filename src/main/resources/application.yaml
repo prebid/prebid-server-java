@@ -75,7 +75,7 @@ auction:
     only-winning-bids: false
   validations:
     banner-creative-max-size: skip
-    secure-markup: false
+    secure-markup: skip
 video:
   stored-requests-timeout-ms: 90
 amp:
