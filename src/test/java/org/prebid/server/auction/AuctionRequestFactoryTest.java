@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1236,7 +1237,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
                 BidRequest.builder().build()));
 
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
+        given(requestValidator.validate(any()))
+                .willReturn(new ValidationResult(emptyList(), asList("error1", "error2")));
 
         // when
         final Future<?> future = factory.fromRequest(routingContext, 0L);

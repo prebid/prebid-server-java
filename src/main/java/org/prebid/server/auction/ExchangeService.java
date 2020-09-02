@@ -889,16 +889,24 @@ public class ExchangeService {
         for (final BidderBid bid : bids) {
             final ValidationResult validationResult =
                     responseBidValidator.validate(bid, bidderRequest, account, aliases);
-            if (validationResult.hasErrors()) {
-                for (String error : validationResult.getErrors()) {
-                    errors.add(BidderError.generic(error));
-                }
-            } else {
-                validBids.add(bid);
+
+            if (validationResult.hasWarnings()) {
+                addAsBidderErrors(validationResult.getWarnings(), errors);
             }
+
+            if (validationResult.hasErrors()) {
+                addAsBidderErrors(validationResult.getErrors(), errors);
+                continue;
+            }
+
+            validBids.add(bid);
         }
 
         return errors.isEmpty() ? bidderSeatBid : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
+    }
+
+    private void addAsBidderErrors(List<String> messages, List<BidderError> errors) {
+        messages.stream().map(BidderError::generic).forEach(errors::add);
     }
 
     /**

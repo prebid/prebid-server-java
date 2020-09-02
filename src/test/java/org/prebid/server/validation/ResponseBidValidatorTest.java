@@ -33,6 +33,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
 import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
+import static org.prebid.server.settings.model.BidValidationEnforcement.warn;
 
 public class ResponseBidValidatorTest extends VertxTest {
 
@@ -220,7 +221,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has has insecure creative but should be in secure context");
+                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
     }
 
     @Test
@@ -234,7 +235,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has has insecure creative but should be in secure context");
+                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
     }
 
     @Test
@@ -248,7 +249,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has has insecure creative but should be in secure context");
+                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
     }
 
     @Test
@@ -295,6 +296,24 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnSuccessWithWarningIfBannerSizeEnforcementIsWarn() {
+        // given
+        responseBidValidator = new ResponseBidValidator(warn, enforce, metrics);
+
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.w(null).h(null)),
+                givenBidderRequest(identity()),
+                givenAccount(),
+                bidderAliases);
+
+        // then
+        assertThat(result.hasErrors()).isFalse();
+        assertThat(result.getWarnings())
+                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: 'nullxnull'");
+    }
+
+    @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
         responseBidValidator = new ResponseBidValidator(enforce, skip, metrics);
@@ -308,6 +327,24 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    public void validateShouldReturnSuccessWithWarningIfSecureMarkupEnforcementIsWarn() {
+        // given
+        responseBidValidator = new ResponseBidValidator(enforce, warn, metrics);
+
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
+                givenBidderRequest(builder -> builder.secure(1)),
+                givenAccount(),
+                bidderAliases);
+
+        // then
+        assertThat(result.hasErrors()).isFalse();
+        assertThat(result.getWarnings())
+                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
     }
 
     @Test

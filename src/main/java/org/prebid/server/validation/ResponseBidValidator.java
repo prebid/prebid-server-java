@@ -20,6 +20,8 @@ import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -47,18 +49,20 @@ public class ResponseBidValidator {
     public ValidationResult validate(
             BidderBid bidderBid, BidderRequest bidderRequest, Account account, BidderAliases aliases) {
 
+        final List<String> warnings = new ArrayList<>();
+
         try {
             validateCommonFields(bidderBid.getBid());
 
             if (bidderBid.getType() == BidType.banner) {
-                validateBannerFields(bidderBid, bidderRequest, account, aliases);
+                warnings.addAll(validateBannerFields(bidderBid, bidderRequest, account, aliases));
             }
 
-            validateSecureMarkup(bidderBid, bidderRequest, account, aliases);
+            warnings.addAll(validateSecureMarkup(bidderBid, bidderRequest, account, aliases));
         } catch (ValidationException e) {
-            return ValidationResult.error(e.getMessage());
+            return ValidationResult.error(warnings, e.getMessage());
         }
-        return ValidationResult.success();
+        return ValidationResult.success(warnings);
     }
 
     private static void validateCommonFields(Bid bid) throws ValidationException {
@@ -85,10 +89,10 @@ public class ResponseBidValidator {
         }
     }
 
-    private void validateBannerFields(BidderBid bidderBid,
-                                      BidderRequest bidderRequest,
-                                      Account account,
-                                      BidderAliases aliases) throws ValidationException {
+    private List<String> validateBannerFields(BidderBid bidderBid,
+                                              BidderRequest bidderRequest,
+                                              Account account,
+                                              BidderAliases aliases) throws ValidationException {
 
         final Bid bid = bidderBid.getBid();
 
@@ -97,10 +101,13 @@ public class ResponseBidValidator {
             metrics.updateValidationErrorMetrics(
                     aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.size);
 
-            throw new ValidationException(
+            return singleWarningOrValidationException(
+                    bannerMaxSizeEnforcement,
                     "Bid \"%s\" has 'w' and 'h' that are not valid. Bid dimensions: '%dx%d'",
                     bid.getId(), bid.getW(), bid.getH());
         }
+
+        return Collections.emptyList();
     }
 
     private BidValidationEnforcement effectiveBannerMaxSizeEnforcement(Account account) {
@@ -138,13 +145,13 @@ public class ResponseBidValidator {
         return ListUtils.emptyIfNull(banner != null ? banner.getFormat() : null);
     }
 
-    private void validateSecureMarkup(BidderBid bidderBid,
-                                      BidderRequest bidderRequest,
-                                      Account account,
-                                      BidderAliases aliases) throws ValidationException {
+    private List<String> validateSecureMarkup(BidderBid bidderBid,
+                                              BidderRequest bidderRequest,
+                                              Account account,
+                                              BidderAliases aliases) throws ValidationException {
 
         if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
-            return;
+            return Collections.emptyList();
         }
 
         final Bid bid = bidderBid.getBid();
@@ -154,9 +161,13 @@ public class ResponseBidValidator {
             metrics.updateValidationErrorMetrics(
                     aliases.resolveBidder(bidderRequest.getBidder()), account.getId(), MetricName.secure);
 
-            throw new ValidationException(
-                    "Bid \"%s\" has has insecure creative but should be in secure context", bid.getId());
+            return singleWarningOrValidationException(
+                    secureMarkupEnforcement,
+                    "Bid \"%s\" has insecure creative but should be in secure context",
+                    bid.getId());
         }
+
+        return Collections.emptyList();
     }
 
     private static Imp findCorrespondingImp(BidRequest bidRequest, Bid bid) throws ValidationException {
@@ -176,5 +187,18 @@ public class ResponseBidValidator {
 
         return StringUtils.containsAny(adm, INSECURE_MARKUP_MARKERS)
                 || !StringUtils.containsAny(adm, SECURE_MARKUP_MARKERS);
+    }
+
+    private static List<String> singleWarningOrValidationException(
+            BidValidationEnforcement enforcement, String message, Object... args) throws ValidationException {
+
+        switch (enforcement) {
+            case enforce:
+                throw new ValidationException(message, args);
+            case warn:
+                return Collections.singletonList(String.format(message, args));
+            default:
+                throw new IllegalStateException(String.format("Unexpected enforcement: %s", enforcement));
+        }
     }
 }
