@@ -97,9 +97,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             final Imp updatedImp = updateImp(imp, extImpAdtarget);
 
             final Integer sourceId = extImpAdtarget.getSourceId();
-            final List<Imp> sourceIdImps = sourceToImps.get(sourceId);
-            Objects.requireNonNullElseGet(sourceIdImps,
-                    () -> sourceToImps.computeIfAbsent(sourceId, ignored -> new ArrayList<>())).add(updatedImp);
+            sourceToImps.computeIfAbsent(sourceId, ignored -> new ArrayList<>()).add(updatedImp);
         }
         return Result.of(sourceToImps, errors);
     }
