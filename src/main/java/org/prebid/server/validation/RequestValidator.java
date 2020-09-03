@@ -403,7 +403,6 @@ public class RequestValidator {
                     throw new ValidationException(
                             "request.user.ext.eids must contain at least one element or be undefined");
                 }
-                final Set<String> uniqueSources = new HashSet<>(eids.size());
                 for (int index = 0; index < eids.size(); index++) {
                     final ExtUserEid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -431,11 +430,6 @@ public class RequestValidator {
                             }
                         }
                     }
-                    uniqueSources.add(eid.getSource());
-                }
-
-                if (eids.size() != uniqueSources.size()) {
-                    throw new ValidationException("request.user.ext.eids must contain unique sources");
                 }
             }
         }
