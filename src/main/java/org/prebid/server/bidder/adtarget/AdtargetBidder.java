@@ -19,7 +19,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
@@ -63,25 +62,21 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final Result<Map<Integer, List<Imp>>> sourceIdToImpsResult = mapSourceIdToImp(request.getImp());
-        return createHttpRequests(sourceIdToImpsResult.getValue(), sourceIdToImpsResult.getErrors(), request);
-    }
 
-    /**
-     * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
-     */
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return extractBids(bidResponse, bidRequest.getImp());
-        } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceIdToImpsResult.getValue().entrySet()) {
+            final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
+            final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
+            final String bidRequestBody = mapper.encode(bidRequest);
+            httpRequests.add(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .uri(url)
+                    .body(bidRequestBody)
+                    .headers(headers)
+                    .payload(bidRequest)
+                    .build());
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
+        return Result.of(httpRequests, sourceIdToImpsResult.getErrors());
     }
 
     /**
@@ -90,7 +85,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     private Result<Map<Integer, List<Imp>>> mapSourceIdToImp(List<Imp> imps) {
         final List<BidderError> errors = new ArrayList<>();
         final Map<Integer, List<Imp>> sourceToImps = new HashMap<>();
-        for (final Imp imp : imps) {
+        for (Imp imp : imps) {
             final ExtImpAdtarget extImpAdtarget;
             try {
                 validateImpression(imp);
@@ -103,41 +98,10 @@ public class AdtargetBidder implements Bidder<BidRequest> {
 
             final Integer sourceId = extImpAdtarget.getSourceId();
             final List<Imp> sourceIdImps = sourceToImps.get(sourceId);
-            if (sourceIdImps == null) {
-                sourceToImps.put(sourceId, new ArrayList<>(Collections.singleton(updatedImp)));
-            } else {
-                sourceIdImps.add(updatedImp);
-            }
+            Objects.requireNonNullElseGet(sourceIdImps,
+                    () -> sourceToImps.computeIfAbsent(sourceId, ignored -> new ArrayList<>())).add(updatedImp);
         }
         return Result.of(sourceToImps, errors);
-    }
-
-    /**
-     * Creates {@link HttpRequest}s. One for each source id. Adds source id as url parameter
-     */
-    private Result<List<HttpRequest<BidRequest>>> createHttpRequests(Map<Integer, List<Imp>> sourceToImps,
-                                                                     List<BidderError> errors, BidRequest request) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceToImps.entrySet()) {
-            final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
-            final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
-            final String bidRequestBody;
-            try {
-                bidRequestBody = mapper.encode(bidRequest);
-            } catch (EncodeException e) {
-                errors.add(BidderError.badInput(
-                        String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-                return Result.of(Collections.emptyList(), errors);
-            }
-            httpRequests.add(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(url)
-                    .body(bidRequestBody)
-                    .headers(headers)
-                    .payload(bidRequest)
-                    .build());
-        }
-        return Result.of(httpRequests, errors);
     }
 
     /**
@@ -178,6 +142,19 @@ public class AdtargetBidder implements Bidder<BidRequest> {
                 .bidfloor(bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : imp.getBidfloor())
                 .ext(mapper.mapper().valueToTree(adtargetImpExt))
                 .build();
+    }
+
+    /**
+     * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
+     */
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return extractBids(bidResponse, bidRequest.getImp());
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     /**
@@ -223,5 +200,10 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
         }
+    }
+
+    @Override
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
     }
 }
