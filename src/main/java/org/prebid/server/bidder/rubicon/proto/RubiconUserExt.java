@@ -10,7 +10,9 @@ import java.util.List;
 @Value
 public class RubiconUserExt {
 
+    RubiconUserExtRp rp;
+
     List<ExtUserTpIdRubicon> tpid;
 
-    RubiconUserExtRp rp;
+    String liverampIdl;
 }
