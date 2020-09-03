@@ -917,7 +917,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateUserExtLiverampId() throws JsonProcessingException {
+    public void makeHttpRequestsShouldCreateUserExtLiverampId() {
         // given
         final ExtUser extUser = ExtUser.builder()
                 .eids(asList(
@@ -949,7 +949,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIgnoreLiverampIdIfMissingEidUidId() throws JsonProcessingException {
+    public void makeHttpRequestsShouldIgnoreLiverampIdIfMissingEidUidId() {
         // given
         final ExtUser extUser = ExtUser.builder()
                 .eids(asList(
