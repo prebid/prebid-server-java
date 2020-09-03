@@ -87,6 +87,7 @@
   },
   "ext": {
     "delDomain": "se-demo-d.openx.net",
-    "bc": "hb_pbs_1.0.0"
+    "bc": "hb_pbs_1.0.0",
+    "platform": "PLATFORM"
   }
 }

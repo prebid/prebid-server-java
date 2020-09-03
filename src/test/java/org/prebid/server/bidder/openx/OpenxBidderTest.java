@@ -208,6 +208,7 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo1", singletonList("bar1")))
                                                         .delDomain("se-demo-d.openx.net")
+                                                        .platform("platform")
                                                         .unit("unitId").build()))).build(),
                         Imp.builder()
                                 .id("impId2")
@@ -218,6 +219,7 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo2", "bar2"))
                                                         .delDomain("se-demo-d.openx.net")
+                                                        .platform("platform")
                                                         .unit("unitId").build()))).build(),
                         Imp.builder()
                                 .id("impId3")
@@ -230,6 +232,7 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo3", "bar3"))
                                                         .delDomain("se-demo-d.openx.net")
+                                                        .platform("platform")
                                                         .unit("unitId").build()))).build(),
                         Imp.builder()
                                 .id("impId4")
@@ -240,8 +243,8 @@ public class OpenxBidderTest extends VertxTest {
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo4", "bar4"))
                                                         .delDomain("se-demo-d.openx.net")
+                                                        .platform("platform")
                                                         .unit("unitId").build()))).build(),
-
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .regs(Regs.of(0, ExtRegs.of(1, null)))
@@ -254,7 +257,6 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput(
                         "OpenX only supports banner and video imps. Ignoring imp id=impId1"));
-
         assertThat(result.getValue()).hasSize(3)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
@@ -286,7 +288,8 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
+                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "platform",
+                                                "hb_pbs_1.0.0")))
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
@@ -310,12 +313,10 @@ public class OpenxBidderTest extends VertxTest {
                                                                         givenCustomParams("foo3", "bar3"))
                                                                 .build()))
                                                 .build()))
-
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
-                                .user(User.builder()
-                                        .ext(ExtUser.builder().consent("consent").build())
-                                        .build())
+                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "platform",
+                                                "hb_pbs_1.0.0")))
+                                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                                 .regs(Regs.of(0, ExtRegs.of(1, null)))
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest
@@ -334,10 +335,9 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "hb_pbs_1.0.0")))
-                                .user(User.builder()
-                                        .ext(ExtUser.builder().consent("consent").build())
-                                        .build())
+                                        ExtRequest.empty(), OpenxRequestExt.of("se-demo-d.openx.net", "platform",
+                                                "hb_pbs_1.0.0")))
+                                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                                 .regs(Regs.of(0, ExtRegs.of(1, null)))
                                 .build());
     }

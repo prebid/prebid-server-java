@@ -16,6 +16,8 @@ import java.util.Map;
 public class ExtImpOpenx {
     String unit;
 
+    String platform;
+
     @JsonProperty("delDomain")
     String delDomain;
 

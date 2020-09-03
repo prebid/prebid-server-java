@@ -178,8 +178,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private ExtRequest makeReqExt(Imp imp) {
+        final ExtImpOpenx extImpOpenx = parseOpenxExt(imp).getBidder();
         return mapper.fillExtension(
-                ExtRequest.empty(), OpenxRequestExt.of(parseOpenxExt(imp).getBidder().getDelDomain(), OPENX_CONFIG));
+                ExtRequest.empty(), OpenxRequestExt.of(extImpOpenx.getDelDomain(), extImpOpenx.getPlatform(),
+                        OPENX_CONFIG));
     }
 
     private ExtPrebid<ExtImpPrebid, ExtImpOpenx> parseOpenxExt(Imp imp) {
