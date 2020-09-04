@@ -7,10 +7,13 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -39,8 +42,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpGumgum>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -89,11 +90,19 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 if (imp.getBanner() != null) {
                     modifiedImps.add(modifyImp(imp));
                     trackingId = impExt.getZone();
+                } else {
+                    final Video video = imp.getVideo();
+                    if (video != null) {
+                        validateVideoParams(video);
+                        modifiedImps.add(imp);
+                        trackingId = impExt.getZone();
+                    }
                 }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
+
         if (modifiedImps.isEmpty()) {
             throw new PreBidException("No valid impressions");
         }
@@ -127,6 +136,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return imp;
     }
 
+    private void validateVideoParams(Video video) {
+        if (video.getW() == 0 || video.getH() == 0 || video.getMinduration() == 0 || video.getMaxduration() == 0
+                || video.getPlacement() == 0 || video.getLinearity() == 0) {
+            throw new PreBidException("Invalid or missing video field(s)");
+        }
+    }
+
     private static Site modifySite(Site site, String trackingId) {
         if (site != null) {
             return site.toBuilder().id(trackingId).build();
@@ -138,24 +154,45 @@ public class GumgumBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.of(extractBids(bidResponse, bidRequest), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse);
+                : bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> toBidderBid(bid, bidRequest, bidResponse.getCur()))
                 .collect(Collectors.toList());
+    }
+
+    private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
+        final BidType bidType = getMediaType(bid.getImpid(), bidRequest.getImp());
+        final Bid.BidBuilder bidBuilder = bid.toBuilder();
+        if (bidType == BidType.video) {
+            bidBuilder
+                    .adm(bid.getAdm().replace("${AUCTION_PRICE}", String.valueOf(bid.getPrice())));
+        }
+        return BidderBid.of(bidBuilder.build(), bidType, StringUtils.stripToNull(currency));
+    }
+
+    private static BidType getMediaType(String impId, List<Imp> requestImps) {
+        for (Imp imp : requestImps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+            }
+        }
+        return BidType.video;
     }
 
     @Override
