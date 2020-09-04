@@ -488,8 +488,9 @@ public class ExchangeService {
                              ExtBidderConfigFpd fpdConfig) {
 
         final String updatedBuyerUid = updateUserBuyerUid(user, bidder, aliases, uidsBody, uidsCookie);
-        final boolean shouldUpdateUserExt = extUser != null
-                && (extUser.getPrebid() != null || (extUser.getData() != null && !useFirstPartyData));
+        final boolean shouldCleanPrebid = extUser != null && extUser.getPrebid() != null;
+        final boolean shouldCleanData = extUser != null && extUser.getData() != null && !useFirstPartyData;
+        final boolean shouldUpdateUserExt = shouldCleanData || shouldCleanPrebid;
 
         User maskedUser = user;
         if (updatedBuyerUid != null || shouldUpdateUserExt) {
@@ -500,8 +501,8 @@ public class ExchangeService {
 
             if (shouldUpdateUserExt) {
                 final ExtUser updatedExtUser = extUser.toBuilder()
-                        .prebid(null)
-                        .data(null)
+                        .prebid(shouldCleanPrebid ? null : extUser.getPrebid())
+                        .data(shouldCleanData ? null : extUser.getData())
                         .build();
                 userBuilder.ext(updatedExtUser.isEmpty() ? null : updatedExtUser);
             }
@@ -509,9 +510,9 @@ public class ExchangeService {
             maskedUser = userBuilder.build();
         }
 
-        final User fpdUser = fpdConfig == null ? null : fpdConfig.getUser();
-
-        return fpdResolver.resolveUser(maskedUser, fpdUser);
+        return useFirstPartyData
+                ? fpdResolver.resolveUser(maskedUser, fpdConfig == null ? null : fpdConfig.getUser())
+                : maskedUser;
     }
 
     /**
@@ -713,9 +714,9 @@ public class ExchangeService {
                 ? app.toBuilder().ext(maskExtApp(appExt)).build()
                 : app;
 
-        final App fpdApp = fpdConfig == null ? null : fpdConfig.getApp();
-
-        return fpdResolver.resolveApp(maskedApp, fpdApp);
+        return useFirstPartyData
+                ? fpdResolver.resolveApp(maskedApp, fpdConfig == null ? null : fpdConfig.getApp())
+                : maskedApp;
     }
 
     private ExtApp maskExtApp(ExtApp appExt) {
@@ -734,9 +735,9 @@ public class ExchangeService {
                 ? site.toBuilder().ext(maskExtSite(siteExt)).build()
                 : site;
 
-        final Site fpdSite = fpdConfig == null ? null : fpdConfig.getSite();
-
-        return fpdResolver.resolveSite(maskedSite, fpdSite);
+        return useFirstPartyData
+                ? fpdResolver.resolveSite(maskedSite, fpdConfig == null ? null : fpdConfig.getSite())
+                : maskedSite;
     }
 
     private ExtSite maskExtSite(ExtSite siteExt) {
