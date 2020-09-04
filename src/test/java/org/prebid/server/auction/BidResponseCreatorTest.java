@@ -791,7 +791,9 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_bidder1", "5.00"),
                         tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_bidder_bidder1", "bidder1"),
+                        tuple("hb_bidid_bidder1", "bidId1"),
+                        tuple("hb_bidid", "bidId1"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
@@ -823,7 +825,10 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
+                        tuple("hb_bidid_someVeryLon", "bidId1"),
+                        tuple("hb_bidid", "bidId1"));
     }
 
     @Test
@@ -851,7 +856,9 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
+                        tuple("hb_bidid", "bidId1"),
+                        tuple("hb_bidid_someVeryLon", "bidId1"));
     }
 
     @Test
@@ -886,7 +893,9 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
+                        tuple("hb_bidid_someVeryLon", "bidId1"),
+                        tuple("hb_bidid", "bidId1"));
     }
 
     @Test
@@ -961,7 +970,9 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.000"),
                         tuple("hb_bidder", "bidder1"),
                         tuple("hb_pb_bidder1", "5.000"),
-                        tuple("hb_bidder_bidder1", "bidder1"));
+                        tuple("hb_bidder_bidder1", "bidder1"),
+                        tuple("hb_bidid", "bidId"),
+                        tuple("hb_bidid_bidder1", "bidId"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
@@ -1001,7 +1012,9 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_cache_id_bidder1", "cacheId"),
                         tuple("hb_uuid_bidder1", "videoId"),
                         tuple("hb_cache_host_bidder1", "testHost"),
-                        tuple("hb_cache_path_bidder1", "testPath"));
+                        tuple("hb_cache_path_bidder1", "testPath"),
+                        tuple("hb_bidid", "bidId"),
+                        tuple("hb_bidid_bidder1", "bidId"));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
@@ -1018,14 +1031,11 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
 
-        given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong())).willReturn("http://win-url");
-
         // when
         final BidResponse bidResponse = bidResponseCreator.create(bidderResponses, auctionContext, targeting,
                 CACHE_INFO, account, true, 0L, false, timeout).result();
 
         // then
-        verify(eventsService).winUrlTargeting(eq("bidder1"), eq("accountId"), eq(0L));
         assertThat(bidResponse.getSeatbid())
                 .flatExtracting(SeatBid::getBid).hasSize(1)
                 .extracting(responseBid -> toExtPrebid(responseBid.getExt()).getPrebid().getTargeting())
@@ -1036,7 +1046,6 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb_bidder1", "5.00"),
                         tuple("hb_bidder", "bidder1"),
                         tuple("hb_bidder_bidder1", "bidder1"),
-                        tuple("hb_winurl", "http%3A%2F%2Fwin-url"),
                         tuple("hb_bidid", "bidId1"),
                         tuple("hb_bidid_bidder1", "bidId1"));
 
@@ -1085,7 +1094,6 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Events events = Events.of("http://event-type-win", "http://event-type-view");
         given(eventsService.createEvent(anyString(), anyString(), anyString(), anyLong())).willReturn(events);
-        given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong())).willReturn("http://win-url");
 
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
 
@@ -1135,7 +1143,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
-        given(eventsService.winUrlTargeting(anyString(), anyString(), anyLong())).willReturn("http://win-url");
         final Account account = Account.builder().id("accountId").eventsEnabled(true).build();
 
         // when
