@@ -99,7 +99,7 @@ public class FpdResolver {
         final ExtApp resolvedExtApp = resolveAppExt(fpdApp, resultApp);
         return resultApp.toBuilder()
                 .name(getFirstNotNull(getString(fpdApp, "name"), resultApp.getName()))
-                .bundle(getFirstNotNull(getString(fpdApp, "bundle"), resultApp.getName()))
+                .bundle(getFirstNotNull(getString(fpdApp, "bundle"), resultApp.getBundle()))
                 .storeurl(getFirstNotNull(getString(fpdApp, "storeurl"), resultApp.getStoreurl()))
                 .domain(getFirstNotNull(getString(fpdApp, "domain"), resultApp.getDomain()))
                 .cat(getFirstNotNull(getStrings(fpdApp, "cat"), resultApp.getCat()))
