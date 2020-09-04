@@ -25,14 +25,6 @@ public class EventsService {
     }
 
     /**
-     * Returns value for "hb_winurl" targeting keyword.
-     */
-    public String winUrlTargeting(String bidder, String accountId, Long timestamp) {
-        return eventUrl(EventRequest.Type.win, BIDID_PLACEHOLDER, bidder, accountId, timestamp,
-                EventRequest.Format.image);
-    }
-
-    /**
      * Returns url for win tracking.
      */
     public String winUrl(String bidId, String bidder, String accountId, Long timestamp) {
