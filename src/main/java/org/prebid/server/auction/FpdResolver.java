@@ -84,7 +84,6 @@ public class FpdResolver {
     }
 
     private ExtUser updateUserExtDataWithFpdAttr(ObjectNode fpdUser, ExtUser originExtUser, ObjectNode extData) {
-
         ObjectNode resultData = extData != null ? extData : jacksonMapper.mapper().createObjectNode();
         USER_DATA_ATTR.forEach(attribute -> setAttr(fpdUser, resultData, attribute));
         return originExtUser != null
@@ -142,7 +141,7 @@ public class FpdResolver {
                 .page(getFirstNotNull(getString(fpdSite, "page"), resultSite.getPage()))
                 .keywords(getFirstNotNull(getString(fpdSite, "keywords"), resultSite.getKeywords()))
                 .ref(getFirstNotNull(getString(fpdSite, "ref"), resultSite.getRef()))
-                .search(getFirstNotNull(getString(fpdSite, "search"), resultSite.getRef()))
+                .search(getFirstNotNull(getString(fpdSite, "search"), resultSite.getSearch()))
                 .ext(resolvedExtSite)
                 .build();
     }
@@ -238,17 +237,7 @@ public class FpdResolver {
         final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
 
         return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                        moveDataAttributesToExtData(siteNode), null, moveDataAttributesToExtData(userNode)))));
-    }
-
-    private ObjectNode moveDataAttributesToExtData(ObjectNode source) {
-        final JsonNode dataNode = source != null ? source.get(DATA) : null;
-        if (dataNode != null) {
-            source.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, dataNode));
-            source.remove(DATA);
-        }
-        return source;
+                ExtBidderConfig.of(ExtBidderConfigFpd.of(siteNode, null, userNode))));
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
