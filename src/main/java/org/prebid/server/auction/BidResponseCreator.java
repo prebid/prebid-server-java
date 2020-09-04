@@ -69,6 +69,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -99,9 +100,14 @@ public class BidResponseCreator {
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
 
-    public BidResponseCreator(CacheService cacheService, BidderCatalog bidderCatalog,
-                              EventsService eventsService, StoredRequestProcessor storedRequestProcessor,
-                              boolean generateBidId, int truncateAttrChars, JacksonMapper mapper) {
+    public BidResponseCreator(CacheService cacheService,
+                              BidderCatalog bidderCatalog,
+                              EventsService eventsService,
+                              StoredRequestProcessor storedRequestProcessor,
+                              boolean generateBidId,
+                              int truncateAttrChars,
+                              JacksonMapper mapper) {
+
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.eventsService = Objects.requireNonNull(eventsService);
@@ -133,8 +139,13 @@ public class BidResponseCreator {
                     .cur(bidRequest.getCur().get(0))
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
-                    .ext(mapper.mapper().valueToTree(toExtBidResponse(bidderResponses, auctionContext,
-                            CacheServiceResult.empty(), VideoStoredDataResult.empty(), auctionTimestamp, debugEnabled,
+                    .ext(mapper.mapper().valueToTree(toExtBidResponse(
+                            bidderResponses,
+                            auctionContext,
+                            CacheServiceResult.empty(),
+                            VideoStoredDataResult.empty(),
+                            auctionTimestamp,
+                            debugEnabled,
                             null)))
                     .build());
         } else {
@@ -152,12 +163,28 @@ public class BidResponseCreator {
                     ? winningBids
                     : bidderResponses.stream().flatMap(BidResponseCreator::getBids).collect(Collectors.toSet());
 
-            result = toBidsWithCacheIds(bidderResponses, bidsToCache, bidRequest.getImp(), cacheInfo, account, timeout,
+            result = toBidsWithCacheIds(
+                    bidderResponses,
+                    bidsToCache,
+                    bidRequest.getImp(),
+                    cacheInfo,
+                    account,
+                    timeout,
                     auctionTimestamp)
                     .compose(cacheResult -> videoStoredDataResult(bidRequest.getImp(), timeout)
-                            .map(videoStoredDataResult -> toBidResponse(bidderResponses, auctionContext, targeting,
-                                    winningBids, winningBidsByBidder, cacheInfo, cacheResult, videoStoredDataResult,
-                                    account, eventsAllowedByRequest, auctionTimestamp, debugEnabled)));
+                            .map(videoStoredDataResult -> toBidResponse(
+                                    bidderResponses,
+                                    auctionContext,
+                                    targeting,
+                                    winningBids,
+                                    winningBidsByBidder,
+                                    cacheInfo,
+                                    cacheResult,
+                                    videoStoredDataResult,
+                                    account,
+                                    eventsAllowedByRequest,
+                                    auctionTimestamp,
+                                    debugEnabled)));
         }
 
         return result;
@@ -181,6 +208,7 @@ public class BidResponseCreator {
                                             long auctionTimestamp, boolean debugEnabled,
                                             Map<String, List<ExtBidderError>> bidErrors) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
+
         final ExtResponseDebug extResponseDebug = debugEnabled
                 ? ExtResponseDebug.of(toExtHttpCalls(bidderResponses, cacheResult), bidRequest)
                 : null;
@@ -577,9 +605,19 @@ public class BidResponseCreator {
         final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
-                .map(bidderResponse -> toSeatBid(bidderResponse, targeting, bidRequest, winningBids,
-                        winningBidsByBidder, cacheInfo, cacheResult.getCacheBids(), videoStoredDataResult, account,
-                        eventsAllowedByRequest, bidErrors, auctionTimestamp))
+                .map(bidderResponse -> toSeatBid(
+                        bidderResponse,
+                        targeting,
+                        bidRequest,
+                        winningBids,
+                        winningBidsByBidder,
+                        cacheInfo,
+                        cacheResult.getCacheBids(),
+                        videoStoredDataResult,
+                        account,
+                        eventsAllowedByRequest,
+                        bidErrors,
+                        auctionTimestamp))
                 .collect(Collectors.toList());
 
         final ExtBidResponse extBidResponse = toExtBidResponse(bidderResponses, auctionContext, cacheResult,
@@ -816,7 +854,7 @@ public class BidResponseCreator {
             return Collections.emptyMap();
         }
 
-        final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
+        final Map<BidType, TargetingKeywordsCreator> result = new EnumMap<>(BidType.class);
         final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
 
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();

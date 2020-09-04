@@ -443,14 +443,13 @@ public class AuctionRequestFactory {
         final ExtUser ext = userExtOrNull(user);
 
         if (ext != null) {
-            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-            return builder.ext(ext).build();
+            return user.toBuilder().ext(ext).build();
         }
         return null;
     }
 
     /**
-     * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
+     * Returns updated {@link ExtUser} or null if no updates needed.
      */
     private ExtUser userExtOrNull(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
@@ -580,7 +579,7 @@ public class AuctionRequestFactory {
                     .pricegranularity(populatePriceGranularity(targeting, isPriceGranularityNull,
                             isPriceGranularityTextual, impMediaTypes))
                     .mediatypepricegranularity(targeting.getMediatypepricegranularity())
-                    .includewinners(isIncludeWinnersNull ? true : targeting.getIncludewinners())
+                    .includewinners(isIncludeWinnersNull || targeting.getIncludewinners())
                     .includebidderkeys(isIncludeBidderKeysNull
                             ? !isWinningOnly(prebid.getCache())
                             : targeting.getIncludebidderkeys())
