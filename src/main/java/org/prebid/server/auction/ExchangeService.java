@@ -643,7 +643,7 @@ public class ExchangeService {
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
 
         if (bidRequestSite != null && fpdApp != null || bidRequestApp != null && fpdSite != null) {
-            logger.error("Request to bidder {0} rejected as both bidRequest.site and bidRequest.app are present"
+            logger.info("Request to bidder {0} rejected as both bidRequest.site and bidRequest.app are present"
                     + " after fpd data have been merged", bidder);
             return null;
         }
