@@ -76,7 +76,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
-                .setHandler(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout));
+                .onComplete(async -> handleAccountResult(async, context, vtrackPuts, accountId, timeout));
     }
 
     private static String accountId(RoutingContext context) {
@@ -133,7 +133,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
                     ? biddersAllowingVastUpdate(vtrackPuts)
                     : Collections.emptySet();
             cacheService.cachePutObjects(vtrackPuts, biddersAllowingVastUpdate, accountId, timeout)
-                    .setHandler(asyncCache -> handleCacheResult(asyncCache, context));
+                    .onComplete(asyncCache -> handleCacheResult(asyncCache, context));
         }
     }
 

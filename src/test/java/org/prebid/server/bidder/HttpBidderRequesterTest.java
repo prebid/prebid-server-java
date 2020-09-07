@@ -3,7 +3,6 @@ package org.prebid.server.bidder;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Rule;
@@ -112,7 +111,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, null);
 
-        final MultiMap headers = new CaseInsensitiveHeaders();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
@@ -160,13 +159,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -185,7 +184,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -210,13 +209,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri("uri2")
                         .body("requestBody2")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -246,7 +245,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -267,7 +266,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -290,7 +289,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -317,7 +316,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -340,7 +339,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri("uri1")
                         .body("requestBody1")
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 
@@ -362,42 +361,42 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 // this request will fail with timeout
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 // this request will fail with 500 status
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 // this request will fail with 400 status
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 // this request will get 204 status
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build(),
                 // finally this request will succeed
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
@@ -445,7 +444,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .method(HttpMethod.POST)
                         .uri(EMPTY)
                         .body(EMPTY)
-                        .headers(new CaseInsensitiveHeaders())
+                        .headers(MultiMap.caseInsensitiveMultiMap())
                         .build()),
                 emptyList()));
 

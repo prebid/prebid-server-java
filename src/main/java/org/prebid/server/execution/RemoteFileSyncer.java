@@ -97,12 +97,12 @@ public class RemoteFileSyncer {
      * Fetches remote file and executes given callback with filepath on finish.
      */
     public void syncForFilepath(RemoteFileProcessor remoteFileProcessor) {
-        downloadIfNotExist(remoteFileProcessor).setHandler(syncResult -> handleSync(remoteFileProcessor, syncResult));
+        downloadIfNotExist(remoteFileProcessor).onComplete(syncResult -> handleSync(remoteFileProcessor, syncResult));
     }
 
     private Future<Boolean> downloadIfNotExist(RemoteFileProcessor fileProcessor) {
         final Promise<Boolean> promise = Promise.promise();
-        checkFileExist(saveFilePath).setHandler(existResult ->
+        checkFileExist(saveFilePath).onComplete(existResult ->
                 handleFileExistingWithSync(existResult, fileProcessor, promise));
         return promise.future();
     }
@@ -124,9 +124,9 @@ public class RemoteFileSyncer {
         if (existResult.succeeded()) {
             if (existResult.result()) {
                 fileProcessor.setDataPath(saveFilePath)
-                        .setHandler(serviceRespond -> handleServiceRespond(serviceRespond, promise));
+                        .onComplete(serviceRespond -> handleServiceRespond(serviceRespond, promise));
             } else {
-                syncRemoteFiles().setHandler(promise);
+                syncRemoteFiles().onComplete(promise);
             }
         } else {
             promise.fail(existResult.cause());
@@ -136,7 +136,7 @@ public class RemoteFileSyncer {
     private void handleServiceRespond(AsyncResult<?> processResult, Promise<Boolean> promise) {
         if (processResult.failed()) {
             final Throwable cause = processResult.cause();
-            cleanUp(saveFilePath).setHandler(removalResult -> handleCorruptedFileRemoval(removalResult, promise,
+            cleanUp(saveFilePath).onComplete(removalResult -> handleCorruptedFileRemoval(removalResult, promise,
                     cause));
         } else {
             promise.complete(false);
@@ -146,7 +146,7 @@ public class RemoteFileSyncer {
 
     private Future<Void> cleanUp(String filePath) {
         final Promise<Void> promise = Promise.promise();
-        checkFileExist(filePath).setHandler(existResult -> handleFileExistsWithDelete(filePath, existResult, promise));
+        checkFileExist(filePath).onComplete(existResult -> handleFileExistsWithDelete(filePath, existResult, promise));
         return promise.future();
     }
 
@@ -173,7 +173,7 @@ public class RemoteFileSyncer {
             logger.info("Existing file {0} cant be processed by service, try to download after removal",
                     serviceCause, saveFilePath);
 
-            syncRemoteFiles().setHandler(promise);
+            syncRemoteFiles().onComplete(promise);
         }
     }
 
@@ -185,7 +185,7 @@ public class RemoteFileSyncer {
 
     private Future<Void> tryDownload() {
         final Promise<Void> promise = Promise.promise();
-        cleanUp(tmpFilePath).setHandler(event -> handleTmpDelete(event, promise));
+        cleanUp(tmpFilePath).onComplete(event -> handleTmpDelete(event, promise));
         return promise.future();
     }
 
@@ -193,7 +193,7 @@ public class RemoteFileSyncer {
         if (tmpDeleteResult.failed()) {
             promise.fail(tmpDeleteResult.cause());
         } else {
-            download().setHandler(downloadResult -> handleDownload(downloadResult, promise));
+            download().onComplete(downloadResult -> handleDownload(downloadResult, promise));
         }
     }
 
@@ -265,9 +265,9 @@ public class RemoteFileSyncer {
         if (retryCount > 0) {
             final long next = retryCount - 1;
             cleanUp(tmpFilePath).compose(ignore -> download())
-                    .setHandler(retryResult -> handleRetryResult(retryInterval, next, retryResult, receivedPromise));
+                    .onComplete(retryResult -> handleRetryResult(retryInterval, next, retryResult, receivedPromise));
         } else {
-            cleanUp(tmpFilePath).setHandler(ignore -> receivedPromise.fail(new PreBidException(
+            cleanUp(tmpFilePath).onComplete(ignore -> receivedPromise.fail(new PreBidException(
                     String.format("File sync failed after %s retries", this.retryCount - retryCount))));
         }
     }
@@ -295,7 +295,7 @@ public class RemoteFileSyncer {
             if (syncResult.result()) {
                 logger.info("Sync service for {0}", saveFilePath);
                 remoteFileProcessor.setDataPath(saveFilePath)
-                        .setHandler(this::logFileProcessStatus);
+                        .onComplete(this::logFileProcessStatus);
             } else {
                 logger.info("Sync is not required for {0}", saveFilePath);
             }
@@ -319,7 +319,7 @@ public class RemoteFileSyncer {
 
     private void configureAutoUpdates(RemoteFileProcessor remoteFileProcessor) {
         logger.info("Check for updated for {0}", saveFilePath);
-        tryUpdate().setHandler(asyncUpdate -> {
+        tryUpdate().onComplete(asyncUpdate -> {
             if (asyncUpdate.failed()) {
                 logger.warn("File {0} update failed", asyncUpdate.cause(), saveFilePath);
             }

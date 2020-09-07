@@ -47,7 +47,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
         }
 
         googleRecaptchaVerifier.verify(recaptcha)
-                .setHandler(result -> {
+                .onComplete(result -> {
                     if (result.failed()) {
                         sendUnauthorized(context, result.cause());
                     } else {

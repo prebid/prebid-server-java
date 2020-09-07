@@ -86,7 +86,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         final EventRequest eventRequest = EventUtil.from(context);
         if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
             getAccountById(eventRequest.getAccountId())
-                    .setHandler(async -> handleEvent(async, eventRequest, context));
+                    .onComplete(async -> handleEvent(async, eventRequest, context));
         }
     }
 

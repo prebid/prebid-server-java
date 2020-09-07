@@ -38,7 +38,7 @@ public class DatabaseHealthChecker extends PeriodicHealthChecker {
     void updateStatus() {
         final Promise<SQLConnection> connectionPromise = Promise.promise();
         jdbcClient.getConnection(connectionPromise);
-        connectionPromise.future().setHandler(result ->
+        connectionPromise.future().onComplete(result ->
                 status = StatusResponse.of(
                         result.succeeded() ? Status.UP.name() : Status.DOWN.name(),
                         ZonedDateTime.now(Clock.systemUTC())));

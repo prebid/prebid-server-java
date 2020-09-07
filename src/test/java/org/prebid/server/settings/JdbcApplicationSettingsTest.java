@@ -163,7 +163,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(account -> {
+        future.onComplete(context.asyncAssertSuccess(account -> {
             assertThat(account).isEqualTo(Account.builder()
                     .id("accountId")
                     .priceGranularity("med")
@@ -189,7 +189,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertFailure(exception -> {
+        future.onComplete(context.asyncAssertFailure(exception -> {
             assertThat(exception).isInstanceOf(PreBidException.class)
                     .hasMessage("Account not found: non-existing");
             async.complete();
@@ -203,7 +203,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(config -> {
+        future.onComplete(context.asyncAssertSuccess(config -> {
             assertThat(config).isEqualTo("config");
             async.complete();
         }));
@@ -216,7 +216,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertFailure(exception -> {
+        future.onComplete(context.asyncAssertFailure(exception -> {
             assertThat(exception).isInstanceOf(PreBidException.class)
                     .hasMessage("AdUnitConfig not found: non-existing");
             async.complete();
@@ -237,7 +237,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Map<String, String> expectedImps = new HashMap<>();
         expectedImps.put("4", "value4");
         expectedImps.put("5", "value5");
-        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
@@ -255,7 +255,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Map<String, String> expectedRequests = new HashMap<>();
         expectedRequests.put("1", "value1");
         expectedRequests.put("2", "value2");
-        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, emptyMap(), emptyList()));
             async.complete();
@@ -276,7 +276,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Map<String, String> expectedImps = new HashMap<>();
         expectedImps.put("4", "value4");
         expectedImps.put("5", "value5");
-        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
@@ -296,7 +296,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             final Map<String, String> expectedRequests = new HashMap<>();
             expectedRequests.put("1", "value1");
             expectedRequests.put("2", "value2");
@@ -324,7 +324,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             final Map<String, String> expectedRequests = new HashMap<>();
             expectedRequests.put("1", "value1");
             expectedRequests.put("2", "value2");
@@ -352,7 +352,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             final Map<String, String> expectedRequests = new HashMap<>();
             expectedRequests.put("1", "value1");
             expectedRequests.put("2", "value2");
@@ -371,7 +371,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     singletonList("No stored request found for id: 3")));
             async.complete();
@@ -386,7 +386,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), singletonMap("4", "value4"),
                     singletonList("No stored imp found for id: 6")));
             async.complete();
@@ -401,7 +401,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     singletonList("No stored request found for id: 3")));
             async.complete();
@@ -420,7 +420,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("Result set column number is less than expected")));
             async.complete();
@@ -440,7 +440,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("Result set column number is less than expected")));
             async.complete();
@@ -456,7 +456,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("No stored requests for ids [3, 4] and stored imps for ids [6, 7] were found")));
             async.complete();
@@ -471,7 +471,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("No stored requests for ids [3, 4] were found")));
             async.complete();
@@ -486,7 +486,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     emptyList()));
             async.complete();
@@ -505,7 +505,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         expectedResponses.put("1", "response1");
         expectedResponses.put("2", "response2");
 
-        future.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult)
                     .isEqualTo(StoredResponseDataResult.of(expectedResponses, emptyList()));
             async.complete();
@@ -520,7 +520,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        storedResponseDataResultFuture.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(singletonMap("1", "response1"),
                     singletonList("No stored response found for id: 3")));
             async.complete();
@@ -539,7 +539,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        storedResponseDataResultFuture.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(emptyMap(),
                     singletonList("Result set column number is less than expected")));
             async.complete();
@@ -554,7 +554,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        storedResponseDataResultFuture.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(emptyMap(),
                     singletonList("No stored responses were found for ids: 3,4")));
             async.complete();

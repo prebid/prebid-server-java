@@ -5,7 +5,7 @@ import com.iab.openrtb.request.Format;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -145,7 +145,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
