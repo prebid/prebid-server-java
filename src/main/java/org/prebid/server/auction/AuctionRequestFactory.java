@@ -217,7 +217,7 @@ public class AuctionRequestFactory {
             throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
         }
 
-        ortbTypesResolver.normalizeFpdFields(bidRequestNode, errors);
+        ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors);
 
         try {
             return mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);

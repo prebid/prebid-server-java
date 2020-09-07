@@ -1150,7 +1150,6 @@ public class ExchangeServiceTest extends VertxTest {
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
                 .buyeruid("buyeridFromRequest")
-                .ext(ExtUser.builder().build())
                 .build());
     }
 
@@ -1173,6 +1172,31 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final Regs capturedRegs = captureBidRequest().getRegs();
         assertThat(capturedRegs).isSameAs(regs);
+    }
+
+    @Test
+    public void shouldCleanImpExtContextDataWhenFirstPartyDataNotPermittedForBidder() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode().put("someBidder", 1).set("context",
+                mapper.createObjectNode().put("data", "data").put("otherField", "value"));
+        final BidRequest bidRequest = givenBidRequest(singletonList(Imp.builder()
+                        .id("impId")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(300).build()))
+                                .build()).ext(impExt).build()),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(singletonList("otherBidder")))
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest capturedRequestExt = captureBidRequest();
+        assertThat(capturedRequestExt.getImp())
+                .extracting(Imp::getExt)
+                .extracting(impExtNode -> impExtNode.get("context"))
+                .containsOnly(mapper.createObjectNode().put("otherField", "value"));
     }
 
     @Test
@@ -1200,7 +1224,6 @@ public class ExchangeServiceTest extends VertxTest {
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder()
                 .buyeruid("uidval")
-                .ext(ExtUser.builder().build())
                 .build());
     }
 
@@ -1267,6 +1290,39 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(
                         tuple("keyword", "male", 133, Geo.EMPTY, extUser),
                         tuple("keyword", "male", 133, Geo.EMPTY, maskedExtUser));
+    }
+
+    @Test
+    public void shouldNotCleanRequestExtPrebidDataWhenFpdAllowedAndPrebidIsNotNull() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final ObjectNode dataNode = mapper.createObjectNode().put("data", "value");
+        final Map<String, Integer> bidderToGdpr = singletonMap("someBidder", 1);
+        final ExtUser extUser = ExtUser.builder().prebid(ExtUserPrebid.of(emptyMap())).data(dataNode).build();
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder")))
+                                .build()))
+                        .user(User.builder()
+                                .ext(extUser)
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsOnly(ExtUser.builder().data(dataNode).build());
     }
 
     @Test
@@ -1455,114 +1511,152 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(App::getExt, App::getKeywords)
                 .containsOnly(
                         tuple(ExtApp.of(null, dataNode), "keyword"),
-                        tuple(ExtApp.of(null, null), "keyword"));
+                        tuple(null, "keyword"));
     }
 
     @Test
-    public void shouldMergeUserAppAndSiteWithExtPrebidBidderConfig() {
+    public void shouldRejectRequestWhenAppAndSiteAppearsTogetherAfterFpdMerge() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
-
-        final Site bidderConfigSite = Site.builder().id("siteFromConfig").build();
-        final App bidderConfigApp = App.builder().id("appFromConfig").build();
-        final User bidderConfigUser = User.builder()
-                .id("userFromConfig")
-                .geo(Geo.builder().country("GB").build())
-                .build();
-
+        final ObjectNode bidderConfigApp = mapper.valueToTree(App.builder().id("appFromConfig").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                ExtBidderConfigFpd.of(bidderConfigSite, bidderConfigApp, bidderConfigUser));
+                ExtBidderConfigFpd.of(null, bidderConfigApp, null));
         final ExtRequestPrebidBidderConfig extRequestPrebidBidderConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
-
         final Site requestSite = Site.builder().id("erased").domain("domain").build();
-        final User requestUser = User.builder()
-                .id("erased")
-                .geo(Geo.builder().country("erased").city("London").build())
-                .build();
-
         final ExtRequest extRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
                         .bidderconfig(singletonList(extRequestPrebidBidderConfig))
                         .build());
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.site(requestSite)
-                        .user(requestUser)
-                        .ext(extRequest));
-
-        final Site mergedSite = Site.builder().id("siteFromConfig").domain("domain").build();
-        final User mergedUser = User.builder()
-                .id("userFromConfig")
-                .geo(Geo.builder().country("GB").city("London").build())
-                .build();
-
-        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
-        given(fpdResolver.resolveApp(any(), any())).willReturn(bidderConfigApp);
-        given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
+                builder -> builder.site(requestSite).ext(extRequest));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
-        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
-
-        assertThat(capturedBidRequests)
-                .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
-                .containsOnly(tuple(mergedSite, bidderConfigApp, mergedUser));
+        verifyZeroInteractions(httpBidderRequester);
     }
 
     @Test
-    public void shouldUseConcreteOverGeneralUserAppAndSiteWithExtPrebidBidderConfig() {
+    public void shouldUseConcreteOverGeneralSiteWithExtPrebidBidderConfig() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
-        final Site siteWithPage = Site.builder().page("testPage").build();
-        final Publisher publisherWithId = Publisher.builder().id("testId").build();
-        final App appWithPublisherId = App.builder().publisher(publisherWithId).build();
-        final User bidderConfigUser = User.builder().id("userFromConfig").build();
+        final ObjectNode siteWithPage = mapper.valueToTree(Site.builder().page("testPage").build());
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
-                ExtBidderConfigFpd.of(siteWithPage, appWithPublisherId, bidderConfigUser));
+                ExtBidderConfigFpd.of(siteWithPage, null, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("someBidder"), extBidderConfig);
-
-        final Site siteWithDomain = Site.builder().domain("notUsed").build();
-        final Publisher publisherWithIdAndDomain = Publisher.builder().id("notUsed").domain("notUsed").build();
-        final App appWithUpdatedPublisher = App.builder().publisher(publisherWithIdAndDomain).build();
-        final User emptyUser = User.builder().build();
+        final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("notUsed").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
-                ExtBidderConfigFpd.of(siteWithDomain, appWithUpdatedPublisher, emptyUser));
+                ExtBidderConfigFpd.of(siteWithDomain, null, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
                 allExtBidderConfig);
 
         final Site requestSite = Site.builder().id("siteId").page("erased").keywords("keyword").build();
-        final App requestApp = App.builder().publisher(Publisher.builder().build()).build();
-        final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
-
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .bidderconfig(asList(allFpdConfig, concreteFpdConfig))
                 .build();
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.site(requestSite)
-                        .app(requestApp)
-                        .user(requestUser)
-                        .ext(ExtRequest.of(extRequestPrebid)));
+                builder -> builder.site(requestSite).ext(ExtRequest.of(extRequestPrebid)));
 
         final Site mergedSite = Site.builder()
                 .id("siteId")
                 .page("testPage")
                 .keywords("keyword")
                 .build();
+
+        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getSite)
+                .containsOnly(mergedSite);
+    }
+
+    @Test
+    public void shouldUseConcreteOverGeneralAppWithExtPrebidBidderConfig() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+
+        final Publisher publisherWithId = Publisher.builder().id("testId").build();
+        final ObjectNode appWithPublisherId = mapper.valueToTree(App.builder().publisher(publisherWithId).build());
+        final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(null, appWithPublisherId, null));
+        final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
+                singletonList("someBidder"), extBidderConfig);
+
+        final Publisher publisherWithIdAndDomain = Publisher.builder().id("notUsed").domain("notUsed").build();
+        final ObjectNode appWithUpdatedPublisher = mapper.valueToTree(
+                App.builder().publisher(publisherWithIdAndDomain).build());
+        final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(null, appWithUpdatedPublisher, null));
+        final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
+                allExtBidderConfig);
+
+        final App requestApp = App.builder().publisher(Publisher.builder().build()).build();
+
+        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
+                .bidderconfig(asList(allFpdConfig, concreteFpdConfig))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.app(requestApp).ext(ExtRequest.of(extRequestPrebid)));
         final App mergedApp = App.builder()
                 .publisher(Publisher.builder().id("testId").build())
                 .build();
+
+        given(fpdResolver.resolveApp(any(), any())).willReturn(mergedApp);
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any(), anyBoolean());
+        final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(capturedBidRequests)
+                .extracting(BidRequest::getApp)
+                .containsOnly(mergedApp);
+    }
+
+    @Test
+    public void shouldUseConcreteOverGeneralUserWithExtPrebidBidderConfig() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("someBidder", bidder, givenEmptySeatBid());
+        final ObjectNode bidderConfigUser = mapper.valueToTree(User.builder().id("userFromConfig").build());
+        final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(null, null, bidderConfigUser));
+        final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
+                singletonList("someBidder"), extBidderConfig);
+
+        final ObjectNode emptyUser = mapper.valueToTree(User.builder().build());
+        final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
+                ExtBidderConfigFpd.of(null, null, emptyUser));
+        final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(singletonList("*"),
+                allExtBidderConfig);
+        final User requestUser = User.builder().id("erased").buyeruid("testBuyerId").build();
+
+        final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
+                .bidderconfig(asList(allFpdConfig, concreteFpdConfig))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.user(requestUser).ext(ExtRequest.of(extRequestPrebid)));
+
         final User mergedUser = User.builder().id("userFromConfig").buyeruid("testBuyerId").build();
 
-        given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
-        given(fpdResolver.resolveApp(any(), any())).willReturn(mergedApp);
         given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
 
         // when
@@ -1574,8 +1668,8 @@ public class ExchangeServiceTest extends VertxTest {
         final List<BidRequest> capturedBidRequests = bidRequestCaptor.getAllValues();
 
         assertThat(capturedBidRequests)
-                .extracting(BidRequest::getSite, BidRequest::getApp, BidRequest::getUser)
-                .containsOnly(tuple(mergedSite, mergedApp, mergedUser));
+                .extracting(BidRequest::getUser)
+                .containsOnly(mergedUser);
     }
 
     @Test
