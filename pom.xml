@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.41.0-SNAPSHOT</version>
+    <version>1.42.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -131,6 +131,11 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-dropwizard-metrics</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-auth-common</artifactId>
             <version>${vertx.version}</version>
         </dependency>
         <dependency>
