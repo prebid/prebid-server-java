@@ -109,10 +109,10 @@ public class OrtbTypesResolver {
                                           Map<String, Set<String>> commaSeparatedElementFields,
                                           String nodePrefix,
                                           List<String> warnings) {
-        final JsonNode normalizedUser = normalizeNode(containerNode.get(nodeNameToNormalize), nodeNameToNormalize,
+        final JsonNode normalizedNode = normalizeNode(containerNode.get(nodeNameToNormalize), nodeNameToNormalize,
                 firstArrayElementsFields, commaSeparatedElementFields, nodePrefix, warnings);
-        if (normalizedUser != null) {
-            containerNode.set(nodeNameToNormalize, normalizedUser);
+        if (normalizedNode != null) {
+            containerNode.set(nodeNameToNormalize, normalizedNode);
         }
     }
 

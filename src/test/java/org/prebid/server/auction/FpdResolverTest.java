@@ -556,11 +556,9 @@ public class FpdResolverTest extends VertxTest {
     public void resolveBidRequestExtShouldAddBidderConfig() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final Targeting targeting = Targeting.of(Collections.emptyList(),
-                mapper.createObjectNode().put("id", "id")
-                        .set("data", mapper.createObjectNode().put("siteData", "siteData")),
-                mapper.createObjectNode().put("id", "id")
-                        .set("data", mapper.createObjectNode().put("userData", "userData")));
+        final ObjectNode siteNode = mapper.valueToTree(Site.builder().id("id").build());
+        final ObjectNode userNode = mapper.valueToTree(User.builder().id("id").build());
+        final Targeting targeting = Targeting.of(Collections.emptyList(), siteNode, userNode);
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
@@ -569,11 +567,7 @@ public class FpdResolverTest extends VertxTest {
         assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                 .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
                         Collections.singletonList("*"), ExtBidderConfig.of(ExtBidderConfigFpd.of(
-                                mapper.valueToTree(Site.builder().id("id").ext(ExtSite.of(null,
-                                        mapper.createObjectNode().put("siteData", "siteData"))).build()), null,
-                                mapper.valueToTree(User.builder().id("id").ext(
-                                        ExtUser.builder().data(mapper.createObjectNode().put("userData", "userData"))
-                                                .build()).build())))))).build()));
+                                siteNode, null, userNode))))).build()));
     }
 
     @Test
