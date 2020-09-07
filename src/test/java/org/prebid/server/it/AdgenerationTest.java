@@ -35,7 +35,7 @@ public class AdgenerationTest extends IntegrationTest {
                 .withQueryParam("sdkname", equalTo("prebidserver"))
                 .withQueryParam("size", equalTo("300×250"))
                 .withQueryParam("tp", equalTo("http://www.example.com"))
-                .withQueryParam("adapterver", equalTo("1.0.0"))
+                .withQueryParam("adapterver", equalTo("1.0.1"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .willReturn(aResponse()

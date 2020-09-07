@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -14,6 +15,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.consumable.model.ConsumableAdType;
+import org.prebid.server.bidder.consumable.model.ConsumableBidGdpr;
 import org.prebid.server.bidder.consumable.model.ConsumableBidRequest;
 import org.prebid.server.bidder.consumable.model.ConsumableBidResponse;
 import org.prebid.server.bidder.consumable.model.ConsumableDecision;
@@ -28,6 +30,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -63,6 +67,28 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             requestBuilder
                     .referrer(site.getRef())
                     .url(site.getPage());
+        }
+
+        final Regs regs = request.getRegs();
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+        if (usPrivacy != null) {
+            requestBuilder.usPrivacy(usPrivacy);
+        }
+
+        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final User user = request.getUser();
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
+        if (gdpr != null || gdprConsent != null) {
+            final ConsumableBidGdpr.ConsumableBidGdprBuilder bidGdprBuilder = ConsumableBidGdpr.builder();
+            if (gdpr != null) {
+                bidGdprBuilder.applies(gdpr != 0);
+            }
+            if (gdprConsent != null) {
+                bidGdprBuilder.consent(gdprConsent).build();
+            }
+            requestBuilder.gdpr(bidGdprBuilder.build());
         }
 
         try {
@@ -163,7 +189,6 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
-
         final List<BidderError> errors = new ArrayList<>();
         final List<BidderBid> bidderBids = extractBids(bidRequest, consumableResponse.getDecisions(), errors);
         return Result.of(bidderBids, errors);
@@ -172,7 +197,6 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
     private static List<BidderBid> extractBids(BidRequest bidRequest, Map<String, ConsumableDecision> impIdToDecisions,
                                                List<BidderError> errors) {
         final List<BidderBid> bidderBids = new ArrayList<>();
-
         for (Map.Entry<String, ConsumableDecision> entry : impIdToDecisions.entrySet()) {
             final ConsumableDecision decision = entry.getValue();
 

@@ -120,7 +120,7 @@ We expect to see at least 90% code coverage on each bidder.
 
 [Configure](../config.md), [build](../build.md) and [start](../run.md) your server.
 
-Then `POST` an OpenRTB Request to `http://localhost:8000/openrtb2/auction`.
+Then `POST` an OpenRTB Request to `http://localhost:8080/openrtb2/auction`.
 
 If at least one `request.imp[i].ext.{bidder}` is defined in your Request, then your bidder should be called.
 
