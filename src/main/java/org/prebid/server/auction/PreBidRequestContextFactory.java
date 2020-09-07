@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -48,6 +49,7 @@ public class PreBidRequestContextFactory {
 
     private final TimeoutResolver timeoutResolver;
     private final ImplicitParametersExtractor paramsExtractor;
+    private final IpAddressHelper ipAddressHelper;
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
     private final TimeoutFactory timeoutFactory;
@@ -57,6 +59,7 @@ public class PreBidRequestContextFactory {
 
     public PreBidRequestContextFactory(TimeoutResolver timeoutResolver,
                                        ImplicitParametersExtractor paramsExtractor,
+                                       IpAddressHelper ipAddressHelper,
                                        ApplicationSettings applicationSettings,
                                        UidsCookieService uidsCookieService,
                                        TimeoutFactory timeoutFactory,
@@ -64,6 +67,7 @@ public class PreBidRequestContextFactory {
 
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -110,7 +114,7 @@ public class PreBidRequestContextFactory {
 
         builder
                 .preBidRequest(preBidRequest)
-                .ip(paramsExtractor.ipFrom(httpRequest))
+                .ip(findIpFromRequest(httpRequest))
                 .secure(paramsExtractor.secureFrom(httpRequest))
                 .isDebug(isDebug(preBidRequest, httpRequest))
                 .noLiveUids(false);
@@ -241,5 +245,14 @@ public class PreBidRequestContextFactory {
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
         return Objects.equals(preBidRequest.getIsDebug(), Boolean.TRUE)
                 || Objects.equals(httpRequest.getParam("debug"), "1");
+    }
+
+    private String findIpFromRequest(HttpServerRequest request) {
+        return paramsExtractor.ipFrom(request).stream()
+                .map(ipAddressHelper::toIpAddress)
+                .filter(Objects::nonNull)
+                .map(IpAddress::getIp)
+                .findFirst()
+                .orElse(null);
     }
 }
