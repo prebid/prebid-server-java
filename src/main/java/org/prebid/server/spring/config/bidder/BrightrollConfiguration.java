@@ -23,6 +23,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,8 @@ public class BrightrollConfiguration {
     }
 
     private PublisherOverride toPublisherOverride(BidderAccount bidderAccount) {
-        return PublisherOverride.of(bidderAccount.getBadv(), bidderAccount.getBcat(), bidderAccount.getImpBattr());
+        return PublisherOverride.of(bidderAccount.getBadv(), bidderAccount.getBcat(), bidderAccount.getImpBattr(),
+               bidderAccount.getBidFloor());
     }
 
     @Validated
@@ -101,5 +103,10 @@ public class BrightrollConfiguration {
          * Blocked IAB categories.
          */
         private List<Integer> impBattr;
+
+        /**
+         * Request Bid floor.
+         */
+        private BigDecimal bidFloor;
     }
 }
