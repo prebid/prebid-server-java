@@ -33,11 +33,9 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.DebugHttpCall;
-import org.prebid.server.cache.model.CacheHttpRequest;
-import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
+import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.Timeout;
@@ -1315,7 +1313,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
         givenCacheServiceResult(CacheServiceResult.of(
-                DebugHttpCall.of(null, null, "http://cache-service/cache", 666),
+                DebugHttpCall.builder().endpoint("http://cache-service/cache").responseTimeMillis(666).build(),
                 new RuntimeException("cacheError"), emptyMap()));
 
         // when
@@ -1527,8 +1525,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest();
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
         givenCacheServiceResult(CacheServiceResult.of(
-                DebugHttpCall.of(CacheHttpRequest.of("test.uri", null), CacheHttpResponse.of(500, null),
-                        "http://cache-service/cache", null), null, emptyMap()));
+                DebugHttpCall.builder().endpoint("http://cache-service/cache")
+                        .requestUri("test.uri").responseStatus(500).build(), null, emptyMap()));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 

@@ -31,11 +31,9 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.DebugHttpCall;
-import org.prebid.server.cache.model.CacheHttpRequest;
-import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
+import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -412,14 +410,11 @@ public class BidResponseCreator {
     }
 
     private static ExtHttpCall toExtHttpCall(DebugHttpCall debugHttpCall) {
-        final CacheHttpRequest request = debugHttpCall.getRequest();
-        final CacheHttpResponse response = debugHttpCall.getResponse();
-
         return ExtHttpCall.builder()
-                .uri(request.getUri())
-                .requestbody(request.getBody())
-                .status(response != null ? response.getStatusCode() : null)
-                .responsebody(response != null ? response.getBody() : null)
+                .uri(debugHttpCall.getRequestUri())
+                .requestbody(debugHttpCall.getRequestBody())
+                .status(debugHttpCall.getResponseStatus())
+                .responsebody(debugHttpCall.getResponseBody())
                 .build();
     }
 

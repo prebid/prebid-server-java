@@ -348,9 +348,7 @@ public class CacheService {
                                                       long startTime) {
         final CacheHttpResponse httpResponse = CacheHttpResponse.of(response.getStatusCode(), response.getBody());
         final int responseStatusCode = response.getStatusCode();
-        final DebugHttpCall httpCall = DebugHttpCall.of(httpRequest, httpResponse, endpointUrl.toString(),
-                responseTime(startTime));
-
+        final DebugHttpCall httpCall = makeDebugHttpCall(endpointUrl.toString(), httpRequest, httpResponse, startTime);
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = toBidCacheResponse(responseStatusCode, response.getBody(), bidCount, startTime);
@@ -369,8 +367,24 @@ public class CacheService {
         logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
-        final DebugHttpCall httpCall = DebugHttpCall.of(request, null, endpointUrl.toString(), responseTime(startTime));
+        final DebugHttpCall httpCall = makeDebugHttpCall(endpointUrl.toString(), request, null, startTime);
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
+    }
+
+    /**
+     * Creates {@link DebugHttpCall} from {@link CacheHttpRequest} and {@link CacheHttpResponse}, endpoint
+     * and starttime.
+     */
+    private DebugHttpCall makeDebugHttpCall(String endpoint, CacheHttpRequest httpRequest,
+                                            CacheHttpResponse httpResponse, long startTime) {
+        return DebugHttpCall.builder()
+                .endpoint(endpoint)
+                .requestUri(httpRequest != null ? httpRequest.getUri() : null)
+                .requestBody(httpRequest != null ? httpRequest.getBody() : null)
+                .responseStatus(httpResponse != null ? httpResponse.getStatusCode() : null)
+                .responseBody(httpResponse != null ? httpResponse.getBody() : null)
+                .responseTimeMillis(responseTime(startTime))
+                .build();
     }
 
     /**

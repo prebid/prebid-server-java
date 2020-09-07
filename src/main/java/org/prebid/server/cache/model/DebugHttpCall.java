@@ -1,20 +1,24 @@
 package org.prebid.server.cache.model;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 /**
  * Holds HTTP interaction related data.
  */
 @Value
-@AllArgsConstructor(staticName = "of")
+@Builder
 public class DebugHttpCall {
 
-    CacheHttpRequest request;
+    String endpoint;
 
-    CacheHttpResponse response;
+    String requestUri;
 
-    String uri;
+    String requestBody;
+
+    Integer responseStatus;
+
+    String responseBody;
 
     Integer responseTimeMillis;
 }
