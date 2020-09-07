@@ -725,28 +725,21 @@ public class BidResponseCreator {
         final Events events = eventsEnabled && eventsAllowedByRequest
                 ? eventsService.createEvent(eventBidId, bidder, account.getId(), auctionTimestamp)
                 : null;
-        final ExtBidPrebid prebidExt = ExtBidPrebid
-                .builder()
+        final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid.getExt());
+        final ExtBidPrebid prebidExt = ExtBidPrebid.builder()
                 .bidid(generatedBidId)
                 .type(bidType)
                 .targeting(targetingKeywords)
                 .cache(cache)
                 .storedRequestAttributes(storedVideo)
                 .events(events)
-                .video(getExtBidPrebidVideo(bid.getExt()))
+                .video(extBidPrebidVideo)
                 .build();
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
         bid.setExt(mapper.mapper().valueToTree(bidExt));
 
         return bid;
-    }
-
-    private ExtBidPrebidVideo getExtBidPrebidVideo(ObjectNode bidExt) {
-        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = mapper.mapper()
-                .convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
-        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
-        return extBidPrebid != null ? extBidPrebid.getVideo() : null;
     }
 
     private void addNativeMarkup(Bid bid, List<Imp> imps) {
@@ -910,5 +903,15 @@ public class BidResponseCreator {
      */
     private CacheAsset toCacheAsset(String cacheId) {
         return CacheAsset.of(cacheAssetUrlTemplate.concat(cacheId), cacheId);
+    }
+
+    /**
+     * Creates {@link ExtBidPrebidVideo} from bid extension.
+     */
+    private ExtBidPrebidVideo getExtBidPrebidVideo(ObjectNode bidExt) {
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = mapper.mapper()
+                .convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
+        final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
+        return extBidPrebid != null ? extBidPrebid.getVideo() : null;
     }
 }
