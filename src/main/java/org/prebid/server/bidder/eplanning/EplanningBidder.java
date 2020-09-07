@@ -33,6 +33,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -188,10 +190,19 @@ public class EplanningBidder implements Bidder<Void> {
         final String ip = device != null ? device.getIp() : null;
 
         final Site site = request.getSite();
-        final String pageDomain = site != null && StringUtils.isNotBlank(site.getDomain())
-                ? site.getDomain() : DEFAULT_PAGE_URL;
-        final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
-                ? site.getPage() : DEFAULT_PAGE_URL;
+        String pageUrl = DEFAULT_PAGE_URL;
+        if (site != null && StringUtils.isNotBlank(site.getPage())) {
+            pageUrl = site.getPage();
+        }
+
+        String pageDomain = DEFAULT_PAGE_URL;
+        if (site != null) {
+            if (StringUtils.isNotBlank(site.getDomain())) {
+                pageDomain = site.getDomain();
+            } else if (StringUtils.isNotBlank(site.getPage())) {
+                pageDomain = parseUrl(site.getPage()).getHost();
+            }
+        }
 
         String uri = endpointUrl + String.format("/%s/%s/%s/%s?ct=1&r=pbs&ncb=1&ur=%s&e=%s",
                 clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
@@ -206,6 +217,14 @@ public class EplanningBidder implements Bidder<Void> {
             uri = uri + String.format("&ip=%s", ip);
         }
         return uri;
+    }
+
+    private static URL parseUrl(String url) {
+        try {
+            return new URL(url);
+        } catch (MalformedURLException e) {
+            throw new PreBidException(String.format("Invalid url: %s", url), e);
+        }
     }
 
     /**
