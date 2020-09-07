@@ -26,6 +26,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -93,6 +94,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
+    private IpAddressHelper ipAddressHelper;
+    @Mock
     private UidsCookieService uidsCookieService;
     @Mock
     private BidderCatalog bidderCatalog;
@@ -110,6 +113,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
+    @Mock
+    private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private TimeoutResolver timeoutResolver;
     @Mock
@@ -135,10 +140,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -173,10 +180,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -209,10 +218,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -254,10 +265,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -288,7 +301,19 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
-                .element(0).asString().startsWith("Error decoding bidRequest: Failed to decode:");
+                .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldCallOrtbFieldsResolver() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        verify(ortbTypesResolver).normalizeBidRequest(any(), any());
     }
 
     @Test
@@ -296,7 +321,33 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", "UnitTest");
+        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(ExtSite.of(0, null))
+                .build());
+        assertThat(request.getDevice())
+                .isEqualTo(Device.builder().ip("192.168.244.1").ua("UnitTest").build());
+    }
+
+    @Test
+    public void shouldSetFieldsFromHeadersIfBodyFieldsInvalidForIpv4() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ip("127.0.0.1").build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        given(ipAddressHelper.toIpAddress(eq("127.0.0.1"))).willReturn(null);
+
+        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -316,7 +367,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        givenImplicitParams("http://example.com", "example.com", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "UnitTest");
+        givenImplicitParams(
+                "http://example.com",
+                "example.com",
+                "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                IpAddress.IP.v6,
+                "UnitTest");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -329,6 +385,69 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .build());
         assertThat(request.getDevice())
                 .isEqualTo(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").ua("UnitTest").build());
+    }
+
+    @Test
+    public void shouldSetFieldsFromHeadersIfBodyFieldsInvalidForIpv6() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ipv6("::1").build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        given(ipAddressHelper.toIpAddress(eq("::1"))).willReturn(null);
+
+        givenImplicitParams(
+                "http://example.com",
+                "example.com",
+                "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                IpAddress.IP.v6,
+                "UnitTest");
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(ExtSite.of(0, null))
+                .build());
+        assertThat(request.getDevice())
+                .isEqualTo(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").ua("UnitTest").build());
+    }
+
+    @Test
+    public void shouldSetAnonymizedIpv6FromField() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334").build())
+                .build();
+
+        givenBidRequest(bidRequest);
+
+        given(ipAddressHelper.toIpAddress(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
+                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
+
+        givenImplicitParams(
+                "http://example.com",
+                "example.com",
+                "1111:2222:3333:4444:5555:6666:7777:8888",
+                IpAddress.IP.v6,
+                "UnitTest");
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(request.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(ExtSite.of(0, null))
+                .build());
+        assertThat(request.getDevice())
+                .isEqualTo(Device.builder().ipv6("2001:0db8:85a3:0000::").ua("UnitTest").build());
     }
 
     @Test
@@ -399,7 +518,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         givenBidRequest(bidRequest);
 
-        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+        given(ipAddressHelper.toIpAddress(eq("56.76.12.3")))
+                .willReturn(IpAddress.of("56.76.12.3", IpAddress.IP.v4));
+
+        givenImplicitParams(
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -461,7 +584,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenBidRequest(BidRequest.builder()
                 .site(Site.builder().domain("test.com").page("http://test.com").build())
                 .build());
-        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+        givenImplicitParams(
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -479,7 +603,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .site(Site.builder().domain("test.com").page("http://test.com")
                         .ext(ExtSite.of(null, null)).build())
                 .build());
-        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+        givenImplicitParams(
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
 
         // when
         final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
@@ -765,10 +890,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -805,10 +932,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -844,10 +973,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -883,10 +1014,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -948,10 +1081,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -989,10 +1124,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 BLACKLISTED_ACCOUNTS,
                 storedRequestProcessor,
                 paramsExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -1343,10 +1480,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         verifyZeroInteractions(applicationSettings);
     }
 
-    private void givenImplicitParams(String referer, String domain, String ip, String ua) {
+    private void givenImplicitParams(String referer, String domain, String ip, IpAddress.IP ipVersion, String ua) {
         given(paramsExtractor.refererFrom(any())).willReturn(referer);
         given(paramsExtractor.domainFrom(anyString())).willReturn(domain);
-        given(paramsExtractor.ipFrom(any())).willReturn(ip);
+        given(paramsExtractor.ipFrom(any())).willReturn(singletonList(ip));
+        given(ipAddressHelper.toIpAddress(eq(ip))).willReturn(IpAddress.of(ip, ipVersion));
         given(paramsExtractor.uaFrom(any())).willReturn(ua);
     }
 
