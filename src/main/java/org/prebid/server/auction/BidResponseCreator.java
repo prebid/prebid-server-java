@@ -316,7 +316,7 @@ public class BidResponseCreator {
         } else {
             // do not submit non deals bids with zero price to prebid cache
             final List<Bid> bidsValidToBeCached = bidsToCache.stream()
-                    .filter(BidResponseCreator::isValidForToBeCached)
+                    .filter(BidResponseCreator::isValidForCaching)
                     .collect(Collectors.toList());
 
             final boolean shouldCacheVideoBids = cacheInfo.isShouldCacheVideoBids();
@@ -350,7 +350,7 @@ public class BidResponseCreator {
         return result;
     }
 
-    private static boolean isValidForToBeCached(Bid bid) {
+    private static boolean isValidForCaching(Bid bid) {
         final BigDecimal price = bid.getPrice();
         return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
@@ -816,13 +816,11 @@ public class BidResponseCreator {
                                                                             Account account) {
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
-
         if (mediaTypePriceGranularity == null) {
             return Collections.emptyMap();
         }
 
         final Map<BidType, TargetingKeywordsCreator> result = new HashMap<>();
-        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
 
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
