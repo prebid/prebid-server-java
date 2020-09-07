@@ -172,7 +172,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .filter(Objects::nonNull)
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight));
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
 
         final ExtResponseDebug extResponseDebug;
         final Map<String, List<ExtBidderError>> errors;

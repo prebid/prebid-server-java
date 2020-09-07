@@ -104,7 +104,7 @@
         "device": {
           "ua": "Android Chrome/60",
           "dnt": 2,
-          "ip": "127.0.0.1",
+          "ip": "193.168.244.1",
           "pxratio": 4.2,
           "language": "en",
           "ifa": "ifaId"
@@ -151,16 +151,6 @@
         "ext": {
           "prebid": {
             "debug": 1,
-            "currency": {
-              "rates": {
-                "EUR": {
-                  "USD": 1.2406
-                },
-                "USD": {
-                  "EUR": 0.8110
-                }
-              }
-            },
             "aliases": {
               "appnexusAlias": "appnexus",
               "conversantAlias": "conversant"

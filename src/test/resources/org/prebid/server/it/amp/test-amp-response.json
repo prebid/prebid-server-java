@@ -18,6 +18,7 @@
     "hb_cache_host_rubicon": "localhost:8090",
     "hb_cache_path_rubicon": "/cache",
     "hb_cache_host_appnexus": "localhost:8090",
-    "hb_cache_path_appnexus": "/cache"
+    "hb_cache_path_appnexus": "/cache",
+    "static_keyword1": "static_value1"
   }
 }
