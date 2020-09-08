@@ -408,12 +408,14 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheRequestSuccessTime(long timeElapsed) {
+    public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
         updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
+        forAccount(accountId).updateTimer(MetricName.prebid_cache_request_success_time, timeElapsed);
     }
 
-    public void updateCacheRequestFailedTime(long timeElapsed) {
+    public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
         updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
+        forAccount(accountId).updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
     }
 
     private String resolveMetricsBidderName(String bidder) {

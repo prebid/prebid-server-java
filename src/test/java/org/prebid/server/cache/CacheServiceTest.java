@@ -169,7 +169,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldNeverCallCacheServiceIfNoBidsPassed() {
         // when
-        final List<BidCacheResult> result = cacheService.cacheBids(emptyList(), timeout).result();
+        final List<BidCacheResult> result = cacheService.cacheBids(emptyList(), timeout, "accountId").result();
 
         // then
         verifyZeroInteractions(httpClient);
@@ -179,7 +179,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedTimeout() {
         // when
-        cacheService.cacheBids(singleBidList(), timeout);
+        cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
         verify(httpClient).post(anyString(), any(), any(), eq(500L));
@@ -188,7 +188,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldFailIfGlobalTimeoutAlreadyExpired() {
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList(), expiredTimeout);
+        final Future<?> future = cacheService.cacheBids(singleBidList(), expiredTimeout, "accountId");
 
         // then
         assertThat(future.failed()).isTrue();
@@ -202,7 +202,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
         assertThat(future.failed()).isTrue();
@@ -216,10 +216,10 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, "response");
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
-        verify(metrics).updateCacheRequestFailedTime(anyLong());
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
 
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
@@ -232,10 +232,10 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "response");
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
-        verify(metrics).updateCacheRequestFailedTime(anyLong());
+        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
 
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class);
@@ -247,7 +247,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "{}");
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout);
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
         assertThat(future.failed()).isTrue();
@@ -269,7 +269,7 @@ public class CacheServiceTest extends VertxTest {
                 jacksonMapper);
 
         // when
-        cacheService.cacheBids(singleBidList(), timeout);
+        cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
         verify(httpClient).post(eq("https://cache-service-host:8888/cache"), any(), any(), anyLong());
@@ -289,7 +289,8 @@ public class CacheServiceTest extends VertxTest {
                 givenBid(builder -> builder.adm("adm2").nurl("nurl2").height(300).width(400)),
                 givenBid(builder -> builder.adm(adm3).mediaType(MediaType.video)),
                 givenBid(builder -> builder.adm(adm4).mediaType(MediaType.video))),
-                timeout);
+                timeout,
+                "accountId");
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -306,10 +307,10 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldReturnExpectedResult() {
         // given and when
-        final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout);
+        final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout, "accountId");
 
         // then
-        verify(metrics).updateCacheRequestSuccessTime(anyLong());
+        verify(metrics).updateCacheRequestSuccessTime(eq("accountId"), anyLong());
 
         final List<BidCacheResult> bidCacheResults = future.result();
         assertThat(bidCacheResults).hasSize(1)
@@ -322,7 +323,8 @@ public class CacheServiceTest extends VertxTest {
         cacheService.cacheBidsVideoOnly(asList(
                 givenBid(builder -> builder.mediaType(MediaType.banner).adm("adm1")),
                 givenBid(builder -> builder.mediaType(MediaType.video).adm("adm2"))),
-                timeout);
+                timeout,
+                "accountId");
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -334,7 +336,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsVideoOnlyShouldReturnExpectedResult() {
         // given and when
         final Future<List<BidCacheResult>> future = cacheService.cacheBidsVideoOnly(
-                singletonList(givenBid(builder -> builder.mediaType(MediaType.video))), timeout);
+                singletonList(givenBid(builder -> builder.mediaType(MediaType.video))), timeout, "accountId");
 
         // then
         final List<BidCacheResult> bidCacheResults = future.result();

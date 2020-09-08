@@ -109,8 +109,8 @@ public class CacheService {
      * <p>
      * The returned result will always have the same number of elements as the values argument.
      */
-    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout) {
-        return doCache(bids, timeout, this::createPutObject, this::createBidCacheResult);
+    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout, String accountId) {
+        return doCache(bids, timeout, accountId, this::createPutObject, this::createBidCacheResult);
     }
 
     /**
@@ -118,24 +118,29 @@ public class CacheService {
      * <p>
      * The returned result will always have the same number of elements as the values argument.
      */
-    public Future<List<BidCacheResult>> cacheBidsVideoOnly(List<Bid> bids, Timeout timeout) {
-        return doCache(bids, timeout, CacheService::createPutObjectVideoOnly, this::createBidCacheResult);
+    public Future<List<BidCacheResult>> cacheBidsVideoOnly(List<Bid> bids, Timeout timeout, String accountId) {
+        return doCache(bids, timeout, accountId, CacheService::createPutObjectVideoOnly, this::createBidCacheResult);
     }
 
     /**
      * Generic method to work with cache service (legacy).
      */
-    private <T, R> Future<List<R>> doCache(List<T> bids, Timeout timeout,
+    private <T, R> Future<List<R>> doCache(List<T> bids,
+                                           Timeout timeout,
+                                           String accountId,
                                            Function<T, PutObject> requestItemCreator,
                                            Function<CacheObject, R> responseItemCreator) {
-        return makeRequest(toRequest(bids, requestItemCreator), bids.size(), timeout)
+
+        return makeRequest(toRequest(bids, requestItemCreator), bids.size(), timeout, accountId)
                 .map(bidCacheResponse -> toResponse(bidCacheResponse, responseItemCreator));
     }
 
     /**
      * Asks external prebid cache service to store the given value.
      */
-    private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout) {
+    private Future<BidCacheResponse> makeRequest(
+            BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout, String accountId) {
+
         if (bidCount == 0) {
             return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
         }
@@ -148,17 +153,20 @@ public class CacheService {
         final long startTime = clock.millis();
         return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encode(bidCacheRequest),
                 remainingTimeout)
-                .map(response -> toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount, startTime))
-                .recover(exception -> failResponse(exception, startTime));
+                .map(response -> toBidCacheResponse(
+                        response.getStatusCode(), response.getBody(), bidCount, accountId, startTime))
+                .recover(exception -> failResponse(exception, accountId, startTime));
     }
 
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private Future<BidCacheResponse> failResponse(Throwable exception, long startTime) {
-        metrics.updateCacheRequestFailedTime(clock.millis() - startTime);
+    private Future<BidCacheResponse> failResponse(Throwable exception, String accountId, long startTime) {
+        metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
+
         logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
+
         return Future.failedFuture(exception);
     }
 
@@ -169,10 +177,13 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals putObjects list size.
      */
-    public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects, Set<String> biddersAllowingVastUpdate,
-                                                    String accountId, Timeout timeout) {
+    public Future<BidCacheResponse> cachePutObjects(List<PutObject> putObjects,
+                                                    Set<String> biddersAllowingVastUpdate,
+                                                    String accountId,
+                                                    Timeout timeout) {
+
         final List<PutObject> updatedPutObjects = updatePutObjects(putObjects, biddersAllowingVastUpdate, accountId);
-        return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout);
+        return makeRequest(BidCacheRequest.of(updatedPutObjects), updatedPutObjects.size(), timeout, accountId);
     }
 
     /**
@@ -308,15 +319,21 @@ public class CacheService {
      * <p>
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
-    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids, List<CacheBid> videoBids,
+    private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids,
+                                                      List<CacheBid> videoBids,
                                                       Map<String, List<String>> bidderToVideoBidIdsToModify,
                                                       Map<String, List<String>> biddersToCacheBidIds,
-                                                      Account account, Long auctionTimestamp, Timeout timeout) {
+                                                      Account account,
+                                                      Long auctionTimestamp,
+                                                      Timeout timeout) {
+
+        final String accountId = account.getId();
+
         final List<PutObject> putObjects = Stream.concat(
-                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(cacheBid, biddersToCacheBidIds, account,
-                        auctionTimestamp)),
-                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(cacheBid, bidderToVideoBidIdsToModify,
-                        account.getId(), auctionTimestamp)))
+                bids.stream().map(cacheBid -> createJsonPutObjectOpenrtb(
+                        cacheBid, biddersToCacheBidIds, account, auctionTimestamp)),
+                videoBids.stream().map(cacheBid -> createXmlPutObjectOpenrtb(
+                        cacheBid, bidderToVideoBidIdsToModify, accountId, auctionTimestamp)))
                 .collect(Collectors.toList());
 
         if (putObjects.isEmpty()) {
@@ -335,23 +352,29 @@ public class CacheService {
 
         final long startTime = clock.millis();
         return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
-                .map(response -> processResponseOpenrtb(response, httpRequest, putObjects.size(), bids, videoBids,
-                        startTime))
+                .map(response -> processResponseOpenrtb(
+                        response, httpRequest, putObjects.size(), bids, videoBids, accountId, startTime))
                 .otherwise(exception -> failResponseOpenrtb(exception, httpRequest, startTime));
     }
 
     /**
      * Creates {@link CacheServiceResult} from the given {@link HttpClientResponse}.
      */
-    private CacheServiceResult processResponseOpenrtb(HttpClientResponse response, CacheHttpRequest httpRequest,
-                                                      int bidCount, List<CacheBid> bids, List<CacheBid> videoBids,
+    private CacheServiceResult processResponseOpenrtb(HttpClientResponse response,
+                                                      CacheHttpRequest httpRequest,
+                                                      int bidCount,
+                                                      List<CacheBid> bids,
+                                                      List<CacheBid> videoBids,
+                                                      String accountId,
                                                       long startTime) {
+
         final CacheHttpResponse httpResponse = CacheHttpResponse.of(response.getStatusCode(), response.getBody());
         final CacheHttpCall httpCall = CacheHttpCall.of(httpRequest, httpResponse, responseTime(startTime));
 
         final BidCacheResponse bidCacheResponse;
         try {
-            bidCacheResponse = toBidCacheResponse(response.getStatusCode(), response.getBody(), bidCount, startTime);
+            bidCacheResponse = toBidCacheResponse(
+                    response.getStatusCode(), response.getBody(), bidCount, accountId, startTime);
         } catch (PreBidException e) {
             return CacheServiceResult.of(httpCall, e, Collections.emptyMap());
         }
@@ -495,7 +518,9 @@ public class CacheService {
      * Handles http response, analyzes response status and creates {@link BidCacheResponse} from response body
      * or throws {@link PreBidException} in case of errors.
      */
-    private BidCacheResponse toBidCacheResponse(int statusCode, String responseBody, int bidCount, long startTime) {
+    private BidCacheResponse toBidCacheResponse(
+            int statusCode, String responseBody, int bidCount, String accountId, long startTime) {
+
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
@@ -512,7 +537,7 @@ public class CacheService {
             throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
-        metrics.updateCacheRequestSuccessTime(clock.millis() - startTime);
+        metrics.updateCacheRequestSuccessTime(accountId, clock.millis() - startTime);
         return bidCacheResponse;
     }
 

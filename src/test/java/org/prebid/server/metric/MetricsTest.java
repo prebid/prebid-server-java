@@ -973,19 +973,21 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheRequestSuccessTimer() {
         // when
-        metrics.updateCacheRequestSuccessTime(1424L);
+        metrics.updateCacheRequestSuccessTime("accountId", 1424L);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache_request_success_time").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache_request_success_time").getCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldIncrementPrebidCacheRequestFailedTimer() {
         // when
-        metrics.updateCacheRequestFailedTime(1424L);
+        metrics.updateCacheRequestFailedTime("accountId", 1424L);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache_request_error_time").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache_request_error_time").getCount()).isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
