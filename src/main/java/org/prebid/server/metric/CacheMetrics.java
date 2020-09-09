@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Account metrics support.
+ * Cache metrics support.
  */
 class CacheMetrics extends UpdatableMetrics {
 
@@ -31,7 +31,7 @@ class CacheMetrics extends UpdatableMetrics {
     }
 
     private static String createPrefix(String prefix) {
-        return String.format("%s.prebid_cache", prefix);
+        return String.format("%s.%s", prefix, createPrefix());
     }
 
     private static String createPrefix() {
