@@ -183,9 +183,8 @@ public class FpdResolver {
                         ? ExtImpContext.of(
                         extImpContext.getKeywords(),
                         extImpContext.getSearch(),
-                        extImpContext.getAdserver(),
                         resolvedData)
-                        : ExtImpContext.of(null, null, null, resolvedData));
+                        : ExtImpContext.of(null, null, resolvedData));
 
         return jacksonMapper.mapper().valueToTree(resolvedExtImp);
     }
