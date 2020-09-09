@@ -96,6 +96,7 @@ public enum MetricName {
     // cache
     prebid_cache_request_success_time,
     prebid_cache_request_error_time,
+    prebid_cache_creative_size,
 
     //account.*.requests.
     rejected;

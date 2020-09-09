@@ -418,6 +418,11 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).updateTimer(MetricName.prebid_cache_request_error_time, timeElapsed);
     }
 
+    public void updateCacheCreativeSize(String accountId, int creativeSize) {
+        updateHistogram(MetricName.prebid_cache_creative_size, creativeSize);
+        forAccount(accountId).updateHistogram(MetricName.prebid_cache_creative_size, creativeSize);
+    }
+
     private String resolveMetricsBidderName(String bidder) {
         return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
     }

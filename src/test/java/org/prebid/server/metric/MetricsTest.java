@@ -990,6 +990,17 @@ public class MetricsTest {
         assertThat(metricRegistry.timer("account.accountId.prebid_cache_request_error_time").getCount()).isEqualTo(1);
     }
 
+    @Test
+    public void shouldIncrementPrebidCacheCreativeSizeHistogram() {
+        // when
+        metrics.updateCacheCreativeSize("accountId", 235);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache_creative_size").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache_creative_size").getCount())
+                .isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

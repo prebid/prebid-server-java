@@ -65,6 +65,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
@@ -293,6 +294,10 @@ public class CacheServiceTest extends VertxTest {
                 "accountId");
 
         // then
+        verify(metrics, times(2)).updateCacheCreativeSize(eq("accountId"), eq(4));
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(103));
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(118));
+
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(4)
                 .containsOnly(
@@ -327,6 +332,8 @@ public class CacheServiceTest extends VertxTest {
                 "accountId");
 
         // then
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(4));
+
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .containsOnly(PutObject.builder().type("xml").value(new TextNode("adm2")).build());
@@ -562,9 +569,15 @@ public class CacheServiceTest extends VertxTest {
                         .shouldCacheVideoBids(true)
                         .bidderToVideoBidIdsToModify(singletonMap("bidder2", singletonList("bid2")))
                         .bidderToBidIds(singletonMap("bidder1", asList("bid1", "bid2")))
-                        .build(), account, EventsContext.builder().auctionTimestamp(1000L).build(), timeout);
+                        .build(),
+                Account.empty("accountId"),
+                EventsContext.builder().auctionTimestamp(1000L).build(),
+                timeout);
 
         // then
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(0));
+        verify(metrics, times(2)).updateCacheCreativeSize(eq("accountId"), eq(4));
+
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(3)
                 .containsOnly(
@@ -827,7 +840,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldWrapEmptyAdMFieldUsingNurlFieldValue() throws IOException {
+    public void cacheBidsOpenrtbShouldWrapEmptyAdmFieldUsingNurlFieldValue() throws IOException {
         // given
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
                 .adm("adm1"));
@@ -1026,6 +1039,9 @@ public class CacheServiceTest extends VertxTest {
                 timeout);
 
         // then
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("account"), eq(224));
+        verify(metrics, times(1)).updateCacheCreativeSize(eq("account"), eq(4));
+
         final PutObject modifiedFirstPutObject = firstPutObject.toBuilder()
                 .bidid(null)
                 .bidder(null)
