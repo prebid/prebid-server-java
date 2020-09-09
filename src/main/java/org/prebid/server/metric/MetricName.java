@@ -94,9 +94,7 @@ public enum MetricName {
     stored_imps_missing,
 
     // cache
-    prebid_cache_request_success_time,
-    prebid_cache_request_error_time,
-    prebid_cache_creative_size,
+    creative_size,
 
     //account.*.requests.
     rejected;
