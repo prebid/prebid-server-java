@@ -1200,7 +1200,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldDeepCopyImpExtContextToEachImpressionAndNotRemoveDataForAllWhenDeprecatedOnlyOneBidder() throws InterruptedException {
+    public void shouldDeepCopyImpExtContextToEachImpressionAndNotRemoveDataForAllWhenDeprecatedOnlyOneBidder() {
         // given
         final ObjectNode impExt = mapper.createObjectNode().put("someBidder", 1).put("deprecatedBidder", 2)
                 .set("context", mapper.createObjectNode().put("data", "data").put("otherField", "value"));
