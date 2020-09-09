@@ -791,9 +791,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_bidder1", "5.00"),
                         tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"),
-                        tuple("hb_bidid_bidder1", "bidId1"),
-                        tuple("hb_bidid", "bidId1"));
+                        tuple("hb_bidder_bidder1", "bidder1"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
@@ -826,9 +824,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
                         tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
-                        tuple("hb_bidid_someVeryLon", "bidId1"),
-                        tuple("hb_bidid", "bidId1"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
     }
 
     @Test
@@ -856,9 +852,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
-                        tuple("hb_bidid", "bidId1"),
-                        tuple("hb_bidid_someVeryLon", "bidId1"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
     }
 
     @Test
@@ -893,9 +887,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_someVeryLongBi", "5.00"),
                         tuple("hb_bidder", "someVeryLongBidderName"),
-                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"),
-                        tuple("hb_bidid_someVeryLon", "bidId1"),
-                        tuple("hb_bidid", "bidId1"));
+                        tuple("hb_bidder_someVeryLo", "someVeryLongBidderName"));
     }
 
     @Test
@@ -970,9 +962,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.000"),
                         tuple("hb_bidder", "bidder1"),
                         tuple("hb_pb_bidder1", "5.000"),
-                        tuple("hb_bidder_bidder1", "bidder1"),
-                        tuple("hb_bidid", "bidId"),
-                        tuple("hb_bidid_bidder1", "bidId"));
+                        tuple("hb_bidder_bidder1", "bidder1"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
@@ -1012,9 +1002,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_cache_id_bidder1", "cacheId"),
                         tuple("hb_uuid_bidder1", "videoId"),
                         tuple("hb_cache_host_bidder1", "testHost"),
-                        tuple("hb_cache_path_bidder1", "testPath"),
-                        tuple("hb_bidid", "bidId"),
-                        tuple("hb_bidid_bidder1", "bidId"));
+                        tuple("hb_cache_path_bidder1", "testPath"));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }
@@ -1045,9 +1033,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb", "5.00"),
                         tuple("hb_pb_bidder1", "5.00"),
                         tuple("hb_bidder", "bidder1"),
-                        tuple("hb_bidder_bidder1", "bidder1"),
-                        tuple("hb_bidid", "bidId1"),
-                        tuple("hb_bidid_bidder1", "bidId1"));
+                        tuple("hb_bidder_bidder1", "bidder1"));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any(), any());
     }

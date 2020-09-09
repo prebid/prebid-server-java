@@ -144,7 +144,6 @@ public class TargetingKeywordsCreatorTest {
     public void shouldReturnTargetingKeywordsForWinningBid() {
         // given
         final Bid bid = Bid.builder()
-                .bidId("bidId")
                 .bidder("bidder1")
                 .price(BigDecimal.ONE)
                 .dealId("dealId1")
@@ -178,16 +177,13 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_bidder", "bidder1"),
                 entry("hb_cache_id", "cacheId1"),
                 entry("hb_size", "50x100"),
-                entry("hb_deal", "dealId1"),
-                entry("hb_bidid_bidder1", "bidId"),
-                entry("hb_bidid", "bidId"));
+                entry("hb_deal", "dealId1"));
     }
 
     @Test
     public void shouldReturnTargetingKeywordsForWinningBidOpenrtb() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
-                .id("bidId")
                 .price(BigDecimal.ONE)
                 .dealid("dealId1")
                 .w(50)
@@ -221,9 +217,7 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_cache_id", "cacheId1"),
                 entry("hb_cache_id_bidder1", "cacheId1"),
                 entry("hb_uuid", "videoCacheId1"),
-                entry("hb_uuid_bidder1", "videoCacheId1"),
-                entry("hb_bidid_bidder1", "bidId"),
-                entry("hb_bidid", "bidId"));
+                entry("hb_uuid_bidder1", "videoCacheId1"));
     }
 
     @Test
@@ -380,35 +374,29 @@ public class TargetingKeywordsCreatorTest {
     @Test
     public void shouldTruncateTargetingBidderKeywordsIfTruncateAttrCharsIsDefined() {
         // given
-        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
-                .id("bidId")
-                .price(BigDecimal.ONE)
-                .build();
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, false, true, false, 20)
                 .makeFor(bid, "someVeryLongBidderName", true, null, null);
 
         // then
-        assertThat(keywords).hasSize(3)
-                .containsKeys("hb_bidder_someVeryLo", "hb_bidid_someVeryLon", "hb_pb_someVeryLongBi");
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
     }
 
     @Test
     public void shouldTruncateTargetingWithoutBidderSuffixKeywordsIfTruncateAttrCharsIsDefined() {
         // given
-        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder()
-                .id("bidId")
-                .price(BigDecimal.ONE)
-                .build();
+        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(null, true, false, false, 7)
                 .makeFor(bid, "bidder", true, null, null);
 
         // then
-        assertThat(keywords).hasSize(3)
-                .containsKeys("hb_bidd", "hb_bidi", "hb_pb");
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidd", "hb_pb");
     }
 
     @Test
@@ -421,9 +409,8 @@ public class TargetingKeywordsCreatorTest {
                 .makeFor(bid, "someVeryLongBidderName", true, null, null);
 
         // then
-        assertThat(keywords).hasSize(3)
-                .containsKeys("hb_bidder_someVeryLongBidderName", "hb_bidid_someVeryLongBidderName",
-                        "hb_pb_someVeryLongBidderName");
+        assertThat(keywords).hasSize(2)
+                .containsKeys("hb_bidder_someVeryLongBidderName", "hb_pb_someVeryLongBidderName");
     }
 
     @Test

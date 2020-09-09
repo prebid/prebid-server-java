@@ -46,10 +46,6 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_BIDDER_KEY = "hb_bidder";
     /**
-     * Stores bid ID.
-     */
-    private static final String HB_BIDID_KEY = "hb_bidid";
-    /**
      * Respects rounded CPM value.
      */
     private static final String HB_PB_KEY = "hb_pb";
@@ -175,7 +171,6 @@ public class TargetingKeywordsCreator {
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return truncateKeys(makeFor(
                 bid.getBidder(),
-                bid.getBidId(),
                 winningBid,
                 bid.getPrice(),
                 StringUtils.EMPTY,
@@ -196,7 +191,6 @@ public class TargetingKeywordsCreator {
                                 String vastCacheId) {
         final Map<String, String> keywords = makeFor(
                 bidder,
-                bid.getId(),
                 winningBid,
                 bid.getPrice(),
                 "0.0",
@@ -220,7 +214,6 @@ public class TargetingKeywordsCreator {
      * Common method for creating targeting keywords.
      */
     private Map<String, String> makeFor(String bidder,
-                                        String bidId,
                                         boolean winningBid,
                                         BigDecimal price,
                                         String defaultCpm,
@@ -258,9 +251,6 @@ public class TargetingKeywordsCreator {
         }
         if (isApp) {
             keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
-        }
-        if (winningBid) {
-            keywordMap.put(HB_BIDID_KEY, bidId);
         }
 
         return keywordMap.asMap();
