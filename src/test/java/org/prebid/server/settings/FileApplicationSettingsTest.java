@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
@@ -100,7 +101,10 @@ public class FileApplicationSettingsTest {
                         + "},"
                         + "analyticsSamplingFactor : '1',"
                         + "truncateTargetAttr: '20',"
-                        + "defaultIntegration: 'web'"
+                        + "defaultIntegration: 'web',"
+                        + "analyticsConfig: {"
+                        + "auction-events: {amp: 'true'}"
+                        + "}"
                         + "}"
                         + "]"));
 
@@ -135,6 +139,7 @@ public class FileApplicationSettingsTest {
                 .analyticsSamplingFactor(1)
                 .truncateTargetAttr(20)
                 .defaultIntegration("web")
+                .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                 .build());
     }
 
