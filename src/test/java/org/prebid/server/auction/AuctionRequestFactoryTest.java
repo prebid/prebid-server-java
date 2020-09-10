@@ -115,6 +115,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private HttpServerRequest httpRequest;
     @Mock
+    private OrtbTypesResolver ortbTypesResolver;
+    @Mock
     private TimeoutResolver timeoutResolver;
     @Mock
     private TimeoutFactory timeoutFactory;
@@ -144,6 +146,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -183,6 +186,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -220,6 +224,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -266,6 +271,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -296,7 +302,19 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
-                .element(0).asString().startsWith("Error decoding bidRequest: Failed to decode:");
+                .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldCallOrtbFieldsResolver() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        factory.fromRequest(routingContext, 0L).result();
+
+        // then
+        verify(ortbTypesResolver).normalizeBidRequest(any(), any());
     }
 
     @Test
@@ -878,6 +896,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -919,6 +938,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -959,6 +979,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -999,6 +1020,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -1065,6 +1087,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -1107,6 +1130,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 bidderCatalog,
                 requestValidator,
                 interstitialProcessor,
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,

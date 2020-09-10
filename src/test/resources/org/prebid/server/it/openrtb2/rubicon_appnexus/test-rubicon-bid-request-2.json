@@ -22,6 +22,11 @@
       "ext": {
         "rp": {
           "zone_id": 7001,
+          "target": {
+            "page": [
+              "http://www.example.com"
+            ]
+          },
           "track": {
             "mint": "",
             "mint_version": ""
