@@ -83,7 +83,7 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
-
+    private static final String DATA = "data";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final String GENERIC_SCHAIN_KEY = "*";
 
@@ -652,7 +652,7 @@ public class ExchangeService {
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps))
+                .imp(prepareImps(bidder, imps, useFirstPartyData))
                 .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
                 .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
@@ -664,11 +664,11 @@ public class ExchangeService {
      * For each given imp creates a new imp with extension crafted to contain only "prebid", "context" and
      * bidder-specific extension.
      */
-    private List<Imp> prepareImps(String bidder, List<Imp> imps) {
+    private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
         return imps.stream()
                 .filter(imp -> imp.getExt().hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
-                        .ext(prepareImpExt(bidder, imp.getExt()))
+                        .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
                 .collect(Collectors.toList());
     }
@@ -681,15 +681,19 @@ public class ExchangeService {
      * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
      * </ul>
      */
-    private ObjectNode prepareImpExt(String bidder, ObjectNode impExt) {
+    private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
         final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
         final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
 
         final JsonNode contextNode = impExt.get(CONTEXT_EXT);
-        if (contextNode != null && !contextNode.isNull()) {
-            result.set(CONTEXT_EXT, contextNode);
+        final boolean isContextNodePresent = contextNode != null && !contextNode.isNull();
+        if (isContextNodePresent) {
+            final JsonNode contextNodeCopy = contextNode.deepCopy();
+            if (!useFirstPartyData && contextNodeCopy.isObject()) {
+                ((ObjectNode) contextNodeCopy).remove(DATA);
+            }
+            result.set(CONTEXT_EXT, contextNodeCopy);
         }
-
         return result;
     }
 
