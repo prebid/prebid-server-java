@@ -926,12 +926,12 @@ public class ExchangeService {
 
         for (final BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
-            final String bidCurrency = StringUtils.stripToNull(bidderBid.getBidCurrency());
+            final String bidCurrency = bidderBid.getBidCurrency();
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal finalPrice =
-                        currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency,
-                                usepbsrates);
+                        currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency,
+                                StringUtils.stripToNull(bidCurrency), usepbsrates);
 
                 final BigDecimal adjustedPrice = priceAdjustmentFactor != null
                         && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0

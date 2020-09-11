@@ -1982,26 +1982,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
-    @Test
-    public void shouldSetEmptyCurrencyIfBidCurrencyIsBlank() {
-        // given
-        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
-                givenBid(Bid.builder().build(), ""))));
-
-        final BidRequest bidRequest = BidRequest.builder().cur(singletonList("USD"))
-                .imp(singletonList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
-                        identity()))).build();
-
-        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
-                .willThrow(new PreBidException("no currency conversion available"));
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
-
-        // then
-        verify(currencyService).convertCurrency(eq(null), eq(null), eq("USD"), eq(null), eq(null));
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     public void shouldRespondWithOneBidAndErrorWhenBidResponseContainsOneUnsupportedCurrency() {
