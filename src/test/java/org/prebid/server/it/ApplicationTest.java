@@ -363,7 +363,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .bidder(RUBICON)
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
-                                        "http://localhost:8000/setuid?bidder=rubicon"
+                                        "http://localhost:8080/setuid?bidder=rubicon"
                                                 + "&gdpr=1&gdpr_consent=" + gdprConsent
                                                 + "&us_privacy=1YNN"
                                                 + "&uid=host-cookie-uid",
@@ -373,7 +373,7 @@ public class ApplicationTest extends IntegrationTest {
                                 .bidder(APPNEXUS)
                                 .noCookie(true)
                                 .usersync(UsersyncInfo.of(
-                                        "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder"
+                                        "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                                 + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                                 + "%26us_privacy%3D1YNN"
                                                 + "%26uid%3D%24UID",
@@ -581,9 +581,9 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void adminHandlerShouldRespondWithOk() {
+    public void loggingHttpInteractionShouldRespondWithOk() {
         given(ADMIN_SPEC)
-                .get("/admin?logging=error&records=1200")
+                .get("/logging/httpinteraction?limit=100")
                 .then()
                 .assertThat()
                 .statusCode(200);

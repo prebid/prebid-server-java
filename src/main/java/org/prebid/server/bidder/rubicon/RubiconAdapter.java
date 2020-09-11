@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.rubicon;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -9,7 +8,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -30,6 +28,7 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
@@ -51,6 +50,10 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
@@ -193,7 +196,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconParams))
-                .ext(mapper.mapper().valueToTree(makeSiteExt(rubiconParams)))
+                .ext(makeAppExt(rubiconParams))
                 .build();
     }
 
@@ -223,7 +226,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static JsonNode makeInventory(RubiconParams rubiconParams) {
         final JsonNode inventory = rubiconParams.getInventory();
-        return !inventory.isNull() && inventory.size() != 0 ? inventory : null;
+        return inventory != null && !inventory.isNull() && inventory.size() != 0 ? inventory : null;
     }
 
     private static RubiconImpExtRpTrack makeImpExtRpTrack(PreBidRequestContext preBidRequestContext) {
@@ -284,37 +287,47 @@ public class RubiconAdapter extends OpenrtbAdapter {
         } else {
             siteBuilder
                     .publisher(makePublisher(rubiconParams))
-                    .ext(mapper.mapper().valueToTree(makeSiteExt(rubiconParams)));
+                    .ext(makeSiteExt(rubiconParams));
         }
 
         return siteBuilder.build();
     }
 
-    private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
-        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId()), null);
+    private ExtSite makeSiteExt(RubiconParams rubiconParams) {
+        return mapper.fillExtension(
+                ExtSite.of(null, null),
+                RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId())));
+    }
+
+    private ExtApp makeAppExt(RubiconParams rubiconParams) {
+        return mapper.fillExtension(
+                ExtApp.of(null, null),
+                RubiconAppExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId())));
     }
 
     private Publisher makePublisher(RubiconParams rubiconParams) {
         return Publisher.builder()
-                .ext(mapper.mapper().valueToTree(makePublisherExt(rubiconParams)))
+                .ext(makePublisherExt(rubiconParams))
                 .build();
     }
 
-    private static RubiconPubExt makePublisherExt(RubiconParams rubiconParams) {
-        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconParams.getAccountId()));
+    private ExtPublisher makePublisherExt(RubiconParams rubiconParams) {
+        return mapper.fillExtension(
+                ExtPublisher.empty(),
+                RubiconPubExt.of(RubiconPubExtRp.of(rubiconParams.getAccountId())));
     }
 
     private Device makeDevice(PreBidRequestContext preBidRequestContext) {
         return deviceBuilder(preBidRequestContext)
-                .ext(mapper.mapper().valueToTree(makeDeviceExt(preBidRequestContext)))
+                .ext(makeDeviceExt(preBidRequestContext))
                 .build();
     }
 
-    private static RubiconDeviceExt makeDeviceExt(PreBidRequestContext preBidRequestContext) {
+    private ExtDevice makeDeviceExt(PreBidRequestContext preBidRequestContext) {
         final Device device = preBidRequestContext.getPreBidRequest().getDevice();
         final BigDecimal pixelratio = device != null ? device.getPxratio() : null;
 
-        return RubiconDeviceExt.of(RubiconDeviceExtRp.of(pixelratio));
+        return mapper.fillExtension(ExtDevice.empty(), RubiconDeviceExt.of(RubiconDeviceExtRp.of(pixelratio)));
     }
 
     private User makeUser(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
@@ -323,41 +336,29 @@ public class RubiconAdapter extends OpenrtbAdapter {
         if (userBuilder == null) {
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
-        final ObjectNode ext = user == null ? null : user.getExt();
-        final ExtUser extUser = extUser(ext);
-        final RubiconUserExt rubiconUserExt = makeUserExt(rubiconParams, user, extUser);
+        final ExtUser extUser = user == null ? null : user.getExt();
+        final ExtUser rubiconUserExt = makeUserExt(rubiconParams, extUser);
         return rubiconUserExt != null
-                ? userBuilder.ext(mapper.mapper().valueToTree(rubiconUserExt)).build()
+                ? userBuilder.ext(rubiconUserExt).build()
                 : userBuilder.build();
     }
 
-    private ExtUser extUser(ObjectNode extNode) {
-        try {
-            return extNode != null ? mapper.mapper().treeToValue(extNode, ExtUser.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-    }
-
-    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, User user, ExtUser extUser) {
+    private ExtUser makeUserExt(RubiconParams rubiconParams, ExtUser extUser) {
         final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
         final JsonNode visitorNode = rubiconParams.getVisitor();
-        final JsonNode visitor = !visitorNode.isNull() && visitorNode.size() != 0 ? visitorNode : null;
-        final String gender = user != null ? user.getGender() : null;
-        final Integer yob = user != null ? user.getYob() : null;
-        final Geo geo = user != null ? user.getGeo() : null;
-        final boolean makeRp = visitor != null || gender != null || yob != null || geo != null;
+        final JsonNode visitor = visitorNode != null && !visitorNode.isNull() && visitorNode.size() != 0
+                ? visitorNode
+                : null;
+        final boolean makeRp = visitor != null;
 
-        if (digiTrust != null || visitor != null || gender != null || yob != null || geo != null) {
-            final RubiconUserExt.RubiconUserExtBuilder userExtBuilder = RubiconUserExt.builder();
-            if (extUser != null) {
-                userExtBuilder
-                        .consent(extUser.getConsent())
-                        .eids(extUser.getEids());
-            }
-            return userExtBuilder
-                    .rp(makeRp ? RubiconUserExtRp.of(visitor, gender, yob, geo) : null)
+        if (digiTrust != null || visitor != null) {
+            final ExtUser userExt = extUser != null
+                    ? ExtUser.builder().consent(extUser.getConsent()).eids(extUser.getEids()).build()
+                    : ExtUser.builder().build();
+            final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
+                    .rp(makeRp ? RubiconUserExtRp.of(visitor) : null)
                     .build();
+            return mapper.fillExtension(userExt, rubiconUserExt);
         }
         return null;
     }

@@ -24,6 +24,7 @@ import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroug
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
@@ -122,7 +123,7 @@ public class SharethroughBidderTest extends VertxTest {
                                 ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20), BigDecimal.ONE))))
                         .banner(Banner.builder().w(40).h(30).build())
                         .build()))
-                .app(App.builder().ext(mapper.createObjectNode()).build())
+                .app(App.builder().ext(ExtApp.of(null, null)).build())
                 .site(Site.builder().page(pageString).build())
                 .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
                 .badv(singletonList("testBlocked"))
@@ -178,7 +179,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
-                .user(User.builder().buyeruid("buyer").ext(mapper.valueToTree(extUser)).build())
+                .user(User.builder().buyeruid("buyer").ext(extUser).build())
                 .test(1)
                 .tmax(TIMEOUT)
                 .build();

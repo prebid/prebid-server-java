@@ -4,7 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -13,8 +12,11 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -34,28 +36,18 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
-import org.prebid.server.manager.AdminManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
-import org.prebid.server.privacy.gdpr.GdprService;
-import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.GdprConfig;
-import org.prebid.server.settings.model.Purpose;
-import org.prebid.server.settings.model.Purposes;
-import org.prebid.server.settings.model.SpecialFeature;
-import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
@@ -80,10 +72,8 @@ import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -121,6 +111,26 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    IpAddressHelper ipAddressHelper(@Value("${ipv6.always-mask-right}") int ipv6AlwaysMaskBits,
+                                    @Value("${ipv6.anon-left-mask-bits}") int ipv6AnonLeftMaskBits,
+                                    @Value("${ipv6.private-networks}") String ipv6PrivateNetworksAsString) {
+
+        final List<String> ipv6LocalNetworks = Arrays.asList(ipv6PrivateNetworksAsString.trim().split(","));
+
+        return new IpAddressHelper(ipv6AlwaysMaskBits, ipv6AnonLeftMaskBits, ipv6LocalNetworks);
+    }
+
+    @Bean
+    FpdResolver fpdResolver(JacksonMapper mapper) {
+        return new FpdResolver(mapper);
+    }
+
+    @Bean
+    OrtbTypesResolver ortbTypesResolver() {
+        return new OrtbTypesResolver();
+    }
+
+    @Bean
     TimeoutResolver timeoutResolver(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -151,6 +161,7 @@ public class ServiceConfiguration {
     PreBidRequestContextFactory preBidRequestContextFactory(
             TimeoutResolver timeoutResolver,
             ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
             TimeoutFactory timeoutFactory,
@@ -159,6 +170,7 @@ public class ServiceConfiguration {
         return new PreBidRequestContextFactory(
                 timeoutResolver,
                 implicitParametersExtractor,
+                ipAddressHelper,
                 applicationSettings,
                 uidsCookieService,
                 timeoutFactory,
@@ -176,9 +188,11 @@ public class ServiceConfiguration {
             @Value("${auction.id-generator-type}") IdGeneratorType idGeneratorType,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
             RequestValidator requestValidator,
+            OrtbTypesResolver ortbTypesResolver,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
@@ -199,10 +213,12 @@ public class ServiceConfiguration {
                 blacklistedAccounts,
                 storedRequestProcessor,
                 implicitParametersExtractor,
+                ipAddressHelper,
                 uidsCookieService,
                 bidderCatalog,
                 requestValidator,
-                new InterstitialProcessor(mapper),
+                new InterstitialProcessor(),
+                ortbTypesResolver,
                 timeoutResolver,
                 timeoutFactory,
                 applicationSettings,
@@ -219,10 +235,18 @@ public class ServiceConfiguration {
     @Bean
     AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
+                                        OrtbTypesResolver ortbTypesResolver,
+                                        FpdResolver fpdResolver,
                                         TimeoutResolver timeoutResolver,
                                         JacksonMapper mapper) {
 
-        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, timeoutResolver, mapper);
+        return new AmpRequestFactory(
+                storedRequestProcessor,
+                auctionRequestFactory,
+                ortbTypesResolver,
+                fpdResolver,
+                timeoutResolver,
+                mapper);
     }
 
     @Bean
@@ -368,95 +392,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    VendorListServiceV1 vendorListServiceV1(
-            @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.v1.http-default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            BidderCatalog bidderCatalog,
-            FileSystem fileSystem,
-            HttpClient httpClient,
-            Metrics metrics,
-            JacksonMapper mapper) {
-
-        return new VendorListServiceV1(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
-                fileSystem, httpClient, metrics, mapper);
-    }
-
-    @Bean
-    VendorListServiceV2 vendorListServiceV2(
-            @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.v2.http-default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            BidderCatalog bidderCatalog,
-            FileSystem fileSystem,
-            HttpClient httpClient,
-            Metrics metrics,
-            JacksonMapper mapper) {
-
-        return new VendorListServiceV2(cacheDir, endpointTemplate, defaultTimeoutMs, hostVendorId, bidderCatalog,
-                fileSystem, httpClient, metrics, mapper);
-    }
-
-    @Bean
-    GdprService gdprService(VendorListServiceV1 vendorListServiceV1) {
-        return new GdprService(vendorListServiceV1);
-    }
-
-    @Bean
-    Tcf2Service tcf2Service(GdprConfig gdprConfig,
-                            VendorListServiceV2 vendorListServiceV2,
-                            BidderCatalog bidderCatalog) {
-
-        return new Tcf2Service(gdprConfig, vendorListServiceV2, bidderCatalog);
-    }
-
-    @Bean
-    TcfDefinerService tcfDefinerService(
-            GdprConfig gdprConfig,
-            @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            GdprService gdprService,
-            Tcf2Service tcf2Service,
-            @Autowired(required = false) GeoLocationService geoLocationService,
-            BidderCatalog bidderCatalog,
-            Metrics metrics) {
-
-        final Set<String> eeaCountries = new HashSet<>(Arrays.asList(eeaCountriesAsString.trim().split(",")));
-
-        return new TcfDefinerService(
-                gdprConfig, eeaCountries, gdprService, tcf2Service, geoLocationService, bidderCatalog, metrics);
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "gdpr")
-    GdprConfig gdprConfig() {
-        return new GdprConfig();
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "gdpr.purposes")
-    Purposes purposes() {
-        return new Purposes();
-    }
-
-    @Bean
-    Purpose purpose() {
-        return new Purpose();
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "gdpr.special-features")
-    SpecialFeatures specialFeatures() {
-        return new SpecialFeatures();
-    }
-
-    @Bean
-    SpecialFeature specialFeature() {
-        return new SpecialFeature();
-    }
-
-    @Bean
     EventsService eventsService(@Value("${external-url}") String externalUrl) {
         return new EventsService(externalUrl);
     }
@@ -498,6 +433,7 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             PrivacyEnforcementService privacyEnforcementService,
+            FpdResolver fpdResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -512,6 +448,7 @@ public class ServiceConfiguration {
                 bidderCatalog,
                 storedResponseProcessor,
                 privacyEnforcementService,
+                fpdResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -545,17 +482,18 @@ public class ServiceConfiguration {
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
             TcfDefinerService tcfDefinerService,
+            IpAddressHelper ipAddressHelper,
             Metrics metrics,
             @Value("${geolocation.enabled}") boolean useGeoLocation,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce,
-            JacksonMapper mapper) {
+            @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+
         return new PrivacyEnforcementService(
-                bidderCatalog, tcfDefinerService, metrics, mapper, useGeoLocation, ccpaEnforce);
+                bidderCatalog, tcfDefinerService, ipAddressHelper, metrics, useGeoLocation, ccpaEnforce);
     }
 
     @Bean
-    PrivacyExtractor privacyExtractor(JacksonMapper mapper) {
-        return new PrivacyExtractor(mapper);
+    PrivacyExtractor privacyExtractor() {
+        return new PrivacyExtractor();
     }
 
     @Bean
@@ -639,8 +577,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AdminManager adminManager() {
-        return new AdminManager();
+    HttpInteractionLogger httpInteractionLogger() {
+        return new HttpInteractionLogger();
     }
 
     @Bean

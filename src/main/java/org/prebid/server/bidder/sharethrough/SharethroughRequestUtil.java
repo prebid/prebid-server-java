@@ -1,39 +1,28 @@
 package org.prebid.server.bidder.sharethrough;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.sharethrough.model.Size;
-import org.prebid.server.bidder.sharethrough.model.UserExt;
 import org.prebid.server.bidder.sharethrough.model.UserInfo;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 class SharethroughRequestUtil {
 
     private static final int MIN_CHROME_VERSION = 53;
     private static final int MIN_SAFARI_VERSION = 10;
-
-    private final JacksonMapper mapper;
-
-    SharethroughRequestUtil(JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
-    }
 
     /**
      * Retrieves size from imp.ext.sharethrough.iframeSize or from im.banner.format.
@@ -76,15 +65,6 @@ class SharethroughRequestUtil {
         return extRegs != null ? StringUtils.trimToEmpty(extRegs.getUsPrivacy()) : "";
     }
 
-    ExtRegs parseRegs(Regs regs) {
-        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
-        try {
-            return extRegsNode != null ? mapper.mapper().treeToValue(extRegsNode, ExtRegs.class) : null;
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
     /**
      * Retrieves page from site.page or null when site is null.
      */
@@ -104,21 +84,15 @@ class SharethroughRequestUtil {
      * Retrieves {@link UserInfo} from user.ext or returns null in case of exception.
      */
     UserInfo getUserInfo(User user) {
-        final ObjectNode extUserNode = user != null ? user.getExt() : null;
-        try {
-            final UserExt userExt = extUserNode != null
-                    ? mapper.mapper().treeToValue(extUserNode, UserExt.class) : null;
-            final String consent = userExt != null ? userExt.getConsent() : null;
-            final String stxuid = user != null ? user.getBuyeruid() : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final String consent = extUser != null ? extUser.getConsent() : null;
+        final String stxuid = user != null ? user.getBuyeruid() : null;
 
-            final String ttdUid = parseTtdUid(userExt);
-            return UserInfo.of(consent, ttdUid, stxuid);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
+        final String ttdUid = parseTtdUid(extUser);
+        return UserInfo.of(consent, ttdUid, stxuid);
     }
 
-    private static String parseTtdUid(UserExt userExt) {
+    private static String parseTtdUid(ExtUser userExt) {
         if (userExt == null || CollectionUtils.isEmpty(userExt.getEids())) {
             return null;
         }

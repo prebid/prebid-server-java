@@ -1,7 +1,6 @@
 package org.prebid.server.bidder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -19,6 +18,7 @@ import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
@@ -103,7 +103,7 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
     protected User.UserBuilder userBuilder(PreBidRequestContext preBidRequestContext) {
         final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
         final User user = preBidRequestContext.getPreBidRequest().getUser();
-        final ObjectNode userExt = user != null ? user.getExt() : null;
+        final ExtUser userExt = user != null ? user.getExt() : null;
         return preBidRequestContext.getPreBidRequest().getApp() != null ? null : User.builder()
                 .buyeruid(uidsCookie.uidFrom(cookieFamilyName))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
