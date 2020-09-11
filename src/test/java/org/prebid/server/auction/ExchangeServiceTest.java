@@ -1989,7 +1989,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
                 givenBid(Bid.builder().price(bidderPrice).build(), ""))));
 
-        final BidRequest bidRequest = BidRequest.builder().cur(singletonList("BAD"))
+        final BidRequest bidRequest = BidRequest.builder().cur(singletonList(null))
                 .imp(singletonList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
                         identity()))).build();
 
@@ -2000,7 +2000,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq("BAD"), eq(null), eq(null));
+        verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq(null), eq(null), eq(null));
     }
 
     @SuppressWarnings("unchecked")
