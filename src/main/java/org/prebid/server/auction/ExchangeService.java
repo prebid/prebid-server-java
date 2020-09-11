@@ -83,7 +83,7 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String CONTEXT_EXT = "context";
-
+    private static final String DATA = "data";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final String GENERIC_SCHAIN_KEY = "*";
 
@@ -637,13 +637,24 @@ public class ExchangeService {
         final ExtBidderConfigFpd fpdConfig = ObjectUtils.firstNonNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
+        final Site bidRequestSite = bidRequest.getSite();
+        final App bidRequestApp = bidRequest.getApp();
+        final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
+        final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
+
+        if (bidRequestSite != null && fpdApp != null || bidRequestApp != null && fpdSite != null) {
+            logger.info("Request to bidder {0} rejected as both bidRequest.site and bidRequest.app are present"
+                    + " after fpd data have been merged", bidder);
+            return null;
+        }
+
         return BidderRequest.of(bidder, bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps))
-                .app(prepareApp(bidRequest.getApp(), fpdConfig, useFirstPartyData))
-                .site(prepareSite(bidRequest.getSite(), fpdConfig, useFirstPartyData))
+                .imp(prepareImps(bidder, imps, useFirstPartyData))
+                .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
+                .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidderToPrebidSchains, bidRequest.getSource()))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidRequest.getExt()))
                 .build());
@@ -653,11 +664,11 @@ public class ExchangeService {
      * For each given imp creates a new imp with extension crafted to contain only "prebid", "context" and
      * bidder-specific extension.
      */
-    private List<Imp> prepareImps(String bidder, List<Imp> imps) {
+    private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData) {
         return imps.stream()
                 .filter(imp -> imp.getExt().hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
-                        .ext(prepareImpExt(bidder, imp.getExt()))
+                        .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
                 .collect(Collectors.toList());
     }
@@ -670,15 +681,19 @@ public class ExchangeService {
      * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
      * </ul>
      */
-    private ObjectNode prepareImpExt(String bidder, ObjectNode impExt) {
+    private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
         final JsonNode impExtPrebid = prepareImpExtPrebid(bidder, impExt.get(PREBID_EXT));
         final ObjectNode result = mapper.mapper().valueToTree(ExtPrebid.of(impExtPrebid, impExt.get(bidder)));
 
         final JsonNode contextNode = impExt.get(CONTEXT_EXT);
-        if (contextNode != null && !contextNode.isNull()) {
-            result.set(CONTEXT_EXT, contextNode);
+        final boolean isContextNodePresent = contextNode != null && !contextNode.isNull();
+        if (isContextNodePresent) {
+            final JsonNode contextNodeCopy = contextNode.deepCopy();
+            if (!useFirstPartyData && contextNodeCopy.isObject()) {
+                ((ObjectNode) contextNodeCopy).remove(DATA);
+            }
+            result.set(CONTEXT_EXT, contextNodeCopy);
         }
-
         return result;
     }
 
@@ -707,7 +722,7 @@ public class ExchangeService {
      * Checks whether to pass the app.ext.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked app with fpd config.
      */
-    private App prepareApp(App app, ExtBidderConfigFpd fpdConfig, boolean useFirstPartyData) {
+    private App prepareApp(App app, ObjectNode fpdApp, boolean useFirstPartyData) {
         final ExtApp appExt = app != null ? app.getExt() : null;
 
         final App maskedApp = appExt != null && appExt.getData() != null && !useFirstPartyData
@@ -715,7 +730,7 @@ public class ExchangeService {
                 : app;
 
         return useFirstPartyData
-                ? fpdResolver.resolveApp(maskedApp, fpdConfig == null ? null : fpdConfig.getApp())
+                ? fpdResolver.resolveApp(maskedApp, fpdApp)
                 : maskedApp;
     }
 
@@ -728,7 +743,7 @@ public class ExchangeService {
      * Checks whether to pass the site.ext.data depending on request having a first party data
      * allowed for given bidder or not. And merge masked site with fpd config.
      */
-    private Site prepareSite(Site site, ExtBidderConfigFpd fpdConfig, boolean useFirstPartyData) {
+    private Site prepareSite(Site site, ObjectNode fpdSite, boolean useFirstPartyData) {
         final ExtSite siteExt = site != null ? site.getExt() : null;
 
         final Site maskedSite = siteExt != null && siteExt.getData() != null && !useFirstPartyData
@@ -736,7 +751,7 @@ public class ExchangeService {
                 : site;
 
         return useFirstPartyData
-                ? fpdResolver.resolveSite(maskedSite, fpdConfig == null ? null : fpdConfig.getSite())
+                ? fpdResolver.resolveSite(maskedSite, fpdSite)
                 : maskedSite;
     }
 
