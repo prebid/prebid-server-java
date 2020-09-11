@@ -332,7 +332,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             bid.setAdid(bidId);
             bid.setCrid(bidId);
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), StringUtils.stripToNull(currency));
+            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
 
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));

@@ -210,7 +210,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.video, StringUtils.stripToNull(bidResponse.getCur())))
+                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

@@ -926,7 +926,7 @@ public class ExchangeService {
 
         for (final BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
-            final String bidCurrency = bidderBid.getBidCurrency();
+            final String bidCurrency = StringUtils.stripToNull(bidderBid.getBidCurrency());
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal finalPrice =

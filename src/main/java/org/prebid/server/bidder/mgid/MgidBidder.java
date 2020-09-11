@@ -157,7 +157,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), StringUtils.stripToNull(bidResponse.getCur())))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

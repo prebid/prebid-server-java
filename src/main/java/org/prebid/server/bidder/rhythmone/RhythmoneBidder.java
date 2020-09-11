@@ -132,7 +132,7 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
-                        StringUtils.stripToNull(bidResponse.getCur())))
+                        bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

@@ -228,7 +228,7 @@ public class GammaBidder implements Bidder<Void> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bidResponse.getId(), bidRequest.getImp()),
-                        StringUtils.stripToNull(bidResponse.getCur())))
+                        bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

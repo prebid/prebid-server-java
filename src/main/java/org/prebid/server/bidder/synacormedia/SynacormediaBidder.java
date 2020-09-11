@@ -129,7 +129,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypeForImp(bid.getImpid(), bidRequest.getImp()),
-                        StringUtils.stripToNull(bidResponse.getCur())))
+                        bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

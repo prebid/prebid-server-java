@@ -156,7 +156,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), StringUtils.stripToNull(currency)))
+                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency))
                 .collect(Collectors.toList());
     }
 

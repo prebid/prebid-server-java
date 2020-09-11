@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -219,8 +218,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
 
         if (idToImps.containsKey(bidImpId)) {
             final Video video = idToImps.get(bidImpId).getVideo();
-            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner,
-                    StringUtils.stripToNull(currency)));
+            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, currency));
         } else {
             errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));

@@ -247,8 +247,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(modifyBid(bid), BidType.banner,
-                        StringUtils.stripToNull(bidResponse.getCur())))
+                .map(bid -> BidderBid.of(modifyBid(bid), BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

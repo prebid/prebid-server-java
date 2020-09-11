@@ -147,7 +147,7 @@ public class LifestreetBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getMediaTypes(bid.getImpid(), bidRequest.getImp()),
-                        StringUtils.stripToNull(bidResponse.getCur())))
+                        bidResponse.getCur()))
                 // one bid per request/response
                 .limit(1)
                 .collect(Collectors.toList());

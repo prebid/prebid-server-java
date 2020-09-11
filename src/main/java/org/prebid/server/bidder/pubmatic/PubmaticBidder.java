@@ -266,7 +266,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getExt()), StringUtils.stripToNull(bidResponse.getCur())))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

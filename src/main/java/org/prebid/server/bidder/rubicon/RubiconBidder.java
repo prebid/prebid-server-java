@@ -930,7 +930,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cmpOverrideFromRequest, bidResponse))
                 .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
-                .map(bid -> BidderBid.of(bid, bidType, StringUtils.stripToNull(bidResponse.getCur())))
+                .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

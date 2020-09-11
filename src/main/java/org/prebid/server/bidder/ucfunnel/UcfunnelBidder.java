@@ -39,7 +39,6 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpUcfunnel>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -115,8 +114,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
                 if (bidType == BidType.banner || bidType == BidType.video) {
-                    final BidderBid bidderBid = BidderBid.of(bid, bidType,
-                            StringUtils.stripToNull(bidResponse.getCur()));
+                    final BidderBid bidderBid = BidderBid.of(bid, bidType, bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 }
             }
