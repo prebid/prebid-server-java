@@ -5,13 +5,13 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.handler.AccountCacheInvalidationHandler;
-import org.prebid.server.handler.AdminHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
+import org.prebid.server.handler.HttpInteractionLogHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.manager.AdminManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,18 +121,18 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${logger-level-modifier.enabled} == true"
-            + " and ${admin-endpoints.logger-level-modifier.enabled} == true")
-    CustomizedAdminEndpoint loggerLevelModifierEndpoint(
-            AdminManager adminManager,
-            @Value("${admin-endpoints.logger-level-modifier.path}") String path,
-            @Value("${admin-endpoints.logger-level-modifier.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.logger-level-modifier.protected}") boolean isProtected,
+    @ConditionalOnExpression("${admin-endpoints.logging-httpinteraction.enabled} == true")
+    CustomizedAdminEndpoint loggingHttpInteractionEndpoint(
+            @Value("${logging.http-interaction.max-limit}") int maxLimit,
+            HttpInteractionLogger httpInteractionLogger,
+            @Value("${admin-endpoints.logging-httpinteraction.path}") String path,
+            @Value("${admin-endpoints.logging-httpinteraction.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.logging-httpinteraction.protected}") boolean isProtected,
             @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
 
         return new CustomizedAdminEndpoint(
                 path,
-                new AdminHandler(adminManager),
+                new HttpInteractionLogHandler(maxLimit, httpInteractionLogger),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);
