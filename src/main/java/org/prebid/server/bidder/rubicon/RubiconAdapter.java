@@ -339,7 +339,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
         if (userBuilder == null) {
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
-        userBuilder.id(updatedUserId(user));
+        final String updatedUserId = updatedUserId(userBuilder.build());
+        userBuilder.id(updatedUserId);
 
         final ExtUser extUser = user == null ? null : user.getExt();
         final ExtUser rubiconUserExt = makeUserExt(rubiconParams, extUser);
