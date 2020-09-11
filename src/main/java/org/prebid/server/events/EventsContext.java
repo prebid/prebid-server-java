@@ -10,6 +10,8 @@ import lombok.Value;
 @Value
 public class EventsContext {
 
+    boolean enabledForAccountAndRequest;
+
     Long auctionTimestamp;
 
     String integration;
