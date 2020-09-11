@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.rubicon;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -45,6 +46,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExtData;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExtDataPpuid;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
@@ -336,11 +339,39 @@ public class RubiconAdapter extends OpenrtbAdapter {
         if (userBuilder == null) {
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
+        userBuilder.id(updatedUserId(user));
+
         final ExtUser extUser = user == null ? null : user.getExt();
         final ExtUser rubiconUserExt = makeUserExt(rubiconParams, extUser);
         return rubiconUserExt != null
                 ? userBuilder.ext(rubiconUserExt).build()
                 : userBuilder.build();
+    }
+
+    private String updatedUserId(User user) {
+        final String userId = user != null ? user.getId() : null;
+        if (StringUtils.isBlank(userId)) {
+            final ExtUser userExt = user != null ? user.getExt() : null;
+            final ObjectNode userExtData = userExt != null ? userExt.getData() : null;
+            if (userExtData == null) {
+                return null;
+            }
+
+            final RubiconUserExtData rubiconUserExtData = userExtData(userExtData);
+            final List<RubiconUserExtDataPpuid> ppuids = rubiconUserExtData != null
+                    ? rubiconUserExtData.getPpuids()
+                    : null;
+            return CollectionUtils.isNotEmpty(ppuids) ? ppuids.get(0).getId() : null;
+        }
+        return userId;
+    }
+
+    private RubiconUserExtData userExtData(ObjectNode userExtData) {
+        try {
+            return mapper.mapper().treeToValue(userExtData, RubiconUserExtData.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding user.ext.data: %s", e.getMessage()), e);
+        }
     }
 
     private ExtUser makeUserExt(RubiconParams rubiconParams, ExtUser extUser) {
