@@ -45,21 +45,6 @@ public class OrbidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = orbidderBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseWithNoContent() {
         // given
         final HttpCall<BidRequest> httpCall = HttpCall
