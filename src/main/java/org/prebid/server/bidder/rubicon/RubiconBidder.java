@@ -60,6 +60,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExtData;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExtDataPpuid;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
@@ -709,6 +711,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
 
         return userBuilder
+                .id(updatedUserId(user, userExtData))
                 .gender(null)
                 .yob(null)
                 .geo(null)
@@ -816,6 +819,26 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtUser userExt = user != null ? user.getExt() : null;
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
+        }
+    }
+
+    private String updatedUserId(User user, ObjectNode userExtData) {
+        final String userId = user != null ? user.getId() : null;
+        if (StringUtils.isBlank(userId)) {
+            final RubiconUserExtData rubiconUserExtData = userExtData(userExtData);
+            final List<RubiconUserExtDataPpuid> ppuids = rubiconUserExtData != null
+                    ? rubiconUserExtData.getPpuids()
+                    : null;
+            return CollectionUtils.isNotEmpty(ppuids) ? ppuids.get(0).getId() : null;
+        }
+        return userId;
+    }
+
+    private RubiconUserExtData userExtData(ObjectNode userExtData) {
+        try {
+            return mapper.mapper().treeToValue(userExtData, RubiconUserExtData.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding user.ext.data: %s", e.getMessage()), e);
         }
     }
 

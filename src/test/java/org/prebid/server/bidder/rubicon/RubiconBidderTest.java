@@ -50,6 +50,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExtData;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExtDataPpuid;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
@@ -745,6 +747,30 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser)
                 .containsOnly((User) null);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetUserIdFromFirstUserExtDataPpuidWhenUserIdIsEmpty() {
+        // given
+        final String firstUserExtDataPpuids = "id1";
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .data(mapper.valueToTree(RubiconUserExtData.of(Arrays.asList(
+                                        RubiconUserExtDataPpuid.of("v1", firstUserExtDataPpuids),
+                                        RubiconUserExtDataPpuid.of("v2", "ignored")))))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> request.getUser().getId())
+                .containsOnly(firstUserExtDataPpuids);
     }
 
     @Test
