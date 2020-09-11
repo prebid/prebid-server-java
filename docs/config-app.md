@@ -114,8 +114,8 @@ There are several typical keys:
 
 But feel free to add additional bidder's specific options.
 
-## Logger Level Modifier
-- `logger-level-modifier.enabled` - enable the `/admin` endpoint.
+## Logging
+- `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
 
 ## Currency Converter
 - `currency-converter.external-rates.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies from external source. Also enables `/currency-rates` endpoint on admin port.
@@ -149,10 +149,10 @@ But feel free to add additional bidder's specific options.
 - `admin-endpoints.cache-invalidation.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
 
-- `admin-endpoints.logger-level-modifier.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.logger-level-modifier.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.logger-level-modifier.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.logger-level-modifier.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.logging-httpinteraction.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.logging-httpinteraction.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.logging-httpinteraction.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.logging-httpinteraction.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
