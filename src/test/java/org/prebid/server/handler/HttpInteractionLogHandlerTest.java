@@ -167,7 +167,7 @@ public class HttpInteractionLogHandlerTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Parameter 'limit' must be between 1 and 5"));
+        verify(httpResponse).end(eq("Parameter 'limit' must be between 0 and 5"));
 
         verifyZeroInteractions(httpInteractionLogger);
     }

@@ -80,7 +80,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
         if (limit < 1 || limit > maxLimit) {
             throw new InvalidRequestException(String.format(
-                    "Parameter '%s' must be between %d and %d", LIMIT_PARAMETER, 1, maxLimit));
+                    "Parameter '%s' must be between %d and %d", LIMIT_PARAMETER, 0, maxLimit));
         }
 
         return limit;

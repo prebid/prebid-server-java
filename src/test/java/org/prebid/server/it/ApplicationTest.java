@@ -590,6 +590,15 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
+    public void loggingChangeLevekShouldRespondWithOk() {
+        given(ADMIN_SPEC)
+                .get("/logging/changelevel?level=info&duration=1")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
     public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
         // given
         final Instant currentTime = Instant.now();

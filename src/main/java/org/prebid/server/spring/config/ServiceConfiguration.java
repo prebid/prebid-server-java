@@ -42,6 +42,7 @@ import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -578,5 +579,10 @@ public class ServiceConfiguration {
     @Bean
     HttpInteractionLogger httpInteractionLogger() {
         return new HttpInteractionLogger();
+    }
+
+    @Bean
+    LoggerControlKnob loggerControlKnob(Vertx vertx) {
+        return new LoggerControlKnob(vertx);
     }
 }
