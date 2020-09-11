@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class LoggerControlKnob {
 
-    public static final String PREBID_LOGGER = "org.prebid.server";
+    private static final String PREBID_LOGGER = "org.prebid.server";
 
     private final Vertx vertx;
     private final Logger logger;
@@ -23,8 +23,9 @@ public class LoggerControlKnob {
 
     public LoggerControlKnob(Vertx vertx) {
         this.vertx = Objects.requireNonNull(vertx);
-        this.logger = getPrebidLogger();
-        this.originalLevel = logger != null ? logger.getLevel() : null;
+
+        logger = getPrebidLogger();
+        originalLevel = logger != null ? logger.getLevel() : null;
     }
 
     public void changeLogLevel(String level, Duration duration) {
