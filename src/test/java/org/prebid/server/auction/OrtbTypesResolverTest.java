@@ -13,115 +13,100 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class OrtbTypesResolverTest extends VertxTest {
 
-    private final OrtbTypesResolver ortbTypesResolver = new OrtbTypesResolver();
+    private final OrtbTypesResolver ortbTypesResolver = new OrtbTypesResolver(jacksonMapper);
 
     @Test
-    public void normalizeStandardFpdFieldsShouldNotChangeNodeIfItsTypeIsNotObject() {
+    public void normalizeTargetingShouldNotChangeNodeIfItsTypeIsNotObject() {
         // given
         final JsonNode inputParam = mapper.createArrayNode();
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, new ArrayList<>(), "rootNode");
+        ortbTypesResolver.normalizeTargeting(inputParam, new ArrayList<>(), "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createArrayNode());
     }
 
     @Test
-    public void normalizeStandardFpdFieldsShouldConvertArrayToFirstElementFieldForUserAndWriteMessage() {
+    public void normalizeTargetingShouldConvertArrayToFirstElementFieldForUserAndWriteMessage() {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
                 mapper.createObjectNode().set("gender", mapper.createArrayNode().add("male").add("female")));
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, errors, "rootNode");
+        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
                 mapper.createObjectNode().put("gender", "male")));
-        assertThat(errors).containsOnly("Incorrect type for first party data field rootNode.user.gender, expected is"
+        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.gender, expected is"
                 + " string, but was an array of strings. Converted to string by taking first element of array.");
     }
 
     @Test
-    public void normalizeStandardFpdFieldsShouldConvertArrayToCommaSeparatedStringFieldForUserAndWriteMessage() {
+    public void normalizeTargetingShouldConvertArrayToCommaSeparatedStringFieldForUserAndWriteMessage() {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
                 mapper.createObjectNode().set("keywords", mapper.createArrayNode().add("keyword1").add("keyword2")));
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, errors, "rootNode");
+        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
                 mapper.createObjectNode().put("keywords", "keyword1,keyword2")));
-        assertThat(errors).containsOnly("Incorrect type for first party data field rootNode.user.keywords, expected is"
+        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.keywords, expected is"
                 + " string, but was an array of strings. Converted to string by separating values with comma.");
     }
 
     @Test
-    public void normalizeStandardFpdFieldsShouldSkipUserNormalizationIfTypeIsNotObject() {
-        // given
-        final JsonNode inputParam = mapper.createObjectNode().set("user", mapper.createArrayNode());
-        final List<String> errors = new ArrayList<>();
-
-        // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, errors, "rootNode");
-
-        // then
-        assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createArrayNode()));
-    }
-
-    @Test
-    public void normalizeStandardFpdFieldsShouldSkipUserNormalizationIfNull() {
+    public void normalizeTargetingShouldRemoveUserIfNull() {
         final JsonNode inputParam = mapper.createObjectNode().set("user", null);
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, errors, "rootNode");
+        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
 
         // then
-        assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", null));
+        assertThat(inputParam).isEqualTo(mapper.createObjectNode());
     }
 
     @Test
-    public void normalizeStandardFpdFieldsToCommaSeparatedTextNodeShouldWriteMessageIfNormalizationIsNotPossible() {
+    public void normalizeTargetingToCommaSeparatedTextNodeShouldWriteMessageAndRemoveThatField() {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
                 mapper.createObjectNode().set("keywords", mapper.createArrayNode().add("keyword1").add(2)));
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, errors, "rootNode");
+        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
 
         // then
-        assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
-                mapper.createObjectNode().set("keywords", mapper.createArrayNode().add("keyword1").add(2))));
-        assertThat(errors).containsOnly("Incorrect type for first party data field rootNode.user.keywords,"
+        assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
+        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.keywords,"
                 + " expected strings, but was `ARRAY of different types`. Failed to convert to correct type.");
     }
 
     @Test
-    public void normalizeStandardFpdFieldsToFirstElementTextNodeShouldWriteMessageIfNormalizationIsNotPossible() {
+    public void normalizeTargetingToFirstElementTextNodeShouldWriteMessageAndRemoveField() {
         // given
         final JsonNode inputParam = mapper.createObjectNode()
                 .set("user", mapper.createObjectNode().set("gender", new IntNode(1)));
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(inputParam, errors, "rootNode");
+        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
 
         // then
-        assertThat(inputParam).isEqualTo(mapper.createObjectNode()
-                .set("user", mapper.createObjectNode().set("gender", new IntNode(1))));
-        assertThat(errors).containsOnly("Incorrect type for first party data field rootNode.user.gender,"
+        assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
+        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.gender,"
                 + " expected strings, but was `NUMBER`. Failed to convert to correct type.");
     }
 
     @Test
-    public void normalizeStandardFpdFieldsShouldNormalizeFieldsForUser() {
+    public void normalizeTargetingShouldNormalizeFieldsForUser() {
         // given
         final ObjectNode user = mapper.createObjectNode().set("gender", mapper.createArrayNode().add("gender1")
                 .add("gender2"));
@@ -129,7 +114,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("user", user);
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(containerNode, new ArrayList<>(), "rootNode");
+        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()
@@ -138,7 +123,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
-    public void normalizeStandardFpdFieldsShouldNormalizeFieldsForAppExceptId() {
+    public void normalizeTargetingShouldNormalizeFieldsForAppExceptId() {
         // given
         final ObjectNode app = mapper.createObjectNode();
         app.set("id", mapper.createArrayNode().add("id1").add("id2"));
@@ -150,7 +135,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("app", app);
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(containerNode, new ArrayList<>(), "rootNode");
+        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("app", mapper.createObjectNode()
@@ -163,7 +148,7 @@ public class OrtbTypesResolverTest extends VertxTest {
     }
 
     @Test
-    public void normalizeStandardFpdFieldsShouldNormalizeFieldsForSiteExceptId() {
+    public void normalizeTargetingShouldNormalizeFieldsForSiteExceptId() {
         // given
         final ObjectNode site = mapper.createObjectNode();
         site.set("id", mapper.createArrayNode().add("id1").add("id2"));
@@ -176,7 +161,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("site", site);
 
         // when
-        ortbTypesResolver.normalizeStandardFpdFields(containerNode, new ArrayList<>(), "rootNode");
+        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("site", mapper.createObjectNode()
@@ -188,6 +173,42 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .put("keywords", "keyword1,keyword2")
                 .set("id", mapper.createArrayNode().add("id1").add("id2")))
         );
+    }
+
+    @Test
+    public void normalizeTargetingShouldTolerateIncorrectTypeSiteFieldAndRemoveIt() {
+        // given
+        final ObjectNode containerNode = mapper.createObjectNode().put("site", "notObjectType");
+
+        // when
+        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(mapper.createObjectNode());
+    }
+
+    @Test
+    public void normalizeTargetingShouldTolerateIncorrectTypeAppFieldAndRemoveIt() {
+        // given
+        final ObjectNode containerNode = mapper.createObjectNode().put("app", "notObjectType");
+
+        // when
+        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(mapper.createObjectNode());
+    }
+
+    @Test
+    public void normalizeTargetingShouldTolerateIncorrectTypeUserFieldAndRemoveIt() {
+        // given
+        final ObjectNode containerNode = mapper.createObjectNode().put("user", "notObjectType");
+
+        // when
+        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+
+        // then
+        assertThat(containerNode).isEqualTo(mapper.createObjectNode());
     }
 
     @Test
@@ -231,9 +252,10 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         requestNode.set("ext", mapper.createObjectNode().set("prebid", mapper.createObjectNode().set("bidderconfig",
                 mapper.createArrayNode()
-                .add(mapper.createObjectNode().set("config", mapper.createObjectNode().set("fpd", bidderConfig1))))));
+                        .add(mapper.createObjectNode().set("config", mapper.createObjectNode().set("fpd",
+                                bidderConfig1))))));
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>());
+        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
 
         // then
         assertThat(requestNode.get("site"))
