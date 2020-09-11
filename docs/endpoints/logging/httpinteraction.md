@@ -1,5 +1,7 @@
 # Enable HTTP interaction logging endpoint
 
+This endpoint has a path `/logging/httpinteraction` by default (can be configured).
+
 This endpoint turns on temporary logging of raw HTTP requests and responses, mainly for troubleshooting production issues. 
 
 Interaction is logged at `INFO` level using `http-interaction` logback logger so make sure this logger has at least 

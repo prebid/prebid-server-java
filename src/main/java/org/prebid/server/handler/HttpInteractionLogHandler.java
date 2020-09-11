@@ -58,6 +58,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
     private Integer readStatusCode(MultiMap parameters) {
         final Integer statusCode = getIntParameter(STATUS_CODE_PARAMETER, parameters);
+
         if (statusCode != null && (statusCode < 200 || statusCode > 500)) {
             throw new InvalidRequestException(String.format(
                     "Parameter '%s' must be between %d and %d", STATUS_CODE_PARAMETER, 200, 500));
@@ -79,7 +80,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
         if (limit < 1 || limit > maxLimit) {
             throw new InvalidRequestException(String.format(
-                    "Parameter '%s' must be between %d and %d", LIMIT_PARAMETER, 0, maxLimit));
+                    "Parameter '%s' must be between %d and %d", LIMIT_PARAMETER, 1, maxLimit));
         }
 
         return limit;

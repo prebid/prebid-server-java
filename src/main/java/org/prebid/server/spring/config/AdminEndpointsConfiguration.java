@@ -122,7 +122,7 @@ public class AdminEndpointsConfiguration {
 
     @Bean
     @ConditionalOnExpression("${admin-endpoints.logging-httpinteraction.enabled} == true")
-    CustomizedAdminEndpoint loggingHttpinteractionEndpoint(
+    CustomizedAdminEndpoint loggingHttpInteractionEndpoint(
             @Value("${logging.http-interaction.max-limit}") int maxLimit,
             HttpInteractionLogger httpInteractionLogger,
             @Value("${admin-endpoints.logging-httpinteraction.path}") String path,
