@@ -1985,22 +1985,21 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldSetEmptyCurrencyIfBidCurrencyIsBlank() {
         // given
-        final BigDecimal bidderPrice = BigDecimal.valueOf(2.0);
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
-                givenBid(Bid.builder().price(bidderPrice).build(), ""))));
+                givenBid(Bid.builder().build(), ""))));
 
-        final BidRequest bidRequest = BidRequest.builder().cur(singletonList(null))
+        final BidRequest bidRequest = BidRequest.builder().cur(singletonList("USD"))
                 .imp(singletonList(givenImp(doubleMap("bidder1", 2, "bidder2", 3),
                         identity()))).build();
 
-        final BigDecimal updatedPrice = BigDecimal.valueOf(20);
-        given(currencyService.convertCurrency(any(), any(), any(), any(), any())).willReturn(updatedPrice);
+        given(currencyService.convertCurrency(any(), any(), any(), any(), any()))
+                .willThrow(new PreBidException("no currency conversion available"));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verify(currencyService).convertCurrency(eq(bidderPrice), eq(null), eq(null), eq(null), eq(null));
+        verify(currencyService).convertCurrency(eq(null), eq(null), eq("USD"), eq(null), eq(null));
     }
 
     @SuppressWarnings("unchecked")
