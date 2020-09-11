@@ -18,5 +18,5 @@ adapters:
       url: https://ib.beintoo.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
       redirect-url: /setuid?bidder=beintoo&uid=$UID
       cookie-family-name: beintoo
-      type: redirect
+      type: iframe
       support-cors: false
