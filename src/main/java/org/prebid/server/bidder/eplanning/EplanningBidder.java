@@ -2,6 +2,7 @@ package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -195,8 +196,9 @@ public class EplanningBidder implements Bidder<Void> {
         final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
                 ? site.getPage() : DEFAULT_PAGE_URL;
 
-        final String requestTarget = request.getApp() != null && StringUtils.isNotBlank(request.getApp().getBundle())
-                ? request.getApp().getBundle()
+        final App app = request.getApp();
+        final String requestTarget = app != null && StringUtils.isNotBlank(app.getBundle())
+                ? app.getBundle()
                 : pageDomain;
 
         final String uri = endpointUrl + String.format("/%s/%s/%s/%s", clientId, DFP_CLIENT_ID, requestTarget, SEC);
@@ -206,26 +208,27 @@ public class EplanningBidder implements Bidder<Void> {
                 .addParameter("r", "pbs")
                 .addParameter("ncb", "1");
 
-        if (request.getApp() == null) {
+        if (app == null) {
             uriBuilder.addParameter("ur", pageUrl);
         }
         uriBuilder.addParameter("e", String.join("+", requestsStrings));
 
         final User user = request.getUser();
-        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uriBuilder.addParameter("uid", user.getBuyeruid());
+        final String buyeruid = user != null ? user.getBuyeruid() : null;
+        if (StringUtils.isNotBlank(buyeruid)) {
+            uriBuilder.addParameter("uid", buyeruid);
         }
 
         if (StringUtils.isNotBlank(ip)) {
             uriBuilder.addParameter("ip", ip);
         }
 
-        if (request.getApp() != null) {
-            if (StringUtils.isNotBlank(request.getApp().getName())) {
-                uriBuilder.addParameter("appn", request.getApp().getName());
+        if (app != null) {
+            if (StringUtils.isNotBlank(app.getName())) {
+                uriBuilder.addParameter("appn", app.getName());
             }
-            if (StringUtils.isNotBlank(request.getApp().getId())) {
-                uriBuilder.addParameter("appid", request.getApp().getId());
+            if (StringUtils.isNotBlank(app.getId())) {
+                uriBuilder.addParameter("appid", app.getId());
             }
             if (request.getDevice() != null && StringUtils.isNotBlank(request.getDevice().getIfa())) {
                 uriBuilder.addParameter("ifa", request.getDevice().getIfa());
