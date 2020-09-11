@@ -108,7 +108,7 @@ public class OrtbTypesResolver {
     void normalizeTargeting(JsonNode targeting, List<String> warnings, String referer) {
         final List<String> resolverWarnings = new ArrayList<>();
         final String rowOriginTargeting = getOriginalRowContainerNode(targeting);
-        normalizeStandardFpdFields(targeting, warnings, TARGETING);
+        normalizeStandardFpdFields(targeting, resolverWarnings, TARGETING);
         processWarnings(resolverWarnings, warnings, rowOriginTargeting, referer, TARGETING);
     }
 
@@ -173,7 +173,7 @@ public class OrtbTypesResolver {
                                 () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
                                         warnings)));
             } else {
-                warnings.add(String.format("FDP warning: %s.%s field ignored. Expected type is object, but was `%s`.",
+                warnings.add(String.format("FDP warning: %s%s field ignored. Expected type is object, but was `%s`.",
                         nodePrefix, nodeName, containerNode.getNodeType().name()));
                 return null;
             }
