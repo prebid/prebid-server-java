@@ -126,8 +126,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    OrtbTypesResolver ortbTypesResolver() {
-        return new OrtbTypesResolver();
+    OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper) {
+        return new OrtbTypesResolver(jacksonMapper);
     }
 
     @Bean
@@ -236,6 +236,7 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
                                         OrtbTypesResolver ortbTypesResolver,
+                                        ImplicitParametersExtractor implicitParametersExtractor,
                                         FpdResolver fpdResolver,
                                         TimeoutResolver timeoutResolver,
                                         JacksonMapper mapper) {
@@ -244,6 +245,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 auctionRequestFactory,
                 ortbTypesResolver,
+                implicitParametersExtractor,
                 fpdResolver,
                 timeoutResolver,
                 mapper);
