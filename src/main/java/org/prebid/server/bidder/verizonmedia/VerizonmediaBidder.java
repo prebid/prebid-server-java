@@ -41,7 +41,6 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpVerizonmedia>> VERIZON_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpVerizonmedia>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

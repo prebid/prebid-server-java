@@ -33,7 +33,6 @@ import java.util.Objects;
 
 public class TripleliftBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
             };
@@ -161,4 +160,3 @@ public class TripleliftBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
-

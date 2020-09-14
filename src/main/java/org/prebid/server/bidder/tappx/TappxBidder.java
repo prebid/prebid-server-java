@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
+    private static final String VERSION = "1.1";
+    private static final String TYPE_CNN = "prebid";
+
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTappx>>() {
             };
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String VERSION = "1.1";
-    private static final String TYPE_CNN = "prebid";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -179,4 +179,3 @@ public class TappxBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
-

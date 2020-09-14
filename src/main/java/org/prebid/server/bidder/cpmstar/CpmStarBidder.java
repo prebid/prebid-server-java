@@ -37,8 +37,6 @@ public class CpmStarBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpCpmStar>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -60,8 +58,7 @@ public class CpmStarBidder implements Bidder<BidRequest> {
                             .body(mapper.encode(bidRequest))
                             .payload(request)
                             .build()),
-                    Collections.emptyList()
-            );
+                    Collections.emptyList());
         } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput(e.getMessage()));
         }

@@ -2,12 +2,12 @@ package org.prebid.server.bidder.telaria;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -18,12 +18,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.HttpResponse;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 public class TelariaBidder implements Bidder<BidRequest> {
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private static final TypeReference<ExtPrebid<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTelaria>>() {
             };
@@ -214,7 +214,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    public static byte[] decompress(String file) throws IOException {
+    private static byte[] decompress(String file) throws IOException {
         try (GZIPInputStream gzipInput = new GZIPInputStream(new FileInputStream(file))) {
             return IOUtils.toByteArray(gzipInput);
         }
