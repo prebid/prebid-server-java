@@ -695,7 +695,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtUser userExt = extUser != null
                 ? ExtUser.builder()
                 .consent(extUser.getConsent())
-                .digitrust(extUser.getDigitrust())
                 .eids(extUser.getEids())
                 .build()
                 : ExtUser.builder().build();

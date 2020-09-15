@@ -55,7 +55,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
@@ -344,19 +343,17 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private ExtUser makeUserExt(RubiconParams rubiconParams, ExtUser extUser) {
-        final ExtUserDigiTrust digiTrust = extUser != null ? extUser.getDigitrust() : null; // will be removed
         final JsonNode visitorNode = rubiconParams.getVisitor();
         final JsonNode visitor = visitorNode != null && !visitorNode.isNull() && visitorNode.size() != 0
                 ? visitorNode
                 : null;
-        final boolean makeRp = visitor != null;
 
-        if (digiTrust != null || visitor != null) {
+        if (visitor != null) {
             final ExtUser userExt = extUser != null
                     ? ExtUser.builder().consent(extUser.getConsent()).eids(extUser.getEids()).build()
                     : ExtUser.builder().build();
             final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
-                    .rp(makeRp ? RubiconUserExtRp.of(visitor) : null)
+                    .rp(RubiconUserExtRp.of(visitor))
                     .build();
             return mapper.fillExtension(userExt, rubiconUserExt);
         }

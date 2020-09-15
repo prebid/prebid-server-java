@@ -455,11 +455,11 @@ public class PrivacyEnforcementService {
     }
 
     /**
-     * Returns masked digitrust and eids of user ext.
+     * Returns masked eids of user ext.
      */
     private ExtUser maskUserExt(ExtUser userExt) {
         return userExt != null
-                ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
+                ? nullIfEmpty(userExt.toBuilder().eids(null).build())
                 : null;
     }
 

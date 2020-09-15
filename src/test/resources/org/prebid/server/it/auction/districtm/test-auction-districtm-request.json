@@ -61,12 +61,7 @@
   },
   "user": {
     "ext": {
-      "consent": "consent1",
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 1
-      }
+      "consent": "consent1"
     }
   },
   "regs": {

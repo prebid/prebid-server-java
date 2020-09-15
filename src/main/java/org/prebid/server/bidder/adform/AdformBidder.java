@@ -62,7 +62,7 @@ public class AdformBidder implements Bidder<Void> {
         this.mapper = Objects.requireNonNull(mapper);
 
         this.requestUtil = new AdformRequestUtil();
-        this.httpUtil = new AdformHttpUtil(mapper);
+        this.httpUtil = new AdformHttpUtil();
     }
 
     /**
@@ -106,8 +106,7 @@ public class AdformBidder implements Bidder<Void> {
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
-                getUserId(user),
-                requestUtil.getAdformDigitrust(extUser));
+                getUserId(user));
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()

@@ -28,7 +28,7 @@ and not the other for an interim period. This page tracks known differences that
 
 ## Minor differences
 
-- PBS-Java removes null objects or empty strings (e.g. in Go `/auction` response bid object will have field `hb_cache: ""` whereas in Java it will be absent; also `digitrust: null` in PBS Go is not there in PBS Java). PBS-Go [Issue 476](https://github.com/prebid/prebid-server/issues/476)
+- PBS-Java removes null objects or empty strings (e.g. in Go `/auction` response bid object will have field `hb_cache: ""` whereas in Java it will be absent). PBS-Go [Issue 476](https://github.com/prebid/prebid-server/issues/476)
 - All adapters have been ported to use OpenRTB directly in PBS-Java. PBS-Go Facebook AudienceNetwork adapter [Issue 211](https://github.com/prebid/prebid-server/issues/211)
 - Java and Go adapter internal interface returns currency in different ways:
   - in PBS-Go, the adapter sets BidResponse.currency, which is outside of each TypedBid.

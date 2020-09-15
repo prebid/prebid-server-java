@@ -25,7 +25,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -65,7 +64,6 @@ public class AdformBidderTest extends VertxTest {
                         .buyeruid("buyeruid")
                         .ext(ExtUser.builder()
                                 .consent("consent")
-                                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
                                 .build())
                         .build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
@@ -95,9 +93,7 @@ public class AdformBidderTest extends VertxTest {
                         tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.3"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
                         // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                        tuple(HttpUtil.COOKIE_HEADER.toString(),
-                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml"
-                                        + "2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
+                        tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
     }
 
     @Test

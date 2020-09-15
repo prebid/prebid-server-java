@@ -44,8 +44,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -260,7 +258,6 @@ public class AuctionRequestFactory {
         final Site populatedSite = hasApp ? null : populateSite(site, request);
 
         final User user = bidRequest.getUser();
-        final User populatedUser = populateUser(user);
 
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source);
@@ -280,14 +277,13 @@ public class AuctionRequestFactory {
         final ExtRequest ext = bidRequest.getExt();
         final ExtRequest populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
+        if (populatedDevice != null || populatedSite != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
                 || populatedExt != null) {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : device)
                     .site(populatedSite != null ? populatedSite : site)
-                    .user(populatedUser != null ? populatedUser : user)
                     .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
                     .at(resolvedAt != null ? resolvedAt : at)
@@ -415,34 +411,6 @@ public class AuctionRequestFactory {
             result = builder.build();
         }
         return result;
-    }
-
-    /**
-     * Populates the request body's 'user' section from the incoming http request if the original is partially filled.
-     */
-    private User populateUser(User user) {
-        final ExtUser ext = userExtOrNull(user);
-
-        if (ext != null) {
-            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-            return builder.ext(ext).build();
-        }
-        return null;
-    }
-
-    /**
-     * Returns {@link ObjectNode} of updated {@link ExtUser} or null if no updates needed.
-     */
-    private ExtUser userExtOrNull(User user) {
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final ExtUserDigiTrust digitrust = extUser != null ? extUser.getDigitrust() : null;
-        if (digitrust != null && digitrust.getPref() == null) {
-            return extUser.toBuilder()
-                    .digitrust(ExtUserDigiTrust.of(digitrust.getId(), digitrust.getKeyv(), 0))
-                    .build();
-        }
-        return null;
     }
 
     /**
