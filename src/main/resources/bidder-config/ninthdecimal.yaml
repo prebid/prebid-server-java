@@ -1,0 +1,25 @@
+adapters:
+  ninthdecimal:
+    enabled: false
+    endpoint: http://rtb.ninthdecimal.com/xp/get?pubid=
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: abudig@ninthdecimal.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://rtb.ninthdecimal.com/xp/user-sync?acctid={aid}&&redirect=
+      redirect-url: /setuid?bidder=ninthdecimal&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: ninthdecimal
+      type: iframe
+      support-cors: false
