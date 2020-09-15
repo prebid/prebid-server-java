@@ -50,6 +50,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -313,7 +314,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         factory.fromRequest(routingContext, 0L).result();
 
         // then
-        verify(ortbTypesResolver).normalizeBidRequest(any(), any());
+        verify(ortbTypesResolver).normalizeBidRequest(any(), any(), any());
     }
 
     @Test
@@ -1188,6 +1189,67 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .containsOnly(
                         tuple("requestScopedBidderAlias", "bidder1"),
                         tuple("configScopedBidderAlias", "bidder2"));
+    }
+
+    @Test
+    public void shouldSetRequestPrebidChannelWhenMissingInRequestAndApp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("app"));
+    }
+
+    @Test
+    public void shouldNotSetRequestPrebidChannelWhenMissingInRequestAndNotApp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly((ExtRequestPrebidChannel) null);
+    }
+
+    @Test
+    public void shouldNotSetRequestPrebidChannelWhenPresentInRequestAndApp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .channel(ExtRequestPrebidChannel.of("custom"))
+                        .build()))
+                .build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getChannel)
+                .containsOnly(ExtRequestPrebidChannel.of("custom"));
     }
 
     @Test
