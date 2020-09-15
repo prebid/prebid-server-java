@@ -75,6 +75,7 @@ public class AmpRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
     private final OrtbTypesResolver ortbTypesResolver;
+    private final ImplicitParametersExtractor implicitParametersExtractor;
     private final FpdResolver fpdResolver;
     private final TimeoutResolver timeoutResolver;
     private final JacksonMapper mapper;
@@ -82,12 +83,14 @@ public class AmpRequestFactory {
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory,
                              OrtbTypesResolver ortbTypesResolver,
+                             ImplicitParametersExtractor implicitParametersExtractor,
                              FpdResolver fpdResolver,
                              TimeoutResolver timeoutResolver,
                              JacksonMapper mapper) {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
+        this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.mapper = Objects.requireNonNull(mapper);
@@ -263,7 +266,7 @@ public class AmpRequestFactory {
 
         final String requestTargeting = request.getParam(TARGETING_REQUEST_PARAM);
         final ObjectNode targetingNode = readTargeting(requestTargeting);
-        ortbTypesResolver.normalizeStandardFpdFields(targetingNode, errors, "targeting");
+        ortbTypesResolver.normalizeTargeting(targetingNode, errors, implicitParametersExtractor.refererFrom(request));
         final Targeting targeting = parseTargeting(targetingNode);
 
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);

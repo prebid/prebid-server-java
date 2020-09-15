@@ -82,6 +82,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
+    private ImplicitParametersExtractor implicitParametersExtractor;
+    @Mock
     private FpdResolver fpdResolver;
 
     @Before
@@ -103,7 +105,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .getArgument(0));
 
         factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory, ortbTypesResolver,
-                fpdResolver, timeoutResolver, jacksonMapper);
+                implicitParametersExtractor, fpdResolver, timeoutResolver, jacksonMapper);
     }
 
     @Test
@@ -224,10 +226,10 @@ public class AmpRequestFactoryTest extends VertxTest {
                 Imp.builder().build());
 
         // when
-        factory.fromRequest(routingContext, 0L).result().getBidRequest();
+        factory.fromRequest(routingContext, 0L).result();
 
         // then
-        verify(ortbTypesResolver).normalizeStandardFpdFields(any(), anyList(), any());
+        verify(ortbTypesResolver).normalizeTargeting(any(), anyList(), any());
     }
 
     @Test

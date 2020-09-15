@@ -8,10 +8,12 @@ import org.prebid.server.handler.AccountCacheInvalidationHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
 import org.prebid.server.handler.HttpInteractionLogHandler;
+import org.prebid.server.handler.LoggerControlKnobHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,6 +135,24 @@ public class AdminEndpointsConfiguration {
         return new CustomizedAdminEndpoint(
                 path,
                 new HttpInteractionLogHandler(maxLimit, httpInteractionLogger),
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnExpression("${admin-endpoints.logging-changelevel.enabled} == true")
+    CustomizedAdminEndpoint loggingChangeLevelEndpoint(
+            @Value("${logging.change-level.max-duration-ms}") long maxDuration,
+            LoggerControlKnob loggerControlKnob,
+            @Value("${admin-endpoints.logging-changelevel.path}") String path,
+            @Value("${admin-endpoints.logging-changelevel.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.logging-changelevel.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new LoggerControlKnobHandler(maxDuration, loggerControlKnob),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

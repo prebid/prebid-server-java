@@ -45,6 +45,11 @@ admin-endpoints:
     path: /logging/httpinteraction
     on-application-port: false
     protected: true
+  logging-changelevel:
+    enabled: false
+    path: /logging/changelevel
+    on-application-port: false
+    protected: true
 http-client:
   max-pool-size: 4000
   connect-timeout-ms: 2500
@@ -91,6 +96,8 @@ cookie-sync:
 logging:
   http-interaction:
     max-limit: 10000
+  change-level:
+    max-duration-ms: 60000
 currency-converter:
   external-rates:
     enabled: true

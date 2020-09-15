@@ -42,6 +42,7 @@ import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -125,8 +126,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    OrtbTypesResolver ortbTypesResolver() {
-        return new OrtbTypesResolver();
+    OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper) {
+        return new OrtbTypesResolver(jacksonMapper);
     }
 
     @Bean
@@ -235,6 +236,7 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory,
                                         OrtbTypesResolver ortbTypesResolver,
+                                        ImplicitParametersExtractor implicitParametersExtractor,
                                         FpdResolver fpdResolver,
                                         TimeoutResolver timeoutResolver,
                                         JacksonMapper mapper) {
@@ -243,6 +245,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 auctionRequestFactory,
                 ortbTypesResolver,
+                implicitParametersExtractor,
                 fpdResolver,
                 timeoutResolver,
                 mapper);
@@ -582,5 +585,10 @@ public class ServiceConfiguration {
     @Bean
     HttpInteractionLogger httpInteractionLogger() {
         return new HttpInteractionLogger();
+    }
+
+    @Bean
+    LoggerControlKnob loggerControlKnob(Vertx vertx) {
+        return new LoggerControlKnob(vertx);
     }
 }
