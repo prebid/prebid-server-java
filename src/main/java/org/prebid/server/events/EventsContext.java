@@ -11,4 +11,6 @@ import lombok.Value;
 public class EventsContext {
 
     Long auctionTimestamp;
+
+    String integration;
 }

@@ -13,7 +13,5 @@ public class ExtImpContext {
 
     String search;
 
-    ExtImpContextAdserver adserver;
-
     ObjectNode data;
 }
