@@ -40,8 +40,9 @@ public class OrtbTypesResolverTest extends VertxTest {
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
                 mapper.createObjectNode().put("gender", "male")));
-        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.gender, expected is"
-                + " string, but was an array of strings. Converted to string by taking first element of array.");
+        assertThat(errors).containsOnly("WARNING: Incorrect type for first party data field targeting.user.gender,"
+                + " expected is string, but was an array of strings. Converted to string by taking first element "
+                + "of array.");
     }
 
     @Test
@@ -57,8 +58,9 @@ public class OrtbTypesResolverTest extends VertxTest {
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
                 mapper.createObjectNode().put("keywords", "keyword1,keyword2")));
-        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.keywords, expected is"
-                + " string, but was an array of strings. Converted to string by separating values with comma.");
+        assertThat(errors).containsOnly("WARNING: Incorrect type for first party data field targeting.user.keywords,"
+                + " expected is string, but was an array of strings. Converted to string by separating values with"
+                + " comma.");
     }
 
     @Test
@@ -85,7 +87,7 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
-        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.keywords,"
+        assertThat(errors).containsOnly("WARNING: Incorrect type for first party data field targeting.user.keywords,"
                 + " expected strings, but was `ARRAY of different types`. Failed to convert to correct type.");
     }
 
@@ -101,7 +103,7 @@ public class OrtbTypesResolverTest extends VertxTest {
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
-        assertThat(errors).containsOnly("Incorrect type for first party data field targeting.user.gender,"
+        assertThat(errors).containsOnly("WARNING: Incorrect type for first party data field targeting.user.gender,"
                 + " expected strings, but was `NUMBER`. Failed to convert to correct type.");
     }
 
