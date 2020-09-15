@@ -5,6 +5,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
@@ -124,11 +126,13 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
-     * Converts price from bidCurrency to adServerCurrency using rates defined in request or if absent, from
-     * latest currency rates. Throws {@link PreBidException} in case conversion is not possible.
+     * Converts price from bidCurrency to adServerCurrency using rates and usepbsrates flag defined in request.
+     * If usepbsrates is true it takes rates from prebid server, if false from request. Default value of usepbsrates
+     * is true.
+     * Throws {@link PreBidException} in case conversion is not possible.
      */
     public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                      String adServerCurrency, String bidCurrency) {
+                                      String adServerCurrency, String bidCurrency, Boolean usepbsrates) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
         final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
@@ -137,22 +141,38 @@ public class CurrencyConversionService implements Initializable {
             return price;
         }
 
-        // get conversion rate from request currency rates if it is present
-        BigDecimal conversionRate = null;
-        if (requestCurrencyRates != null) {
-            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
+        final Map<String, Map<String, BigDecimal>> firstPriorityRates;
+        final Map<String, Map<String, BigDecimal>> secondPriorityRates;
+
+        if (BooleanUtils.isFalse(usepbsrates)) {
+            firstPriorityRates = requestCurrencyRates;
+            secondPriorityRates = externalCurrencyRates;
+        } else {
+            firstPriorityRates = externalCurrencyRates;
+            secondPriorityRates = requestCurrencyRates;
         }
 
-        // if conversion rate from requestCurrency was not found, try the same from latest currencies
-        if (conversionRate == null) {
-            conversionRate = getConversionRate(externalCurrencyRates, adServerCurrency, effectiveBidCurrency);
-        }
+        final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates, secondPriorityRates,
+                adServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
             throw new PreBidException("no currency conversion available");
         }
 
         return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * Returns conversion rate from the given currency rates according to priority.
+     */
+    private static BigDecimal getConversionRateByPriority(Map<String, Map<String, BigDecimal>> firstPriorityRates,
+                                                          Map<String, Map<String, BigDecimal>> secondPriorityRates,
+                                                          String adServerCurrency,
+                                                          String effectiveBidCurrency) {
+
+        return ObjectUtils.defaultIfNull(
+                getConversionRate(firstPriorityRates, adServerCurrency, effectiveBidCurrency),
+                getConversionRate(secondPriorityRates, adServerCurrency, effectiveBidCurrency));
     }
 
     /**
