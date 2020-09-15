@@ -21,6 +21,8 @@ public class NotificationEvent {
 
     Long timestamp;
 
+    String integration;
+
     HttpContext httpContext;
 
     public enum Type {

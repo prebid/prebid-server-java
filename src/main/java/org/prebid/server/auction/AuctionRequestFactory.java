@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -77,6 +78,8 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
+
+    public static final String APP_CHANNEL = "app";
 
     private final long maxRequestSize;
     private final boolean enforceValidAccount;
@@ -178,9 +181,12 @@ public class AuctionRequestFactory {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    Future<AuctionContext> toAuctionContext(RoutingContext routingContext, BidRequest bidRequest,
+    Future<AuctionContext> toAuctionContext(RoutingContext routingContext,
+                                            BidRequest bidRequest,
                                             List<String> errors,
-                                            long startTime, TimeoutResolver timeoutResolver) {
+                                            long startTime,
+                                            TimeoutResolver timeoutResolver) {
+
         final Timeout timeout = timeout(bidRequest, startTime, timeoutResolver);
 
         return accountFrom(bidRequest, timeout, routingContext)
@@ -217,7 +223,8 @@ public class AuctionRequestFactory {
             throw new InvalidRequestException(String.format("Error decoding bidRequest: %s", e.getMessage()));
         }
 
-        ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors);
+        final String referer = paramsExtractor.refererFrom(context.request());
+        ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
 
         try {
             return mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);
@@ -244,10 +251,7 @@ public class AuctionRequestFactory {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context, TimeoutResolver timeoutResolver) {
-        final boolean hasApp = bidRequest.getApp() != null;
-        if (hasApp) {
-            checkBlacklistedApp(bidRequest.getApp());
-        }
+        checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
         final HttpServerRequest request = context.request();
@@ -256,7 +260,7 @@ public class AuctionRequestFactory {
         final Device populatedDevice = populateDevice(device, request);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = hasApp ? null : populateSite(site, request);
+        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, request);
 
         final User user = bidRequest.getUser();
         final User populatedUser = populateUser(user);
@@ -277,7 +281,8 @@ public class AuctionRequestFactory {
         final Long resolvedTmax = resolveTmax(tmax, timeoutResolver);
 
         final ExtRequest ext = bidRequest.getExt();
-        final ExtRequest populatedExt = populateRequestExt(ext, ObjectUtils.defaultIfNull(populatedImps, imps));
+        final ExtRequest populatedExt = populateRequestExt(
+                ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps));
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedSource != null
                 || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
@@ -300,8 +305,10 @@ public class AuctionRequestFactory {
         return result;
     }
 
-    private void checkBlacklistedApp(App app) {
-        final String appId = app.getId();
+    private void checkBlacklistedApp(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final String appId = app != null ? app.getId() : null;
+
         if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
             throw new BlacklistedAppException(
                     String.format("Prebid-server does not process requests from App ID: %s", appId));
@@ -479,31 +486,35 @@ public class AuctionRequestFactory {
     /**
      * Returns updated {@link ExtRequest} if required or null otherwise.
      */
-    private ExtRequest populateRequestExt(ExtRequest ext, List<Imp> imps) {
-        if (ext != null) {
-            final ExtRequestPrebid prebid = ext.getPrebid();
-
-            final Set<BidType> impMediaTypes = getImpMediaTypes(imps);
-            final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, impMediaTypes);
-
-            final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
-            final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
-
-            if (updatedTargeting != null || updatedAliases != null || updatedCache != null) {
-                final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                        ? prebid.toBuilder()
-                        : ExtRequestPrebid.builder();
-
-                return ExtRequest.of(prebidBuilder
-                        .aliases(ObjectUtils.defaultIfNull(updatedAliases,
-                                getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
-                        .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                                getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
-                        .cache(ObjectUtils.defaultIfNull(updatedCache,
-                                getIfNotNull(prebid, ExtRequestPrebid::getCache)))
-                        .build());
-            }
+    private ExtRequest populateRequestExt(ExtRequest ext, BidRequest bidRequest, List<Imp> imps) {
+        if (ext == null) {
+            return null;
         }
+
+        final ExtRequestPrebid prebid = ext.getPrebid();
+
+        final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, getImpMediaTypes(imps));
+        final Map<String, String> updatedAliases = aliasesOrNull(prebid, imps);
+        final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
+        final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest);
+
+        if (updatedTargeting != null || updatedAliases != null || updatedCache != null || updatedChannel != null) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                    ? prebid.toBuilder()
+                    : ExtRequestPrebid.builder();
+
+            return ExtRequest.of(prebidBuilder
+                    .aliases(ObjectUtils.defaultIfNull(updatedAliases,
+                            getIfNotNull(prebid, ExtRequestPrebid::getAliases)))
+                    .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
+                            getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                    .cache(ObjectUtils.defaultIfNull(updatedCache,
+                            getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                    .channel(ObjectUtils.defaultIfNull(updatedChannel,
+                            getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
+                    .build());
+        }
+
         return null;
     }
 
@@ -672,6 +683,17 @@ public class AuctionRequestFactory {
                     getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
                     true);
         }
+        return null;
+    }
+
+    /**
+     * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
+     */
+    private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
+        if ((prebid == null || prebid.getChannel() == null) && bidRequest.getApp() != null) {
+            return ExtRequestPrebidChannel.of(APP_CHANNEL);
+        }
+
         return null;
     }
 
