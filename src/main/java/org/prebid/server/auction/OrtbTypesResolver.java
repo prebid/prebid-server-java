@@ -173,7 +173,7 @@ public class OrtbTypesResolver {
                                 () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
                                         warnings)));
             } else {
-                warnings.add(String.format("FDP warning: %s%s field ignored. Expected type is object, but was `%s`.",
+                warnings.add(String.format("%s%s field ignored. Expected type is object, but was `%s`.",
                         nodePrefix, nodeName, containerNode.getNodeType().name()));
                 return null;
             }
@@ -252,14 +252,18 @@ public class OrtbTypesResolver {
     private void processWarnings(List<String> resolverWarning, List<String> warnings, String containerValue,
                                  String referer, String containerName) {
         if (CollectionUtils.isNotEmpty(resolverWarning)) {
-            warnings.addAll(resolverWarning);
+            warnings.addAll(updateWithWarningPrefix(resolverWarning));
             // log only 1% of cases
             if (System.currentTimeMillis() % 100 == 0) {
-                logger.info(String.format("%s. \n Referer = %s and %s = %s",
+                logger.info(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
                         String.join("\n", resolverWarning),
                         StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
                         containerName, containerValue));
             }
         }
+    }
+
+    private List<String> updateWithWarningPrefix(List<String> resolverWarning) {
+        return resolverWarning.stream().map(warning -> "WARNING: " + warning).collect(Collectors.toList());
     }
 }
