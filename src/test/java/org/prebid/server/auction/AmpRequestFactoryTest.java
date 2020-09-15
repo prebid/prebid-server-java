@@ -34,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
@@ -212,6 +213,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
+                        .channel(ExtRequestPrebidChannel.of("amp"))
                         .build());
     }
 
@@ -392,6 +394,44 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
                 .containsExactly(ExtRequestPrebidCacheBids.of(null, null));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithChannelIfStoredBidRequestExtHasNoChannel() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(givenRequestExt(null)),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(extBidRequest -> extBidRequest.getPrebid().getChannel())
+                .containsExactly(ExtRequestPrebidChannel.of("amp"));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithChannelFromStoredBidRequest() {
+        // given
+        givenBidRequest(
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .channel(ExtRequestPrebidChannel.of("custom"))
+                                .build())),
+                Imp.builder().build());
+
+        // when
+        final BidRequest request = factory.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(singletonList(request))
+                .extracting(BidRequest::getExt)
+                .extracting(extBidRequest -> extBidRequest.getPrebid().getChannel())
+                .containsExactly(ExtRequestPrebidChannel.of("custom"));
     }
 
     @Test
