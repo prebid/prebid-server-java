@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smaato;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -159,7 +160,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private User modifyUser(User user) {
         final ExtUser ext = user.getExt();
-        final Map<String, ObjectNode> mapUserExt = parseUserExt(ext);
+        final Map<String, JsonNode> mapUserExt = parseUserExt(ext);
         final SmaatoUserExt smaatoUserExt = convertExt(ext, SmaatoUserExt.class);
         final User.UserBuilder userBuilder = user.toBuilder();
         final SmaatoUserExtData data = smaatoUserExt.getData();
@@ -180,8 +181,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return userBuilder.build();
     }
 
-    private Map<String, ObjectNode> parseUserExt(ExtUser ext) {
-        return mapper.mapper().convertValue(ext, new TypeReference<Map<String, ObjectNode>>() {
+    private Map<String, JsonNode> parseUserExt(ExtUser ext) {
+        return mapper.mapper().convertValue(ext, new TypeReference<Map<String, JsonNode>>() {
         });
     }
 
@@ -276,7 +277,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private String extractAdmImage(String adm) {
-        final SmaatoImageAd image = mapper.decodeValue(adm, SmaatoImageAd.class);
+        final SmaatoImageAd image = decode(adm, SmaatoImageAd.class);
         final StringBuilder clickEvent = new StringBuilder();
         image.getImage().getClickTrackers().forEach(tracker -> clickEvent.append(
                 String.format("fetch(decodeURIComponent('%s'.replace(/\\+/g, ' ')), {cache: 'no-cache'});",
@@ -294,8 +295,16 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 impressionTracker.toString());
     }
 
+    private <T, S> T decode(S value, Class<T> className) {
+        try {
+            return mapper.decodeValue((String) value, className);
+        } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
     private String extractAdmRichMedia(String adm) {
-        final SmaatoRichMediaAd richMediaAd = mapper.decodeValue(adm, SmaatoRichMediaAd.class);
+        final SmaatoRichMediaAd richMediaAd = decode(adm, SmaatoRichMediaAd.class);
         final StringBuilder clickEvent = new StringBuilder();
         richMediaAd.getRichmedia().getClickTrackers().forEach(tracker -> clickEvent.append(
                 String.format("fetch(decodeURIComponent('%s'), {cache: 'no-cache'});",

@@ -14,7 +14,7 @@
       },
       "ext": {
         "smaato": {
-          "publisherId": "1100042525",
+          "publisherId": "11000",
           "adspaceId": "130563103"
         }
       }
@@ -54,6 +54,7 @@
   },
   "user": {
     "ext": {
+      "consent": "gdprConsentString",
       "data": {
         "keywords": "a,b",
         "gender": "M",

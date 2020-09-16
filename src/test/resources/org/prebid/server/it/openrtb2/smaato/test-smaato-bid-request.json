@@ -6,13 +6,15 @@
       "banner": {
         "w": 300,
         "h": 250
-      }
+      },
+      "tagid" : "130563103"
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://localhost:3000/server.html?pbjs_debug=true&endpoint=http://localhost:3000/bidder",
     "publisher": {
+      "id": "11000"
     },
     "keywords": "power tools"
   },
@@ -29,7 +31,9 @@
     "yob": 1984,
     "gender": "M",
     "keywords": "a,b",
-    "ext": {}
+    "ext": {
+      "consent": "gdprConsentString"
+    }
   },
   "at": 1,
   "tmax": 3000,

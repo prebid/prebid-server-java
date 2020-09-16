@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.smaato;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -10,7 +11,9 @@ import lombok.Value;
 @Value
 public class ExtImpSmaato {
 
+    @JsonProperty("publisherId")
     String publisherId;
 
+    @JsonProperty("adspaceId")
     String adspaceId;
 }
