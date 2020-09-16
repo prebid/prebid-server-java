@@ -103,6 +103,7 @@
         },
         "usepbsrates": false
       },
+      "integration": "dmbjs",
       "aliases": {
         "appnexusAlias": "appnexus"
       },
