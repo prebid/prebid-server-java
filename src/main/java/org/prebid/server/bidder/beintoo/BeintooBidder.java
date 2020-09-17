@@ -8,12 +8,10 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -29,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beintoo.ExtImpBeintoo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -57,12 +56,6 @@ public class BeintooBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
-        }
-
         final BidRequest updatedBidRequest;
         try {
             updatedBidRequest = updateBidRequest(request);
@@ -72,6 +65,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(updatedBidRequest);
         final MultiMap headers = makeHeaders(request);
+        final List<BidderError> errors = new ArrayList<>();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -96,8 +90,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isSecure(Site site) {
-        return site != null && StringUtils.isNotBlank(site.getPage()) && site.getPage()
-                .startsWith("https");
+        return site != null && StringUtils.isNotBlank(site.getPage()) && site.getPage().startsWith("https");
     }
 
     private ExtImpBeintoo parseAndValidateImpExt(Imp imp) {
@@ -109,12 +102,12 @@ public class BeintooBidder implements Bidder<BidRequest> {
         }
 
         final int tagidNumber;
-        try {
-            tagidNumber = Integer.parseInt(extImpBeintoo.getTagId());
-        } catch (NumberFormatException e) {
-            throw new PreBidException(
-                    String.format("tagid must be a String of numbers, ignoring imp id=%s",
-                            imp.getId()), e);
+        final String tagId = extImpBeintoo.getTagId();
+        if (StringUtils.isNumeric(tagId)) {
+            tagidNumber = Integer.parseInt(tagId);
+        } else {
+            throw new PreBidException(String
+                    .format("tagid must be a String of numbers, ignoring imp id=%s", imp.getId()));
         }
 
         if (tagidNumber == 0) {
@@ -135,20 +128,10 @@ public class BeintooBidder implements Bidder<BidRequest> {
                 .ext(null);
 
         final String stringBidfloor = extImpBeintoo.getBidFloor();
-        if (StringUtils.isBlank(stringBidfloor)) {
-            return impBuilder.build();
-        }
-
-        final BigDecimal bidfloor;
-        try {
-            bidfloor = new BigDecimal(stringBidfloor);
-        } catch (NumberFormatException e) {
-            return impBuilder.build();
-        }
-
-        return impBuilder
-                .bidfloor(bidfloor)
-                .build();
+        final BigDecimal bidfloor = StringUtils.isBlank(stringBidfloor) ? null : new BigDecimal(stringBidfloor);
+        return (bidfloor != null ? bidfloor.compareTo(BigDecimal.ZERO) : 0) > 0
+                ? impBuilder.bidfloor(bidfloor).build()
+                : impBuilder.build();
     }
 
     private static Banner modifyImpBanner(Banner banner) {
@@ -160,14 +143,14 @@ public class BeintooBidder implements Bidder<BidRequest> {
             final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
             final List<Format> originalFormat = banner.getFormat();
 
-            if (originalFormat == null || originalFormat.isEmpty()) {
+            if (CollectionUtils.isEmpty(originalFormat)) {
                 throw new PreBidException("Need at least one size to build request");
             }
 
             final List<Format> formatSkipFirst = originalFormat.subList(1, originalFormat.size());
             bannerBuilder.format(formatSkipFirst);
 
-            Format firstFormat = originalFormat.get(0);
+            final Format firstFormat = originalFormat.get(0);
             bannerBuilder.w(firstFormat.getW());
             bannerBuilder.h(firstFormat.getH());
 
@@ -224,12 +207,9 @@ public class BeintooBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(modifyBid(bid), BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> bid.toBuilder().impid(bid.getId()).build())
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
-    }
-
-    private static Bid modifyBid(Bid bid) {
-        return bid.toBuilder().impid(bid.getId()).build();
     }
 
     @Override

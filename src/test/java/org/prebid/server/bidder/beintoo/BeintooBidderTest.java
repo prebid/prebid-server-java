@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,22 +42,6 @@ public class BeintooBidderTest extends VertxTest {
 
     private BeintooBidder beintooBidder;
 
-    private static BidResponse givenBidResponse(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
-
     @Before
     public void setUp() {
         beintooBidder = new BeintooBidder(ENDPOINT_URL, jacksonMapper);
@@ -67,21 +50,6 @@ public class BeintooBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new BeintooBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
     }
 
     @Test
@@ -271,7 +239,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(formats).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeintoo.of("1", "asd"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeintoo.of("1", "3"))))
                         .build()))
                 .tmax(1000L)
                 .build();
@@ -287,6 +255,7 @@ public class BeintooBidderTest extends VertxTest {
         final Imp expectedImp = Imp.builder()
                 .banner(expectedBanner)
                 .tagid("1")
+                .bidfloor(BigDecimal.valueOf(3))
                 .secure(0)
                 .build();
 
@@ -303,7 +272,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeintoo.of("1", "asd"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBeintoo.of("1", "3"))))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").dnt(1).build())
                 .site(Site.builder().page("myPage").build())
@@ -399,5 +368,22 @@ public class BeintooBidderTest extends VertxTest {
     public void extractTargetingShouldReturnEmptyMap() {
         assertThat(beintooBidder.extractTargeting(mapper.createObjectNode()))
                 .isEqualTo(emptyMap());
+    }
+
+    private static BidResponse givenBidResponse(
+            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return HttpCall.success(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 }
