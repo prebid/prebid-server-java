@@ -55,7 +55,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String NURL_VIDEO_TYPE = "nurl";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.8.0";
+    private static final String BEACHFRONT_VERSION = "0.9.0";
     private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
     private static final String TEST_IP = "192.168.255.255";
 
