@@ -14,12 +14,11 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.model.CacheContext;
-import org.prebid.server.cache.model.CacheHttpCall;
 import org.prebid.server.cache.model.CacheHttpRequest;
-import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
@@ -398,7 +397,7 @@ public class CacheServiceTest extends VertxTest {
                 Account.builder().id("accountId").eventsEnabled(true).build(), eventsContext, timeout);
 
         // then
-        verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq("accountId"), isNull());
+        verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq("accountId"), isNull(), isNull());
     }
 
     @Test
@@ -419,10 +418,12 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final CacheServiceResult result = future.result();
+        final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
         assertThat(result.getHttpCall()).isNotNull()
-                .isEqualTo(CacheHttpCall.of(givenCacheHttpRequest(bid), null, 0));
+                .isEqualTo(DebugHttpCall.builder().requestUri(request.getUri()).requestBody(request.getBody())
+                        .endpoint("http://cache-service/cache").responseTimeMillis(0).build());
     }
 
     @Test
@@ -443,11 +444,13 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final CacheServiceResult result = future.result();
+        final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isInstanceOf(PreBidException.class).hasMessage("HTTP status code 503");
         assertThat(result.getHttpCall()).isNotNull()
-                .isEqualTo(CacheHttpCall.of(givenCacheHttpRequest(bid),
-                        CacheHttpResponse.of(503, "response"), 0));
+                .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
+                        .requestBody(request.getBody()).requestUri(request.getUri()).responseStatus(503)
+                        .responseBody("response").responseTimeMillis(0).build());
     }
 
     @Test
@@ -468,11 +471,13 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final CacheServiceResult result = future.result();
+        final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isInstanceOf(PreBidException.class).hasMessage("Cannot parse response: response");
         assertThat(result.getHttpCall()).isNotNull()
-                .isEqualTo(CacheHttpCall.of(givenCacheHttpRequest(bid),
-                        CacheHttpResponse.of(200, "response"), 0));
+                .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
+                        .requestUri(request.getUri()).requestBody(request.getBody())
+                        .responseStatus(200).responseBody("response").responseTimeMillis(0).build());
     }
 
     @Test
@@ -494,12 +499,14 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final CacheServiceResult result = future.result();
+        final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isNotNull().isInstanceOf(PreBidException.class)
                 .hasMessage("The number of response cache objects doesn't match with bids");
         assertThat(result.getHttpCall()).isNotNull()
-                .isEqualTo(CacheHttpCall.of(givenCacheHttpRequest(bid),
-                        CacheHttpResponse.of(200, "{}"), 0));
+                .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
+                        .requestBody(request.getBody()).requestUri(request.getUri())
+                        .responseStatus(200).responseBody("{}").responseTimeMillis(0).build());
     }
 
     @Test
@@ -518,9 +525,12 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final CacheServiceResult result = future.result();
+        final CacheHttpRequest request = givenCacheHttpRequest(bid);
         assertThat(result.getHttpCall()).isNotNull()
-                .isEqualTo(CacheHttpCall.of(givenCacheHttpRequest(bid),
-                        CacheHttpResponse.of(200, "{\"responses\":[{\"uuid\":\"uuid1\"}]}"), 0));
+                .isEqualTo(DebugHttpCall.builder().endpoint("http://cache-service/cache")
+                        .requestUri(request.getUri()).requestBody(request.getBody())
+                        .responseStatus(200).responseBody("{\"responses\":[{\"uuid\":\"uuid1\"}]}")
+                        .responseTimeMillis(0).build());
     }
 
     @Test
@@ -908,11 +918,15 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldAddTrackingLinkToImpTagWhenItIsEmpty() throws IOException {
         // given
-        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder
+                .id("bid1")
+                .impid("impId1")
                 .adm("<Impression></Impression>"));
-        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        final Imp imp1 = givenImp(builder -> builder
+                .id("impId1")
+                .video(Video.builder().build()));
 
-        given(eventsService.vastUrlTracking(anyString(), anyString(), any(), any()))
+        given(eventsService.vastUrlTracking(anyString(), anyString(), any(), any(), any()))
                 .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
@@ -943,11 +957,15 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldAddTrackingImpToBidAdmXmlWhenThatBidShouldBeModifiedAndContainsImpTag()
             throws IOException {
         // given
-        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.id("bid1").impid("impId1")
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder
+                .id("bid1")
+                .impid("impId1")
                 .adm("<Impression>http:/test.com</Impression>"));
-        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        final Imp imp1 = givenImp(builder -> builder
+                .id("impId1")
+                .video(Video.builder().build()));
 
-        given(eventsService.vastUrlTracking(any(), any(), any(), any()))
+        given(eventsService.vastUrlTracking(any(), any(), any(), any(), any()))
                 .willReturn("https://test-event.com/event?t=imp&b=bid1&f=b&a=accountId");
 
         // when
@@ -978,8 +996,8 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
-        final Future<BidCacheResponse> future = cacheService.cachePutObjects(singletonList(PutObject.builder().build()),
-                emptySet(), "", expiredTimeout);
+        final Future<BidCacheResponse> future = cacheService.cachePutObjects(
+                singletonList(PutObject.builder().build()), emptySet(), "", "", expiredTimeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -989,7 +1007,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null);
+        final Future<BidCacheResponse> result = cacheService.cachePutObjects(emptyList(), emptySet(), null, null, null);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -1016,12 +1034,12 @@ public class CacheServiceTest extends VertxTest {
                 .value(new TextNode("VAST"))
                 .build();
 
-        given(eventsService.vastUrlTracking(any(), any(), any(), any()))
+        given(eventsService.vastUrlTracking(any(), any(), any(), any(), anyString()))
                 .willReturn("http://external-url/event");
 
         // when
-        cacheService.cachePutObjects(asList(firstPutObject, secondPutObject), singleton("bidder1"), "account",
-                timeout);
+        cacheService.cachePutObjects(
+                asList(firstPutObject, secondPutObject), singleton("bidder1"), "account", "pbjs", timeout);
 
         // then
         final PutObject modifiedFirstPutObject = firstPutObject.toBuilder()
@@ -1056,10 +1074,10 @@ public class CacheServiceTest extends VertxTest {
                 .build();
 
         // when
-        cacheService.cachePutObjects(singletonList(firstPutObject), singleton("bidder1"), "account", timeout);
+        cacheService.cachePutObjects(singletonList(firstPutObject), singleton("bidder1"), "account", "pbjs", timeout);
 
         // then
-        verify(eventsService).vastUrlTracking(eq("bidId1"), eq("bidder1"), eq("account"), eq(1000L));
+        verify(eventsService).vastUrlTracking(eq("bidId1"), eq("bidder1"), eq("account"), eq(1000L), eq("pbjs"));
     }
 
     private static List<Bid> singleBidList() {

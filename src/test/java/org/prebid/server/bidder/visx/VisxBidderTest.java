@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -17,9 +16,14 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.visx.model.VisxBid;
+import org.prebid.server.bidder.visx.model.VisxResponse;
+import org.prebid.server.bidder.visx.model.VisxSeatBid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.visx.ExtImpVisx;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -46,25 +50,6 @@ public class VisxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .id("request_id")
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = visxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -73,6 +58,7 @@ public class VisxBidderTest extends VertxTest {
                                 ExtImpVisx.of(123, Arrays.asList(10, 20)))))
                         .build()))
                 .id("request_id")
+                .cur(singletonList("USD"))
                 .build();
 
         // when
@@ -138,14 +124,10 @@ public class VisxBidderTest extends VertxTest {
                                 Imp.builder().id("567").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        BidResponse.builder()
-                                .seatbid(singletonList(SeatBid.builder()
-                                        .bid(Arrays.asList(
-                                                Bid.builder().impid("123").build(),
-                                                Bid.builder().impid("345").build(),
-                                                Bid.builder().impid("567").build()))
-                                        .build()))
-                                .build()));
+                        VisxResponse.of(singletonList(VisxSeatBid.of(Arrays.asList(
+                                VisxBid.builder().impid("123").build(),
+                                VisxBid.builder().impid("345").build(),
+                                VisxBid.builder().impid("567").build()), null)))));
         // when
         final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
 
@@ -156,6 +138,47 @@ public class VisxBidderTest extends VertxTest {
                         BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"),
                         BidderBid.of(Bid.builder().impid("345").build(), banner, "USD"),
                         BidderBid.of(Bid.builder().impid("567").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().id("id").build();
+        final VisxResponse visxResponse = VisxResponse.of(singletonList(VisxSeatBid.of(singletonList(
+                VisxBid.builder()
+                        .impid("123")
+                        .price(BigDecimal.valueOf(10))
+                        .crid("creativeid")
+                        .dealid("dealid")
+                        .adm("adm")
+                        .w(200)
+                        .h(100)
+                        .adomain(singletonList("adomain"))
+                        .build()), "seat")));
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(visxResponse));
+
+        // when
+        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        final BidderBid expected = BidderBid.of(
+                Bid.builder()
+                        .id("id")
+                        .impid("123")
+                        .price(BigDecimal.valueOf(10))
+                        .crid("creativeid")
+                        .dealid("dealid")
+                        .adm("adm")
+                        .w(200)
+                        .h(100)
+                        .adomain(singletonList("adomain"))
+                        .build(),
+                BidType.banner, "USD");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).doesNotContainNull()
+                .hasSize(1).element(0).isEqualTo(expected);
     }
 
     @Test

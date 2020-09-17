@@ -167,8 +167,8 @@ public class RequestValidator {
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
-        } catch (ValidationException ex) {
-            return ValidationResult.error(ex.getMessage());
+        } catch (ValidationException e) {
+            return ValidationResult.error(e.getMessage());
         }
         return ValidationResult.success();
     }
