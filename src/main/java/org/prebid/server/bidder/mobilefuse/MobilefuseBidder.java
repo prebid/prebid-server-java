@@ -39,8 +39,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpMobilefuse>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -144,7 +142,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, getBidType(bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
