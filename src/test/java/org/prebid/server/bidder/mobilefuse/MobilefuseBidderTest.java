@@ -50,22 +50,6 @@ public class MobilefuseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Invalid ExtImpMobilefuse value");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldCreateCorrectURLWhenTagidSrcIsAnyValue() {
         // given
         final BidRequest bidRequest = givenBidRequest(

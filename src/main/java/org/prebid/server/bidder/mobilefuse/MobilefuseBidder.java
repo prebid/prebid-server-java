@@ -51,23 +51,21 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
         final List<Imp> imps = new ArrayList<>();
 
-        ExtImpMobilefuse firstExtImpMobilefuse = null;
-        for (Imp imp : request.getImp()) {
-            try {
-                final ExtImpMobilefuse extImpMobilefuse = parseImpExt(imp);
-                firstExtImpMobilefuse = firstExtImpMobilefuse == null ? extImpMobilefuse : firstExtImpMobilefuse;
-                final Imp modifiedImp = modifyImp(imp, extImpMobilefuse);
-                imps.add(modifiedImp);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
+        final ExtImpMobilefuse firstExtImpMobilefuse = request.getImp().stream()
+                .map(this::parseImpExt)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
 
         if (firstExtImpMobilefuse == null) {
             return Result.emptyWithError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        }
+
+        for (Imp imp : request.getImp()) {
+            final Imp modifiedImp = modifyImp(imp, firstExtImpMobilefuse);
+            imps.add(modifiedImp);
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
@@ -80,8 +78,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
                         .body(body)
-                        .build()),
-                errors);
+                        .build()), Collections.emptyList());
     }
 
     private ExtImpMobilefuse parseImpExt(Imp imp) {
