@@ -19,7 +19,6 @@ public class ExtImpOpenx {
     @JsonProperty("delDomain")
     String delDomain;
 
-    @JsonProperty("platform")
     String platform;
 
     @JsonProperty("customFloor")
