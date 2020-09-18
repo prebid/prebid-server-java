@@ -187,10 +187,6 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String head(List<String> cat) {
-        return cat.size() == 0 ? "" : cat.get(0);
-    }
-
     @Override
     public Map<String, String> extractTargeting(ObjectNode ext) {
         return Collections.emptyMap();
