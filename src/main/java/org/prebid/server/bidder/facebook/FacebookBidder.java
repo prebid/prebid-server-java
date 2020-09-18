@@ -225,7 +225,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
             for (final Format format : banner.getFormat()) {
                 if (format != null && isBannerHeightValid(format.getH())) {
                     return banner.toBuilder()
-                            .w(0)
+                            .w(-1)
                             .h(format.getH())
                             .format(null)
                             .build();
@@ -237,7 +237,7 @@ public class FacebookBidder implements TimeoutBidder<BidRequest> {
                 throw new PreBidException(String.format("imp #%s: only banner heights 50 and 250 are supported",
                         imp.getId()));
             }
-            return banner.toBuilder().w(0).format(null).build();
+            return banner.toBuilder().w(-1).format(null).build();
         }
     }
 
