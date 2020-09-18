@@ -39,7 +39,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.manager.AdminManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -99,7 +99,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Clock clock;
     @Mock
-    private AdminManager adminManager;
+    private HttpInteractionLogger httpInteractionLogger;
 
     private AmpHandler ampHandler;
     @Mock
@@ -141,7 +141,8 @@ public class AmpHandlerTest extends VertxTest {
                 bidderCatalog,
                 singleton("bidder1"),
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
-                adminManager, jacksonMapper
+                httpInteractionLogger,
+                jacksonMapper
         );
     }
 
