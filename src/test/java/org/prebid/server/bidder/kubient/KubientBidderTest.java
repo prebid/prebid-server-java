@@ -22,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,21 +42,6 @@ public class KubientBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new KubientBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
     }
 
     @Test
@@ -93,7 +77,8 @@ public class KubientBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = kubientBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("zoneid is empty"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("zoneid is empty"));
     }
 
     @Test
@@ -166,8 +151,7 @@ public class KubientBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = kubientBidder.makeBids(httpCall, null);
@@ -185,8 +169,7 @@ public class KubientBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("12"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("12"))));
 
         // when
         final Result<List<BidderBid>> result = kubientBidder.makeBids(httpCall, null);
@@ -212,7 +195,6 @@ public class KubientBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+                HttpResponse.of(200, null, body), null);
     }
 }

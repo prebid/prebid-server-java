@@ -9,7 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -55,12 +54,6 @@ public class KubientBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
-
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No valid impressions in the bid request"));
-        }
-
         for (Imp imp : request.getImp()) {
             try {
                 validateImpExt(imp);
@@ -73,8 +66,8 @@ public class KubientBidder implements Bidder<BidRequest> {
         try {
             body = mapper.encode(request);
         } catch (EncodeException e) {
-            final String message = String.format("Failed to encode request body, error: %s", e.getMessage());
-            return Result.emptyWithError(BidderError.badInput(message));
+            return Result.emptyWithError(
+                    BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
         return Result.of(Collections.singletonList(
@@ -156,4 +149,3 @@ public class KubientBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 }
-
