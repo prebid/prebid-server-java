@@ -135,12 +135,14 @@ public class AdformHttpUtilTest extends VertxTest {
                         .consent("consent")
                         .secure(false)
                         .currency("USD")
+                        .eids("eyJ0ZXN0LmNvbSI6eyJvdGh")
                         .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url).isEqualTo(
-                "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
+                "http://adx.adform.net/adx?CC=1&adid=adId&eids=eyJ0ZXN0LmNvbSI6eyJvdGh&"
+                        + "fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
                         + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
                         + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
@@ -290,5 +292,33 @@ public class AdformHttpUtilTest extends VertxTest {
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=gross&rp=4"
                         + "&stid=tid&bWlkPTE1JnJjdXI9VVNE&bWlkPTE2JnJjdXI9VVNE");
+    }
+
+    @Test
+    public void buildAdformUrlShouldNotContainEidsParamIfEmptyEids() {
+        // when
+        final String url = httpUtil.buildAdformUrl(
+                UrlParameters.builder()
+                        .masterTagIds(asList(15L, 16L))
+                        .keyValues(asList("color:red", "age:30-40"))
+                        .keyWords(asList("red", "blue"))
+                        .priceTypes(singletonList("gross"))
+                        .endpointUrl("http://adx.adform.net/adx")
+                        .tid("tid")
+                        .ip("ip")
+                        .advertisingId("adId")
+                        .gdprApplies("1")
+                        .consent("consent")
+                        .secure(false)
+                        .currency("USD")
+                        .eids(null)
+                        .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx?CC=1&adid=adId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross&rp=4"
+                        + "&stid=tid&bWlkPTE1JnJjdXI9VVNEJm1rdj1jb2xvcjpyZWQmbWt3PXJlZA"
+                        + "&bWlkPTE2JnJjdXI9VVNEJm1rdj1hZ2U6MzAtNDAmbWt3PWJsdWU");
     }
 }

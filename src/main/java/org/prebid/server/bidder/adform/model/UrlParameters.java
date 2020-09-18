@@ -32,4 +32,6 @@ public class UrlParameters {
     String consent;
 
     String currency;
+
+    String eids;
 }
