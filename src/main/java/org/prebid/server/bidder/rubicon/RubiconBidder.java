@@ -27,6 +27,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -69,7 +70,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpContextAdserver;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpContextDataAdserver;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -114,10 +115,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-    private static final String ADSERVER_EID = "adserver.org";
-    private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String PREBID_EXT = "prebid";
+
+    private static final String ADSERVER_EID = "adserver.org";
+    private static final String LIVEINTENT_EID = "liveintent.com";
+    private static final String LIVERAMP_EID = "liveramp.com";
 
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
     private static final String FPD_PAGECAT_FIELD = "pagecat";
@@ -126,6 +129,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_SEARCH_FIELD = "search";
     private static final String FPD_ADSLOT_FIELD = "adslot";
     private static final String FPD_PBADSLOT_FIELD = "pbadslot";
+    private static final String FPD_ADSERVER_FIELD = "adserver";
     private static final String FPD_ADSERVER_NAME_GAM = "gam";
     private static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
@@ -428,7 +432,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
         mergeStringAttributeIntoArray(result, context, ExtImpContext::getSearch, FPD_SEARCH_FIELD);
+    }
 
+    private ExtImpContext extImpContext(Imp imp) {
+        final JsonNode context = imp.getExt().get("context");
+        if (context == null || context.isNull()) {
+            return null;
+        }
+        try {
+            return mapper.mapper().convertValue(context, ExtImpContext.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private void mergeFirstPartyDataFromContextData(ExtImpContext context, ObjectNode result) {
@@ -452,7 +467,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final String adSlot = ObjectUtils.firstNonNull(
                 getTextValueFromNodeByPath(contextDataNode, FPD_ADSLOT_FIELD),
-                getAdSlotFromAdServer(context),
+                getAdSlotFromAdServer(contextDataNode),
                 getTextValueFromNodeByPath(contextDataNode, FPD_PBADSLOT_FIELD));
 
         if (StringUtils.isNotBlank(adSlot)) {
@@ -507,20 +522,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
     }
 
-    private static String getAdSlotFromAdServer(ExtImpContext context) {
-        final ExtImpContextAdserver contextAdserver = context.getAdserver();
-        return contextAdserver != null && Objects.equals(contextAdserver.getName(), FPD_ADSERVER_NAME_GAM)
-                ? contextAdserver.getAdslot()
+    private String getAdSlotFromAdServer(ObjectNode contextDataNode) {
+        final ExtImpContextDataAdserver adServer = extImpContextDataAdserver(contextDataNode);
+        return adServer != null && Objects.equals(adServer.getName(), FPD_ADSERVER_NAME_GAM)
+                ? adServer.getAdslot()
                 : null;
     }
 
-    private ExtImpContext extImpContext(Imp imp) {
-        final JsonNode context = imp.getExt().get("context");
-        if (context == null || context.isNull()) {
+    private ExtImpContextDataAdserver extImpContextDataAdserver(ObjectNode contextData) {
+        final JsonNode adServerNode = contextData != null ? contextData.get(FPD_ADSERVER_FIELD) : null;
+        if (adServerNode == null || adServerNode.isNull()) {
             return null;
         }
         try {
-            return mapper.mapper().convertValue(context, ExtImpContext.class);
+            return mapper.mapper().convertValue(adServerNode, ExtImpContextDataAdserver.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -671,8 +686,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 : null;
         final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEidExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
+        final String liverampId = extractLiverampId(sourceToUserEidExt);
 
-        if (userExtRp == null && userExtTpIds == null && userExtData == null) {
+        if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null) {
             return user;
         }
 
@@ -687,6 +703,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                 .rp(userExtRp)
                 .tpid(userExtTpIds)
+                .liverampIdl(liverampId)
                 .build();
 
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
@@ -703,9 +720,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(eids)) {
             return null;
         }
-
         return eids.stream()
-                .filter(extUserEid -> StringUtils.equalsAny(extUserEid.getSource(), ADSERVER_EID, LIVEINTENT_EID))
+                .filter(extUserEid -> StringUtils.equalsAny(extUserEid.getSource(),
+                        ADSERVER_EID, LIVEINTENT_EID, LIVERAMP_EID))
                 .filter(extUserEid -> CollectionUtils.isNotEmpty(extUserEid.getUids()))
                 .collect(Collectors.groupingBy(ExtUserEid::getSource));
     }
@@ -765,7 +782,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         populateFirstPartyDataAttributes(visitor, result);
 
-        copyLiveIntentSegment(sourceToUserEidExt, result);
+        copyLiveintentSegment(sourceToUserEidExt, result);
 
         mergeFirstPartyDataFromUser(user, result);
 
@@ -783,7 +800,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
     }
 
-    private void copyLiveIntentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
+    private static void copyLiveintentSegment(Map<String, List<ExtUserEid>> sourceToUserEidExt, ObjectNode result) {
         if (sourceToUserEidExt != null && CollectionUtils.isNotEmpty(sourceToUserEidExt.get(LIVEINTENT_EID))) {
             final ObjectNode ext = sourceToUserEidExt.get(LIVEINTENT_EID).get(0).getExt();
             final JsonNode segment = ext != null ? ext.get("segments") : null;
@@ -800,6 +817,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (userExt != null) {
             populateFirstPartyDataAttributes(userExt.getData(), result);
         }
+    }
+
+    private static String extractLiverampId(Map<String, List<ExtUserEid>> sourceToUserEidExt) {
+        final List<ExtUserEid> liverampEids = MapUtils.emptyIfNull(sourceToUserEidExt).get(LIVERAMP_EID);
+        for (ExtUserEid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
+            final ExtUserEidUid eidUid = extUserEid != null
+                    ? CollectionUtils.emptyIfNull(extUserEid.getUids()).stream().findFirst().orElse(null)
+                    : null;
+
+            final String id = eidUid != null ? eidUid.getId() : null;
+            if (StringUtils.isNotEmpty(id)) {
+                return id;
+            }
+        }
+        return null;
     }
 
     private Device makeDevice(Device device) {

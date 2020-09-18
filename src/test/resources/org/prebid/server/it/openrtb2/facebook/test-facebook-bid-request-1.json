@@ -4,7 +4,7 @@
     {
       "id": "impId001",
       "banner": {
-        "w": 0,
+        "w": -1,
         "h": 50
       },
       "tagid": "pub1_place1"
