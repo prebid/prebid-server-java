@@ -777,6 +777,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyTcfVendorListFallbackMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListFallbackMetric(1);
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.v1.vendorlist.fallback").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
         given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
