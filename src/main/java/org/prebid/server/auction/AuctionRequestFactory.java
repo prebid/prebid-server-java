@@ -193,7 +193,7 @@ public class AuctionRequestFactory {
                 .map(account -> AuctionContext.builder()
                         .routingContext(routingContext)
                         .uidsCookie(uidsCookieService.parseFromRequest(routingContext))
-                        .bidRequest(bidRequest)
+                        .bidRequest(enrichBidRequestWithAccountBasedData(bidRequest, account))
                         .timeout(timeout)
                         .account(account)
                         .prebidErrors(errors)
@@ -836,5 +836,35 @@ public class AuctionRequestFactory {
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Unauthorized account id: %s", accountId), accountId))
                 : Future.succeededFuture(Account.empty(accountId));
+    }
+
+    private BidRequest enrichBidRequestWithAccountBasedData(BidRequest bidRequest, Account account) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
+
+        if (enrichedRequestExt != null) {
+            return bidRequest.toBuilder()
+                    .ext(enrichedRequestExt)
+                    .build();
+        }
+
+        return bidRequest;
+    }
+
+    private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
+        final ExtRequestPrebid prebidExt = getIfNotNull(ext, ExtRequest::getPrebid);
+        final String integration = getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
+        final String accountDefaultIntegration = account.getDefaultIntegration();
+
+        if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
+            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidExtBuilder =
+                    prebidExt != null ? prebidExt.toBuilder() : ExtRequestPrebid.builder();
+
+            prebidExtBuilder.integration(accountDefaultIntegration);
+
+            return ExtRequest.of(prebidExtBuilder.build());
+        }
+
+        return null;
     }
 }

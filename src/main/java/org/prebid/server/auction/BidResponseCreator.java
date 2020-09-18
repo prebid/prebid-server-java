@@ -1063,11 +1063,8 @@ public class BidResponseCreator {
     private String integrationFrom(AuctionContext auctionContext) {
         final ExtRequest extRequest = auctionContext.getBidRequest().getExt();
         final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
-        final String integration = prebid != null ? prebid.getIntegration() : null;
 
-        return ObjectUtils.defaultIfNull(
-                StringUtils.stripToNull(integration),
-                auctionContext.getAccount().getDefaultIntegration());
+        return prebid != null ? prebid.getIntegration() : null;
     }
 
     /**
