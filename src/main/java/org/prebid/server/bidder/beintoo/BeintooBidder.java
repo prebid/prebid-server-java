@@ -12,6 +12,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -27,10 +28,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beintoo.ExtImpBeintoo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -43,8 +42,6 @@ public class BeintooBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBeintoo>> BEINTOO_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBeintoo>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -65,7 +62,6 @@ public class BeintooBidder implements Bidder<BidRequest> {
 
         final String body = mapper.encode(updatedBidRequest);
         final MultiMap headers = makeHeaders(request);
-        final List<BidderError> errors = new ArrayList<>();
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
@@ -74,7 +70,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
                         .body(body)
                         .headers(headers)
                         .payload(request)
-                        .build()), errors);
+                        .build()), Collections.emptyList());
     }
 
     private BidRequest updateBidRequest(BidRequest request) {
