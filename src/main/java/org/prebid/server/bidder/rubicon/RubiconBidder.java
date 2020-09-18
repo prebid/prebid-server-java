@@ -70,7 +70,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpContextAdserver;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpContextDataAdserver;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -129,6 +129,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_SEARCH_FIELD = "search";
     private static final String FPD_ADSLOT_FIELD = "adslot";
     private static final String FPD_PBADSLOT_FIELD = "pbadslot";
+    private static final String FPD_ADSERVER_FIELD = "adserver";
     private static final String FPD_ADSERVER_NAME_GAM = "gam";
     private static final String FPD_DFP_AD_UNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
@@ -431,7 +432,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
         // merge OPENRTB.imp[].ext.context.search to XAPI.imp[].ext.rp.target.search
         mergeStringAttributeIntoArray(result, context, ExtImpContext::getSearch, FPD_SEARCH_FIELD);
+    }
 
+    private ExtImpContext extImpContext(Imp imp) {
+        final JsonNode context = imp.getExt().get("context");
+        if (context == null || context.isNull()) {
+            return null;
+        }
+        try {
+            return mapper.mapper().convertValue(context, ExtImpContext.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private void mergeFirstPartyDataFromContextData(ExtImpContext context, ObjectNode result) {
@@ -455,7 +467,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final String adSlot = ObjectUtils.firstNonNull(
                 getTextValueFromNodeByPath(contextDataNode, FPD_ADSLOT_FIELD),
-                getAdSlotFromAdServer(context),
+                getAdSlotFromAdServer(contextDataNode),
                 getTextValueFromNodeByPath(contextDataNode, FPD_PBADSLOT_FIELD));
 
         if (StringUtils.isNotBlank(adSlot)) {
@@ -510,20 +522,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return nodeByPath != null && nodeByPath.isTextual() ? nodeByPath.textValue() : null;
     }
 
-    private static String getAdSlotFromAdServer(ExtImpContext context) {
-        final ExtImpContextAdserver contextAdserver = context.getAdserver();
-        return contextAdserver != null && Objects.equals(contextAdserver.getName(), FPD_ADSERVER_NAME_GAM)
-                ? contextAdserver.getAdslot()
+    private String getAdSlotFromAdServer(ObjectNode contextDataNode) {
+        final ExtImpContextDataAdserver adServer = extImpContextDataAdserver(contextDataNode);
+        return adServer != null && Objects.equals(adServer.getName(), FPD_ADSERVER_NAME_GAM)
+                ? adServer.getAdslot()
                 : null;
     }
 
-    private ExtImpContext extImpContext(Imp imp) {
-        final JsonNode context = imp.getExt().get("context");
-        if (context == null || context.isNull()) {
+    private ExtImpContextDataAdserver extImpContextDataAdserver(ObjectNode contextData) {
+        final JsonNode adServerNode = contextData != null ? contextData.get(FPD_ADSERVER_FIELD) : null;
+        if (adServerNode == null || adServerNode.isNull()) {
             return null;
         }
         try {
-            return mapper.mapper().convertValue(context, ExtImpContext.class);
+            return mapper.mapper().convertValue(adServerNode, ExtImpContextDataAdserver.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
