@@ -4,7 +4,7 @@
     {
       "bid": [
         {
-          "id": "1",
+          "id": "tid",
           "impid": "test-imp-id",
           "price": 0.5,
           "adm": "some-test-ad",

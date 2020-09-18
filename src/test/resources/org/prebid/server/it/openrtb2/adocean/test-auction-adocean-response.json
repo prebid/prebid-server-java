@@ -1,0 +1,176 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "adoceanmyaozpniqismex",
+          "impid": "impId12",
+          "price": 10,
+          "adm": " <script> +function() { var wu = \"https://win-url.com\"; var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now()); if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script>  <!-- code 1 --> ",
+          "crid": "0af345b42983cc4bc0",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "10.00",
+                "hb_cache_host_adocean": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_size": "300x250",
+                "hb_bidder_adocean": "adocean",
+                "hb_cache_path_adocean": "{{ cache.path }}",
+                "hb_bidder": "adocean",
+                "hb_cache_id_adocean": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                "hb_pb_adocean": "10.00",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_size_adocean": "300x250"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                  "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "adocean",
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "adocean": [
+          {
+            "uri": "{{ adocean.exchange_uri }}/_10000000/ad.json?pbsrv_v=1.0.0&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3AimpId12&gdpr_consent=consentValue&gdpr=1&hcuserid=AO-UID",
+            "responsebody": "[{\"id\":\"adoceanmyaozpniqismex\",\"price\":\"10\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"},{\"id\":\"adoceanmyaozpniqismexs\",\"price\":\"12\",\"winurl\":\"https://win-url.com\",\"statsUrl\":\"https://stats-url.com\",\"code\":\" <!-- code 1 --> \",\"currency\":\"EUR\",\"width\":\"300\",\"height\":\"250\",\"crid\":\"0af345b42983cc4bc0\",\"error\":\"false\"}]",
+            "status": 200
+          }
+        ],
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"adoceanmyaozpniqismex\",\"impid\":\"impId12\",\"price\":10,\"adm\":\" <script> +function() { var wu = \\\"https://win-url.com\\\"; var su = \\\"https://stats-url.com\\\".replace(/\\\\[TIMESTAMP\\\\]/, Date.now()); if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); </script>  <!-- code 1 --> \",\"crid\":\"0af345b42983cc4bc0\",\"w\":300,\"h\":250}}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"ca2a4dd3-f974-4eff-be5c-986bf4e083ce\"}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId12",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "adocean": {
+                "emiter": "myao.adocean.pl",
+                "masterId": "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                "slaveId": "adoceanmyaozpniqismex"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "193.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "buyeruid": "AO-UID",
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 5000,
+        "cur": [
+          "EUR"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "currency": {
+              "rates": {
+                "EUR": {
+                  "USD": 1.2406
+                },
+                "USD": {
+                  "EUR": 0.811
+                }
+              }
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            },
+            "auctiontimestamp": 1000
+          }
+        }
+      }
+    },
+    "responsetimemillis": {
+      "adocean": "{{ adocean.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}
