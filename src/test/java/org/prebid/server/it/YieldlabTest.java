@@ -37,7 +37,7 @@ public class YieldlabTest extends IntegrationTest {
                 .withHeader("Content-Type", WireMock.equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", WireMock.equalTo("application/json"))
                 .withHeader("User-Agent", WireMock.equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", WireMock.equalTo("169.254.13.37"))
+                .withHeader("X-Forwarded-For", WireMock.equalTo("193.168.244.1"))
                 .withHeader("Cookie", WireMock.equalTo("id=YL-UID"))
                 .willReturn(WireMock.aResponse()
                         .withBody(jsonFrom("openrtb2/yieldlab/test-yieldlab-bid-response.json"))));

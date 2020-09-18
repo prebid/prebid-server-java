@@ -4,15 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-import java.math.BigDecimal;
-
 @AllArgsConstructor(staticName = "of")
 @Value
 public class YieldlabResponse {
 
     Integer id;
 
-    BigDecimal price;
+    Double price;
 
     String advertiser;
 

@@ -6,7 +6,7 @@
         {
           "id": "12345",
           "impid": "impId001",
-          "price": 2.01,
+          "price": 2.29,
           "adm": "<script src=\"https://ad.yieldlab.net/d/12345/123456789/400x300?ts=200000&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=YL-UID&gdpr=0&consent=consentValue\"></script>",
           "crid": "12345123435",
           "dealid": "1234",
@@ -16,14 +16,14 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "2.00",
+                "hb_pb": "2.20",
                 "hb_size_yieldlab": "400x300",
                 "hb_size": "400x300",
                 "hb_bidder": "yieldlab",
                 "hb_cache_id_yieldlab": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                 "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                 "hb_bidder_yieldlab": "yieldlab",
-                "hb_pb_yieldlab": "2.00",
+                "hb_pb_yieldlab": "2.20",
                 "hb_deal": "1234",
                 "hb_deal_yieldlab": "1234",
                 "hb_cache_host": "{{ cache.host }}",
@@ -51,17 +51,17 @@
       "httpcalls": {
         "cache": [
           {
-            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"12345\",\"impid\":\"impId001\",\"price\":2.01,\"adm\":\"<script src=\\\"https://ad.yieldlab.net/d/12345/123456789/400x300?ts=200000&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=YL-UID&gdpr=0&consent=consentValue\\\"></script>\",\"crid\":\"12345123435\",\"dealid\":\"1234\",\"w\":400,\"h\":300}}]}",
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"12345\",\"impid\":\"impId001\",\"price\":2.29,\"adm\":\"<script src=\\\"https://ad.yieldlab.net/d/12345/123456789/400x300?ts=200000&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=YL-UID&gdpr=0&consent=consentValue\\\"></script>\",\"crid\":\"12345123435\",\"dealid\":\"1234\",\"w\":400,\"h\":300}}]}",
             "responsebody": "{\"responses\":[{\"uuid\":\"ca2a4dd3-f974-4eff-be5c-986bf4e083ce\"}]}",
             "status": 200,
-            "uri": "http://localhost:8090/cache"
+            "uri": "{{ cache.endpoint }}"
           }
         ],
         "yieldlab": [
           {
             "responsebody": "[{\"id\":12345,\"price\":201,\"advertiser\":\"yieldlab\",\"adsize\":\"400x300\",\"pid\":1234,\"did\":5678,\"pvid\":\"40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5\"}]",
             "status": 200,
-            "uri": "http://localhost:8090/yieldlab-exchange/12345?content=json&pvid=true&ts=200000&t=key1%3Dvalue1%26key2%3Dvalue2&ids=YL-UID&yl_rtb_ifa=ifaId&yl_rtb_devicetype=4&yl_rtb_connectiontype=6&lat=51.49949&lon=-0.128953&gdpr=0&consent=consentValue"
+            "uri": "{{ yieldlab.exchange_uri }}/12345?content=json&pvid=true&ts=200000&t=key1%3Dvalue1%26key2%3Dvalue2&ids=YL-UID&yl_rtb_ifa=ifaId&yl_rtb_devicetype=4&yl_rtb_connectiontype=6&lat=51.49949&lon=-0.128953&gdpr=0&consent=consentValue"
           }
         ]
       },
@@ -80,7 +80,7 @@
           },
           "h": 1098,
           "ifa": "ifaId",
-          "ip": "169.254.13.37",
+          "ip": "193.168.244.1",
           "language": "en",
           "pxratio": 4.2,
           "ua": "userAgent",
@@ -94,16 +94,6 @@
               },
               "vastxml": {
                 "ttlseconds": 120
-              }
-            },
-            "currency": {
-              "rates": {
-                "EUR": {
-                  "USD": 1.2406
-                },
-                "USD": {
-                  "EUR": 0.811
-                }
               }
             },
             "debug": 1,

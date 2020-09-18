@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -61,47 +60,23 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-        // when
-        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-    }
-
-    @Test
     public void makeHttpRequestsShouldSendRequestToModifiedUrlWithHeaders() {
         // given
 
-        Map<String, String> targeting = new HashMap<>();
+        final Map<String, String> targeting = new HashMap<>();
         targeting.put("key1", "value1");
         targeting.put("key2", "value2");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpYieldlab.of("1", "2", "adSize", targeting, "extId"))))
+                                ExtImpYieldlab.builder()
+                                        .adslotId("1")
+                                        .supplyId("2")
+                                        .adSize("adSize")
+                                        .targeting(targeting)
+                                        .extId("extId")
+                                        .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
                 .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
@@ -196,29 +171,6 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnIfImpExtCouldNotBeParsed() throws JsonProcessingException {
-
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-
-        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, BigDecimal.valueOf(201), "yieldlab",
-                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
-
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(yieldlabResponse));
-
-        // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-    }
-
-    @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
 
@@ -229,8 +181,13 @@ public class YieldlabBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("test-imp-id")
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.of("12345", "123456789", "adSize",
-                                targeting, "extId"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                                .adslotId("1")
+                                .supplyId("2")
+                                .adSize("adSize")
+                                .targeting(singletonMap("key", "value"))
+                                .extId("extId")
+                                .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
                 .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
@@ -238,7 +195,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
 
-        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, BigDecimal.valueOf(201), "yieldlab",
+        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
                 "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
         final HttpCall<Void> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(yieldlabResponse));
@@ -249,13 +206,13 @@ public class YieldlabBidderTest extends VertxTest {
         // then
         final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        final String adm = String.format("<script src=\"https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>", timestamp);
+        final String adm = String.format("<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>", timestamp);
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
-                        .id("12345")
+                        .id("1")
                         .impid("test-imp-id")
-                        .price(BigDecimal.valueOf(1.62970599))
-                        .crid(String.format("123451234%s", weekNumber))
+                        .price(BigDecimal.valueOf(2.01))
+                        .crid(String.format("11234%s", weekNumber))
                         .dealid("1234")
                         .w(728)
                         .h(90)
@@ -292,7 +249,13 @@ public class YieldlabBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYieldlab.of("1", "2", "adSize", singletonMap("key", "value"), "extId")))))
+                        ExtImpYieldlab.builder()
+                                .adslotId("1")
+                                .supplyId("2")
+                                .adSize("adSize")
+                                .targeting(singletonMap("key", "value"))
+                                .extId("extId")
+                                .build()))))
                 .build();
     }
 

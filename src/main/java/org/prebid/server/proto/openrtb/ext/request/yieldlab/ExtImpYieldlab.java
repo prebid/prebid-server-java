@@ -1,7 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request.yieldlab;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.Map;
@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidrequest.imp[i].ext.yieldlab
  */
-@AllArgsConstructor(staticName = "of")
+@Builder
 @Value
 public class ExtImpYieldlab {
 
