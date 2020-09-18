@@ -309,9 +309,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private String tkXintValue(BidRequest bidRequest) {
-        final RubiconExtPrebidBiddersBidder rubicon = extPrebidBiddersRubicon(bidRequest.getExt());
-        final String integration = rubicon == null ? null : rubicon.getIntegration();
-        return StringUtils.isBlank(integration) ? null : integration;
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebidExt = requestExt != null ? requestExt.getPrebid() : null;
+        final String integration = prebidExt != null ? prebidExt.getIntegration() : null;
+
+        return StringUtils.stripToNull(integration);
     }
 
     private RubiconExtPrebidBiddersBidder extPrebidBiddersRubicon(ExtRequest extRequest) {
