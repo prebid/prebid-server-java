@@ -434,33 +434,38 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReplaceSiteOrAppPublisher() {
+    public void makeHttpRequestsShouldReplaceAppPublisher() {
         // given
         final Publisher publisher = Publisher.builder().id("521").name("should_be_replaced").build();
         final BidRequest appRequest = givenBidRequest(identity(), identity(),
                 requestBuilder -> requestBuilder.app(App.builder().publisher(publisher).build()));
-        final BidRequest siteRequest = givenBidRequest(identity(), identity(),
-                requestBuilder -> requestBuilder.site(Site.builder().publisher(publisher).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> appResult = facebookBidder.makeHttpRequests(appRequest);
-        final Result<List<HttpRequest<BidRequest>>> siteResult = facebookBidder.makeHttpRequests(siteRequest);
 
         // then
         assertThat(appResult.getErrors()).isEmpty();
-        assertThat(siteResult.getErrors()).isEmpty();
 
         final Publisher expectedPublisher = Publisher.builder().id("pubId").build();
-        assertThat(siteResult.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .containsOnly(expectedPublisher);
         assertThat(appResult.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
                 .extracting(App::getPublisher)
                 .containsOnly(expectedPublisher);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfSiteIsNotEmpty() {
+        // given
+        final BidRequest siteRequest = givenBidRequest(identity(), identity(),
+                requestBuilder -> requestBuilder.site(Site.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> siteResult = facebookBidder.makeHttpRequests(siteRequest);
+
+        // then
+        assertThat(siteResult.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Site impressions are not supported."));
     }
 
     @Test
