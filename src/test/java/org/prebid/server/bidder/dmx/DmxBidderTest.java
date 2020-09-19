@@ -1,11 +1,11 @@
 package org.prebid.server.bidder.dmx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -68,32 +68,20 @@ public class DmxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpressionListSizeIsZero() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .user(User.builder().build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions in the bid request"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfUserIdIsEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpDmx.of("tagId", "dmxId", "memberId", "publisherId",
-                                        "sellerId"))))
+                                ExtImpDmx.builder()
+                                        .tagId("tagId")
+                                        .dmxId("dmxId")
+                                        .memberId("memberId")
+                                        .publisherId("publisherId")
+                                        .sellerId("sellerId")
+                                        .build())))
                         .build()))
                 .user(User.builder().build())
-                .site(Site.builder().build())
                 .build();
 
         // when
@@ -116,11 +104,57 @@ public class DmxBidderTest extends VertxTest {
                                         .format(singletonList(Format.builder().w(300).h(500).build()))
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpDmx.of("tagId", "dmxId", "memberId", "publisherId",
-                                                "sellerId"))))
+                                        ExtImpDmx.builder()
+                                                .tagId("tagId")
+                                                .dmxId("dmxId")
+                                                .memberId("memberId")
+                                                .publisherId("publisherId")
+                                                .sellerId("sellerId")
+                                                .build())))
                                 .build()))
                 .user(User.builder().id("userId").build())
-                .site(Site.builder().build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final JsonNode expectedImpExt = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpDmx.builder()
+                        .tagId("tagId")
+                        .dmxId("dmxId")
+                        .memberId("memberId")
+                        .publisherId("publisherId")
+                        .sellerId("sellerId")
+                        .build()));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId, Imp::getTagid, Imp::getExt, Imp::getSecure)
+                .containsOnly(tuple("id", "dmxId", expectedImpExt, 1));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpIfTagIdAndDmxIdAreBlank() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        Imp.builder()
+                                .id("id")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(300).h(500).build()))
+                                        .build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpDmx.builder()
+                                                .tagId("")
+                                                .dmxId("")
+                                                .memberId("memberId")
+                                                .publisherId("publisherId")
+                                                .sellerId("sellerId")
+                                                .build())))
+                                .build()))
+                .user(User.builder().id("userId").build())
                 .build();
 
         // when
@@ -131,10 +165,7 @@ public class DmxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getId, Imp::getTagid, Imp::getExt, Imp :: getSecure)
-                .containsOnly(tuple("id", "dmxId", mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpDmx.of("tagId", "dmxId", "memberId", "publisherId",
-                                "sellerId"))), 1));
+                .isEmpty();
     }
 
     @Test
@@ -147,7 +178,6 @@ public class DmxBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                                 .build()))
                 .user(User.builder().id("userId").build())
-                .site(Site.builder().build())
                 .build();
 
         // when
@@ -167,10 +197,15 @@ public class DmxBidderTest extends VertxTest {
                                 .id("123")
                                 .banner(Banner.builder().id("banner_id").build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpDmx.of("tagId", "dmxId", "memberId", "publisherId",
-                                                "sellerId")))).build()))
+                                        ExtImpDmx.builder()
+                                                .tagId("tagId")
+                                                .dmxId("dmxId")
+                                                .memberId("memberId")
+                                                .publisherId("publisherId")
+                                                .sellerId("sellerId")
+                                                .build())))
+                                .build()))
                 .user(User.builder().id("userId").build())
-                .site(Site.builder().build())
                 .build();
 
         // when
@@ -305,8 +340,13 @@ public class DmxBidderTest extends VertxTest {
                 .banner(Banner.builder().id("banner_id").build())
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpDmx.of("tagId", "dmxId", "memberId", "publisherId",
-                                "sellerId")))))
+                        ExtImpDmx.builder()
+                                .tagId("tagId")
+                                .dmxId("dmxId")
+                                .memberId("memberId")
+                                .publisherId("publisherId")
+                                .sellerId("sellerId")
+                                .build()))))
                 .build();
     }
 

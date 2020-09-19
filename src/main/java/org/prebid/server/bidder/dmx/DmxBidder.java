@@ -62,39 +62,32 @@ public class DmxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        if (request.getUser() == null && request.getApp() == null) {
+            return Result.emptyWithError(BidderError
+                    .badInput("No user id or app id found. Could not send request to DMX."));
+        }
+
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
-
-        if (request.getUser() == null) {
-            if (request.getApp() == null) {
-                errors.add(BidderError.badInput("No user id or app id found. Could not send request to DMX."));
-                return Result.of(Collections.emptyList(), errors);
-            }
-        }
-
         final List<Imp> imps = request.getImp();
-        if (CollectionUtils.isEmpty(imps)) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.emptyList(), errors);
-        }
 
         String updatedPublisherId = null;
         String updatedSellerId = null;
-        for (int i = 0; i < imps.size(); i++) {
-            try {
-                final ExtImpDmx extImp = parseImpExt(imps.get(i));
-                if (i == 0) {
-                    final String publisherId = extImp.getPublisherId();
-                    updatedPublisherId = StringUtils.isBlank(publisherId)
-                            ? publisherId
-                            : extImp.getMemberId();
-                    updatedSellerId = extImp.getSellerId();
+        try {
+            final ExtImpDmx extImp = parseImpExt(imps.get(0));
+            final String publisherId = extImp.getPublisherId();
+            updatedPublisherId = StringUtils.isBlank(publisherId)
+                    ? publisherId
+                    : extImp.getMemberId();
+            updatedSellerId = extImp.getSellerId();
+            for (Imp imp : request.getImp()) {
+                final Imp validImp = validateAndModifyImp(imp, parseImpExt(imp));
+                if (validImp != null) {
+                    validImps.add(validImp);
                 }
-                final Imp validImp = validateAndModifyImp(imps.get(i), extImp);
-                validImps.add(validImp);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
             }
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
         }
 
         boolean anyHasId = false;
@@ -105,15 +98,17 @@ public class DmxBidder implements Bidder<BidRequest> {
         }
 
         final Site site = request.getSite();
-        final Publisher publisher = site.getPublisher();
-        if (site.getPublisher() != null) {
-            request.toBuilder()
-                    .site(site.toBuilder().publisher(publisher.toBuilder().id(updatedPublisherId).build()).build())
-                    .build();
-        } else {
-            request.toBuilder()
-                    .site(site.toBuilder().publisher(Publisher.builder().id(updatedPublisherId).build()).build())
-                    .build();
+        if (site != null) {
+            final Publisher publisher = site.getPublisher();
+            if (site.getPublisher() != null) {
+                request.toBuilder()
+                        .site(site.toBuilder().publisher(publisher.toBuilder().id(updatedPublisherId).build()).build())
+                        .build();
+            } else {
+                request.toBuilder()
+                        .site(site.toBuilder().publisher(Publisher.builder().id(updatedPublisherId).build()).build())
+                        .build();
+            }
         }
 
         final User user = request.getUser();
@@ -121,17 +116,19 @@ public class DmxBidder implements Bidder<BidRequest> {
             if (StringUtils.isNotBlank(user.getId())) {
                 anyHasId = true;
             }
-            final ExtUser ext = user.getExt();
-            if (ext != null) {
-                final ExtUserDigiTrust digitrust = ext.getDigitrust();
-                if (CollectionUtils.isNotEmpty(ext.getEids()) || (digitrust != null
+            final ExtUser userExt = user.getExt();
+            if (userExt != null) {
+                final ExtUserDigiTrust digitrust = userExt.getDigitrust();
+                if (CollectionUtils.isNotEmpty(userExt.getEids()) || (digitrust != null
                         && StringUtils.isNotBlank(digitrust.getId()))) {
                     anyHasId = true;
                 }
             }
         }
 
-        if (!anyHasId) {
+        try {
+            checkIfHasId(anyHasId);
+        } catch (PreBidException e) {
             return Result.emptyWithError(BidderError.badInput("This request contained no identifier"));
         }
 
@@ -162,30 +159,31 @@ public class DmxBidder implements Bidder<BidRequest> {
     }
 
     private Imp validateAndModifyImp(Imp imp, ExtImpDmx extImp) {
-        Imp updatedImp = null;
-        final Banner banner = imp.getBanner();
-        if (banner != null) {
-            if (CollectionUtils.isNotEmpty(banner.getFormat())) {
-                updatedImp = updateImp(imp, extImp).toBuilder().banner(banner).build();
+        Imp modifiedImp = null;
+        final Imp updatedImp = updateImp(imp, extImp);
+        if (updatedImp != null) {
+            final Banner banner = imp.getBanner();
+
+            if (banner != null) {
+                if (CollectionUtils.isNotEmpty(banner.getFormat())) {
+                    modifiedImp = updatedImp.toBuilder().banner(banner).build();
+                }
+            }
+
+            final Video video = imp.getVideo();
+            if (video != null) {
+                modifiedImp = updatedImp.toBuilder().video(video).build();
             }
         }
-
-        final Video video = imp.getVideo();
-        if (video != null) {
-            updatedImp = updateImp(imp, extImp).toBuilder().video(video).build();
-        }
-        return updatedImp;
+        return modifiedImp;
     }
 
     private Imp updateImp(Imp imp, ExtImpDmx extImp) {
-        Imp updatedImp;
-        if (StringUtils.isNotBlank(extImp.getPublisherId())
-                || StringUtils.isNotBlank(extImp.getMemberId())) {
-            updatedImp = fetchParams(imp, extImp);
+        if (StringUtils.isNotBlank(extImp.getPublisherId()) || StringUtils.isNotBlank(extImp.getMemberId())) {
+            return fetchParams(imp, extImp);
         } else {
             throw new PreBidException("Missing Params for auction to be send");
         }
-        return updatedImp;
     }
 
     private Imp fetchParams(Imp imp, ExtImpDmx extImp) {
@@ -210,7 +208,15 @@ public class DmxBidder implements Bidder<BidRequest> {
                     .build();
         }
 
-        return (updatedImp != null && StringUtils.isBlank(updatedImp.getTagid())) ? imp : updatedImp;
+        return updatedImp != null && StringUtils.isBlank(updatedImp.getTagid()) && StringUtils.isBlank(imp.getTagid())
+                ? null
+                : updatedImp;
+    }
+
+    private void checkIfHasId(boolean anyHasId) {
+        if (!anyHasId) {
+            throw new PreBidException("This request contained no identifier");
+        }
     }
 
     @Override
@@ -238,12 +244,9 @@ public class DmxBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 try {
                     final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-                    String adm = null;
-                    if (bidType == BidType.video) {
-                        adm = getAdm(bid);
-                    }
-
-                    final Bid updatedBid = bid.toBuilder().adm(adm).build();
+                    final Bid updatedBid = bidType == BidType.video
+                            ? bid.toBuilder().adm(getAdm(bid)).build()
+                            : bid;
                     final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, DEFAULT_BID_CURRENCY);
                     bidderBids.add(bidderBid);
                 } catch (PreBidException e) {
@@ -263,12 +266,11 @@ public class DmxBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                return imp.getVideo() != null ? BidType.video : BidType.banner;
-            }
-        }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+        return imps.stream()
+                .filter(imp -> Objects.equals(imp.getId(), impId))
+                .map(imp -> imp.getVideo() != null ? BidType.video : BidType.banner)
+                .findFirst()
+                .orElseThrow(() -> new PreBidException(String.format("Failed to find impression %s", impId)));
     }
 
     private String getAdm(Bid bid) {
