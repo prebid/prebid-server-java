@@ -2,7 +2,9 @@ package org.prebid.server.bidder.adocean;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -37,9 +39,12 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class AdoceanBidder implements Bidder<Void> {
@@ -47,7 +52,7 @@ public class AdoceanBidder implements Bidder<Void> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdocean>>() {
             };
-    private static final String VERSION = "1.0.0";
+    private static final String VERSION = "1.1.0";
     private static final int MAX_URI_LENGTH = 8000;
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String MEASUREMENT_CODE_TEMPLATE = " <script> +function() { "
@@ -80,10 +85,13 @@ public class AdoceanBidder implements Bidder<Void> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdocean extImpAdocean = parseImpExt(imp);
-                if (addRequestAndCheckIfDuplicates(httpRequests, extImpAdocean, imp.getId())) {
+                final Map<String, String> slaveSizes = new HashMap<>();
+                slaveSizes.put(extImpAdocean.getSlaveId(), getImpSizes(imp));
+                if (addRequestAndCheckIfDuplicates(httpRequests, extImpAdocean, imp.getId(), slaveSizes,
+                        request.getTest())) {
                     continue;
                 }
-                httpRequests.add(createSingleRequest(request, imp, extImpAdocean, consentString));
+                httpRequests.add(createSingleRequest(request, imp, extImpAdocean, consentString, slaveSizes));
             } catch (PreBidException e) {
                 return Result.emptyWithError(BidderError.badInput(e.getMessage()));
             }
@@ -101,11 +109,11 @@ public class AdoceanBidder implements Bidder<Void> {
     }
 
     private boolean addRequestAndCheckIfDuplicates(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean,
-                                                   String impid) {
+                                                   String impid, Map<String, String> slaveSizes, Integer test) {
         for (HttpRequest<Void> request : httpRequests) {
             List<NameValuePair> params = null;
             try {
-                URIBuilder uriBuilder = new URIBuilder(request.getUri());
+                final URIBuilder uriBuilder = new URIBuilder(request.getUri());
                 final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
 
                 final String masterId = queryParams.stream()
@@ -125,13 +133,19 @@ public class AdoceanBidder implements Bidder<Void> {
                         continue;
                     }
 
+                    queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
+                    final List<String> sizeValues = test != null && test == 1
+                            ? setSlaveSizesParam(slaveSizes, true)
+                            : setSlaveSizesParam(slaveSizes, true);
+                    if (CollectionUtils.isNotEmpty(sizeValues)) {
+                        queryParams.add(new BasicNameValuePair("aosspsizes", String.join("-", sizeValues)));
+                    }
+
                     final String url = HttpUtil.encodeUrl(String.valueOf(params));
                     if (url.length() < MAX_URI_LENGTH) {
                         return true;
                     }
-                    queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
                 }
-
             } catch (URISyntaxException e) {
                 throw new PreBidException(e.getMessage());
             }
@@ -140,16 +154,40 @@ public class AdoceanBidder implements Bidder<Void> {
     }
 
     private HttpRequest<Void> createSingleRequest(BidRequest request, Imp imp, ExtImpAdocean extImpAdocean,
-                                                  String consentString) {
+                                                  String consentString, Map<String, String> slaveSizes) {
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(buildUrl(imp.getId(), extImpAdocean, consentString, request.getTest(), request.getUser()))
+                .uri(buildUrl(imp.getId(), extImpAdocean, consentString, request.getTest(), request.getUser(),
+                        slaveSizes))
                 .headers(getHeaders(request))
                 .build();
     }
 
-    private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, Integer test, User user) {
+    private String getImpSizes(Imp imp) {
+        final Banner banner = imp.getBanner();
+        if (banner == null) {
+            return "";
+        }
+
+        final List<Format> format = banner.getFormat();
+        if (CollectionUtils.isNotEmpty(format)) {
+            final List<String> sizes = new ArrayList<>();
+            format.forEach(singleFormat -> sizes.add(String.format("%sx%s", singleFormat.getW(), singleFormat.getH())));
+            return String.join("_", sizes);
+        }
+
+        final Integer w = banner.getW();
+        final Integer h = banner.getH();
+        if (w != null && h != null) {
+            return String.format("%sx%s", w, h);
+        }
+
+        return "";
+    }
+
+    private String buildUrl(String impid, ExtImpAdocean extImpAdocean, String consentString, Integer test, User user,
+                            Map<String, String> slaveSizes) {
         final String url = endpointUrl.replace("{{Host}}", extImpAdocean.getEmitterDomain());
         final int randomizedPart = test != null && test == 1 ? 10000000 : 10000000 + (int) (Math.random() * 89999999);
         final String updateUrl = String.format("%s/_%s/ad.json", url, randomizedPart);
@@ -170,7 +208,25 @@ public class AdoceanBidder implements Bidder<Void> {
             uriBuilder.addParameter("hcuserid", user.getBuyeruid());
         }
 
+        final List<String> sizeValues = test != null && test == 1
+                ? setSlaveSizesParam(slaveSizes, true)
+                : setSlaveSizesParam(slaveSizes, false);
+
+        if (CollectionUtils.isNotEmpty(sizeValues)) {
+            uriBuilder.addParameter("aosspsizes", String.join("-", sizeValues));
+        }
+
         return uriBuilder.toString();
+    }
+
+    private List<String> setSlaveSizesParam(Map<String, String> slaveSizes, boolean orderByKey) {
+        final Set<String> slaveIDs = orderByKey ? new TreeSet<>(slaveSizes.keySet()) : slaveSizes.keySet();
+
+        return slaveIDs.stream()
+                .filter(slaveId -> StringUtils.isNotBlank(slaveSizes.get(slaveId)))
+                .map(rawSlaveID -> String.format("%s~%s", rawSlaveID.replaceFirst("adocean", ""),
+                        slaveSizes.get(rawSlaveID)))
+                .collect(Collectors.toList());
     }
 
     private static MultiMap getHeaders(BidRequest request) {

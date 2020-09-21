@@ -99,9 +99,11 @@ public class AdoceanBidderTest extends VertxTest {
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
+                        .banner(Banner.builder().format(asList(Format.builder().h(250).w(300).build(),
+                                Format.builder().h(320).w(600).build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "masterId",
-                                        "slaveId")))).build()))
+                                        "adoceanmyaozpniqismex")))).build()))
                 .test(1)
                 .build();
 
@@ -112,8 +114,9 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.0.0&id=masterId&nc=1&nosecure=1"
-                        + "&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1");
+                .containsOnly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1&nosecure=1"
+                        + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1&aosspsizes=myaozpniqismex"
+                        + "%7E300x250_600x320");
     }
 
     @Test
